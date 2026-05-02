@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Plan
 
-## Getting Started
+## Legacy App Context
 
-First, run the development server:
+The original app is contra-costa-golf-club, a full stack web app that lets members of the contra costa golf club enter scores for each tournament they play together.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+The orginal stack is React/MUI for the frontend with Node.js/Express/PostgreSQL for the backend.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## New App Plan
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The new app will be called open-caddie with a goal to be more composable and modular so users have option to record scores without the scores having to be applied to a contra costa golf club tournament.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+However, open-caddie must still facilitate all the original functionality that contra-costa-golf-club app offered.
 
-## Learn More
+### 1. Schema design (on paper, no code)
 
-To learn more about Next.js, take a look at the following resources:
+- Sketch core tables: `players`, `courses`, `holes`, `rounds`, `scores`, `tournaments`.
+- Extract from old repo: existing schema shape + handicap/points formulas. Ignore old patterns.
+- Goal: a clean, normalized Postgres schema before writing a single line of code.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 2. Project scaffold
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `create-next-app` (App Router, TypeScript).
+- Wire up Drizzle + Neon (dev branch + prod branch).
+- Configure Auth.js v5 with Google OAuth + Resend magic links.
+- Push initial schema with `drizzle-kit`.
+- Deploy a "hello world" to Vercel to confirm the pipeline works.
 
-## Deploy on Vercel
+### 3. Vertical slice: manual score entry
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Auth-gated form to enter a round by hand.
+- Server Action → Drizzle insert → DB.
+- Basic list/detail view of rounds.
+- Proves the full stack end-to-end with zero AI. Also serves as the manual fallback path.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 4. Vertical slice: handicap & points calculation
+
+- Port scoring math from the old app as pure functions.
+- Unit tests on the formulas (these are the one place tests really pay off).
+- Render a leaderboard/results table.
+
+### 5. Vertical slice: scorecard photo upload (AI #1)
+
+- Upload to Vercel Blob.
+- Vercel AI SDK `generateObject` with vision + Zod schema for scorecard structure.
+- Show parsed result side-by-side with the original photo for human confirmation before saving.
+- Persist both the image URL and the parsed scores.
+
+### 6. Vertical slice: chat over the database (AI #2)
+
+- Vercel AI SDK `streamText` with tool-calling.
+- Tools: `queryRounds`, `queryPlayers`, `queryCourses`, etc. — each hits Drizzle directly.
+- No RAG, no vector store. Schema is relational, tools are the right pattern.
+
+### 7. Course images & polish
+
+- Course photo uploads to Vercel Blob.
+- Mobile-first UI pass.
+- README focused on portfolio narrative: structured-output OCR, tool-calling chat, Neon DB branching, type-safe Server Actions.
+
+---
+
+## Stack
+
+| Layer               | Choice                                                       |
+| ------------------- | ------------------------------------------------------------ |
+| Framework           | Next.js 15 (App Router, Server Actions)                      |
+| Language            | TypeScript                                                   |
+| Database            | Neon (serverless Postgres, scales to zero, branching per PR) |
+| ORM                 | Drizzle + drizzle-kit                                        |
+| Auth                | Auth.js v5 — Google OAuth + email magic links                |
+| Email (magic links) | Resend                                                       |
+| AI SDK              | Vercel AI SDK                                                |
+| LLM (vision + chat) | Claude Sonnet 4.6 or GPT-4o                                  |
+| Image storage       | Vercel Blob                                                  |
+| Hosting             | Vercel                                                       |
+| Styling             | Tailwind CSS + shadcn/ui                                     |
+| Validation          | Zod (schemas for Server Actions + AI structured output)      |

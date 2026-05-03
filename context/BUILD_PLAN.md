@@ -16,6 +16,7 @@
 ### 1. Schema design (on paper, no code)
 
 - [x] Sketch core tables for new drizzle neon schema: `players`, `courses`, `holes`, `rounds`, `scores`, `tournaments`.
+- [x] Push new schema design with `drizzle-kit`.
 - [x] Migrate existing railway postgres ccgc database to new db on vercel neon
 
 ### 2. Project scaffold
@@ -24,7 +25,6 @@
 - [x] Wire up Drizzle + Neon (dev branch + prod branch).
 - [x] Configure Auth.js v5 with Resend magic links.
 - [ ] Configure Auth.js v5 with Google OAuth.
-- [x] Push initial schema with `drizzle-kit`.
 
 ### 3. Vertical slice: manual score entry
 
@@ -33,9 +33,9 @@
 - [ ] Basic list/detail view of rounds.
 - [ ] Proves the full stack end-to-end with zero AI. Also serves as the manual fallback path.
 
-### 4. Vertical slice: handicap & points calculation
+### 4. Vertical slice: handicap & point calculations
 
-- [ ] Extract from old repo: handicap/points formulas
+- [ ] Extract from old repo: handicap/points formulas (look at express models and routes files)
 - [ ] Port scoring math from the old app as pure functions.
 - [ ] Unit tests on the formulas (these are the one place tests really pay off).
 - [ ] Render a tournament leaderboard and season standings table

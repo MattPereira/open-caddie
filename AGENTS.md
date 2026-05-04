@@ -6,8 +6,10 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- END:nextjs-agent-rules -->
 
-## Style Guide
+## User Interface
 
-- use shadcn and tailwind for all UI components
+- use shadcn and tailwind to build ans style all UI components
+- use react hook form for all forms
 - prioritize mobile first designs but also support desktop views
 - use hugeicons for icons
+- shadcn `radix-nova` style registry is incomplete: `components/ui/form.tsx` was sourced from the `new-york` style URL and patched to use the unified `radix-ui` package; revisit and re-run `pnpm dlx shadcn@latest add @shadcn/form --overwrite` once the upstream registry is fixed

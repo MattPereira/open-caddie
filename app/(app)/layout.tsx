@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { auth } from "@/auth";
 
 export const dynamic = "force-dynamic";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -8,23 +7,25 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { getCurrentUser } from "@/db/queries/users";
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
+  const user = await getCurrentUser();
 
-  if (!session?.user) {
+  if (!user) {
     redirect("/signin");
   }
 
-  const { firstName, lastName, username, email } = session.user;
+  const { firstName, lastName, username, email, image } = user;
   const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
   const sidebarUser = {
     name: fullName || username || email || "Account",
     email: email ?? "",
+    image: image ?? null,
   };
 
   return (

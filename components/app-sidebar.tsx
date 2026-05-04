@@ -9,13 +9,13 @@ import {
   UserMultipleIcon,
   GolfHoleIcon,
   Flag01Icon,
-  ArrowUpDownIcon,
+  ExpandIcon,
   UserCircleIcon,
   Notification01Icon,
   Logout01Icon,
 } from "@hugeicons/core-free-icons";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +55,7 @@ const items: NavItem[] = [
 type SidebarUser = {
   name: string;
   email: string;
+  image?: string | null;
 };
 
 export function AppSidebar({ user }: { user: SidebarUser }) {
@@ -98,10 +99,11 @@ export function AppSidebar({ user }: { user: SidebarUser }) {
                   size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <Avatar className="size-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg">
-                      {initials}
-                    </AvatarFallback>
+                  <Avatar className="size-8">
+                    {user.image ? (
+                      <AvatarImage src={user.image} alt={user.name} />
+                    ) : null}
+                    <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{user.name}</span>
@@ -109,7 +111,7 @@ export function AppSidebar({ user }: { user: SidebarUser }) {
                       {user.email}
                     </span>
                   </div>
-                  <HugeiconsIcon icon={ArrowUpDownIcon} className="ml-auto" />
+                  <HugeiconsIcon icon={ExpandIcon} className="ml-auto" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -120,10 +122,11 @@ export function AppSidebar({ user }: { user: SidebarUser }) {
               >
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                    <Avatar className="size-8 rounded-lg">
-                      <AvatarFallback className="rounded-lg">
-                        {initials}
-                      </AvatarFallback>
+                    <Avatar className="size-8">
+                      {user.image ? (
+                        <AvatarImage src={user.image} alt={user.name} />
+                      ) : null}
+                      <AvatarFallback>{initials}</AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-medium">{user.name}</span>
@@ -135,9 +138,11 @@ export function AppSidebar({ user }: { user: SidebarUser }) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem>
-                    <HugeiconsIcon icon={UserCircleIcon} />
-                    Account
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">
+                      <HugeiconsIcon icon={UserCircleIcon} />
+                      Profile
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
                     <HugeiconsIcon icon={Notification01Icon} />

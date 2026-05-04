@@ -13,3 +13,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - prioritize mobile first designs but also support desktop views
 - use hugeicons for icons
 - shadcn `radix-nova` style registry is incomplete: `components/ui/form.tsx` was sourced from the `new-york` style URL and patched to use the unified `radix-ui` package; revisit and re-run `pnpm dlx shadcn@latest add @shadcn/form --overwrite` once the upstream registry is fixed
+
+## Database
+
+- schema defined @/db/schema.ts

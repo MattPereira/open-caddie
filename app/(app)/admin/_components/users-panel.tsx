@@ -92,12 +92,12 @@ export function UsersPanel({ users }: UsersPanelProps) {
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((user) => (
-            <Card key={user.id} className="overflow-hidden">
+            <Card key={user.id} className="gap-0 overflow-hidden py-0">
               <CardContent className="p-0">
                 <button
                   type="button"
                   onClick={() => openEdit(user)}
-                  className="flex w-full items-center gap-3 p-3 text-left hover:bg-accent"
+                  className="flex w-full items-center gap-3 p-4 text-left hover:bg-accent"
                 >
                   <Avatar className="size-10">
                     {user.image ? (

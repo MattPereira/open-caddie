@@ -17,3 +17,25 @@ export const UserUpdateSchema = UserFormSchema.extend({
 export type UserFormValues = z.infer<typeof UserFormSchema>;
 export type UserCreateValues = z.infer<typeof UserCreateSchema>;
 export type UserUpdateValues = z.infer<typeof UserUpdateSchema>;
+
+export const TournamentFormSchema = z.object({
+  clubHandle: z.string().trim().min(1, "Club is required"),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required"),
+  courseHandle: z.string().trim(),
+  tourYears: z
+    .string()
+    .trim()
+    .min(1, "Tour years is required")
+    .max(7, "Tour years must be 7 characters or fewer"),
+});
+
+export const TournamentCreateSchema = TournamentFormSchema;
+export const TournamentUpdateSchema = TournamentFormSchema.extend({
+  id: z.number().int().positive(),
+});
+
+export type TournamentFormValues = z.infer<typeof TournamentFormSchema>;
+export type TournamentCreateValues = z.infer<typeof TournamentCreateSchema>;
+export type TournamentUpdateValues = z.infer<typeof TournamentUpdateSchema>;

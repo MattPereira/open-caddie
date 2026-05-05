@@ -1,5 +1,11 @@
 import { redirect } from "next/navigation";
 
+import { getAllClubs } from "@/db/queries/clubs";
+import { getAllCourses } from "@/db/queries/courses";
+import {
+  getAllTournaments,
+  getUniqueTourYears,
+} from "@/db/queries/tournaments";
 import { getAllUsers, getCurrentUser } from "@/db/queries/users";
 import { AdminTabs } from "./_components/admin-tabs";
 
@@ -12,12 +18,24 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const rows = await getAllUsers();
+  const [users, tournaments, clubs, courses, tourYears] = await Promise.all([
+    getAllUsers(),
+    getAllTournaments(),
+    getAllClubs(),
+    getAllCourses(),
+    getUniqueTourYears(),
+  ]);
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
       <h1 className="text-2xl font-semibold">Admin Console</h1>
-      <AdminTabs users={rows} />
+      <AdminTabs
+        users={users}
+        tournaments={tournaments}
+        clubs={clubs}
+        courses={courses}
+        tourYears={tourYears}
+      />
     </main>
   );
 }

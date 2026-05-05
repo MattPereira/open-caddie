@@ -4,6 +4,7 @@ import {
   check,
   date,
   decimal,
+  foreignKey,
   integer,
   jsonb,
   pgTable,
@@ -95,6 +96,25 @@ export const seasons = pgTable(
   ],
 );
 
+export const tournaments = pgTable(
+  "tournaments",
+  {
+    id: serial("id").primaryKey(),
+    clubId: integer("club_id")
+      .notNull()
+      .references(() => clubs.id, { onDelete: "restrict" }),
+    date: date("date", { mode: "date" }).notNull(),
+    courseId: integer("course_id").references(() => courses.id, {
+      onDelete: "set null",
+    }),
+  },
+  (t) => [
+    uniqueIndex("tournaments_club_date_unique")
+      .on(t.clubId, t.date)
+      .where(sql`${t.clubId} <> 2`),
+  ],
+);
+
 export const courses = pgTable(
   "courses",
   {
@@ -117,37 +137,15 @@ export const courseHoles = pgTable(
     courseId: integer("course_id")
       .notNull()
       .references(() => courses.id, { onDelete: "cascade" }),
-    holeNumber: integer("hole_number").notNull(),
+    hole: integer("hole").notNull(),
     par: integer("par").notNull(),
     handicap: integer("handicap").notNull(),
   },
   (ch) => [
-    primaryKey({ columns: [ch.courseId, ch.holeNumber] }),
-    check(
-      "course_holes_hole_number_check",
-      sql`${ch.holeNumber} between 1 and 18`,
-    ),
+    primaryKey({ columns: [ch.courseId, ch.hole] }),
+    check("course_holes_hole_check", sql`${ch.hole} between 1 and 18`),
     check("course_holes_par_check", sql`${ch.par} between 2 and 7`),
     check("course_holes_handicap_check", sql`${ch.handicap} between 1 and 18`),
-  ],
-);
-
-export const tournaments = pgTable(
-  "tournaments",
-  {
-    id: serial("id").primaryKey(),
-    clubId: integer("club_id")
-      .notNull()
-      .references(() => clubs.id, { onDelete: "restrict" }),
-    date: date("date", { mode: "date" }).notNull(),
-    courseId: integer("course_id").references(() => courses.id, {
-      onDelete: "set null",
-    }),
-  },
-  (t) => [
-    uniqueIndex("tournaments_club_date_unique")
-      .on(t.clubId, t.date)
-      .where(sql`${t.clubId} <> 2`),
   ],
 );
 
@@ -167,42 +165,41 @@ export const rounds = pgTable(
   ],
 );
 
-// TODO: constraints for greenies. each user only 1 greenie per hole and hole must be a par 3
-export const greenies = pgTable(
-  "greenies",
-  {
-    id: serial("id").primaryKey(),
-    roundId: integer("round_id")
-      .notNull()
-      .references(() => rounds.id, { onDelete: "cascade" }),
-    holeNumber: integer("hole_number").notNull(),
-    feet: integer("feet").notNull(),
-    inches: integer("inches").notNull(),
-  },
-  (g) => [
-    check("greenies_hole_number_check", sql`${g.holeNumber} between 1 and 18`),
-    check("greenies_feet_check", sql`${g.feet} >= 0`),
-    check("greenies_inches_check", sql`${g.inches} between 0 and 11`),
-  ],
-);
-
 export const roundScores = pgTable(
   "round_scores",
   {
     roundId: integer("round_id")
       .notNull()
       .references(() => rounds.id, { onDelete: "cascade" }),
-    holeNumber: integer("hole_number").notNull(),
+    hole: integer("hole").notNull(),
     strokes: integer("strokes"),
     putts: integer("putts"),
   },
   (rs) => [
-    primaryKey({ columns: [rs.roundId, rs.holeNumber] }),
-    check(
-      "round_scores_hole_number_check",
-      sql`${rs.holeNumber} between 1 and 18`,
-    ),
+    primaryKey({ columns: [rs.roundId, rs.hole] }),
+    check("round_scores_hole_check", sql`${rs.hole} between 1 and 18`),
     check("round_scores_strokes_check", sql`${rs.strokes} >= 1`),
     check("round_scores_putts_check", sql`${rs.putts} >= 0`),
+  ],
+);
+
+export const greenies = pgTable(
+  "greenies",
+  {
+    roundId: integer("round_id").notNull(),
+    hole: integer("hole").notNull(),
+    feet: integer("feet").notNull(),
+    inches: integer("inches").notNull(),
+  },
+  (g) => [
+    primaryKey({ columns: [g.roundId, g.hole] }),
+    foreignKey({
+      columns: [g.roundId, g.hole],
+      foreignColumns: [roundScores.roundId, roundScores.hole],
+      name: "greenies_round_score_fk",
+    }).onDelete("cascade"),
+    check("greenies_hole_check", sql`${g.hole} between 1 and 18`),
+    check("greenies_feet_check", sql`${g.feet} >= 0`),
+    check("greenies_inches_check", sql`${g.inches} between 0 and 11`),
   ],
 );

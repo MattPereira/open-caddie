@@ -8,10 +8,10 @@ Reference for `scripts/migrate-from-ccgc.ts`. Source schema: `contra-costa-golf-
 |---|---|---|
 | `users` | `user` | PK `username` → `id` (UUID). `username` retained as unique. `password` dropped (Auth.js). Added `name` (synthesized as "First Last"), `image`, `emailVerified` (null on import). |
 | — | **`clubs`** *(new)* | `id` PK, unique `handle`, `name`, `logo`, `point_rules` jsonb. Multi-tenancy primitive; handles remain URL slugs. |
-| `courses`, `pars`, `handicaps` | `courses`, `course_holes` | `courses.id` is the PK, `courses.handle` remains a unique slug; legacy wide par/handicap rows become one `course_holes` row per course/hole keyed by `course_id`. |
+| `courses`, `pars`, `handicaps` | `courses`, `course_holes` | `courses.id` is the PK, `courses.handle` remains a unique slug; legacy wide par/handicap rows become one `course_holes` row per course/hole keyed by `(course_id, hole)`. |
 | `tournaments` | `tournaments` | PK `date` → `id` (serial). Added `club_id` FK (notNull) and nullable `course_id` FK. Partial unique index on `(club_id, date)` excludes the seeded casual club id. |
 | `rounds` | `rounds` | Stripped to `id`/`tournament_id`/`user_id`. Calc columns dropped (derived on read). FKs translated. |
-| `strokes`, `putts`, `greenies` | `round_scores`, `greenies` | Legacy wide stroke/putt rows become one `round_scores` row per round/hole. `greenies` remains separate. |
+| `strokes`, `putts`, `greenies` | `round_scores`, `greenies` | Legacy wide stroke/putt rows become one `round_scores` row per round/hole keyed by `(round_id, hole)`. `greenies` remains separate, but is keyed by `(round_id, hole)` and references `round_scores`, so there can be at most one greenie per scored hole. |
 | `points` | — | Dropped. Computed at read time using each club's `point_rules`. |
 
 ## CCGC `point_rules` jsonb (seeded for `ccgc` club)
@@ -32,12 +32,19 @@ Reference for `scripts/migrate-from-ccgc.ts`. Source schema: `contra-costa-golf-
 
 1. `clubs` — seed `ccgc` id `1` (with point_rules) + `casual` id `2` (empty), then reset sequence
 2. `user` — generate UUIDs, build `username → id` map
-3. `courses`, `course_holes` — copy courses, build `course_handle → id` map, then combine deduped legacy `pars`/`handicaps` into one row per course/hole
+3. `courses`, `course_holes` — copy courses, build `course_handle → id` map, then combine deduped legacy `pars`/`handicaps` into one row per course/hole. Target column is `hole`; legacy source rows still use wide `hole1`...`hole18` fields.
 4. `tournaments` — insert with `club_id: 1`, translated `course_id`, capture serial `id`, build `date → id` map
 5. `rounds` — preserve legacy `id` by passing it explicitly in `INSERT` (serial accepts override; sequence is reset after via `setval`)
-6. `round_scores`, `greenies` — combine deduped legacy `strokes`/`putts` into one row per round/hole, then copy greenies
+6. `round_scores`, `greenies` — combine deduped legacy `strokes`/`putts` into one row per round/hole, then copy greenies. Target inserts use `hole`; legacy greenies still read source `hole_number`.
 
 Large inserts are batched at 250 rows per request because Neon's HTTP driver rejects very large single insert requests.
+
+## Current normalized hole naming
+
+- Target hole-level tables use `hole`, not `hole_number`/`holeNumber`, because the integer type and golf context make "number" implicit.
+- Affected target tables: `course_holes`, `round_scores`, `greenies`.
+- Legacy source fields are unchanged in the script where they are read from the old database, such as `hole1`...`hole18` and `greenies.hole_number`.
+- `greenies` no longer has an `id` column. Its primary key is `(round_id, hole)`, and it has a composite FK to `round_scores(round_id, hole)` with cascade delete.
 
 ## Known data quirks (handled in script)
 

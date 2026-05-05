@@ -176,11 +176,11 @@ async function main() {
     }
 
     return Array.from({ length: 18 }, (_, index) => {
-      const holeNumber = index + 1;
-      const holeKey = `hole${holeNumber}` as `hole${number}`;
+      const hole = index + 1;
+      const holeKey = `hole${hole}` as `hole${number}`;
       return {
         courseId,
-        holeNumber,
+        hole,
         par: p[holeKey],
         handicap: h[holeKey],
       };
@@ -272,11 +272,11 @@ async function main() {
     }
 
     return Array.from({ length: 18 }, (_, index) => {
-      const holeNumber = index + 1;
-      const holeKey = `hole${holeNumber}` as `hole${number}`;
+      const hole = index + 1;
+      const holeKey = `hole${hole}` as `hole${number}`;
       return {
         roundId: s.round_id,
-        holeNumber,
+        hole,
         strokes: s[holeKey],
         putts: p[holeKey],
       };
@@ -292,15 +292,12 @@ async function main() {
   const srcGreenies = await source.query(`SELECT * FROM greenies`);
   const greenieRows = srcGreenies.rows.map((g) => ({
     roundId: g.round_id,
-    holeNumber: g.hole_number,
+    hole: g.hole_number,
     feet: g.feet,
     inches: g.inches,
   }));
   await insertInBatches(greenieRows, 250, (batch) =>
     target.insert(greenies).values(batch),
-  );
-  await target.execute(
-    sql`SELECT setval('greenies_id_seq', COALESCE((SELECT MAX(id) FROM greenies), 1))`,
   );
 
   console.log("\ntarget row counts:");

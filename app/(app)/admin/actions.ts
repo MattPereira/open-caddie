@@ -4,15 +4,26 @@ import { revalidatePath } from "next/cache";
 import { and, count, eq, ne } from "drizzle-orm";
 import { signIn } from "@/auth";
 import { db } from "@/db";
-import { greenies, rounds, seasons, tournaments, users } from "@/db/schema";
+import {
+  clubs,
+  greenies,
+  rounds,
+  seasons,
+  tournaments,
+  users,
+} from "@/db/schema";
 import { getCurrentUser } from "@/db/queries/users";
 import {
+  ClubCreateSchema,
+  ClubUpdateSchema,
   SeasonCreateSchema,
   SeasonUpdateSchema,
   TournamentCreateSchema,
   TournamentUpdateSchema,
   UserCreateSchema,
   UserUpdateSchema,
+  type ClubCreateValues,
+  type ClubUpdateValues,
   type SeasonCreateValues,
   type SeasonUpdateValues,
   type TournamentCreateValues,
@@ -397,6 +408,66 @@ export async function deleteSeason(id: number): Promise<ActionResult> {
   await requireAdmin();
 
   await db.delete(seasons).where(eq(seasons.id, id));
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+export async function createClub(
+  values: ClubCreateValues,
+): Promise<ActionResult> {
+  await requireAdmin();
+
+  const parsed = ClubCreateSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { handle, name, pointRules } = parsed.data;
+  const logo = parsed.data.logo.length > 0 ? parsed.data.logo : null;
+
+  try {
+    await db.insert(clubs).values({ handle, name, logo, pointRules });
+  } catch (e: unknown) {
+    const code =
+      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
+      (e as { code?: string })?.code;
+    if (code === "23505") {
+      return { ok: false, error: "A club with that handle already exists." };
+    }
+    throw e;
+  }
+
+  revalidatePath("/admin");
+  return { ok: true };
+}
+
+export async function updateClub(
+  values: ClubUpdateValues,
+): Promise<ActionResult> {
+  await requireAdmin();
+
+  const parsed = ClubUpdateSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { handle, name, pointRules } = parsed.data;
+  const logo = parsed.data.logo.length > 0 ? parsed.data.logo : null;
+
+  const [current] = await db
+    .select({ handle: clubs.handle })
+    .from(clubs)
+    .where(eq(clubs.handle, handle))
+    .limit(1);
+  if (!current) {
+    return { ok: false, error: "Club not found." };
+  }
+
+  await db
+    .update(clubs)
+    .set({ name, logo, pointRules })
+    .where(eq(clubs.handle, handle));
+
   revalidatePath("/admin");
   return { ok: true };
 }

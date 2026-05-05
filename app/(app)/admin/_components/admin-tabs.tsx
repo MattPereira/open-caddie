@@ -11,12 +11,15 @@ import type {
 } from "./tournament-sheet";
 import { SeasonsPanel } from "./seasons-panel";
 import type { AdminSeason } from "./season-sheet";
+import { ClubsPanel } from "./clubs-panel";
+import type { AdminClub } from "./club-sheet";
 
 type AdminTabsProps = {
   users: AdminUser[];
   tournaments: AdminTournament[];
   seasons: AdminSeason[];
   clubs: ClubOption[];
+  adminClubs: AdminClub[];
   courses: CourseOption[];
 };
 
@@ -25,6 +28,7 @@ export function AdminTabs({
   tournaments,
   seasons,
   clubs,
+  adminClubs,
   courses,
 }: AdminTabsProps) {
   return (
@@ -40,9 +44,7 @@ export function AdminTabs({
         <UsersPanel users={users} />
       </TabsContent>
       <TabsContent value="clubs" className="mt-4">
-        <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Coming soon.
-        </p>
+        <ClubsPanel clubs={adminClubs} />
       </TabsContent>
       <TabsContent value="seasons" className="mt-4">
         <SeasonsPanel seasons={seasons} clubs={clubs} />

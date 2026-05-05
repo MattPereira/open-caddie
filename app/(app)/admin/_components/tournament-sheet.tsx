@@ -3,8 +3,11 @@
 import { useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Calendar01Icon } from "@hugeicons/core-free-icons";
 
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Form,
   FormControl,
@@ -13,7 +16,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Sheet,
   SheetClose,
@@ -23,6 +30,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 import {
   createTournament,
   deleteTournament,
@@ -66,6 +74,59 @@ function toIsoDate(date: Date): string {
   const m = String(date.getUTCMonth() + 1).padStart(2, "0");
   const d = String(date.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+function fromIsoDate(value: string): Date | undefined {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  return new Date(`${value}T00:00:00.000Z`);
+}
+
+const dateDisplay = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+type DatePickerFieldProps = {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+};
+
+function DatePickerField({
+  value,
+  onChange,
+  placeholder = "Pick a date",
+}: DatePickerFieldProps) {
+  const selected = fromIsoDate(value);
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          className={cn(
+            "w-full justify-start font-normal",
+            !selected && "text-muted-foreground",
+          )}
+        >
+          <HugeiconsIcon icon={Calendar01Icon} size={16} />
+          {selected ? dateDisplay.format(selected) : placeholder}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={selected}
+          onSelect={(d) => {
+            if (d) onChange(toIsoDate(d));
+          }}
+          captionLayout="dropdown"
+        />
+      </PopoverContent>
+    </Popover>
+  );
 }
 
 function toFormValues(t?: AdminTournament): TournamentFormValues {
@@ -172,7 +233,11 @@ export function TournamentSheet({
                     <FormItem>
                       <FormLabel>Date</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <DatePickerField
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="Pick a date"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

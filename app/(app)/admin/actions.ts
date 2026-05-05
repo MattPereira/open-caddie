@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, count, eq, ne, sql } from "drizzle-orm";
+import { and, count, eq, ne } from "drizzle-orm";
 import { signIn } from "@/auth";
 import { db } from "@/db";
 import {
@@ -553,19 +553,21 @@ export async function createCourse(
   const imgUrl = parsed.data.imgUrl.length > 0 ? parsed.data.imgUrl : null;
 
   try {
-    const [course] = await db
-      .insert(courses)
-      .values({ handle, name, rating, slope, imgUrl })
-      .returning({ id: courses.id });
+    await db.transaction(async (tx) => {
+      const [course] = await tx
+        .insert(courses)
+        .values({ handle, name, rating, slope, imgUrl })
+        .returning({ id: courses.id });
 
-    await db.insert(courseHoles).values(
-      holes.map((hole) => ({
-        courseId: course.id,
-        hole: hole.hole,
-        par: hole.par,
-        handicap: hole.handicap,
-      })),
-    );
+      await tx.insert(courseHoles).values(
+        holes.map((hole) => ({
+          courseId: course.id,
+          hole: hole.hole,
+          par: hole.par,
+          handicap: hole.handicap,
+        })),
+      );
+    });
   } catch (e: unknown) {
     const code =
       (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
@@ -603,28 +605,22 @@ export async function updateCourse(
   }
 
   try {
-    await db
-      .update(courses)
-      .set({ handle, name, rating, slope, imgUrl })
-      .where(eq(courses.id, id));
+    await db.transaction(async (tx) => {
+      await tx
+        .update(courses)
+        .set({ handle, name, rating, slope, imgUrl })
+        .where(eq(courses.id, id));
 
-    await db
-      .insert(courseHoles)
-      .values(
+      await tx.delete(courseHoles).where(eq(courseHoles.courseId, id));
+      await tx.insert(courseHoles).values(
         holes.map((hole) => ({
           courseId: id,
           hole: hole.hole,
           par: hole.par,
           handicap: hole.handicap,
         })),
-      )
-      .onConflictDoUpdate({
-        target: [courseHoles.courseId, courseHoles.hole],
-        set: {
-          par: sql`excluded.par`,
-          handicap: sql`excluded.handicap`,
-        },
-      });
+      );
+    });
   } catch (e: unknown) {
     const code =
       (e as { cause?: { code?: string }; code?: string })?.cause?.code ??

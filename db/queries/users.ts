@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -13,4 +13,19 @@ export const getCurrentUser = cache(async () => {
   const session = await auth();
   if (!session?.user?.id) return null;
   return getUserById(session.user.id);
+});
+
+export const getAllUsers = cache(async () => {
+  return db
+    .select({
+      id: users.id,
+      email: users.email,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      username: users.username,
+      image: users.image,
+      isAdmin: users.isAdmin,
+    })
+    .from(users)
+    .orderBy(asc(users.firstName), asc(users.lastName), asc(users.email));
 });

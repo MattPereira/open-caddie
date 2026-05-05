@@ -20,12 +20,13 @@ export default async function AppLayout({
     redirect("/signin");
   }
 
-  const { firstName, lastName, username, email, image } = user;
+  const { firstName, lastName, username, email, image, isAdmin } = user;
   const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
   const sidebarUser = {
     name: fullName || username || email || "Account",
     email: email ?? "",
     image: image ?? null,
+    isAdmin,
   };
 
   return (

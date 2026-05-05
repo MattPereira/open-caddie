@@ -43,7 +43,11 @@ export function SignInForm() {
 
   const onSubmit = (values: SignInValues) => {
     startTransition(async () => {
-      await signInWithEmail(values.email);
+      const result = await signInWithEmail(values.email);
+      if (!result.ok) {
+        form.setError("email", { message: result.error });
+        return;
+      }
       setSentTo(values.email);
     });
   };

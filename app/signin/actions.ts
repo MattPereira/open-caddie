@@ -1,7 +1,29 @@
 "use server";
 
+import { eq } from "drizzle-orm";
 import { signIn } from "@/auth";
+import { db } from "@/db";
+import { users } from "@/db/schema";
 
-export async function signInWithEmail(email: string) {
-  await signIn("resend", { email, redirect: false, redirectTo: "/" });
+export async function signInWithEmail(
+  email: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const normalized = email.trim().toLowerCase();
+  const [existing] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, normalized))
+    .limit(1);
+
+  if (!existing) {
+    return { ok: false, error: "No account found for this email." };
+  }
+
+  await signIn("resend", {
+    email: normalized,
+    redirect: false,
+    redirectTo: "/",
+  });
+
+  return { ok: true };
 }

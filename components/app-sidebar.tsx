@@ -13,6 +13,8 @@ import {
   UserCircleIcon,
   Notification01Icon,
   Logout01Icon,
+  Settings02Icon,
+  UserShield01Icon,
 } from "@hugeicons/core-free-icons";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -56,6 +58,7 @@ type SidebarUser = {
   name: string;
   email: string;
   image?: string | null;
+  isAdmin: boolean;
 };
 
 export function AppSidebar({ user }: { user: SidebarUser }) {
@@ -144,9 +147,21 @@ export function AppSidebar({ user }: { user: SidebarUser }) {
                       Profile
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem disabled>
                     <HugeiconsIcon icon={Notification01Icon} />
                     Notifications
+                  </DropdownMenuItem>
+                  {user.isAdmin ? (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin">
+                        <HugeiconsIcon icon={UserShield01Icon} />
+                        Admin
+                      </Link>
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuItem disabled>
+                    <HugeiconsIcon icon={Settings02Icon} />
+                    Settings
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />

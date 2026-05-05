@@ -11,7 +11,6 @@ import {
   text,
   timestamp,
   uniqueIndex,
-  varchar,
 } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "next-auth/adapters";
 
@@ -75,6 +74,21 @@ export const clubs = pgTable("clubs", {
   logo: text("logo"),
   pointRules: jsonb("point_rules").notNull().default({}),
 });
+
+export const seasons = pgTable(
+  "seasons",
+  {
+    id: serial("id").primaryKey(),
+    clubHandle: text("club_handle")
+      .notNull()
+      .references(() => clubs.handle, { onDelete: "cascade" }),
+    number: integer("number").notNull(),
+    name: text("name"),
+    startDate: date("start_date", { mode: "date" }).notNull(),
+    endDate: date("end_date", { mode: "date" }).notNull(),
+  },
+  (s) => [uniqueIndex("seasons_club_number_unique").on(s.clubHandle, s.number)],
+);
 
 export const courses = pgTable("courses", {
   handle: text("handle").primaryKey(),
@@ -142,7 +156,6 @@ export const tournaments = pgTable(
       .references(() => clubs.handle, { onDelete: "cascade" }),
     date: date("date", { mode: "date" }).notNull(),
     courseHandle: text("course_handle").references(() => courses.handle),
-    tourYears: varchar("tour_years", { length: 7 }).notNull(),
   },
   (t) => [
     uniqueIndex("tournaments_club_date_unique")

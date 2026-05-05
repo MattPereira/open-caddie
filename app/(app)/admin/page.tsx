@@ -2,10 +2,8 @@ import { redirect } from "next/navigation";
 
 import { getAllClubs } from "@/db/queries/clubs";
 import { getAllCourses } from "@/db/queries/courses";
-import {
-  getAllTournaments,
-  getUniqueTourYears,
-} from "@/db/queries/tournaments";
+import { getAllSeasons } from "@/db/queries/seasons";
+import { getAllTournaments } from "@/db/queries/tournaments";
 import { getAllUsers, getCurrentUser } from "@/db/queries/users";
 import { AdminTabs } from "./_components/admin-tabs";
 
@@ -18,12 +16,12 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const [users, tournaments, clubs, courses, tourYears] = await Promise.all([
+  const [users, tournaments, seasons, clubs, courses] = await Promise.all([
     getAllUsers(),
     getAllTournaments(),
+    getAllSeasons(),
     getAllClubs(),
     getAllCourses(),
-    getUniqueTourYears(),
   ]);
 
   return (
@@ -32,9 +30,9 @@ export default async function AdminPage() {
       <AdminTabs
         users={users}
         tournaments={tournaments}
+        seasons={seasons}
         clubs={clubs}
         courses={courses}
-        tourYears={tourYears}
       />
     </main>
   );

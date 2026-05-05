@@ -10,6 +10,7 @@ import {
   courses,
   pars,
   handicaps,
+  seasons,
   tournaments,
   strokes,
   putts,
@@ -67,7 +68,7 @@ async function main() {
   console.log("\ntruncating target tables");
   await target.execute(sql`
     TRUNCATE TABLE
-      greenies, putts, strokes, rounds, tournaments,
+      greenies, putts, strokes, rounds, tournaments, seasons,
       handicaps, pars, courses, "user", clubs
     RESTART IDENTITY CASCADE
   `);
@@ -126,12 +127,24 @@ async function main() {
   await target.insert(pars).values(
     srcPars.rows.map((p) => ({
       courseHandle: p.course_handle,
-      hole1: p.hole1, hole2: p.hole2, hole3: p.hole3,
-      hole4: p.hole4, hole5: p.hole5, hole6: p.hole6,
-      hole7: p.hole7, hole8: p.hole8, hole9: p.hole9,
-      hole10: p.hole10, hole11: p.hole11, hole12: p.hole12,
-      hole13: p.hole13, hole14: p.hole14, hole15: p.hole15,
-      hole16: p.hole16, hole17: p.hole17, hole18: p.hole18,
+      hole1: p.hole1,
+      hole2: p.hole2,
+      hole3: p.hole3,
+      hole4: p.hole4,
+      hole5: p.hole5,
+      hole6: p.hole6,
+      hole7: p.hole7,
+      hole8: p.hole8,
+      hole9: p.hole9,
+      hole10: p.hole10,
+      hole11: p.hole11,
+      hole12: p.hole12,
+      hole13: p.hole13,
+      hole14: p.hole14,
+      hole15: p.hole15,
+      hole16: p.hole16,
+      hole17: p.hole17,
+      hole18: p.hole18,
       total: p.total,
     })),
   );
@@ -143,18 +156,54 @@ async function main() {
   await target.insert(handicaps).values(
     srcHcps.rows.map((h) => ({
       courseHandle: h.course_handle,
-      hole1: h.hole1, hole2: h.hole2, hole3: h.hole3,
-      hole4: h.hole4, hole5: h.hole5, hole6: h.hole6,
-      hole7: h.hole7, hole8: h.hole8, hole9: h.hole9,
-      hole10: h.hole10, hole11: h.hole11, hole12: h.hole12,
-      hole13: h.hole13, hole14: h.hole14, hole15: h.hole15,
-      hole16: h.hole16, hole17: h.hole17, hole18: h.hole18,
+      hole1: h.hole1,
+      hole2: h.hole2,
+      hole3: h.hole3,
+      hole4: h.hole4,
+      hole5: h.hole5,
+      hole6: h.hole6,
+      hole7: h.hole7,
+      hole8: h.hole8,
+      hole9: h.hole9,
+      hole10: h.hole10,
+      hole11: h.hole11,
+      hole12: h.hole12,
+      hole13: h.hole13,
+      hole14: h.hole14,
+      hole15: h.hole15,
+      hole16: h.hole16,
+      hole17: h.hole17,
+      hole18: h.hole18,
     })),
   );
 
+  console.log("migrating seasons (grouped from legacy tour_years)");
+  const srcSeasonGroups = await source.query<{
+    tour_years: string;
+    start_date: Date;
+    end_date: Date;
+  }>(
+    `SELECT
+       tour_years,
+       MIN(date) AS start_date,
+       MAX(date) AS end_date
+     FROM tournaments
+     GROUP BY tour_years
+     ORDER BY MIN(date)`,
+  );
+  const seasonRows = srcSeasonGroups.rows.map((s, i) => ({
+    clubHandle: "ccgc",
+    number: i + 1,
+    name: s.tour_years,
+    startDate: s.start_date,
+    endDate: s.end_date,
+  }));
+  await target.insert(seasons).values(seasonRows);
+  console.log(`  ${seasonRows.length} seasons inserted`);
+
   console.log("migrating tournaments");
   const srcTournaments = await source.query(
-    `SELECT date, course_handle, tour_years FROM tournaments ORDER BY date`,
+    `SELECT date, course_handle FROM tournaments ORDER BY date`,
   );
   const tournamentIdByDate = new Map<string, number>();
   for (const t of srcTournaments.rows) {
@@ -164,7 +213,6 @@ async function main() {
         clubHandle: "ccgc",
         date: t.date,
         courseHandle: t.course_handle,
-        tourYears: t.tour_years,
       })
       .returning({ id: tournaments.id });
     tournamentIdByDate.set(dateKey(t.date), inserted.id);
@@ -179,9 +227,7 @@ async function main() {
     const newTid = tournamentIdByDate.get(dateKey(r.tournament_date));
     const newUid = userIdByUsername.get(r.username);
     if (!newTid || !newUid) {
-      console.warn(
-        `  skipping round ${r.id}: tid=${newTid} uid=${newUid}`,
-      );
+      console.warn(`  skipping round ${r.id}: tid=${newTid} uid=${newUid}`);
       continue;
     }
     await target.execute(sql`
@@ -202,12 +248,24 @@ async function main() {
   await target.insert(strokes).values(
     srcStrokes.rows.map((s) => ({
       roundId: s.round_id,
-      hole1: s.hole1, hole2: s.hole2, hole3: s.hole3,
-      hole4: s.hole4, hole5: s.hole5, hole6: s.hole6,
-      hole7: s.hole7, hole8: s.hole8, hole9: s.hole9,
-      hole10: s.hole10, hole11: s.hole11, hole12: s.hole12,
-      hole13: s.hole13, hole14: s.hole14, hole15: s.hole15,
-      hole16: s.hole16, hole17: s.hole17, hole18: s.hole18,
+      hole1: s.hole1,
+      hole2: s.hole2,
+      hole3: s.hole3,
+      hole4: s.hole4,
+      hole5: s.hole5,
+      hole6: s.hole6,
+      hole7: s.hole7,
+      hole8: s.hole8,
+      hole9: s.hole9,
+      hole10: s.hole10,
+      hole11: s.hole11,
+      hole12: s.hole12,
+      hole13: s.hole13,
+      hole14: s.hole14,
+      hole15: s.hole15,
+      hole16: s.hole16,
+      hole17: s.hole17,
+      hole18: s.hole18,
     })),
   );
 
@@ -218,12 +276,24 @@ async function main() {
   await target.insert(putts).values(
     srcPutts.rows.map((p) => ({
       roundId: p.round_id,
-      hole1: p.hole1, hole2: p.hole2, hole3: p.hole3,
-      hole4: p.hole4, hole5: p.hole5, hole6: p.hole6,
-      hole7: p.hole7, hole8: p.hole8, hole9: p.hole9,
-      hole10: p.hole10, hole11: p.hole11, hole12: p.hole12,
-      hole13: p.hole13, hole14: p.hole14, hole15: p.hole15,
-      hole16: p.hole16, hole17: p.hole17, hole18: p.hole18,
+      hole1: p.hole1,
+      hole2: p.hole2,
+      hole3: p.hole3,
+      hole4: p.hole4,
+      hole5: p.hole5,
+      hole6: p.hole6,
+      hole7: p.hole7,
+      hole8: p.hole8,
+      hole9: p.hole9,
+      hole10: p.hole10,
+      hole11: p.hole11,
+      hole12: p.hole12,
+      hole13: p.hole13,
+      hole14: p.hole14,
+      hole15: p.hole15,
+      hole16: p.hole16,
+      hole17: p.hole17,
+      hole18: p.hole18,
     })),
   );
 
@@ -249,6 +319,7 @@ async function main() {
       (SELECT COUNT(*) FROM courses)::int      AS courses,
       (SELECT COUNT(*) FROM pars)::int         AS pars,
       (SELECT COUNT(*) FROM handicaps)::int    AS handicaps,
+      (SELECT COUNT(*) FROM seasons)::int      AS seasons,
       (SELECT COUNT(*) FROM tournaments)::int  AS tournaments,
       (SELECT COUNT(*) FROM rounds)::int       AS rounds,
       (SELECT COUNT(*) FROM strokes)::int      AS strokes,

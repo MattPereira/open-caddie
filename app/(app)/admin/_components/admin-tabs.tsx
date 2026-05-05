@@ -9,47 +9,53 @@ import type {
   ClubOption,
   CourseOption,
 } from "./tournament-sheet";
+import { SeasonsPanel } from "./seasons-panel";
+import type { AdminSeason } from "./season-sheet";
 
 type AdminTabsProps = {
   users: AdminUser[];
   tournaments: AdminTournament[];
+  seasons: AdminSeason[];
   clubs: ClubOption[];
   courses: CourseOption[];
-  tourYears: string[];
 };
 
 export function AdminTabs({
   users,
   tournaments,
+  seasons,
   clubs,
   courses,
-  tourYears,
 }: AdminTabsProps) {
   return (
     <Tabs defaultValue="users" className="w-full">
       <TabsList>
         <TabsTrigger value="users">Users</TabsTrigger>
+        <TabsTrigger value="clubs">Clubs</TabsTrigger>
+        <TabsTrigger value="seasons">Seasons</TabsTrigger>
         <TabsTrigger value="tournaments">Tournaments</TabsTrigger>
         <TabsTrigger value="courses">Courses</TabsTrigger>
-        <TabsTrigger value="clubs">Clubs</TabsTrigger>
       </TabsList>
       <TabsContent value="users" className="mt-4">
         <UsersPanel users={users} />
+      </TabsContent>
+      <TabsContent value="clubs" className="mt-4">
+        <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+          Coming soon.
+        </p>
+      </TabsContent>
+      <TabsContent value="seasons" className="mt-4">
+        <SeasonsPanel seasons={seasons} clubs={clubs} />
       </TabsContent>
       <TabsContent value="tournaments" className="mt-4">
         <TournamentsPanel
           tournaments={tournaments}
           clubs={clubs}
           courses={courses}
-          tourYears={tourYears}
         />
       </TabsContent>
+
       <TabsContent value="courses" className="mt-4">
-        <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Coming soon.
-        </p>
-      </TabsContent>
-      <TabsContent value="clubs" className="mt-4">
         <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
           Coming soon.
         </p>

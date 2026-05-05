@@ -151,7 +151,6 @@ export function TournamentSheet({
 }: TournamentSheetProps) {
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
-  const [serverError, setServerError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -159,15 +158,23 @@ export function TournamentSheet({
     resolver: zodResolver(TournamentFormSchema),
     defaultValues: toFormValues(tournament),
   });
+  const serverError = form.formState.errors.root?.server?.message;
 
   useEffect(() => {
     if (open) {
       form.reset(toFormValues(tournament));
-      setServerError(null);
+    }
+  }, [open, tournament, form]);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      form.clearErrors("root.server");
       setDeleteError(null);
       setConfirmingDelete(false);
     }
-  }, [open, tournament, form]);
+
+    onOpenChange(nextOpen);
+  };
 
   const onDelete = () => {
     if (!tournament) return;
@@ -179,12 +186,12 @@ export function TournamentSheet({
         return;
       }
       setConfirmingDelete(false);
-      onOpenChange(false);
+      handleOpenChange(false);
     });
   };
 
   const onSubmit = (values: TournamentFormValues) => {
-    setServerError(null);
+    form.clearErrors("root.server");
     startTransition(async () => {
       const result =
         mode === "create"
@@ -192,15 +199,18 @@ export function TournamentSheet({
           : await updateTournament({ ...values, id: tournament!.id });
 
       if (!result.ok) {
-        setServerError(result.error);
+        form.setError("root.server", {
+          type: "server",
+          message: result.error,
+        });
         return;
       }
-      onOpenChange(false);
+      handleOpenChange(false);
     });
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent className="flex w-full flex-col gap-0 sm:max-w-md">
         <SheetHeader>
           <SheetTitle>

@@ -69,7 +69,6 @@ function toFormValues(user?: AdminUser): UserFormValues {
 export function UserSheet({ open, onOpenChange, mode, user }: UserSheetProps) {
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
-  const [serverError, setServerError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -77,15 +76,23 @@ export function UserSheet({ open, onOpenChange, mode, user }: UserSheetProps) {
     resolver: zodResolver(UserFormSchema),
     defaultValues: toFormValues(user),
   });
+  const serverError = form.formState.errors.root?.server?.message;
 
   useEffect(() => {
     if (open) {
       form.reset(toFormValues(user));
-      setServerError(null);
+    }
+  }, [open, user, form]);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      form.clearErrors("root.server");
       setDeleteError(null);
       setConfirmingDelete(false);
     }
-  }, [open, user, form]);
+
+    onOpenChange(nextOpen);
+  };
 
   const onDelete = () => {
     if (!user) return;
@@ -97,12 +104,12 @@ export function UserSheet({ open, onOpenChange, mode, user }: UserSheetProps) {
         return;
       }
       setConfirmingDelete(false);
-      onOpenChange(false);
+      handleOpenChange(false);
     });
   };
 
   const onSubmit = (values: UserFormValues) => {
-    setServerError(null);
+    form.clearErrors("root.server");
     startTransition(async () => {
       const result =
         mode === "create"
@@ -110,15 +117,18 @@ export function UserSheet({ open, onOpenChange, mode, user }: UserSheetProps) {
           : await updateUser({ ...values, id: user!.id });
 
       if (!result.ok) {
-        setServerError(result.error);
+        form.setError("root.server", {
+          type: "server",
+          message: result.error,
+        });
         return;
       }
-      onOpenChange(false);
+      handleOpenChange(false);
     });
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent className="flex w-full flex-col gap-0 sm:max-w-md">
         <SheetHeader>
           <SheetTitle>

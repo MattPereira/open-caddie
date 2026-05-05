@@ -7,16 +7,18 @@ export const getAllTournaments = cache(async () => {
   return db
     .select({
       id: tournaments.id,
-      clubHandle: tournaments.clubHandle,
+      clubId: tournaments.clubId,
+      clubHandle: clubs.handle,
       clubName: clubs.name,
       date: tournaments.date,
-      courseHandle: tournaments.courseHandle,
+      courseId: tournaments.courseId,
+      courseHandle: courses.handle,
       courseName: courses.name,
       courseImgUrl: courses.imgUrl,
     })
     .from(tournaments)
-    .innerJoin(clubs, eq(tournaments.clubHandle, clubs.handle))
-    .leftJoin(courses, eq(tournaments.courseHandle, courses.handle))
+    .innerJoin(clubs, eq(tournaments.clubId, clubs.id))
+    .leftJoin(courses, eq(tournaments.courseId, courses.id))
     .orderBy(desc(tournaments.date));
 });
 

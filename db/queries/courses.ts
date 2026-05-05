@@ -5,7 +5,7 @@ import { courses } from "@/db/schema";
 
 export const getAllCourses = cache(async () => {
   return db
-    .select({ handle: courses.handle, name: courses.name })
+    .select({ id: courses.id, handle: courses.handle, name: courses.name })
     .from(courses)
     .orderBy(asc(courses.name));
 });

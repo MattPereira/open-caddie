@@ -6,7 +6,7 @@ import type { PointRules } from "@/app/(app)/admin/schema";
 
 export const getAllClubs = cache(async () => {
   return db
-    .select({ handle: clubs.handle, name: clubs.name })
+    .select({ id: clubs.id, handle: clubs.handle, name: clubs.name })
     .from(clubs)
     .orderBy(asc(clubs.name));
 });
@@ -14,6 +14,7 @@ export const getAllClubs = cache(async () => {
 export const getAllClubsFull = cache(async () => {
   const rows = await db
     .select({
+      id: clubs.id,
       handle: clubs.handle,
       name: clubs.name,
       logo: clubs.logo,

@@ -6,6 +6,7 @@ import { signIn } from "@/auth";
 import { db } from "@/db";
 import {
   clubs,
+  courses,
   greenies,
   rounds,
   seasons,
@@ -50,6 +51,25 @@ function emptyToNull(s: string) {
 function buildName(firstName: string | null, lastName: string | null) {
   const full = [firstName, lastName].filter(Boolean).join(" ").trim();
   return full.length > 0 ? full : null;
+}
+
+async function getClubIdByHandle(handle: string) {
+  const [club] = await db
+    .select({ id: clubs.id })
+    .from(clubs)
+    .where(eq(clubs.handle, handle))
+    .limit(1);
+  return club?.id ?? null;
+}
+
+async function getCourseIdByHandle(handle: string | null) {
+  if (!handle) return null;
+  const [course] = await db
+    .select({ id: courses.id })
+    .from(courses)
+    .where(eq(courses.handle, handle))
+    .limit(1);
+  return course?.id ?? null;
 }
 
 export async function createUser(
@@ -240,12 +260,18 @@ export async function createTournament(
   const { clubHandle } = parsed.data;
   const date = parseDateOnly(parsed.data.date);
   const courseHandle = emptyToNull(parsed.data.courseHandle);
+  const clubId = await getClubIdByHandle(clubHandle);
+  const courseId = await getCourseIdByHandle(courseHandle);
+
+  if (!clubId || (courseHandle && !courseId)) {
+    return { ok: false, error: "Selected club or course does not exist." };
+  }
 
   try {
     await db.insert(tournaments).values({
-      clubHandle,
+      clubId,
       date,
-      courseHandle,
+      courseId,
     });
   } catch (e: unknown) {
     const code =
@@ -280,6 +306,12 @@ export async function updateTournament(
   const { id, clubHandle } = parsed.data;
   const date = parseDateOnly(parsed.data.date);
   const courseHandle = emptyToNull(parsed.data.courseHandle);
+  const clubId = await getClubIdByHandle(clubHandle);
+  const courseId = await getCourseIdByHandle(courseHandle);
+
+  if (!clubId || (courseHandle && !courseId)) {
+    return { ok: false, error: "Selected club or course does not exist." };
+  }
 
   const [current] = await db
     .select({ id: tournaments.id })
@@ -293,7 +325,7 @@ export async function updateTournament(
   try {
     await db
       .update(tournaments)
-      .set({ clubHandle, date, courseHandle })
+      .set({ clubId, date, courseId })
       .where(eq(tournaments.id, id));
   } catch (e: unknown) {
     const code =
@@ -328,10 +360,15 @@ export async function createSeason(
   const { clubHandle, number } = parsed.data;
   const startDate = parseDateOnly(parsed.data.startDate);
   const endDate = parseDateOnly(parsed.data.endDate);
+  const clubId = await getClubIdByHandle(clubHandle);
+
+  if (!clubId) {
+    return { ok: false, error: "Selected club does not exist." };
+  }
 
   try {
     await db.insert(seasons).values({
-      clubHandle,
+      clubId,
       number,
       startDate,
       endDate,
@@ -369,6 +406,11 @@ export async function updateSeason(
   const { id, clubHandle, number } = parsed.data;
   const startDate = parseDateOnly(parsed.data.startDate);
   const endDate = parseDateOnly(parsed.data.endDate);
+  const clubId = await getClubIdByHandle(clubHandle);
+
+  if (!clubId) {
+    return { ok: false, error: "Selected club does not exist." };
+  }
 
   const [current] = await db
     .select({ id: seasons.id })
@@ -382,7 +424,7 @@ export async function updateSeason(
   try {
     await db
       .update(seasons)
-      .set({ clubHandle, number, startDate, endDate })
+      .set({ clubId, number, startDate, endDate })
       .where(eq(seasons.id, id));
   } catch (e: unknown) {
     const code =

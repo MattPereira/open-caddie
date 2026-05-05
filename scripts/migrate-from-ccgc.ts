@@ -8,12 +8,10 @@ import {
   clubs,
   users,
   courses,
-  pars,
-  handicaps,
+  courseHoles,
   seasons,
   tournaments,
-  strokes,
-  putts,
+  roundScores,
   greenies,
 } from "../db/schema";
 
@@ -60,6 +58,26 @@ const CCGC_POINT_RULES = {
 };
 
 const dateKey = (d: Date) => d.toISOString().slice(0, 10);
+const CCGC_CLUB_ID = 1;
+const CASUAL_CLUB_ID = 2;
+type LegacyCourseHoleRow = { course_handle: string } & Record<
+  `hole${number}`,
+  number
+>;
+type LegacyRoundScoreRow = { round_id: number } & Record<
+  `hole${number}`,
+  number | null
+>;
+
+async function insertInBatches<T>(
+  rows: T[],
+  batchSize: number,
+  insertBatch: (batch: T[]) => Promise<unknown>,
+) {
+  for (let i = 0; i < rows.length; i += batchSize) {
+    await insertBatch(rows.slice(i, i + batchSize));
+  }
+}
 
 async function main() {
   await source.connect();
@@ -68,21 +86,32 @@ async function main() {
   console.log("\ntruncating target tables");
   await target.execute(sql`
     TRUNCATE TABLE
-      greenies, putts, strokes, rounds, tournaments, seasons,
-      handicaps, pars, courses, "user", clubs
+      greenies, round_scores, rounds, tournaments, seasons,
+      course_holes, courses, "account", "session", "verificationToken",
+      "user", clubs
     RESTART IDENTITY CASCADE
   `);
 
   console.log("seeding clubs");
   await target.insert(clubs).values([
     {
+      id: CCGC_CLUB_ID,
       handle: "ccgc",
       name: "Contra Costa Golf Club",
       logo: null,
       pointRules: CCGC_POINT_RULES,
     },
-    { handle: "casual", name: "Casual Play", logo: null, pointRules: {} },
+    {
+      id: CASUAL_CLUB_ID,
+      handle: "casual",
+      name: "Casual Play",
+      logo: null,
+      pointRules: {},
+    },
   ]);
+  await target.execute(
+    sql`SELECT setval('clubs_id_seq', COALESCE((SELECT MAX(id) FROM clubs), 1))`,
+  );
 
   console.log("migrating users");
   const srcUsers = await source.query(
@@ -106,76 +135,62 @@ async function main() {
       isAdmin: u.is_admin,
     };
   });
-  await target.insert(users).values(userRows);
+  await insertInBatches(userRows, 250, (batch) =>
+    target.insert(users).values(batch),
+  );
 
   console.log("copying courses");
   const srcCourses = await source.query(`SELECT * FROM courses`);
-  await target.insert(courses).values(
-    srcCourses.rows.map((c) => ({
-      handle: c.handle,
-      name: c.name,
-      rating: c.rating,
-      slope: c.slope,
-      imgUrl: c.img_url,
-    })),
+  const insertedCourses = await target
+    .insert(courses)
+    .values(
+      srcCourses.rows.map((c) => ({
+        handle: c.handle,
+        name: c.name,
+        rating: c.rating,
+        slope: c.slope,
+        imgUrl: c.img_url,
+      })),
+    )
+    .returning({ id: courses.id, handle: courses.handle });
+  const courseIdByHandle = new Map(
+    insertedCourses.map((c) => [c.handle, c.id]),
   );
 
-  console.log("copying pars (deduped via DISTINCT ON)");
-  const srcPars = await source.query(
+  console.log("copying course holes (deduped via DISTINCT ON)");
+  const srcPars = await source.query<LegacyCourseHoleRow>(
     `SELECT DISTINCT ON (course_handle) * FROM pars ORDER BY course_handle`,
   );
-  await target.insert(pars).values(
-    srcPars.rows.map((p) => ({
-      courseHandle: p.course_handle,
-      hole1: p.hole1,
-      hole2: p.hole2,
-      hole3: p.hole3,
-      hole4: p.hole4,
-      hole5: p.hole5,
-      hole6: p.hole6,
-      hole7: p.hole7,
-      hole8: p.hole8,
-      hole9: p.hole9,
-      hole10: p.hole10,
-      hole11: p.hole11,
-      hole12: p.hole12,
-      hole13: p.hole13,
-      hole14: p.hole14,
-      hole15: p.hole15,
-      hole16: p.hole16,
-      hole17: p.hole17,
-      hole18: p.hole18,
-      total: p.total,
-    })),
-  );
-
-  console.log("copying handicaps (deduped via DISTINCT ON)");
-  const srcHcps = await source.query(
+  const srcHcps = await source.query<LegacyCourseHoleRow>(
     `SELECT DISTINCT ON (course_handle) * FROM handicaps ORDER BY course_handle`,
   );
-  await target.insert(handicaps).values(
-    srcHcps.rows.map((h) => ({
-      courseHandle: h.course_handle,
-      hole1: h.hole1,
-      hole2: h.hole2,
-      hole3: h.hole3,
-      hole4: h.hole4,
-      hole5: h.hole5,
-      hole6: h.hole6,
-      hole7: h.hole7,
-      hole8: h.hole8,
-      hole9: h.hole9,
-      hole10: h.hole10,
-      hole11: h.hole11,
-      hole12: h.hole12,
-      hole13: h.hole13,
-      hole14: h.hole14,
-      hole15: h.hole15,
-      hole16: h.hole16,
-      hole17: h.hole17,
-      hole18: h.hole18,
-    })),
-  );
+  const hcpByCourse = new Map(srcHcps.rows.map((h) => [h.course_handle, h]));
+  const courseHoleRows = srcPars.rows.flatMap((p) => {
+    const h = hcpByCourse.get(p.course_handle);
+    const courseId = courseIdByHandle.get(p.course_handle);
+    if (!h || !courseId) {
+      console.warn(
+        `  skipping course holes for ${p.course_handle}: courseId=${courseId} handicaps=${Boolean(h)}`,
+      );
+      return [];
+    }
+
+    return Array.from({ length: 18 }, (_, index) => {
+      const holeNumber = index + 1;
+      const holeKey = `hole${holeNumber}` as `hole${number}`;
+      return {
+        courseId,
+        holeNumber,
+        par: p[holeKey],
+        handicap: h[holeKey],
+      };
+    });
+  });
+  if (courseHoleRows.length > 0) {
+    await insertInBatches(courseHoleRows, 250, (batch) =>
+      target.insert(courseHoles).values(batch),
+    );
+  }
 
   console.log("migrating seasons (grouped from legacy tour_years)");
   const srcSeasonGroups = await source.query<{
@@ -192,7 +207,7 @@ async function main() {
      ORDER BY MIN(date)`,
   );
   const seasonRows = srcSeasonGroups.rows.map((s, i) => ({
-    clubHandle: "ccgc",
+    clubId: CCGC_CLUB_ID,
     number: i + 1,
     name: s.tour_years,
     startDate: s.start_date,
@@ -210,9 +225,9 @@ async function main() {
     const [inserted] = await target
       .insert(tournaments)
       .values({
-        clubHandle: "ccgc",
+        clubId: CCGC_CLUB_ID,
         date: t.date,
-        courseHandle: t.course_handle,
+        courseId: courseIdByHandle.get(t.course_handle) ?? null,
       })
       .returning({ id: tournaments.id });
     tournamentIdByDate.set(dateKey(t.date), inserted.id);
@@ -241,71 +256,48 @@ async function main() {
   );
   console.log(`  ${roundsInserted} rounds inserted`);
 
-  console.log("copying strokes (deduped via DISTINCT ON)");
-  const srcStrokes = await source.query(
+  console.log("copying round scores (deduped via DISTINCT ON)");
+  const srcStrokes = await source.query<LegacyRoundScoreRow>(
     `SELECT DISTINCT ON (round_id) * FROM strokes ORDER BY round_id`,
   );
-  await target.insert(strokes).values(
-    srcStrokes.rows.map((s) => ({
-      roundId: s.round_id,
-      hole1: s.hole1,
-      hole2: s.hole2,
-      hole3: s.hole3,
-      hole4: s.hole4,
-      hole5: s.hole5,
-      hole6: s.hole6,
-      hole7: s.hole7,
-      hole8: s.hole8,
-      hole9: s.hole9,
-      hole10: s.hole10,
-      hole11: s.hole11,
-      hole12: s.hole12,
-      hole13: s.hole13,
-      hole14: s.hole14,
-      hole15: s.hole15,
-      hole16: s.hole16,
-      hole17: s.hole17,
-      hole18: s.hole18,
-    })),
-  );
-
-  console.log("copying putts (deduped via DISTINCT ON)");
-  const srcPutts = await source.query(
+  const srcPutts = await source.query<LegacyRoundScoreRow>(
     `SELECT DISTINCT ON (round_id) * FROM putts ORDER BY round_id`,
   );
-  await target.insert(putts).values(
-    srcPutts.rows.map((p) => ({
-      roundId: p.round_id,
-      hole1: p.hole1,
-      hole2: p.hole2,
-      hole3: p.hole3,
-      hole4: p.hole4,
-      hole5: p.hole5,
-      hole6: p.hole6,
-      hole7: p.hole7,
-      hole8: p.hole8,
-      hole9: p.hole9,
-      hole10: p.hole10,
-      hole11: p.hole11,
-      hole12: p.hole12,
-      hole13: p.hole13,
-      hole14: p.hole14,
-      hole15: p.hole15,
-      hole16: p.hole16,
-      hole17: p.hole17,
-      hole18: p.hole18,
-    })),
-  );
+  const puttsByRound = new Map(srcPutts.rows.map((p) => [p.round_id, p]));
+  const roundScoreRows = srcStrokes.rows.flatMap((s) => {
+    const p = puttsByRound.get(s.round_id);
+    if (!p) {
+      console.warn(`  skipping round scores for ${s.round_id}: no putts`);
+      return [];
+    }
+
+    return Array.from({ length: 18 }, (_, index) => {
+      const holeNumber = index + 1;
+      const holeKey = `hole${holeNumber}` as `hole${number}`;
+      return {
+        roundId: s.round_id,
+        holeNumber,
+        strokes: s[holeKey],
+        putts: p[holeKey],
+      };
+    });
+  });
+  if (roundScoreRows.length > 0) {
+    await insertInBatches(roundScoreRows, 250, (batch) =>
+      target.insert(roundScores).values(batch),
+    );
+  }
 
   console.log("copying greenies");
   const srcGreenies = await source.query(`SELECT * FROM greenies`);
-  await target.insert(greenies).values(
-    srcGreenies.rows.map((g) => ({
-      roundId: g.round_id,
-      holeNumber: g.hole_number,
-      feet: g.feet,
-      inches: g.inches,
-    })),
+  const greenieRows = srcGreenies.rows.map((g) => ({
+    roundId: g.round_id,
+    holeNumber: g.hole_number,
+    feet: g.feet,
+    inches: g.inches,
+  }));
+  await insertInBatches(greenieRows, 250, (batch) =>
+    target.insert(greenies).values(batch),
   );
   await target.execute(
     sql`SELECT setval('greenies_id_seq', COALESCE((SELECT MAX(id) FROM greenies), 1))`,
@@ -317,13 +309,11 @@ async function main() {
       (SELECT COUNT(*) FROM clubs)::int        AS clubs,
       (SELECT COUNT(*) FROM "user")::int       AS users,
       (SELECT COUNT(*) FROM courses)::int      AS courses,
-      (SELECT COUNT(*) FROM pars)::int         AS pars,
-      (SELECT COUNT(*) FROM handicaps)::int    AS handicaps,
+      (SELECT COUNT(*) FROM course_holes)::int AS course_holes,
       (SELECT COUNT(*) FROM seasons)::int      AS seasons,
       (SELECT COUNT(*) FROM tournaments)::int  AS tournaments,
       (SELECT COUNT(*) FROM rounds)::int       AS rounds,
-      (SELECT COUNT(*) FROM strokes)::int      AS strokes,
-      (SELECT COUNT(*) FROM putts)::int        AS putts,
+      (SELECT COUNT(*) FROM round_scores)::int AS round_scores,
       (SELECT COUNT(*) FROM greenies)::int     AS greenies
   `);
   console.table(counts.rows ?? counts);

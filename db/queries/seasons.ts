@@ -7,13 +7,14 @@ export const getAllSeasons = cache(async () => {
   return db
     .select({
       id: seasons.id,
-      clubHandle: seasons.clubHandle,
+      clubId: seasons.clubId,
+      clubHandle: clubs.handle,
       clubName: clubs.name,
       number: seasons.number,
       startDate: seasons.startDate,
       endDate: seasons.endDate,
     })
     .from(seasons)
-    .innerJoin(clubs, eq(seasons.clubHandle, clubs.handle))
+    .innerJoin(clubs, eq(seasons.clubId, clubs.id))
     .orderBy(asc(clubs.name), asc(seasons.number));
 });

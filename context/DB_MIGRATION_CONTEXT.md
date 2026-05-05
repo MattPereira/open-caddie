@@ -7,11 +7,11 @@ Reference for `scripts/migrate-from-ccgc.ts`. Source schema: `contra-costa-golf-
 | Old | New | Key changes |
 |---|---|---|
 | `users` | `user` | PK `username` → `id` (UUID). `username` retained as unique. `password` dropped (Auth.js). Added `name` (synthesized as "First Last"), `image`, `emailVerified` (null on import). |
-| — | **`clubs`** *(new)* | `handle` PK, `name`, `logo`, `point_rules` jsonb. Multi-tenancy primitive. |
-| `courses`, `pars`, `handicaps` | same | Unchanged shape, global (not club-scoped). |
-| `tournaments` | `tournaments` | PK `date` → `id` (serial). Added `club_handle` FK (notNull). Partial unique index on `(club_handle, date) WHERE club_handle <> 'casual'`. |
+| — | **`clubs`** *(new)* | `id` PK, unique `handle`, `name`, `logo`, `point_rules` jsonb. Multi-tenancy primitive; handles remain URL slugs. |
+| `courses`, `pars`, `handicaps` | `courses`, `course_holes` | `courses.id` is the PK, `courses.handle` remains a unique slug; legacy wide par/handicap rows become one `course_holes` row per course/hole keyed by `course_id`. |
+| `tournaments` | `tournaments` | PK `date` → `id` (serial). Added `club_id` FK (notNull) and nullable `course_id` FK. Partial unique index on `(club_id, date)` excludes the seeded casual club id. |
 | `rounds` | `rounds` | Stripped to `id`/`tournament_id`/`user_id`. Calc columns dropped (derived on read). FKs translated. |
-| `strokes`, `putts`, `greenies` | same | Unchanged shape. |
+| `strokes`, `putts`, `greenies` | `round_scores`, `greenies` | Legacy wide stroke/putt rows become one `round_scores` row per round/hole. `greenies` remains separate. |
 | `points` | — | Dropped. Computed at read time using each club's `point_rules`. |
 
 ## CCGC `point_rules` jsonb (seeded for `ccgc` club)
@@ -30,16 +30,18 @@ Reference for `scripts/migrate-from-ccgc.ts`. Source schema: `contra-costa-golf-
 
 ## Insertion order (FK-dependent)
 
-1. `clubs` — seed `ccgc` (with point_rules) + `casual` (empty)
+1. `clubs` — seed `ccgc` id `1` (with point_rules) + `casual` id `2` (empty), then reset sequence
 2. `user` — generate UUIDs, build `username → id` map
-3. `courses`, `pars`, `handicaps` — straight copy (with dedup, see below)
-4. `tournaments` — insert with `club_handle: 'ccgc'`, capture serial `id`, build `date → id` map
+3. `courses`, `course_holes` — copy courses, build `course_handle → id` map, then combine deduped legacy `pars`/`handicaps` into one row per course/hole
+4. `tournaments` — insert with `club_id: 1`, translated `course_id`, capture serial `id`, build `date → id` map
 5. `rounds` — preserve legacy `id` by passing it explicitly in `INSERT` (serial accepts override; sequence is reset after via `setval`)
-6. `strokes`, `putts`, `greenies` — straight copy with dedup
+6. `round_scores`, `greenies` — combine deduped legacy `strokes`/`putts` into one row per round/hole, then copy greenies
+
+Large inserts are batched at 250 rows per request because Neon's HTTP driver rejects very large single insert requests.
 
 ## Known data quirks (handled in script)
 
-- **Duplicate rows in `pars`, `handicaps`, `strokes`, `putts`** — 10 courses and 142 rounds have exactly 2 identical rows each from a legacy edit bug (INSERT used where UPDATE was needed). Deduped via `SELECT DISTINCT ON (...)` on read.
+- **Duplicate rows in `pars`, `handicaps`, `strokes`, `putts`** — 10 courses and 142 rounds have exactly 2 identical rows each from a legacy edit bug (INSERT used where UPDATE was needed). Deduped via `SELECT DISTINCT ON (...)` before expanding into `course_holes` and `round_scores`.
 - **Email duplicates** — fixed manually in local `ccgc` before migration. New schema has `unique` on `email`.
 
 ## Run
@@ -61,13 +63,13 @@ pnpm tsx scripts/migrate-from-ccgc.ts
 ### Expected final row counts
 
 ```
-clubs=2, users=33, courses=21, pars=21, handicaps=21,
-tournaments=55, rounds=620, strokes=620, putts=620, greenies=603
+clubs=2, users=33, courses=21, course_holes=378,
+tournaments=55, rounds=620, round_scores=11160, greenies=603
 ```
 
 ### Idempotency
 
-`TRUNCATE ... RESTART IDENTITY CASCADE` runs at the top of every execution. Rerun freely.
+`TRUNCATE ... RESTART IDENTITY CASCADE` runs at the top of every execution. Rerun freely. The truncate includes migrated golf tables plus Auth.js tables (`account`, `session`, `verificationToken`) before `"user"` so repeated imports do not leave auth rows referencing old imported users.
 
 ## Gotchas (encountered + fixed)
 
@@ -75,3 +77,4 @@ tournaments=55, rounds=620, strokes=620, putts=620, greenies=603
 - **`pg` defaults empty host to TCP `localhost`** (not Unix socket like `psql` does), which fails password auth. The script explicitly passes `host: "/var/run/postgresql"`.
 - **`dotenv` does not override existing env vars by default** — script passes `{ override: true }` to ensure `.env.local` wins over any shell-exported values.
 - **`OVERRIDING SYSTEM VALUE` only works on identity columns**, not `serial`. Just specify `id` in the `INSERT` and reset the sequence with `setval` afterwards.
+- **Neon HTTP rejects oversized single inserts** — normalized `round_scores` expands legacy `strokes`/`putts` into 11,160 rows. The script batches larger inserts instead of sending one giant SQL statement.

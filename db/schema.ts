@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  check,
   date,
   decimal,
   integer,
@@ -69,7 +70,8 @@ export const verificationTokens = pgTable(
 );
 
 export const clubs = pgTable("clubs", {
-  handle: text("handle").primaryKey(),
+  id: serial("id").primaryKey(),
+  handle: text("handle").notNull().unique(),
   name: text("name").notNull(),
   logo: text("logo"),
   pointRules: jsonb("point_rules").notNull().default({}),
@@ -79,155 +81,128 @@ export const seasons = pgTable(
   "seasons",
   {
     id: serial("id").primaryKey(),
-    clubHandle: text("club_handle")
+    clubId: integer("club_id")
       .notNull()
-      .references(() => clubs.handle, { onDelete: "cascade" }),
+      .references(() => clubs.id, { onDelete: "restrict" }),
     number: integer("number").notNull(),
     name: text("name"),
     startDate: date("start_date", { mode: "date" }).notNull(),
     endDate: date("end_date", { mode: "date" }).notNull(),
   },
-  (s) => [uniqueIndex("seasons_club_number_unique").on(s.clubHandle, s.number)],
+  (s) => [
+    uniqueIndex("seasons_club_number_unique").on(s.clubId, s.number),
+    check("seasons_date_range_check", sql`${s.endDate} >= ${s.startDate}`),
+  ],
 );
 
-export const courses = pgTable("courses", {
-  handle: text("handle").primaryKey(),
-  name: text("name").notNull(),
-  rating: decimal("rating").notNull(),
-  slope: integer("slope").notNull(),
-  imgUrl: text("img_url"),
-});
+export const courses = pgTable(
+  "courses",
+  {
+    id: serial("id").primaryKey(),
+    handle: text("handle").notNull().unique(),
+    name: text("name").notNull(),
+    rating: decimal("rating").notNull(),
+    slope: integer("slope").notNull(),
+    imgUrl: text("img_url"),
+  },
+  (c) => [
+    check("courses_rating_check", sql`${c.rating} > 0`),
+    check("courses_slope_check", sql`${c.slope} between 55 and 155`),
+  ],
+);
 
-export const pars = pgTable("pars", {
-  courseHandle: text("course_handle")
-    .notNull()
-    .references(() => courses.handle, { onDelete: "cascade" }),
-  hole1: integer("hole1").notNull(),
-  hole2: integer("hole2").notNull(),
-  hole3: integer("hole3").notNull(),
-  hole4: integer("hole4").notNull(),
-  hole5: integer("hole5").notNull(),
-  hole6: integer("hole6").notNull(),
-  hole7: integer("hole7").notNull(),
-  hole8: integer("hole8").notNull(),
-  hole9: integer("hole9").notNull(),
-  hole10: integer("hole10").notNull(),
-  hole11: integer("hole11").notNull(),
-  hole12: integer("hole12").notNull(),
-  hole13: integer("hole13").notNull(),
-  hole14: integer("hole14").notNull(),
-  hole15: integer("hole15").notNull(),
-  hole16: integer("hole16").notNull(),
-  hole17: integer("hole17").notNull(),
-  hole18: integer("hole18").notNull(),
-  total: integer("total").notNull(),
-});
-
-export const handicaps = pgTable("handicaps", {
-  courseHandle: text("course_handle")
-    .notNull()
-    .references(() => courses.handle, { onDelete: "cascade" }),
-  hole1: integer("hole1").notNull(),
-  hole2: integer("hole2").notNull(),
-  hole3: integer("hole3").notNull(),
-  hole4: integer("hole4").notNull(),
-  hole5: integer("hole5").notNull(),
-  hole6: integer("hole6").notNull(),
-  hole7: integer("hole7").notNull(),
-  hole8: integer("hole8").notNull(),
-  hole9: integer("hole9").notNull(),
-  hole10: integer("hole10").notNull(),
-  hole11: integer("hole11").notNull(),
-  hole12: integer("hole12").notNull(),
-  hole13: integer("hole13").notNull(),
-  hole14: integer("hole14").notNull(),
-  hole15: integer("hole15").notNull(),
-  hole16: integer("hole16").notNull(),
-  hole17: integer("hole17").notNull(),
-  hole18: integer("hole18").notNull(),
-});
+export const courseHoles = pgTable(
+  "course_holes",
+  {
+    courseId: integer("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
+    holeNumber: integer("hole_number").notNull(),
+    par: integer("par").notNull(),
+    handicap: integer("handicap").notNull(),
+  },
+  (ch) => [
+    primaryKey({ columns: [ch.courseId, ch.holeNumber] }),
+    check(
+      "course_holes_hole_number_check",
+      sql`${ch.holeNumber} between 1 and 18`,
+    ),
+    check("course_holes_par_check", sql`${ch.par} between 2 and 7`),
+    check("course_holes_handicap_check", sql`${ch.handicap} between 1 and 18`),
+  ],
+);
 
 export const tournaments = pgTable(
   "tournaments",
   {
     id: serial("id").primaryKey(),
-    clubHandle: text("club_handle")
+    clubId: integer("club_id")
       .notNull()
-      .references(() => clubs.handle, { onDelete: "cascade" }),
+      .references(() => clubs.id, { onDelete: "restrict" }),
     date: date("date", { mode: "date" }).notNull(),
-    courseHandle: text("course_handle").references(() => courses.handle),
+    courseId: integer("course_id").references(() => courses.id, {
+      onDelete: "set null",
+    }),
   },
   (t) => [
     uniqueIndex("tournaments_club_date_unique")
-      .on(t.clubHandle, t.date)
-      .where(sql`${t.clubHandle} <> 'casual'`),
+      .on(t.clubId, t.date)
+      .where(sql`${t.clubId} <> 2`),
   ],
 );
 
-export const rounds = pgTable("rounds", {
-  id: serial("id").primaryKey(),
-  tournamentId: integer("tournament_id")
-    .notNull()
-    .references(() => tournaments.id),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id),
-});
+export const rounds = pgTable(
+  "rounds",
+  {
+    id: serial("id").primaryKey(),
+    tournamentId: integer("tournament_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "restrict" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+  },
+  (r) => [
+    uniqueIndex("rounds_tournament_user_unique").on(r.tournamentId, r.userId),
+  ],
+);
 
-export const greenies = pgTable("greenies", {
-  id: serial("id").primaryKey(),
-  roundId: integer("round_id")
-    .notNull()
-    .references(() => rounds.id, { onDelete: "cascade" }),
-  holeNumber: integer("hole_number").notNull(),
-  feet: integer("feet").notNull(),
-  inches: integer("inches").notNull(),
-});
+// TODO: constraints for greenies. each user only 1 greenie per hole and hole must be a par 3
+export const greenies = pgTable(
+  "greenies",
+  {
+    id: serial("id").primaryKey(),
+    roundId: integer("round_id")
+      .notNull()
+      .references(() => rounds.id, { onDelete: "cascade" }),
+    holeNumber: integer("hole_number").notNull(),
+    feet: integer("feet").notNull(),
+    inches: integer("inches").notNull(),
+  },
+  (g) => [
+    check("greenies_hole_number_check", sql`${g.holeNumber} between 1 and 18`),
+    check("greenies_feet_check", sql`${g.feet} >= 0`),
+    check("greenies_inches_check", sql`${g.inches} between 0 and 11`),
+  ],
+);
 
-export const strokes = pgTable("strokes", {
-  roundId: integer("round_id")
-    .notNull()
-    .references(() => rounds.id, { onDelete: "cascade" }),
-  hole1: integer("hole1"),
-  hole2: integer("hole2"),
-  hole3: integer("hole3"),
-  hole4: integer("hole4"),
-  hole5: integer("hole5"),
-  hole6: integer("hole6"),
-  hole7: integer("hole7"),
-  hole8: integer("hole8"),
-  hole9: integer("hole9"),
-  hole10: integer("hole10"),
-  hole11: integer("hole11"),
-  hole12: integer("hole12"),
-  hole13: integer("hole13"),
-  hole14: integer("hole14"),
-  hole15: integer("hole15"),
-  hole16: integer("hole16"),
-  hole17: integer("hole17"),
-  hole18: integer("hole18"),
-});
-
-export const putts = pgTable("putts", {
-  roundId: integer("round_id")
-    .notNull()
-    .references(() => rounds.id, { onDelete: "cascade" }),
-  hole1: integer("hole1"),
-  hole2: integer("hole2"),
-  hole3: integer("hole3"),
-  hole4: integer("hole4"),
-  hole5: integer("hole5"),
-  hole6: integer("hole6"),
-  hole7: integer("hole7"),
-  hole8: integer("hole8"),
-  hole9: integer("hole9"),
-  hole10: integer("hole10"),
-  hole11: integer("hole11"),
-  hole12: integer("hole12"),
-  hole13: integer("hole13"),
-  hole14: integer("hole14"),
-  hole15: integer("hole15"),
-  hole16: integer("hole16"),
-  hole17: integer("hole17"),
-  hole18: integer("hole18"),
-});
+export const roundScores = pgTable(
+  "round_scores",
+  {
+    roundId: integer("round_id")
+      .notNull()
+      .references(() => rounds.id, { onDelete: "cascade" }),
+    holeNumber: integer("hole_number").notNull(),
+    strokes: integer("strokes"),
+    putts: integer("putts"),
+  },
+  (rs) => [
+    primaryKey({ columns: [rs.roundId, rs.holeNumber] }),
+    check(
+      "round_scores_hole_number_check",
+      sql`${rs.holeNumber} between 1 and 18`,
+    ),
+    check("round_scores_strokes_check", sql`${rs.strokes} >= 1`),
+    check("round_scores_putts_check", sql`${rs.putts} >= 0`),
+  ],
+);

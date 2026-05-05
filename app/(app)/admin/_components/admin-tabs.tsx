@@ -4,15 +4,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UsersPanel } from "./users-panel";
 import type { AdminUser } from "./user-sheet";
 import { TournamentsPanel } from "./tournaments-panel";
-import type {
-  AdminTournament,
-  ClubOption,
-  CourseOption,
-} from "./tournament-sheet";
+import type { AdminTournament, ClubOption } from "./tournament-sheet";
 import { SeasonsPanel } from "./seasons-panel";
 import type { AdminSeason } from "./season-sheet";
 import { ClubsPanel } from "./clubs-panel";
 import type { AdminClub } from "./club-sheet";
+import { CoursesPanel } from "./courses-panel";
+import type { AdminCourse } from "./course-sheet";
 
 type AdminTabsProps = {
   users: AdminUser[];
@@ -20,7 +18,7 @@ type AdminTabsProps = {
   seasons: AdminSeason[];
   clubs: ClubOption[];
   adminClubs: AdminClub[];
-  courses: CourseOption[];
+  courses: AdminCourse[];
 };
 
 export function AdminTabs({
@@ -58,9 +56,7 @@ export function AdminTabs({
       </TabsContent>
 
       <TabsContent value="courses" className="mt-4">
-        <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Coming soon.
-        </p>
+        <CoursesPanel courses={courses} />
       </TabsContent>
     </Tabs>
   );

@@ -70,12 +70,12 @@ export function TournamentsPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <SearchInput
           placeholder="Search tournaments…"
           value={query}
           onValueChange={setQuery}
-          wrapperClassName="flex-1 sm:max-w-sm"
+          wrapperClassName="w-full md:w-1/2"
         />
         <Button onClick={openCreate} disabled={clubs.length === 0}>
           <HugeiconsIcon icon={Add01Icon} />

@@ -41,12 +41,12 @@ export function ClubsPanel({ clubs }: ClubsPanelProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <SearchInput
           placeholder="Search clubs…"
           value={query}
           onValueChange={setQuery}
-          wrapperClassName="flex-1 sm:max-w-sm"
+          wrapperClassName="w-full md:w-1/2"
         />
         <Button onClick={openCreate}>
           <HugeiconsIcon icon={Add01Icon} />
@@ -59,7 +59,7 @@ export function ClubsPanel({ clubs }: ClubsPanelProps) {
           No clubs match.
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
           {filtered.map((club) => (
             <Card key={club.handle} className="gap-0 overflow-hidden py-0">
               <CardContent className="p-0">

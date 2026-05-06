@@ -30,7 +30,7 @@ export function SearchInput({
         {...props}
         type="search"
         onChange={(event) => onValueChange(event.target.value)}
-        className={cn("pl-9", className)}
+        className={cn("rounded-full pl-9", className)}
       />
     </div>
   );

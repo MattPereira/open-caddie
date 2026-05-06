@@ -54,7 +54,7 @@ export function TournamentsBrowser({
         placeholder="Search tournaments..."
         value={query}
         onValueChange={setQuery}
-        wrapperClassName="sm:w-80"
+        wrapperClassName="w-full md:w-1/2"
       />
 
       {visibleGroups.length === 0 ? (

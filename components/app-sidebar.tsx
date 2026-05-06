@@ -70,7 +70,7 @@ export function AppSidebar({ user }: { user: SidebarUser }) {
       <SidebarHeader>
         <Link
           href="/"
-          className="font-cubano flex items-center gap-2 rounded-md px-2 py-1.5 text-base outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+          className="flex items-center gap-2 rounded-md px-2 py-1.5 text-base font-semibold outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
           Open Caddie
         </Link>

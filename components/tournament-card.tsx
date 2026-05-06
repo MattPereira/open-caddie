@@ -1,0 +1,53 @@
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Calendar03Icon } from "@hugeicons/core-free-icons";
+
+import { CardDescription } from "@/components/ui/card";
+import { MediaCard } from "@/components/media-card";
+
+export type TournamentCardTournament = {
+  clubName: string;
+  date: Date | string;
+  courseName: string | null;
+  courseImgUrl: string | null;
+};
+
+const dateFormatter = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+export function TournamentCard({
+  tournament,
+  onClick,
+}: {
+  tournament: TournamentCardTournament;
+  onClick?: () => void;
+}) {
+  const courseName = tournament.courseName ?? "Course to be announced";
+
+  return (
+    <MediaCard
+      imageUrl={tournament.courseImgUrl}
+      imageAlt={courseName}
+      header={courseName}
+      badges={[{ label: tournament.clubName }]}
+      onClick={onClick}
+    >
+      <CardDescription className="flex items-center gap-1.5">
+        <HugeiconsIcon icon={Calendar03Icon} size={15} aria-hidden />
+        <span>{formatTournamentDate(tournament.date)}</span>
+      </CardDescription>
+    </MediaCard>
+  );
+}
+
+function formatTournamentDate(date: Date | string) {
+  if (typeof date === "string") {
+    return dateFormatter.format(new Date(`${date}T00:00:00.000Z`));
+  }
+
+  return dateFormatter.format(date);
+}

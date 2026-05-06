@@ -4,10 +4,9 @@ import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Add01Icon, Search01Icon } from "@hugeicons/core-free-icons";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { MediaCard } from "@/components/media-card";
 import { CourseSheet, type AdminCourse } from "./course-sheet";
 
 type CoursesPanelProps = {
@@ -66,40 +65,19 @@ export function CoursesPanel({ courses }: CoursesPanelProps) {
           No courses match.
         </p>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
           {filtered.map((course) => (
-            <Card key={course.id} className="gap-0 overflow-hidden py-0">
-              <CardContent className="p-0">
-                <button
-                  type="button"
-                  onClick={() => openEdit(course)}
-                  className="flex w-full items-stretch text-left hover:bg-accent"
-                >
-                  <div className="relative w-28 shrink-0 self-stretch overflow-hidden rounded-r-xl bg-muted">
-                    {course.imgUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={course.imgUrl}
-                        alt={course.name}
-                        className="absolute inset-0 h-full w-full object-cover"
-                      />
-                    ) : null}
-                  </div>
-                  <div className="flex min-w-0 flex-1 flex-col gap-1 p-4">
-                    <span className="truncate text-base font-medium">
-                      {course.name}
-                    </span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {course.handle}
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary">Rating {course.rating}</Badge>
-                      <Badge variant="secondary">Slope {course.slope}</Badge>
-                    </div>
-                  </div>
-                </button>
-              </CardContent>
-            </Card>
+            <MediaCard
+              key={course.id}
+              imageUrl={course.imgUrl}
+              imageAlt={course.name}
+              header={course.name}
+              badges={[
+                { label: `Rating ${course.rating}`, variant: "secondary" },
+                { label: `Slope ${course.slope}`, variant: "secondary" },
+              ]}
+              onClick={() => openEdit(course)}
+            ></MediaCard>
           ))}
         </div>
       )}

@@ -12,6 +12,7 @@ export const getAllTournaments = cache(async () => {
       clubName: clubs.name,
       date: tournaments.date,
       startsAt: tournaments.startsAt,
+      season: tournaments.season,
       courseId: tournaments.courseId,
       courseHandle: courses.handle,
       courseName: courses.name,

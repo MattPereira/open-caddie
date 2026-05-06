@@ -47,6 +47,7 @@ export function TournamentsPanel({
       const haystack = [
         t.clubName,
         t.courseName ?? "",
+        t.season != null ? `Season ${t.season}` : "",
         dateFormatter.format(t.date),
         formatTournamentTime(t.startsAt),
       ]

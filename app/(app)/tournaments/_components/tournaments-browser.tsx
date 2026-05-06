@@ -16,6 +16,7 @@ type Tournament = {
   clubName: string;
   date: string;
   startsAt: string | null;
+  season: number | null;
   courseId: number;
   courseHandle: string | null;
   courseName: string | null;
@@ -157,6 +158,7 @@ function filterTournaments(tournaments: Tournament[], query: string) {
     const haystack = [
       tournament.clubName,
       tournament.courseName ?? "",
+      tournament.season != null ? `Season ${tournament.season}` : "",
       formatTournamentDate(tournament.date),
       formatTournamentTime(tournament.startsAt),
       tournament.date,

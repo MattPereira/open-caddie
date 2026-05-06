@@ -47,6 +47,7 @@ export type AdminTournament = {
   clubName: string;
   date: Date;
   startsAt: string | null;
+  season: number | null;
   courseHandle: string | null;
   courseName: string | null;
   courseImgUrl: string | null;

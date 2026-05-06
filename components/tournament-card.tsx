@@ -8,6 +8,7 @@ export type TournamentCardTournament = {
   clubName: string;
   date: Date | string;
   startsAt?: string | null;
+  season?: number | null;
   courseName: string | null;
   courseImgUrl: string | null;
 };
@@ -28,13 +29,18 @@ export function TournamentCard({
   onClick?: () => void;
 }) {
   const courseName = tournament.courseName ?? "Course to be announced";
+  const badges = [{ label: tournament.clubName }];
+
+  if (tournament.season != null) {
+    badges.push({ label: `Season ${tournament.season}` });
+  }
 
   return (
     <MediaCard
       imageUrl={tournament.courseImgUrl}
       imageAlt={courseName}
       header={courseName}
-      badges={[{ label: tournament.clubName }]}
+      badges={badges}
       onClick={onClick}
     >
       <CardDescription className="flex items-center gap-1.5">

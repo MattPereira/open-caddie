@@ -35,46 +35,6 @@ export type TournamentFormValues = z.infer<typeof TournamentFormSchema>;
 export type TournamentCreateValues = z.infer<typeof TournamentCreateSchema>;
 export type TournamentUpdateValues = z.infer<typeof TournamentUpdateSchema>;
 
-const dateString = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required");
-
-export const SeasonFormSchema = z
-  .object({
-    clubHandle: z.string().trim().min(1, "Club is required"),
-    number: z
-      .number({ message: "Season number is required" })
-      .int("Season number must be a whole number")
-      .positive("Season number must be positive"),
-    startDate: dateString,
-    endDate: dateString,
-  })
-  .refine((data) => data.endDate >= data.startDate, {
-    path: ["endDate"],
-    message: "End date must be on or after the start date",
-  });
-
-export const SeasonCreateSchema = SeasonFormSchema;
-export const SeasonUpdateSchema = z
-  .object({
-    id: z.number().int().positive(),
-    clubHandle: z.string().trim().min(1, "Club is required"),
-    number: z
-      .number({ message: "Season number is required" })
-      .int("Season number must be a whole number")
-      .positive("Season number must be positive"),
-    startDate: dateString,
-    endDate: dateString,
-  })
-  .refine((data) => data.endDate >= data.startDate, {
-    path: ["endDate"],
-    message: "End date must be on or after the start date",
-  });
-
-export type SeasonFormValues = z.infer<typeof SeasonFormSchema>;
-export type SeasonCreateValues = z.infer<typeof SeasonCreateSchema>;
-export type SeasonUpdateValues = z.infer<typeof SeasonUpdateSchema>;
-
 const intNonNeg = z
   .number({ message: "Must be a number" })
   .int("Must be a whole number")

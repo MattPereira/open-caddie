@@ -10,7 +10,6 @@ import {
   courses,
   greenies,
   rounds,
-  seasons,
   tournaments,
   users,
 } from "@/db/schema";
@@ -20,8 +19,6 @@ import {
   ClubUpdateSchema,
   CourseCreateSchema,
   CourseUpdateSchema,
-  SeasonCreateSchema,
-  SeasonUpdateSchema,
   TournamentCreateSchema,
   TournamentUpdateSchema,
   UserCreateSchema,
@@ -30,8 +27,6 @@ import {
   type ClubUpdateValues,
   type CourseCreateValues,
   type CourseUpdateValues,
-  type SeasonCreateValues,
-  type SeasonUpdateValues,
   type TournamentCreateValues,
   type TournamentUpdateValues,
   type UserCreateValues,
@@ -348,113 +343,6 @@ export async function updateTournament(
     throw e;
   }
 
-  revalidatePath("/admin");
-  return { ok: true };
-}
-
-export async function createSeason(
-  values: SeasonCreateValues,
-): Promise<ActionResult> {
-  await requireAdmin();
-
-  const parsed = SeasonCreateSchema.safeParse(values);
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0].message };
-  }
-
-  const { clubHandle, number } = parsed.data;
-  const startDate = parseDateOnly(parsed.data.startDate);
-  const endDate = parseDateOnly(parsed.data.endDate);
-  const clubId = await getClubIdByHandle(clubHandle);
-
-  if (!clubId) {
-    return { ok: false, error: "Selected club does not exist." };
-  }
-
-  try {
-    await db.insert(seasons).values({
-      clubId,
-      number,
-      startDate,
-      endDate,
-    });
-  } catch (e: unknown) {
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23505") {
-      return {
-        ok: false,
-        error: "A season with that number already exists for this club.",
-      };
-    }
-    if (code === "23503") {
-      return { ok: false, error: "Selected club does not exist." };
-    }
-    throw e;
-  }
-
-  revalidatePath("/admin");
-  return { ok: true };
-}
-
-export async function updateSeason(
-  values: SeasonUpdateValues,
-): Promise<ActionResult> {
-  await requireAdmin();
-
-  const parsed = SeasonUpdateSchema.safeParse(values);
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0].message };
-  }
-
-  const { id, clubHandle, number } = parsed.data;
-  const startDate = parseDateOnly(parsed.data.startDate);
-  const endDate = parseDateOnly(parsed.data.endDate);
-  const clubId = await getClubIdByHandle(clubHandle);
-
-  if (!clubId) {
-    return { ok: false, error: "Selected club does not exist." };
-  }
-
-  const [current] = await db
-    .select({ id: seasons.id })
-    .from(seasons)
-    .where(eq(seasons.id, id))
-    .limit(1);
-  if (!current) {
-    return { ok: false, error: "Season not found." };
-  }
-
-  try {
-    await db
-      .update(seasons)
-      .set({ clubId, number, startDate, endDate })
-      .where(eq(seasons.id, id));
-  } catch (e: unknown) {
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23505") {
-      return {
-        ok: false,
-        error: "A season with that number already exists for this club.",
-      };
-    }
-    if (code === "23503") {
-      return { ok: false, error: "Selected club does not exist." };
-    }
-    throw e;
-  }
-
-  revalidatePath("/admin");
-  return { ok: true };
-}
-
-export async function deleteSeason(id: number): Promise<ActionResult> {
-  await requireAdmin();
-
-  await db.delete(seasons).where(eq(seasons.id, id));
   revalidatePath("/admin");
   return { ok: true };
 }

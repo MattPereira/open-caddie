@@ -1,0 +1,3 @@
+- clubs enable grouping of tournaments
+- season number enables further grouping of tournaments within a club
+- tournaments enable grouping rounds

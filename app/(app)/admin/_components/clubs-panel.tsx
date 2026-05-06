@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Add01Icon, Search01Icon } from "@hugeicons/core-free-icons";
+import { Add01Icon } from "@hugeicons/core-free-icons";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/search-input";
 import { ClubSheet, type AdminClub } from "./club-sheet";
 
 type ClubsPanelProps = {
@@ -42,18 +42,12 @@ export function ClubsPanel({ clubs }: ClubsPanelProps) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 sm:max-w-sm">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-            <HugeiconsIcon icon={Search01Icon} size={16} />
-          </span>
-          <Input
-            type="search"
-            placeholder="Search clubs…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <SearchInput
+          placeholder="Search clubs…"
+          value={query}
+          onValueChange={setQuery}
+          wrapperClassName="flex-1 sm:max-w-sm"
+        />
         <Button onClick={openCreate}>
           <HugeiconsIcon icon={Add01Icon} />
           Add club

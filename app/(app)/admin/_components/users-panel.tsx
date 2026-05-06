@@ -2,13 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Add01Icon, Search01Icon } from "@hugeicons/core-free-icons";
+import { Add01Icon } from "@hugeicons/core-free-icons";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/search-input";
 import { UserSheet, type AdminUser } from "./user-sheet";
 
 type UsersPanelProps = {
@@ -67,18 +67,12 @@ export function UsersPanel({ users }: UsersPanelProps) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 sm:max-w-sm">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-            <HugeiconsIcon icon={Search01Icon} size={16} />
-          </span>
-          <Input
-            type="search"
-            placeholder="Search users…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <SearchInput
+          placeholder="Search users…"
+          value={query}
+          onValueChange={setQuery}
+          wrapperClassName="flex-1 sm:max-w-sm"
+        />
         <Button onClick={openCreate}>
           <HugeiconsIcon icon={Add01Icon} />
           Add user

@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Add01Icon, Search01Icon } from "@hugeicons/core-free-icons";
+import { Add01Icon } from "@hugeicons/core-free-icons";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { MediaCard } from "@/components/media-card";
+import { SearchInput } from "@/components/search-input";
 import { CourseSheet, type AdminCourse } from "./course-sheet";
 
 type CoursesPanelProps = {
@@ -42,18 +42,12 @@ export function CoursesPanel({ courses }: CoursesPanelProps) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative flex-1 sm:max-w-sm">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-            <HugeiconsIcon icon={Search01Icon} size={16} />
-          </span>
-          <Input
-            type="search"
-            placeholder="Search courses…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <SearchInput
+          placeholder="Search courses…"
+          value={query}
+          onValueChange={setQuery}
+          wrapperClassName="flex-1 sm:max-w-sm"
+        />
         <Button onClick={openCreate}>
           <HugeiconsIcon icon={Add01Icon} />
           Add course

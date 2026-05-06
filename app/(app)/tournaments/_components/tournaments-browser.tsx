@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { GolfHoleIcon, Search01Icon } from "@hugeicons/core-free-icons";
+import { GolfHoleIcon } from "@hugeicons/core-free-icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/search-input";
 import { TournamentCard } from "@/components/tournament-card";
 
 type Tournament = {
@@ -50,18 +50,12 @@ export function TournamentsBrowser({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="relative sm:w-80">
-        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-          <HugeiconsIcon icon={Search01Icon} size={16} />
-        </span>
-        <Input
-          type="search"
-          placeholder="Search tournaments..."
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          className="pl-9"
-        />
-      </div>
+      <SearchInput
+        placeholder="Search tournaments..."
+        value={query}
+        onValueChange={setQuery}
+        wrapperClassName="sm:w-80"
+      />
 
       {visibleGroups.length === 0 ? (
         <EmptyTournamentsState message="No tournaments are scheduled yet." />

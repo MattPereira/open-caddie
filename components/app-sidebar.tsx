@@ -68,7 +68,12 @@ export function AppSidebar({ user }: { user: SidebarUser }) {
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="px-2 py-1.5 text-base font-semibold">Open Caddie</div>
+        <Link
+          href="/"
+          className="flex items-center gap-2 rounded-md px-2 py-1.5 text-base font-semibold outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+        >
+          <span>Open Caddie</span>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

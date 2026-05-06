@@ -7,6 +7,7 @@ import { MediaCard } from "@/components/media-card";
 export type TournamentCardTournament = {
   clubName: string;
   date: Date | string;
+  startsAt?: string | null;
   courseName: string | null;
   courseImgUrl: string | null;
 };
@@ -38,7 +39,10 @@ export function TournamentCard({
     >
       <CardDescription className="flex items-center gap-1.5">
         <HugeiconsIcon icon={Calendar03Icon} size={15} aria-hidden />
-        <span>{formatTournamentDate(tournament.date)}</span>
+        <span>
+          {formatTournamentDate(tournament.date)}
+          {tournament.startsAt ? `, ${formatTournamentTime(tournament.startsAt)}` : ""}
+        </span>
       </CardDescription>
     </MediaCard>
   );
@@ -50,4 +54,12 @@ function formatTournamentDate(date: Date | string) {
   }
 
   return dateFormatter.format(date);
+}
+
+function formatTournamentTime(time: string) {
+  const [hours = "0", minutes = "0"] = time.split(":");
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(2000, 0, 1, Number(hours), Number(minutes)));
 }

@@ -11,6 +11,7 @@ import {
   primaryKey,
   serial,
   text,
+  time,
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -78,22 +79,18 @@ export const clubs = pgTable("clubs", {
   pointRules: jsonb("point_rules").notNull().default({}),
 });
 
-export const seasons = pgTable(
-  "seasons",
+export const clubMembers = pgTable(
+  "club_members",
   {
-    id: serial("id").primaryKey(),
     clubId: integer("club_id")
       .notNull()
-      .references(() => clubs.id, { onDelete: "restrict" }),
-    number: integer("number").notNull(),
-    name: text("name"),
-    startDate: date("start_date", { mode: "date" }).notNull(),
-    endDate: date("end_date", { mode: "date" }).notNull(),
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    joinedAt: timestamp("joined_at", { mode: "date" }).notNull().defaultNow(),
   },
-  (s) => [
-    uniqueIndex("seasons_club_number_unique").on(s.clubId, s.number),
-    check("seasons_date_range_check", sql`${s.endDate} >= ${s.startDate}`),
-  ],
+  (cm) => [primaryKey({ columns: [cm.clubId, cm.userId] })],
 );
 
 export const tournaments = pgTable(
@@ -104,15 +101,12 @@ export const tournaments = pgTable(
       .notNull()
       .references(() => clubs.id, { onDelete: "restrict" }),
     date: date("date", { mode: "date" }).notNull(),
-    courseId: integer("course_id").references(() => courses.id, {
-      onDelete: "set null",
-    }),
+    startsAt: time("starts_at").notNull(),
+    season: integer("season"),
+    courseId: integer("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "restrict" }),
   },
-  (t) => [
-    uniqueIndex("tournaments_club_date_unique")
-      .on(t.clubId, t.date)
-      .where(sql`${t.clubId} <> 2`),
-  ],
 );
 
 export const courses = pgTable(
@@ -153,15 +147,21 @@ export const rounds = pgTable(
   "rounds",
   {
     id: serial("id").primaryKey(),
-    tournamentId: integer("tournament_id")
-      .notNull()
-      .references(() => tournaments.id, { onDelete: "restrict" }),
+    tournamentId: integer("tournament_id").references(() => tournaments.id, {
+      onDelete: "restrict",
+    }),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
+    courseId: integer("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "restrict" }),
+    date: date("date", { mode: "date" }).notNull(),
   },
   (r) => [
-    uniqueIndex("rounds_tournament_user_unique").on(r.tournamentId, r.userId),
+    uniqueIndex("rounds_tournament_user_unique")
+      .on(r.tournamentId, r.userId)
+      .where(sql`${r.tournamentId} IS NOT NULL`),
   ],
 );
 

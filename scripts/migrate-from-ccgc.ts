@@ -9,7 +9,7 @@ import {
   users,
   courses,
   courseHoles,
-  seasons,
+  clubMembers,
   tournaments,
   roundScores,
   greenies,
@@ -59,7 +59,7 @@ const CCGC_POINT_RULES = {
 
 const dateKey = (d: Date) => d.toISOString().slice(0, 10);
 const CCGC_CLUB_ID = 1;
-const CASUAL_CLUB_ID = 2;
+const CCGC_DEFAULT_STARTS_AT = "10:00:00";
 type LegacyCourseHoleRow = { course_handle: string } & Record<
   `hole${number}`,
   number
@@ -86,7 +86,7 @@ async function main() {
   console.log("\ntruncating target tables");
   await target.execute(sql`
     TRUNCATE TABLE
-      greenies, round_scores, rounds, tournaments, seasons,
+      greenies, round_scores, rounds, tournaments, club_members,
       course_holes, courses, "account", "session", "verificationToken",
       "user", clubs
     RESTART IDENTITY CASCADE
@@ -100,13 +100,6 @@ async function main() {
       name: "Contra Costa Golf Club",
       logo: null,
       pointRules: CCGC_POINT_RULES,
-    },
-    {
-      id: CASUAL_CLUB_ID,
-      handle: "casual",
-      name: "Casual Play",
-      logo: null,
-      pointRules: {},
     },
   ]);
   await target.execute(
@@ -137,6 +130,14 @@ async function main() {
   });
   await insertInBatches(userRows, 250, (batch) =>
     target.insert(users).values(batch),
+  );
+  await insertInBatches(userRows, 250, (batch) =>
+    target.insert(clubMembers).values(
+      batch.map((u) => ({
+        clubId: CCGC_CLUB_ID,
+        userId: u.id,
+      })),
+    ),
   );
 
   console.log("copying courses");
@@ -192,7 +193,7 @@ async function main() {
     );
   }
 
-  console.log("migrating seasons (grouped from legacy tour_years)");
+  console.log("mapping seasons from legacy tour_years");
   const srcSeasonGroups = await source.query<{
     tour_years: string;
     start_date: Date;
@@ -206,31 +207,50 @@ async function main() {
      GROUP BY tour_years
      ORDER BY MIN(date)`,
   );
-  const seasonRows = srcSeasonGroups.rows.map((s, i) => ({
-    clubId: CCGC_CLUB_ID,
-    number: i + 1,
-    name: s.tour_years,
-    startDate: s.start_date,
-    endDate: s.end_date,
-  }));
-  await target.insert(seasons).values(seasonRows);
-  console.log(`  ${seasonRows.length} seasons inserted`);
+  const seasonByTourYears = new Map(
+    srcSeasonGroups.rows.map((s, i) => [s.tour_years, i + 1]),
+  );
+  console.log(`  ${seasonByTourYears.size} seasons mapped`);
 
   console.log("migrating tournaments");
   const srcTournaments = await source.query(
-    `SELECT date, course_handle FROM tournaments ORDER BY date`,
+    `SELECT date, course_handle, tour_years FROM tournaments ORDER BY date`,
   );
-  const tournamentIdByDate = new Map<string, number>();
+  const tournamentByDate = new Map<
+    string,
+    { id: number; courseId: number; date: Date }
+  >();
   for (const t of srcTournaments.rows) {
+    const season = seasonByTourYears.get(t.tour_years);
+    if (!season) {
+      console.warn(
+        `  skipping tournament ${dateKey(t.date)}: unknown tour_years=${t.tour_years}`,
+      );
+      continue;
+    }
+    const courseId = courseIdByHandle.get(t.course_handle);
+    if (!courseId) {
+      console.warn(
+        `  skipping tournament ${dateKey(t.date)}: unknown course_handle=${t.course_handle}`,
+      );
+      continue;
+    }
+
     const [inserted] = await target
       .insert(tournaments)
       .values({
         clubId: CCGC_CLUB_ID,
         date: t.date,
-        courseId: courseIdByHandle.get(t.course_handle) ?? null,
+        startsAt: CCGC_DEFAULT_STARTS_AT,
+        season,
+        courseId,
       })
       .returning({ id: tournaments.id });
-    tournamentIdByDate.set(dateKey(t.date), inserted.id);
+    tournamentByDate.set(dateKey(t.date), {
+      id: inserted.id,
+      courseId,
+      date: t.date,
+    });
   }
 
   console.log("migrating rounds (preserving legacy ids)");
@@ -239,15 +259,17 @@ async function main() {
   );
   let roundsInserted = 0;
   for (const r of srcRounds.rows) {
-    const newTid = tournamentIdByDate.get(dateKey(r.tournament_date));
+    const tournament = tournamentByDate.get(dateKey(r.tournament_date));
     const newUid = userIdByUsername.get(r.username);
-    if (!newTid || !newUid) {
-      console.warn(`  skipping round ${r.id}: tid=${newTid} uid=${newUid}`);
+    if (!tournament || !newUid) {
+      console.warn(
+        `  skipping round ${r.id}: tid=${tournament?.id} uid=${newUid}`,
+      );
       continue;
     }
     await target.execute(sql`
-      INSERT INTO rounds (id, tournament_id, user_id)
-      VALUES (${r.id}, ${newTid}, ${newUid})
+      INSERT INTO rounds (id, tournament_id, user_id, course_id, date)
+      VALUES (${r.id}, ${tournament.id}, ${newUid}, ${tournament.courseId}, ${tournament.date})
     `);
     roundsInserted++;
   }
@@ -304,10 +326,10 @@ async function main() {
   const counts = await target.execute(sql`
     SELECT
       (SELECT COUNT(*) FROM clubs)::int        AS clubs,
+      (SELECT COUNT(*) FROM club_members)::int AS club_members,
       (SELECT COUNT(*) FROM "user")::int       AS users,
       (SELECT COUNT(*) FROM courses)::int      AS courses,
       (SELECT COUNT(*) FROM course_holes)::int AS course_holes,
-      (SELECT COUNT(*) FROM seasons)::int      AS seasons,
       (SELECT COUNT(*) FROM tournaments)::int  AS tournaments,
       (SELECT COUNT(*) FROM rounds)::int       AS rounds,
       (SELECT COUNT(*) FROM round_scores)::int AS round_scores,

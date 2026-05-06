@@ -259,11 +259,12 @@ export async function createTournament(
 
   const { clubHandle } = parsed.data;
   const date = parseDateOnly(parsed.data.date);
-  const courseHandle = emptyToNull(parsed.data.courseHandle);
+  const startsAt = parsed.data.startsAt;
+  const courseHandle = parsed.data.courseHandle;
   const clubId = await getClubIdByHandle(clubHandle);
   const courseId = await getCourseIdByHandle(courseHandle);
 
-  if (!clubId || (courseHandle && !courseId)) {
+  if (!clubId || !courseId) {
     return { ok: false, error: "Selected club or course does not exist." };
   }
 
@@ -271,18 +272,13 @@ export async function createTournament(
     await db.insert(tournaments).values({
       clubId,
       date,
+      startsAt,
       courseId,
     });
   } catch (e: unknown) {
     const code =
       (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
       (e as { code?: string })?.code;
-    if (code === "23505") {
-      return {
-        ok: false,
-        error: "A tournament for this club already exists on that date.",
-      };
-    }
     if (code === "23503") {
       return { ok: false, error: "Selected club or course does not exist." };
     }
@@ -305,11 +301,12 @@ export async function updateTournament(
 
   const { id, clubHandle } = parsed.data;
   const date = parseDateOnly(parsed.data.date);
-  const courseHandle = emptyToNull(parsed.data.courseHandle);
+  const startsAt = parsed.data.startsAt;
+  const courseHandle = parsed.data.courseHandle;
   const clubId = await getClubIdByHandle(clubHandle);
   const courseId = await getCourseIdByHandle(courseHandle);
 
-  if (!clubId || (courseHandle && !courseId)) {
+  if (!clubId || !courseId) {
     return { ok: false, error: "Selected club or course does not exist." };
   }
 
@@ -325,18 +322,12 @@ export async function updateTournament(
   try {
     await db
       .update(tournaments)
-      .set({ clubId, date, courseId })
+      .set({ clubId, date, startsAt, courseId })
       .where(eq(tournaments.id, id));
   } catch (e: unknown) {
     const code =
       (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
       (e as { code?: string })?.code;
-    if (code === "23505") {
-      return {
-        ok: false,
-        error: "A tournament for this club already exists on that date.",
-      };
-    }
     if (code === "23503") {
       return { ok: false, error: "Selected club or course does not exist." };
     }
@@ -535,6 +526,18 @@ export async function deleteCourse(id: number): Promise<ActionResult> {
     return {
       ok: false,
       error: `Cannot delete: course is assigned to ${tournamentCount} tournament(s).`,
+    };
+  }
+
+  const [{ value: roundCount }] = await db
+    .select({ value: count() })
+    .from(rounds)
+    .where(eq(rounds.courseId, id));
+
+  if (roundCount > 0) {
+    return {
+      ok: false,
+      error: `Cannot delete: course is assigned to ${roundCount} round(s).`,
     };
   }
 

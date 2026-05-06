@@ -11,6 +11,7 @@ export const getAllTournaments = cache(async () => {
       clubHandle: clubs.handle,
       clubName: clubs.name,
       date: tournaments.date,
+      startsAt: tournaments.startsAt,
       courseId: tournaments.courseId,
       courseHandle: courses.handle,
       courseName: courses.name,
@@ -19,7 +20,7 @@ export const getAllTournaments = cache(async () => {
     .from(tournaments)
     .innerJoin(clubs, eq(tournaments.clubId, clubs.id))
     .leftJoin(courses, eq(tournaments.courseId, courses.id))
-    .orderBy(desc(tournaments.date));
+    .orderBy(desc(tournaments.date), desc(tournaments.startsAt));
 });
 
 export const getRoundsCountByTournamentId = cache(async (tournamentId: number) => {

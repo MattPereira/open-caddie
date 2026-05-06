@@ -48,6 +48,7 @@ export function TournamentsPanel({
         t.clubName,
         t.courseName ?? "",
         dateFormatter.format(t.date),
+        formatTournamentTime(t.startsAt),
       ]
         .join(" ")
         .toLowerCase();
@@ -108,4 +109,13 @@ export function TournamentsPanel({
       />
     </div>
   );
+}
+
+function formatTournamentTime(time: string | null) {
+  if (!time) return "";
+  const [hours = "0", minutes = "0"] = time.split(":");
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(2000, 0, 1, Number(hours), Number(minutes)));
 }

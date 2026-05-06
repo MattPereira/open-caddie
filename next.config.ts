@@ -8,6 +8,11 @@ const nextConfig: NextConfig = {
         hostname: "contra-costa-golf-club.s3.us-west-1.amazonaws.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "t4.ftcdn.net",
+        pathname: "/**",
+      },
     ],
   },
 };

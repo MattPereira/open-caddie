@@ -46,6 +46,7 @@ export type AdminTournament = {
   clubHandle: string;
   clubName: string;
   date: Date;
+  startsAt: string | null;
   courseHandle: string | null;
   courseName: string | null;
   courseImgUrl: string | null;
@@ -66,6 +67,7 @@ type TournamentSheetProps = {
 const emptyDefaults: TournamentFormValues = {
   clubHandle: "",
   date: "",
+  startsAt: "",
   courseHandle: "",
 };
 
@@ -134,6 +136,7 @@ function toFormValues(t?: AdminTournament): TournamentFormValues {
   return {
     clubHandle: t.clubHandle,
     date: toIsoDate(t.date),
+    startsAt: t.startsAt?.slice(0, 5) ?? "",
     courseHandle: t.courseHandle ?? "",
   };
 }
@@ -256,6 +259,24 @@ export function TournamentSheet({
 
                 <FormField
                   control={form.control}
+                  name="startsAt"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Start time</FormLabel>
+                      <FormControl>
+                        <input
+                          type="time"
+                          className={selectClass}
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="clubHandle"
                   render={({ field }) => (
                     <FormItem>
@@ -283,7 +304,7 @@ export function TournamentSheet({
                       <FormLabel>Course</FormLabel>
                       <FormControl>
                         <select className={selectClass} {...field}>
-                          <option value="">None</option>
+                          <option value="">Select a course...</option>
                           {courses.map((c) => (
                             <option key={c.handle} value={c.handle}>
                               {c.name}

@@ -23,7 +23,11 @@ export const TournamentFormSchema = z.object({
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required"),
-  courseHandle: z.string().trim(),
+  startsAt: z
+    .string()
+    .trim()
+    .regex(/^\d{2}:\d{2}$/, "Start time is required"),
+  courseHandle: z.string().trim().min(1, "Course is required"),
 });
 
 export const TournamentCreateSchema = TournamentFormSchema;

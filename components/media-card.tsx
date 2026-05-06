@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { GolfHoleIcon } from "@hugeicons/core-free-icons";
 import type { VariantProps } from "class-variance-authority";
@@ -18,6 +19,7 @@ type MediaCardProps = {
   header: ReactNode;
   children?: ReactNode;
   badges?: MediaCardBadge[];
+  href?: string;
   onClick?: () => void;
 };
 
@@ -27,6 +29,7 @@ export function MediaCard({
   header,
   children,
   badges = [],
+  href,
   onClick,
 }: MediaCardProps) {
   const content = (
@@ -58,7 +61,14 @@ export function MediaCard({
   return (
     <Card size="sm" className="gap-0 py-0!">
       <CardContent className="p-0!">
-        {onClick ? (
+        {href ? (
+          <Link
+            href={href}
+            className="flex w-full items-stretch text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            {content}
+          </Link>
+        ) : onClick ? (
           <button
             type="button"
             onClick={onClick}

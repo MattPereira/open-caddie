@@ -8,7 +8,7 @@ import {
   RankingIcon,
   UserMultipleIcon,
   GolfHoleIcon,
-  Flag01Icon,
+  GolfCartIcon,
   ExpandIcon,
   UserCircleIcon,
   Notification01Icon,
@@ -51,7 +51,7 @@ const items: NavItem[] = [
   { title: "Standings", href: "/standings", icon: RankingIcon },
   { title: "Members", href: "/members", icon: UserMultipleIcon },
   { title: "Greenies", href: "/greenies", icon: GolfHoleIcon },
-  { title: "Courses", href: "/courses", icon: Flag01Icon },
+  { title: "Courses", href: "/courses", icon: GolfCartIcon },
 ];
 
 type SidebarUser = {

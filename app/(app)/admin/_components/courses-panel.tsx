@@ -5,7 +5,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Add01Icon } from "@hugeicons/core-free-icons";
 
 import { Button } from "@/components/ui/button";
-import { MediaCard } from "@/components/media-card";
+import { CourseCard } from "@/components/course-card";
 import { SearchInput } from "@/components/search-input";
 import { CourseSheet, type AdminCourse } from "./course-sheet";
 
@@ -61,17 +61,11 @@ export function CoursesPanel({ courses }: CoursesPanelProps) {
       ) : (
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
           {filtered.map((course) => (
-            <MediaCard
+            <CourseCard
               key={course.id}
-              imageUrl={course.imgUrl}
-              imageAlt={course.name}
-              header={course.name}
-              badges={[
-                { label: `Rating ${course.rating}`, variant: "secondary" },
-                { label: `Slope ${course.slope}`, variant: "secondary" },
-              ]}
+              course={course}
               onClick={() => openEdit(course)}
-            ></MediaCard>
+            />
           ))}
         </div>
       )}

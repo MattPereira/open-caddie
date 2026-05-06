@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { asc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { courseHoles, courses } from "@/db/schema";
 
@@ -37,4 +37,21 @@ export const getAllCourses = cache(async () => {
     ...course,
     holes: holesByCourse.get(course.id) ?? [],
   }));
+});
+
+export const getCourseByHandle = cache(async (handle: string) => {
+  const [course] = await db
+    .select({
+      id: courses.id,
+      handle: courses.handle,
+      name: courses.name,
+      rating: courses.rating,
+      slope: courses.slope,
+      imgUrl: courses.imgUrl,
+    })
+    .from(courses)
+    .where(eq(courses.handle, handle))
+    .limit(1);
+
+  return course;
 });

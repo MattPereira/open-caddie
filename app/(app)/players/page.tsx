@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
 
+import { getAllUsers } from "@/db/queries/users";
+import { PlayersBrowser } from "./_components/players-browser";
+
 export const metadata: Metadata = {
   title: "Players",
 };
 
-export default function PlayersPage() {
+export const dynamic = "force-dynamic";
+
+export default async function PlayersPage() {
+  const players = await getAllUsers();
+
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
       <h1 className="text-2xl font-semibold tracking-normal">Players</h1>
+      <PlayersBrowser players={players} />
     </main>
   );
 }

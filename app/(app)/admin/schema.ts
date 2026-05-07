@@ -23,6 +23,13 @@ export const TournamentFormSchema = z.object({
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required"),
+  season: z.union([
+    z
+      .number({ message: "Season must be a number" })
+      .int("Season must be a whole number")
+      .nonnegative("Season cannot be negative"),
+    z.literal(""),
+  ]),
   startsAt: z
     .string()
     .trim()

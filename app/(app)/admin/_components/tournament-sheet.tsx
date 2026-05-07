@@ -16,6 +16,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -68,6 +69,7 @@ type TournamentSheetProps = {
 const emptyDefaults: TournamentFormValues = {
   clubHandle: "",
   date: "",
+  season: "",
   startsAt: "",
   courseHandle: "",
 };
@@ -137,9 +139,14 @@ function toFormValues(t?: AdminTournament): TournamentFormValues {
   return {
     clubHandle: t.clubHandle,
     date: toIsoDate(t.date),
+    season: t.season ?? "",
     startsAt: t.startsAt?.slice(0, 5) ?? "",
     courseHandle: t.courseHandle ?? "",
   };
+}
+
+function toNumberInputValue(value: number | "") {
+  return value === "" ? "" : value;
 }
 
 const selectClass =
@@ -269,6 +276,34 @@ export function TournamentSheet({
                           type="time"
                           className={selectClass}
                           {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="season"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Season</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          step={1}
+                          {...field}
+                          value={toNumberInputValue(field.value)}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value === ""
+                                ? ""
+                                : Number(e.target.value),
+                            )
+                          }
                         />
                       </FormControl>
                       <FormMessage />

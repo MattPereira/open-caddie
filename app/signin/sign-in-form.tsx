@@ -1,55 +1,25 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { InformationCircleIcon } from "@hugeicons/core-free-icons";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { LoginForm, type LoginFormValues } from "@/components/login-form";
 import { signInWithEmail } from "./actions";
 
-const signInSchema = z.object({
-  email: z.email("Enter a valid email address"),
-});
-
-type SignInValues = z.infer<typeof signInSchema>;
-
 export function SignInForm() {
-  const [isPending, startTransition] = useTransition();
   const [sentTo, setSentTo] = useState<string | null>(null);
-  const form = useForm<SignInValues>({
-    resolver: zodResolver(signInSchema),
-    defaultValues: { email: "" },
-  });
 
-  const onSubmit = (values: SignInValues) => {
-    startTransition(async () => {
-      const result = await signInWithEmail(values.email);
-      if (!result.ok) {
-        form.setError("email", { message: result.error });
-        return;
-      }
+  const onSubmit = async (values: LoginFormValues) => {
+    const result = await signInWithEmail(values.email);
+
+    if (result.ok) {
       setSentTo(values.email);
-    });
+    }
+
+    return result;
   };
 
   return (
@@ -68,52 +38,15 @@ export function SignInForm() {
             variant="ghost"
             onClick={() => {
               setSentTo(null);
-              form.reset();
             }}
           >
             Use a different email
           </Button>
         </div>
       ) : (
-        <Card className="w-full max-w-sm">
-          <CardHeader>
-            <CardTitle>Sign in to Open Caddie</CardTitle>
-            <CardDescription>
-              We&apos;ll email you a magic link to sign in.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="flex flex-col gap-6"
-              >
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          autoComplete="email"
-                          placeholder="you@example.com"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button type="submit" disabled={isPending} className="w-full">
-                  {isPending ? "Sending…" : "Send magic link"}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
+        <div className="w-full max-w-sm">
+          <LoginForm onSubmit={onSubmit} />
+        </div>
       )}
     </main>
   );

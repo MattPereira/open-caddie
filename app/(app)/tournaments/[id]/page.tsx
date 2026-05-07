@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getTournamentById } from "@/db/queries/tournaments";
+import { GreeniesTabContent } from "./_components/greenies-tab-content";
+import { RoundsTabContent } from "./_components/rounds-tab-content";
+import { WinnersTabContent } from "./_components/winners-tab-content";
 
 type TournamentPageProps = {
   params: Promise<{
@@ -35,8 +39,6 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
     notFound();
   }
 
-  console.log({ tournament });
-
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex flex-col gap-2">
@@ -47,6 +49,33 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
           {formatTournamentDate(tournament.date)}
         </p>
       </div>
+
+      <Tabs defaultValue="rounds" className="w-full">
+        <TabsList className="w-full p-1 sm:w-fit mb-3 h-10!">
+          <TabsTrigger
+            value="rounds"
+            className="flex-1 px-5 py-2 text-lg sm:flex-none"
+          >
+            Rounds
+          </TabsTrigger>
+          <TabsTrigger
+            value="greenies"
+            className="flex-1 px-5 py-2 text-lg sm:flex-none"
+          >
+            Greenies
+          </TabsTrigger>
+          <TabsTrigger
+            value="winners"
+            className="flex-1 px-5 py-2 text-lg sm:flex-none"
+          >
+            Winners
+          </TabsTrigger>
+        </TabsList>
+
+        <RoundsTabContent rounds={tournament.rounds} />
+        <GreeniesTabContent greenies={tournament.greenies} />
+        <WinnersTabContent />
+      </Tabs>
     </main>
   );
 }

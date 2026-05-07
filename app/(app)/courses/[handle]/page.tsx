@@ -41,7 +41,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
         </h1>
       </div>
 
-      <div className="relative aspect-video w-full max-w-5xl overflow-hidden rounded-lg bg-muted">
+      <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
         {course.imgUrl ? (
           <Image
             src={course.imgUrl}

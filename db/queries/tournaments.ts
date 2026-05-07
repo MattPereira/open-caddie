@@ -105,10 +105,12 @@ export const getTournamentById = cache(async (tournamentId: number) => {
           lastName: users.lastName,
           username: users.username,
           image: users.image,
+          courseName: courses.name,
         })
         .from(greenies)
         .innerJoin(rounds, eq(greenies.roundId, rounds.id))
         .innerJoin(users, eq(rounds.userId, users.id))
+        .innerJoin(courses, eq(rounds.courseId, courses.id))
         .where(eq(rounds.tournamentId, tournamentId))
         .orderBy(asc(greenies.hole), asc(greenies.feet), asc(greenies.inches)),
     ]);

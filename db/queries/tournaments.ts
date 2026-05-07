@@ -1,7 +1,15 @@
 import { cache } from "react";
-import { count, desc, eq } from "drizzle-orm";
+import { asc, count, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { clubs, courses, rounds, tournaments } from "@/db/schema";
+import {
+  clubs,
+  courses,
+  greenies,
+  roundScores,
+  rounds,
+  tournaments,
+  users,
+} from "@/db/schema";
 
 export const getAllTournaments = cache(async () => {
   return db
@@ -22,6 +30,106 @@ export const getAllTournaments = cache(async () => {
     .innerJoin(clubs, eq(tournaments.clubId, clubs.id))
     .leftJoin(courses, eq(tournaments.courseId, courses.id))
     .orderBy(desc(tournaments.date), desc(tournaments.startsAt));
+});
+
+export const getTournamentById = cache(async (tournamentId: number) => {
+  const [tournament] = await db
+    .select({
+      id: tournaments.id,
+      clubId: tournaments.clubId,
+      clubHandle: clubs.handle,
+      clubName: clubs.name,
+      date: tournaments.date,
+      startsAt: tournaments.startsAt,
+      season: tournaments.season,
+      courseId: tournaments.courseId,
+      courseHandle: courses.handle,
+      courseName: courses.name,
+      courseImgUrl: courses.imgUrl,
+    })
+    .from(tournaments)
+    .innerJoin(clubs, eq(tournaments.clubId, clubs.id))
+    .leftJoin(courses, eq(tournaments.courseId, courses.id))
+    .where(eq(tournaments.id, tournamentId))
+    .limit(1);
+
+  if (!tournament) {
+    return tournament;
+  }
+
+  const [tournamentRounds, tournamentRoundScores, tournamentGreenies] =
+    await Promise.all([
+      db
+        .select({
+          id: rounds.id,
+          tournamentId: rounds.tournamentId,
+          userId: rounds.userId,
+          date: rounds.date,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          username: users.username,
+          image: users.image,
+          courseId: courses.id,
+          courseHandle: courses.handle,
+          courseName: courses.name,
+          courseImgUrl: courses.imgUrl,
+        })
+        .from(rounds)
+        .innerJoin(users, eq(rounds.userId, users.id))
+        .innerJoin(courses, eq(rounds.courseId, courses.id))
+        .where(eq(rounds.tournamentId, tournamentId))
+        .orderBy(
+          asc(users.lastName),
+          asc(users.firstName),
+          asc(users.username),
+        ),
+      db
+        .select({
+          roundId: roundScores.roundId,
+          hole: roundScores.hole,
+          strokes: roundScores.strokes,
+          putts: roundScores.putts,
+        })
+        .from(roundScores)
+        .innerJoin(rounds, eq(roundScores.roundId, rounds.id))
+        .where(eq(rounds.tournamentId, tournamentId))
+        .orderBy(asc(roundScores.roundId), asc(roundScores.hole)),
+      db
+        .select({
+          roundId: greenies.roundId,
+          hole: greenies.hole,
+          feet: greenies.feet,
+          inches: greenies.inches,
+          roundDate: rounds.date,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          username: users.username,
+          image: users.image,
+        })
+        .from(greenies)
+        .innerJoin(rounds, eq(greenies.roundId, rounds.id))
+        .innerJoin(users, eq(rounds.userId, users.id))
+        .where(eq(rounds.tournamentId, tournamentId))
+        .orderBy(asc(greenies.hole), asc(greenies.feet), asc(greenies.inches)),
+    ]);
+
+  const scoresByRoundId = new Map<number, typeof tournamentRoundScores>();
+  for (const score of tournamentRoundScores) {
+    const scores = scoresByRoundId.get(score.roundId) ?? [];
+    scores.push(score);
+    scoresByRoundId.set(score.roundId, scores);
+  }
+
+  const roundsWithScores = tournamentRounds.map((round) => ({
+    ...round,
+    scores: scoresByRoundId.get(round.id) ?? [],
+  }));
+
+  return {
+    ...tournament,
+    rounds: roundsWithScores,
+    greenies: tournamentGreenies,
+  };
 });
 
 export const getRoundsCountByTournamentId = cache(async (tournamentId: number) => {

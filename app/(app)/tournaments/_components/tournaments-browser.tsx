@@ -87,6 +87,7 @@ export function TournamentsBrowser({
                     <TournamentCard
                       key={tournament.id}
                       tournament={tournament}
+                      href={`/tournaments/${tournament.id}`}
                     />
                   ))}
                 </div>

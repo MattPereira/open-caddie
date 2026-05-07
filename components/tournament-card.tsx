@@ -22,9 +22,11 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 
 export function TournamentCard({
   tournament,
+  href,
   onClick,
 }: {
   tournament: TournamentCardTournament;
+  href?: string;
   onClick?: () => void;
 }) {
   const courseName = tournament.courseName ?? "Course to be announced";
@@ -40,6 +42,7 @@ export function TournamentCard({
       imageAlt={courseName}
       header={courseName}
       badges={badges}
+      href={href}
       onClick={onClick}
     >
       <CardDescription className="flex items-center gap-1 text-xs leading-snug">

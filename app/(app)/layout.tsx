@@ -34,9 +34,9 @@ export default async function AppLayout({
     <SidebarProvider>
       <AppSidebar user={sidebarUser} />
       <SidebarInset>
-        <header className="flex h-12 items-center gap-2 border-b px-3">
-          <SidebarTrigger />
-          <ThemeToggle className="ml-auto" />
+        <header className="flex h-14 items-center gap-2 border-b px-3">
+          <SidebarTrigger className="size-8" />
+          <ThemeToggle className="ml-auto size-8" />
         </header>
         <div className="flex flex-1 flex-col">{children}</div>
       </SidebarInset>

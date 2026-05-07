@@ -23,7 +23,10 @@ export function ThemeToggle({ className }: { className?: string }) {
       className={className}
       onClick={() => setTheme(isDark ? "light" : "dark")}
     >
-      <HugeiconsIcon icon={isDark ? Sun01Icon : Moon02Icon} />
+      <HugeiconsIcon
+        icon={isDark ? Sun01Icon : Moon02Icon}
+        className="size-5"
+      />
     </Button>
   );
 }

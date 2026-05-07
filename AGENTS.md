@@ -1,19 +1,50 @@
-<!-- BEGIN:nextjs-agent-rules -->
+# Repository Guidelines
 
-# This is NOT the Next.js you know
+## Instructions
 
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
+### Security Rules
 
-<!-- END:nextjs-agent-rules -->
+- Do not commit secrets.
+- Keep environment-specific values in local `.env` files or deployment settings.
 
-## User Interface
+### Next.js Rules
 
-- use shadcn and tailwind to build ans style all UI components
-- use react hook form for all forms
-- prioritize mobile first designs but also support desktop views
-- use hugeicons for icons
-- shadcn `radix-nova` style registry is incomplete: `components/ui/form.tsx` was sourced from the `new-york` style URL and patched to use the unified `radix-ui` package; revisit and re-run `pnpm dlx shadcn@latest add @shadcn/form --overwrite` once the upstream registry is fixed
+- Before any Next.js work, find and read the relevant doc in `node_modules/next/dist/docs/`. Your training data is outdated — the docs are the source of truth.
 
-## Database
+### Coding Conventions
 
-- schema defined @/db/schema.ts
+- Write TypeScript and React with strict types enabled.
+- Prefer named exports for shared helpers and colocate route-specific components under the route’s `_components/` directory.
+- Use `kebab-case` filenames for components and route helpers, and keep schema/action files named by purpose, such as `schema.ts` and `actions.ts`.
+- Style UI with Tailwind and shadcn components; use Hugeicons for icons.
+- Use React Hook Form for forms and Zod schemas for validation.
+
+## Project Architecture
+
+- Open Caddie is a Next.js App Router application.
+- Route groups, pages, layouts, Server Actions, and route handlers live in `app/`, including the authenticated app under `app/(app)/` and auth under `app/api/auth/[...nextauth]/`
+- Shared React components are in `components/`, with shadcn primitives in `components/ui/`
+- Database schema and access code live in `db/`, with the canonical schema in `db/schema.ts` and query helpers in `db/queries/`
+- Shared hooks, utilities, and types live in `hooks/`, `lib/`, and `types/`
+- Static assets are in `public/` directory
+
+## Database Schema Notes
+
+- Clubs enable grouping of users and tournaments
+- Season numbers on tournaments enable grouping tournaments within a club
+- Tournaments enable grouping rounds
+- Rounds have the option to be created with or without a tournament and carry their own course/date context
+
+## CLI Commands
+
+- `pnpm run dev`: start the local Next development server.
+- `pnpm run build`: build the production app.
+- `pnpm run start`: run the production build.
+- `pnpm run lint`: run ESLint with Next core-web-vitals and TypeScript rules.
+- `pnpm run typecheck`: generate Next types, then run `tsc --noEmit`.
+- `pnpm run check`: run linting and typechecking together.
+- `pnpm run db:generate`, `pnpm run db:migrate`, `pnpm run db:push`, `pnpm run db:studio`: manage Drizzle migrations.
+
+## Git Guidelines
+
+- Keep commit messages concise and to the point.

@@ -1,4 +1,0 @@
-- clubs enable grouping of users and tournaments
-- season numbers on tournaments enable grouping tournaments within a club
-- tournaments enable grouping rounds
-- rounds have the option to be created with or without a tournament and carry their own course/date context

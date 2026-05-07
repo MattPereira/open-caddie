@@ -6,7 +6,7 @@ A golf score keeping app that facilitates club tournaments with handicaps, point
 
 | Layer               | Choice                                                       |
 | ------------------- | ------------------------------------------------------------ |
-| Framework           | Next.js 15 (App Router, Server Actions)                      |
+| Framework           | Next.js (App Router, Server Actions)                         |
 | Language            | TypeScript                                                   |
 | Database            | Neon (serverless Postgres, scales to zero, branching per PR) |
 | ORM                 | Drizzle + drizzle-kit                                        |

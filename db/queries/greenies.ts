@@ -14,6 +14,7 @@ export const getAllGreenies = cache(async () => {
       firstName: users.firstName,
       lastName: users.lastName,
       username: users.username,
+      image: users.image,
       courseId: courses.id,
       courseHandle: courses.handle,
       courseName: courses.name,

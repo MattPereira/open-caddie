@@ -15,9 +15,13 @@
 
 - Write TypeScript and React with strict types enabled.
 - Prefer named exports for shared helpers and colocate route-specific components under the route’s `_components/` directory.
+- Prioritize building shared re-usable components as much as possible.
 - Use `kebab-case` filenames for components and route helpers, and keep schema/action files named by purpose, such as `schema.ts` and `actions.ts`.
-- Style UI with Tailwind and shadcn components; use Hugeicons for icons.
-- Use React Hook Form for forms and Zod schemas for validation.
+- Use shadcn components and tailwind to build and style all UI components.
+- Prioritize mobile first designs without compromising the quality of tablet and desktop experiences.
+- Use Hugeicons for icons.
+- Use React Hook Form for forms
+- Use Zod schemas for validation.
 
 ## Project Architecture
 

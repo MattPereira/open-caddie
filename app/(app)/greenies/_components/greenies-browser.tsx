@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { GolfHoleIcon } from "@hugeicons/core-free-icons";
 
-import { Card, CardContent, CardDescription } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { IconCard } from "@/components/icon-card";
 import { SearchInput } from "@/components/search-input";
 
 type Greenie = {
@@ -18,6 +18,7 @@ type Greenie = {
   firstName: string | null;
   lastName: string | null;
   username: string | null;
+  image: string | null;
   courseId: number;
   courseHandle: string;
   courseName: string;
@@ -101,7 +102,7 @@ export function GreeniesBrowser({ greenies }: { greenies: Greenie[] }) {
 
 function GreeniesGrid({ greenies }: { greenies: Greenie[] }) {
   return (
-    <div className="grid grid-cols-1 gap-3 xl:grid-cols-2 2xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 xl:grid-cols-3 2xl:grid-cols-3">
       {greenies.map((greenie) => (
         <GreenieCard
           key={`${greenie.roundId}-${greenie.hole}`}
@@ -116,24 +117,44 @@ function GreenieCard({ greenie }: { greenie: Greenie }) {
   const playerName = formatPlayerName(greenie);
 
   return (
-    <IconCard
-      leading={<HugeiconsIcon icon={GolfHoleIcon} size={24} aria-hidden />}
-      header={playerName}
-      badges={[{ label: greenie.courseName }]}
-    >
-      <CardDescription className="grid grid-cols-2 gap-1.5 text-card-foreground">
-        <GreenieDetail label="Hole" value={`${greenie.hole}`} />
-        <GreenieDetail label="Distance" value={formatDistance(greenie)} />
-      </CardDescription>
-    </IconCard>
+    <Card size="sm" className="gap-0 py-0!">
+      <CardContent className="flex items-center gap-3 p-2!">
+        <Avatar className="size-15 rounded-lg">
+          {greenie.image ? (
+            <AvatarImage src={greenie.image} alt={playerName} />
+          ) : null}
+          <AvatarFallback className="rounded-lg">
+            {getInitials(greenie)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <CardTitle className="truncate">{playerName}</CardTitle>
+          <span className="truncate text-xs text-muted-foreground">
+            {greenie.courseName}
+          </span>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <GreenieStat label="Hole" value={greenie.hole} />
+          <GreenieStat label="Distance" value={formatDistance(greenie)} />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
-function GreenieDetail({ label, value }: { label: string; value: string }) {
+function GreenieStat({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
   return (
-    <div className="flex min-w-0 items-center gap-1.5 rounded-lg bg-muted/50 px-2 py-1.5">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="truncate text-sm font-medium text-card-foreground">
+    <div className="flex min-w-16 flex-col gap-0.5 rounded-md bg-muted px-3 py-1.5">
+      <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+        <span>{label}</span>
+      </div>
+      <span className="text-end text-sm font-semibold tabular-nums text-card-foreground">
         {value}
       </span>
     </div>
@@ -189,7 +210,7 @@ function groupTopGreeniesBySeason(greenies: Greenie[]): GreenieGroup[] {
     .map(([season, seasonGreenies]) => ({
       key: season == null ? "no-season" : String(season),
       label: season == null ? "No season" : `Season ${season}`,
-      greenies: [...seasonGreenies].sort(compareGreenieDistance).slice(0, 4),
+      greenies: [...seasonGreenies].sort(compareGreenieDistance).slice(0, 3),
     }));
 }
 
@@ -213,6 +234,15 @@ function formatPlayerName(greenie: Greenie) {
     .trim();
 
   return fullName || greenie.username || "Unknown player";
+}
+
+function getInitials(greenie: Greenie) {
+  const first = greenie.firstName?.trim()?.[0];
+  const last = greenie.lastName?.trim()?.[0];
+  const initials = `${first ?? ""}${last ?? ""}`.toUpperCase();
+  if (initials) return initials;
+  const fallback = (greenie.username ?? "?").trim();
+  return fallback.slice(0, 2).toUpperCase();
 }
 
 function formatDistance(greenie: Pick<Greenie, "feet" | "inches">) {

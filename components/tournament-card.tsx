@@ -42,8 +42,8 @@ export function TournamentCard({
       badges={badges}
       onClick={onClick}
     >
-      <CardDescription className="flex items-center gap-1.5">
-        <HugeiconsIcon icon={Calendar03Icon} size={15} aria-hidden />
+      <CardDescription className="flex items-center gap-1 text-xs leading-snug">
+        <HugeiconsIcon icon={Calendar03Icon} size={12} aria-hidden />
         <span>{formatTournamentDate(tournament.date)}</span>
       </CardDescription>
     </MediaCard>

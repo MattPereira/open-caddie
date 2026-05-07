@@ -44,6 +44,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { signOutAction } from "@/app/(app)/actions";
 
@@ -71,6 +72,7 @@ type SidebarUser = {
 export function AppSidebar({ user }: { user: SidebarUser }) {
   const pathname = usePathname();
   const { setTheme } = useTheme();
+  const { isMobile } = useSidebar();
   const initials = getInitials(user.name);
 
   return (
@@ -132,7 +134,7 @@ export function AppSidebar({ user }: { user: SidebarUser }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-                side="right"
+                side={isMobile ? "top" : "right"}
                 align="end"
                 sideOffset={4}
               >

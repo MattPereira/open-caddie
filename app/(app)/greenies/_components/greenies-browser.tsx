@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { GolfHoleIcon, RulerIcon } from "@hugeicons/core-free-icons";
+import { GolfHoleIcon } from "@hugeicons/core-free-icons";
 
 import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MediaCard } from "@/components/media-card";
+import { IconCard } from "@/components/icon-card";
 import { SearchInput } from "@/components/search-input";
 
 type Greenie = {
@@ -114,56 +114,27 @@ function GreeniesGrid({ greenies }: { greenies: Greenie[] }) {
 
 function GreenieCard({ greenie }: { greenie: Greenie }) {
   const playerName = formatPlayerName(greenie);
-  const badges = [{ label: playerName }];
-
-  if (greenie.season != null) {
-    badges.push({ label: `Season ${greenie.season}` });
-  }
 
   return (
-    <MediaCard
-      imageUrl={greenie.courseImgUrl}
-      imageAlt={greenie.courseName}
-      header={greenie.courseName}
-      badges={badges}
+    <IconCard
+      leading={<HugeiconsIcon icon={GolfHoleIcon} size={24} aria-hidden />}
+      header={playerName}
+      badges={[{ label: greenie.courseName }]}
     >
       <CardDescription className="grid grid-cols-2 gap-1.5 text-card-foreground">
-        <GreenieDetail
-          icon={GolfHoleIcon}
-          label="Hole"
-          value={`No. ${greenie.hole}`}
-        />
-        <GreenieDetail
-          icon={RulerIcon}
-          label="Distance"
-          value={formatDistance(greenie)}
-        />
+        <GreenieDetail label="Hole" value={`${greenie.hole}`} />
+        <GreenieDetail label="Distance" value={formatDistance(greenie)} />
       </CardDescription>
-    </MediaCard>
+    </IconCard>
   );
 }
 
-function GreenieDetail({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ComponentProps<typeof HugeiconsIcon>["icon"];
-  label: string;
-  value: string;
-}) {
+function GreenieDetail({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex min-w-0 items-start gap-1.5 rounded-lg bg-muted/50 p-1.5">
-      <span className="mt-0.5 shrink-0 text-muted-foreground">
-        <HugeiconsIcon icon={icon} size={13} aria-hidden />
-      </span>
-      <span className="flex min-w-0 flex-col gap-0.5">
-        <span className="text-[11px] leading-none text-muted-foreground">
-          {label}
-        </span>
-        <span className="truncate text-xs font-medium text-card-foreground">
-          {value}
-        </span>
+    <div className="flex min-w-0 items-center gap-1.5 rounded-lg bg-muted/50 px-2 py-1.5">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="truncate text-sm font-medium text-card-foreground">
+        {value}
       </span>
     </div>
   );
@@ -193,7 +164,7 @@ function filterGreenies(greenies: Greenie[], query: string) {
       greenie.clubName ?? "",
       greenie.season != null ? `Season ${greenie.season}` : "",
       `Hole ${greenie.hole}`,
-      `No. ${greenie.hole}`,
+      `${greenie.hole}`,
       formatDistance(greenie),
       greenie.roundDate,
     ]
@@ -246,8 +217,8 @@ function formatPlayerName(greenie: Greenie) {
 
 function formatDistance(greenie: Pick<Greenie, "feet" | "inches">) {
   if (greenie.inches === 0) {
-    return `${greenie.feet} ft`;
+    return `${greenie.feet}'`;
   }
 
-  return `${greenie.feet} ft ${greenie.inches} in`;
+  return `${greenie.feet}' ${greenie.inches}"`;
 }

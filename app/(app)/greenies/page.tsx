@@ -18,7 +18,7 @@ export default async function GreeniesPage() {
         <h1 className="text-2xl font-semibold tracking-normal">Greenies</h1>
         <div>
           <p className="max-w-2xl text-sm text-muted-foreground">
-            Browse closest-to-the-pin results across recorded rounds.
+            Browse the closest to the pin shots on par 3s
           </p>
         </div>
       </div>

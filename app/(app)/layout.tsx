@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 import { AppSidebar } from "@/components/app-sidebar";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   SidebarInset,
   SidebarProvider,
@@ -35,6 +36,7 @@ export default async function AppLayout({
       <SidebarInset>
         <header className="flex h-12 items-center gap-2 border-b px-3">
           <SidebarTrigger />
+          <ThemeToggle className="ml-auto" />
         </header>
         <div className="flex flex-1 flex-col">{children}</div>
       </SidebarInset>

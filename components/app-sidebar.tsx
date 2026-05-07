@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTheme } from "next-themes";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
   ChampionIcon,
@@ -15,6 +16,9 @@ import {
   Logout01Icon,
   Settings02Icon,
   UserShield01Icon,
+  Sun01Icon,
+  Moon02Icon,
+  ComputerIcon,
 } from "@hugeicons/core-free-icons";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,6 +29,9 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -63,6 +70,7 @@ type SidebarUser = {
 
 export function AppSidebar({ user }: { user: SidebarUser }) {
   const pathname = usePathname();
+  const { setTheme } = useTheme();
   const initials = getInitials(user.name);
 
   return (
@@ -168,6 +176,26 @@ export function AppSidebar({ user }: { user: SidebarUser }) {
                     <HugeiconsIcon icon={Settings02Icon} />
                     Settings
                   </DropdownMenuItem>
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <HugeiconsIcon icon={Sun01Icon} />
+                      Theme
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      <DropdownMenuItem onSelect={() => setTheme("light")}>
+                        <HugeiconsIcon icon={Sun01Icon} />
+                        Light
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setTheme("dark")}>
+                        <HugeiconsIcon icon={Moon02Icon} />
+                        Dark
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setTheme("system")}>
+                        <HugeiconsIcon icon={ComputerIcon} />
+                        System
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem

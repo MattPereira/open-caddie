@@ -14,8 +14,7 @@ export type TournamentCardTournament = {
 };
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  weekday: "short",
-  month: "short",
+  month: "long",
   day: "numeric",
   year: "numeric",
   timeZone: "UTC",
@@ -45,10 +44,7 @@ export function TournamentCard({
     >
       <CardDescription className="flex items-center gap-1.5">
         <HugeiconsIcon icon={Calendar03Icon} size={15} aria-hidden />
-        <span>
-          {formatTournamentDate(tournament.date)}
-          {tournament.startsAt ? `, ${formatTournamentTime(tournament.startsAt)}` : ""}
-        </span>
+        <span>{formatTournamentDate(tournament.date)}</span>
       </CardDescription>
     </MediaCard>
   );
@@ -60,12 +56,4 @@ function formatTournamentDate(date: Date | string) {
   }
 
   return dateFormatter.format(date);
-}
-
-function formatTournamentTime(time: string) {
-  const [hours = "0", minutes = "0"] = time.split(":");
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(2000, 0, 1, Number(hours), Number(minutes)));
 }

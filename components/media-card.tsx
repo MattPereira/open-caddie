@@ -88,7 +88,7 @@ export function MediaCard({
 
 function MediaCardImage({ src, alt }: { src: string | null; alt: string }) {
   return (
-    <div className="relative min-h-28 w-32 shrink-0 self-stretch overflow-hidden rounded-xl bg-muted sm:min-h-30 sm:w-44">
+    <div className="relative min-h-24 w-32 shrink-0 self-stretch overflow-hidden rounded-xl bg-muted sm:min-h-26 sm:w-44">
       {src ? (
         <Image
           src={src}

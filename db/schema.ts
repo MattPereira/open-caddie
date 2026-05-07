@@ -93,21 +93,18 @@ export const clubMembers = pgTable(
   (cm) => [primaryKey({ columns: [cm.clubId, cm.userId] })],
 );
 
-export const tournaments = pgTable(
-  "tournaments",
-  {
-    id: serial("id").primaryKey(),
-    clubId: integer("club_id")
-      .notNull()
-      .references(() => clubs.id, { onDelete: "restrict" }),
-    date: date("date", { mode: "date" }).notNull(),
-    startsAt: time("starts_at").notNull(),
-    season: integer("season"),
-    courseId: integer("course_id")
-      .notNull()
-      .references(() => courses.id, { onDelete: "restrict" }),
-  },
-);
+export const tournaments = pgTable("tournaments", {
+  id: serial("id").primaryKey(),
+  clubId: integer("club_id")
+    .notNull()
+    .references(() => clubs.id, { onDelete: "restrict" }),
+  date: date("date", { mode: "date" }).notNull(),
+  startsAt: time("starts_at").notNull(),
+  season: integer("season"),
+  courseId: integer("course_id")
+    .notNull()
+    .references(() => courses.id, { onDelete: "restrict" }),
+});
 
 export const courses = pgTable(
   "courses",

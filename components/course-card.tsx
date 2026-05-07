@@ -22,8 +22,8 @@ export function CourseCard({
       imageAlt={course.name}
       header={course.name}
       badges={[
-        { label: `Rating ${course.rating}`, variant: "secondary" },
-        { label: `Slope ${course.slope}`, variant: "secondary" },
+        { label: `Rating ${course.rating}` },
+        { label: `Slope ${course.slope}` },
       ]}
       href={href}
       onClick={onClick}

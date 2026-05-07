@@ -16,7 +16,7 @@ type MediaCardBadge = {
 type MediaCardProps = {
   imageUrl: string | null;
   imageAlt: string;
-  header: ReactNode;
+  header?: ReactNode;
   children?: ReactNode;
   badges?: MediaCardBadge[];
   href?: string;
@@ -37,12 +37,14 @@ export function MediaCard({
       <MediaCardImage src={imageUrl} alt={imageAlt} />
       <div className="flex min-w-0 flex-1 flex-col justify-between gap-2 p-3">
         <CardHeader className="gap-2 px-0">
-          <CardTitle className="truncate text-base">{header}</CardTitle>
+          {header ? (
+            <CardTitle className="truncate text-base">{header}</CardTitle>
+          ) : null}
           {children}
         </CardHeader>
 
         {badges.length > 0 ? (
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
             {badges.map((badge, index) => (
               <Badge
                 key={index}
@@ -86,7 +88,7 @@ export function MediaCard({
 
 function MediaCardImage({ src, alt }: { src: string | null; alt: string }) {
   return (
-    <div className="relative h-28 w-32 shrink-0 self-stretch overflow-hidden rounded-xl bg-muted sm:h-30 sm:w-44">
+    <div className="relative min-h-28 w-32 shrink-0 self-stretch overflow-hidden rounded-xl bg-muted sm:min-h-30 sm:w-44">
       {src ? (
         <Image
           src={src}

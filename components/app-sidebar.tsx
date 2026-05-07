@@ -49,9 +49,9 @@ type NavItem = {
 const items: NavItem[] = [
   { title: "Tournaments", href: "/tournaments", icon: ChampionIcon },
   { title: "Standings", href: "/standings", icon: RankingIcon },
-  { title: "Members", href: "/members", icon: UserMultipleIcon },
   { title: "Greenies", href: "/greenies", icon: GolfHoleIcon },
   { title: "Courses", href: "/courses", icon: GolfCartIcon },
+  { title: "Players", href: "/players", icon: UserMultipleIcon },
 ];
 
 type SidebarUser = {

@@ -7,6 +7,7 @@ import { Add01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/search-input";
 import { TournamentCard } from "@/components/tournament-card";
+import { formatDate } from "@/lib/utils";
 import {
   TournamentSheet,
   type AdminTournament,
@@ -19,14 +20,6 @@ type TournamentsPanelProps = {
   clubs: ClubOption[];
   courses: CourseOption[];
 };
-
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  weekday: "short",
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  timeZone: "UTC",
-});
 
 export function TournamentsPanel({
   tournaments,
@@ -48,7 +41,7 @@ export function TournamentsPanel({
         t.clubName,
         t.courseName ?? "",
         t.season != null ? `Season ${t.season}` : "",
-        dateFormatter.format(t.date),
+        formatDate(t.date, "short"),
         formatTournamentTime(t.startsAt),
       ]
         .join(" ")

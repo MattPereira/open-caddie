@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SearchInput } from "@/components/search-input";
 import { TournamentCard } from "@/components/tournament-card";
+import { formatDate } from "@/lib/utils";
 
 type Tournament = {
   id: number;
@@ -30,14 +31,6 @@ type TournamentGroup = {
   label: string;
   tournaments: Tournament[];
 };
-
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  weekday: "short",
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  timeZone: "UTC",
-});
 
 export function TournamentsBrowser({
   tournaments,
@@ -160,7 +153,7 @@ function filterTournaments(tournaments: Tournament[], query: string) {
       tournament.clubName,
       tournament.courseName ?? "",
       tournament.season != null ? `Season ${tournament.season}` : "",
-      formatTournamentDate(tournament.date),
+      formatDate(tournament.date, "short"),
       formatTournamentTime(tournament.startsAt),
       tournament.date,
     ]
@@ -177,10 +170,6 @@ function sortAscending(a: Tournament, b: Tournament) {
 
 function sortDescending(a: Tournament, b: Tournament) {
   return compareTournamentDateTime(b, a);
-}
-
-function formatTournamentDate(date: string) {
-  return dateFormatter.format(new Date(`${date}T00:00:00.000Z`));
 }
 
 function getLocalDateKey(date: Date) {

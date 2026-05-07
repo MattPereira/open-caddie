@@ -14,6 +14,7 @@
 ### Coding Conventions
 
 - Write TypeScript and React with strict types enabled.
+- Prefer writing concise code with fewer lines when possible while also preserving readability.
 - Prefer named exports for shared helpers and colocate route-specific components under the route’s `_components/` directory.
 - Prioritize building shared re-usable components as much as possible.
 - Use `kebab-case` filenames for components and route helpers, and keep schema/action files named by purpose, such as `schema.ts` and `actions.ts`.

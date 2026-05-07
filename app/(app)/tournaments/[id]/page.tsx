@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getTournamentById } from "@/db/queries/tournaments";
+import { formatDate } from "@/lib/utils";
 import { GreeniesTabContent } from "./_components/greenies-tab-content";
 import { RoundsTabContent } from "./_components/rounds-tab-content";
 import { WinnersTabContent } from "./_components/winners-tab-content";
@@ -12,13 +13,6 @@ type TournamentPageProps = {
     id: string;
   }>;
 };
-
-const dateFormatter = new Intl.DateTimeFormat("en-US", {
-  month: "long",
-  day: "numeric",
-  year: "numeric",
-  timeZone: "UTC",
-});
 
 export const dynamic = "force-dynamic";
 
@@ -35,9 +29,7 @@ export async function generateMetadata({
 export default async function TournamentPage({ params }: TournamentPageProps) {
   const tournament = await getTournamentFromParams(params);
 
-  if (!tournament) {
-    notFound();
-  }
+  if (!tournament) notFound();
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
@@ -46,7 +38,7 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
           {tournament.courseName ?? "Course to be announced"}
         </h1>
         <p className="text-sm text-muted-foreground">
-          {formatTournamentDate(tournament.date)}
+          {formatDate(tournament.date, "long")}
         </p>
       </div>
 
@@ -89,8 +81,4 @@ async function getTournamentFromParams(params: TournamentPageProps["params"]) {
   }
 
   return getTournamentById(tournamentId);
-}
-
-function formatTournamentDate(date: Date) {
-  return dateFormatter.format(date);
 }

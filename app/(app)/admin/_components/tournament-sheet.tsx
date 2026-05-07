@@ -31,7 +31,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 import {
   createTournament,
   deleteTournament,
@@ -86,13 +86,6 @@ function fromIsoDate(value: string): Date | undefined {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
-const dateDisplay = new Intl.DateTimeFormat("en-US", {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  timeZone: "UTC",
-});
-
 type DatePickerFieldProps = {
   value: string;
   onChange: (value: string) => void;
@@ -117,7 +110,7 @@ function DatePickerField({
           )}
         >
           <HugeiconsIcon icon={Calendar01Icon} size={16} />
-          {selected ? dateDisplay.format(selected) : placeholder}
+          {selected ? formatDate(selected, "standard") : placeholder}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">

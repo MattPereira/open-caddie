@@ -145,21 +145,28 @@ function MobileRoundScoresCard({ row }: { row: RoundScoreRow }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         <MobileScoreLine
-          label="Out"
           holes={frontNine}
           values={values.scores}
+          totalLabel="Out"
+          totalValue={values.out}
           roundId={row.round.id}
         />
         <MobileScoreLine
-          label="In"
           holes={backNine}
           values={values.scores}
+          totalLabel="In"
+          totalValue={values.in}
           roundId={row.round.id}
         />
-        <div className="grid grid-cols-3 gap-2">
-          <MobileTotal label="Out" value={values.out} />
-          <MobileTotal label="In" value={values.in} />
-          <MobileTotal label="Total" value={values.total} strong />
+        <div className="grid grid-cols-4 gap-2">
+          <MobileTotal label="Putts" value={row.metrics.putts.total} />
+          <MobileTotal
+            label="Strokes"
+            value={row.metrics.strokes.total}
+            strong
+          />
+          <MobileTotal label="Handicap" value={null} />
+          <MobileTotal label="Net" value={null} />
         </div>
       </CardContent>
     </Card>
@@ -181,20 +188,21 @@ function PlayerLabel({ row }: { row: RoundScoreRow }) {
 }
 
 function MobileScoreLine({
-  label,
   holes,
   values,
+  totalLabel,
+  totalValue,
   roundId,
 }: {
-  label: string;
   holes: number[];
   values: (number | null)[];
+  totalLabel: string;
+  totalValue: number | null;
   roundId: number;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="text-xs font-medium text-muted-foreground">{label}</div>
-      <div className="grid grid-cols-9 overflow-hidden rounded-lg ring-1 ring-border">
+    <div>
+      <div className="grid grid-cols-10 overflow-hidden rounded-lg ring-1 ring-border">
         {holes.map((hole) => (
           <div
             key={`${roundId}-${hole}-header`}
@@ -203,6 +211,9 @@ function MobileScoreLine({
             {hole}
           </div>
         ))}
+        <div className="bg-muted px-1.5 py-1 text-center text-xs font-medium text-muted-foreground">
+          {totalLabel}
+        </div>
         {holes.map((hole) => (
           <div
             key={`${roundId}-${hole}-score`}
@@ -211,6 +222,9 @@ function MobileScoreLine({
             {formatScore(values[hole - 1])}
           </div>
         ))}
+        <div className="px-1.5 py-1.5 text-center text-sm font-semibold tabular-nums">
+          {formatScore(totalValue)}
+        </div>
       </div>
     </div>
   );

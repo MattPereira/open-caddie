@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -15,11 +16,26 @@ import {
 } from "@/components/ui/table";
 import { ResponsiveTable, TableFrame } from "@/components/responsive-table";
 import { displayName, getInitials } from "@/components/player-card";
-import type { getTournamentById } from "@/db/queries/tournaments";
 import { cn } from "@/lib/utils";
 
-type Tournament = NonNullable<Awaited<ReturnType<typeof getTournamentById>>>;
-type Round = Tournament["rounds"][number];
+export type RoundScoresTableRound = {
+  id: number;
+  firstName: string | null;
+  lastName: string | null;
+  username: string | null;
+  image: string | null;
+  recordedStrokesCount: number;
+  recordedPuttsCount: number;
+  totalStrokes: number;
+  totalPutts: number;
+  tournamentHandicap: number | null;
+  netStrokes: number | null;
+  scores: {
+    hole: number;
+    strokes: number | null;
+    putts: number | null;
+  }[];
+};
 
 const holes = Array.from({ length: 18 }, (_, index) => index + 1);
 const frontNine = holes.slice(0, 9);
@@ -35,13 +51,17 @@ type MetricValues = {
 };
 
 type RoundScoreRow = {
-  round: Round;
+  round: RoundScoresTableRound;
   playerName: string;
   initials: string;
   metrics: Record<ScoreMetric, MetricValues>;
 };
 
-export function RoundScoresTable({ rounds }: { rounds: Round[] }) {
+export function RoundScoresTable({
+  rounds,
+}: {
+  rounds: RoundScoresTableRound[];
+}) {
   const rows = rounds.map(toRoundScoreRow);
 
   return (
@@ -185,7 +205,7 @@ function MobileRoundScoresCard({ row }: { row: RoundScoreRow }) {
 }
 
 function PlayerLabel({ row }: { row: RoundScoreRow }) {
-  return (
+  const label = (
     <div className="flex min-w-0 items-center gap-2">
       <Avatar size="sm">
         {row.round.image ? (
@@ -195,6 +215,15 @@ function PlayerLabel({ row }: { row: RoundScoreRow }) {
       </Avatar>
       <span className="truncate">{row.playerName}</span>
     </div>
+  );
+
+  return (
+    <Link
+      href={`/rounds/${row.round.id}`}
+      className="block min-w-0 rounded-md hover:underline"
+    >
+      {label}
+    </Link>
   );
 }
 
@@ -353,7 +382,7 @@ function DerivedScoreCell({
   );
 }
 
-function toRoundScoreRow(round: Round): RoundScoreRow {
+function toRoundScoreRow(round: RoundScoresTableRound): RoundScoreRow {
   const scoresByHole = new Map(
     round.scores.map((score) => [score.hole, score]),
   );

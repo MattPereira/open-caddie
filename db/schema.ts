@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import {
   boolean,
   check,
@@ -8,6 +8,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  pgView,
   primaryKey,
   serial,
   text,
@@ -199,4 +200,55 @@ export const greenies = pgTable(
     check("greenies_feet_check", sql`${g.feet} >= 0`),
     check("greenies_inches_check", sql`${g.inches} between 0 and 11`),
   ],
+);
+
+export const roundSummaries = pgView("round_summaries").as((qb) =>
+  qb
+    .select({
+      roundId: rounds.id,
+      tournamentId: rounds.tournamentId,
+      clubId: tournaments.clubId,
+      userId: rounds.userId,
+      courseId: rounds.courseId,
+      date: rounds.date,
+      courseRating: courses.rating,
+      courseSlope: courses.slope,
+      recordedStrokesCount:
+        sql<number>`count(${roundScores.strokes})`
+          .mapWith(Number)
+          .as("recorded_strokes_count"),
+      recordedPuttsCount:
+        sql<number>`count(${roundScores.putts})`
+          .mapWith(Number)
+          .as("recorded_putts_count"),
+      totalStrokes:
+        sql<number>`coalesce(sum(${roundScores.strokes}), 0)::int`.mapWith(
+          Number,
+        ).as("total_strokes"),
+      totalPutts:
+        sql<number>`coalesce(sum(${roundScores.putts}), 0)::int`.mapWith(
+          Number,
+        ).as("total_putts"),
+      isComplete: sql<boolean>`count(${roundScores.strokes}) = 18`.as(
+        "is_complete",
+      ),
+      scoreDifferential:
+        sql<number | null>`case when count(${roundScores.strokes}) = 18 then ((113.0 / ${courses.slope}) * (sum(${roundScores.strokes}) - ${courses.rating}))::double precision else null end`.mapWith(
+          (value) => (value == null ? null : Number(value)),
+        ).as("score_differential"),
+    })
+    .from(rounds)
+    .innerJoin(courses, eq(rounds.courseId, courses.id))
+    .leftJoin(tournaments, eq(rounds.tournamentId, tournaments.id))
+    .leftJoin(roundScores, eq(rounds.id, roundScores.roundId))
+    .groupBy(
+      rounds.id,
+      rounds.tournamentId,
+      tournaments.clubId,
+      rounds.userId,
+      rounds.courseId,
+      rounds.date,
+      courses.rating,
+      courses.slope,
+    ),
 );

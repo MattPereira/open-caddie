@@ -334,20 +334,25 @@ function toRoundScoreRow(round: Round): RoundScoreRow {
     metrics: {
       strokes: toMetricValues(
         holes.map((hole) => scoresByHole.get(hole)?.strokes ?? null),
+        toRecordedTotal(round.totalStrokes, round.recordedStrokesCount),
       ),
       putts: toMetricValues(
         holes.map((hole) => scoresByHole.get(hole)?.putts ?? null),
+        toRecordedTotal(round.totalPutts, round.recordedPuttsCount),
       ),
     },
   };
 }
 
-function toMetricValues(scores: (number | null)[]): MetricValues {
+function toMetricValues(
+  scores: (number | null)[],
+  total: number | null,
+): MetricValues {
   return {
     scores,
     out: sumScores(scores.slice(0, 9)),
     in: sumScores(scores.slice(9)),
-    total: sumScores(scores),
+    total,
   };
 }
 
@@ -355,6 +360,10 @@ function sumScores(scores: (number | null)[]) {
   const recordedScores = scores.filter((score) => score != null);
   if (recordedScores.length === 0) return null;
   return recordedScores.reduce((total, score) => total + score, 0);
+}
+
+function toRecordedTotal(total: number, recordedCount: number) {
+  return recordedCount === 0 ? null : total;
 }
 
 function formatScore(score: number | null) {

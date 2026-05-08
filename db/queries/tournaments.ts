@@ -6,6 +6,7 @@ import {
   courses,
   greenies,
   roundScores,
+  roundSummaries,
   rounds,
   tournaments,
   users,
@@ -61,23 +62,31 @@ export const getTournamentById = cache(async (tournamentId: number) => {
     await Promise.all([
       db
         .select({
-          id: rounds.id,
-          tournamentId: rounds.tournamentId,
-          userId: rounds.userId,
-          date: rounds.date,
+          id: roundSummaries.roundId,
+          tournamentId: roundSummaries.tournamentId,
+          userId: roundSummaries.userId,
+          date: roundSummaries.date,
           firstName: users.firstName,
           lastName: users.lastName,
           username: users.username,
           image: users.image,
-          courseId: courses.id,
+          courseId: roundSummaries.courseId,
           courseHandle: courses.handle,
           courseName: courses.name,
           courseImgUrl: courses.imgUrl,
+          courseRating: roundSummaries.courseRating,
+          courseSlope: roundSummaries.courseSlope,
+          recordedStrokesCount: roundSummaries.recordedStrokesCount,
+          recordedPuttsCount: roundSummaries.recordedPuttsCount,
+          totalStrokes: roundSummaries.totalStrokes,
+          totalPutts: roundSummaries.totalPutts,
+          isComplete: roundSummaries.isComplete,
+          scoreDifferential: roundSummaries.scoreDifferential,
         })
-        .from(rounds)
-        .innerJoin(users, eq(rounds.userId, users.id))
-        .innerJoin(courses, eq(rounds.courseId, courses.id))
-        .where(eq(rounds.tournamentId, tournamentId))
+        .from(roundSummaries)
+        .innerJoin(users, eq(roundSummaries.userId, users.id))
+        .innerJoin(courses, eq(roundSummaries.courseId, courses.id))
+        .where(eq(roundSummaries.tournamentId, tournamentId))
         .orderBy(
           asc(users.lastName),
           asc(users.firstName),

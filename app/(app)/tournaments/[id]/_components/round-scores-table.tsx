@@ -141,7 +141,7 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
 
 function MobileRoundScoresCards({ rows }: { rows: RoundScoreRow[] }) {
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3">
       {rows.map((row) => (
         <MobileRoundScoresCard key={row.round.id} row={row} />
       ))}
@@ -154,7 +154,7 @@ function MobileRoundScoresCard({ row }: { row: RoundScoreRow }) {
   const values = row.metrics[metric];
 
   return (
-    <Card size="sm">
+    <Card size="sm" className="min-w-0">
       <CardHeader className="flex flex-row items-center justify-between gap-3">
         <CardTitle className="min-w-0">
           <PlayerLabel row={row} />
@@ -181,7 +181,7 @@ function MobileRoundScoresCard({ row }: { row: RoundScoreRow }) {
           totalValue={values.in}
           roundId={row.round.id}
         />
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid min-w-0 grid-cols-4 gap-2">
           <MobileTotal label="Putts" value={row.metrics.putts.total} />
           <MobileTotal
             label="Strokes"
@@ -242,27 +242,27 @@ function MobileScoreLine({
 }) {
   return (
     <div>
-      <div className="grid grid-cols-10 overflow-hidden rounded-lg ring-1 ring-border">
+      <div className="grid min-w-0 grid-cols-10 overflow-hidden rounded-lg ring-1 ring-border">
         {holes.map((hole) => (
           <div
             key={`${roundId}-${hole}-header`}
-            className="bg-muted px-1.5 py-1 text-center text-xs font-medium text-muted-foreground"
+            className="min-w-0 bg-muted px-1 py-1 text-center text-xs font-medium text-muted-foreground"
           >
             {hole}
           </div>
         ))}
-        <div className="bg-muted px-1.5 py-1 text-center text-xs font-medium text-muted-foreground">
+        <div className="min-w-0 bg-muted px-1 py-1 text-center text-xs font-medium text-muted-foreground">
           {totalLabel}
         </div>
         {holes.map((hole) => (
           <div
             key={`${roundId}-${hole}-score`}
-            className="px-1.5 py-1.5 text-center text-sm font-medium tabular-nums"
+            className="min-w-0 px-1 py-1.5 text-center text-sm font-medium tabular-nums"
           >
             {formatScore(values[hole - 1])}
           </div>
         ))}
-        <div className="px-1.5 py-1.5 text-center text-sm font-semibold tabular-nums">
+        <div className="min-w-0 px-1 py-1.5 text-center text-sm font-semibold tabular-nums">
           {formatScore(totalValue)}
         </div>
       </div>
@@ -330,8 +330,10 @@ function MobileTotal({
   strong?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-0.5 rounded-lg bg-muted px-3 py-2">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+    <div className="flex min-w-0 flex-col gap-0.5 rounded-lg bg-muted px-2 py-2">
+      <span className="truncate text-xs font-medium text-muted-foreground">
+        {label}
+      </span>
       <span
         className={cn(
           "text-right text-sm tabular-nums text-card-foreground",

@@ -33,7 +33,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
   if (!round) notFound();
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
+    <main className="flex min-w-0 flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-normal">
           Round Details
@@ -47,12 +47,12 @@ export default async function RoundPage({ params }: RoundPageProps) {
         </div>
       </div>
 
-      <section className="flex flex-col gap-3">
+      <section className="flex min-w-0 flex-col gap-3">
         <h2 className="text-xl font-semibold tracking-normal">Scores</h2>
         <RoundScoresTable rounds={[round]} />
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section className="flex min-w-0 flex-col gap-3">
         <h2 className="text-xl font-semibold tracking-normal">Greenies</h2>
         {round.greenies.length === 0 ? (
           <Card className="border-dashed">

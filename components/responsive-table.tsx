@@ -12,9 +12,9 @@ export function ResponsiveTable({
   className?: string;
 }) {
   return (
-    <div className={cn("w-full", className)}>
-      <div className="hidden lg:block">{desktop}</div>
-      <div className="lg:hidden">{mobile}</div>
+    <div className={cn("min-w-0 w-full", className)}>
+      <div className="hidden min-w-0 lg:block">{desktop}</div>
+      <div className="min-w-0 lg:hidden">{mobile}</div>
     </div>
   );
 }

@@ -12,7 +12,7 @@ import { OnboardingForm } from "./onboarding-form";
 
 export default async function OnboardingPage() {
   const session = await auth();
-  if (!session?.user?.email) redirect("/signin");
+  if (!session?.user?.email) redirect("/login");
 
   return (
     <main className="flex min-h-screen items-center justify-center p-6">

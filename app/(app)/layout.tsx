@@ -18,7 +18,7 @@ export default async function AppLayout({
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect("/signin");
+    redirect("/login");
   }
 
   const { firstName, lastName, username, email, image, isAdmin } = user;

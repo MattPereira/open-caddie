@@ -15,7 +15,7 @@ import {
   greenies,
 } from "../db/schema";
 
-const CCGC_URL = process.env.CCGC_DATABASE_URL;
+const CCGC_URL = "postgresql:///ccgc";
 const TARGET_URL = process.env.DATABASE_URL;
 
 if (!CCGC_URL) throw new Error("CCGC_DATABASE_URL is not set");

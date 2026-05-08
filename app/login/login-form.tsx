@@ -4,12 +4,12 @@ import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { InformationCircleIcon } from "@hugeicons/core-free-icons";
 
+import { LoginForm, type LoginFormValues } from "@/components/login-form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { LoginForm, type LoginFormValues } from "@/components/login-form";
 import { signInWithEmail } from "./actions";
 
-export function SignInForm() {
+export function LoginPageForm() {
   const [sentTo, setSentTo] = useState<string | null>(null);
 
   const onSubmit = async (values: LoginFormValues) => {

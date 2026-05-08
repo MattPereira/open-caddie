@@ -12,7 +12,7 @@ export async function updateProfile(
   values: ProfileValues,
 ): Promise<{ error: string } | { success: true }> {
   const session = await auth();
-  if (!session?.user?.id) redirect("/signin");
+  if (!session?.user?.id) redirect("/login");
 
   const parsed = ProfileSchema.safeParse(values);
   if (!parsed.success) {

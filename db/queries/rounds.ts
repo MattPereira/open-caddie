@@ -2,11 +2,13 @@ import { cache } from "react";
 import { and, asc, count, desc, eq, isNotNull, lt } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  clubs,
   courses,
   greenies,
   roundScores,
   roundSummaries,
   rounds,
+  tournaments,
   users,
 } from "@/db/schema";
 import {
@@ -36,6 +38,8 @@ export const getRoundById = cache(async (roundId: number) => {
       id: roundSummaries.roundId,
       tournamentId: roundSummaries.tournamentId,
       clubId: roundSummaries.clubId,
+      clubName: clubs.name,
+      tournamentSeason: tournaments.season,
       userId: roundSummaries.userId,
       date: roundSummaries.date,
       firstName: users.firstName,
@@ -58,6 +62,8 @@ export const getRoundById = cache(async (roundId: number) => {
     .from(roundSummaries)
     .innerJoin(users, eq(roundSummaries.userId, users.id))
     .innerJoin(courses, eq(roundSummaries.courseId, courses.id))
+    .leftJoin(tournaments, eq(roundSummaries.tournamentId, tournaments.id))
+    .leftJoin(clubs, eq(tournaments.clubId, clubs.id))
     .where(eq(roundSummaries.roundId, roundId))
     .limit(1);
 
@@ -96,19 +102,30 @@ export const getRoundById = cache(async (roundId: number) => {
       .orderBy(asc(greenies.hole)),
   ]);
 
-  const priorScoreDifferentials =
+  const priorHandicapRounds =
     round.clubId == null
       ? []
-      : await getPriorClubScoreDifferentials({
+      : await getPriorClubScoreDifferentialRounds({
           userId: round.userId,
           clubId: round.clubId,
           beforeDate: round.date,
         });
+  const priorScoreDifferentials = priorHandicapRounds.map(
+    (priorRound) => priorRound.scoreDifferential,
+  );
   const playerIndex = calculatePlayerIndex(priorScoreDifferentials);
   const tournamentHandicap =
     round.clubId == null
       ? null
       : calculateTournamentHandicap(playerIndex, round.courseSlope);
+  const usedPriorRoundIds = new Set(
+    playerIndex == null
+      ? []
+      : [...priorHandicapRounds]
+          .sort((a, b) => a.scoreDifferential - b.scoreDifferential)
+          .slice(0, 2)
+          .map((priorRound) => priorRound.id),
+  );
 
   return {
     ...round,
@@ -122,10 +139,21 @@ export const getRoundById = cache(async (roundId: number) => {
           ),
     scores,
     greenies: roundGreenies,
+    handicap:
+      round.tournamentId == null || round.clubId == null
+        ? null
+        : {
+            priorRounds: priorHandicapRounds.map((priorRound) => ({
+              ...priorRound,
+              usedForPlayerIndex: usedPriorRoundIds.has(priorRound.id),
+            })),
+            playerIndex,
+            tournamentHandicap,
+          },
   };
 });
 
-export const getPriorClubScoreDifferentials = cache(
+export const getPriorClubScoreDifferentialRounds = cache(
   async ({
     userId,
     clubId,
@@ -134,9 +162,17 @@ export const getPriorClubScoreDifferentials = cache(
   }: PriorClubScoreDifferentialsParams) => {
     const rows = await db
       .select({
+        id: roundSummaries.roundId,
+        date: roundSummaries.date,
+        courseHandle: courses.handle,
+        courseName: courses.name,
+        courseRating: roundSummaries.courseRating,
+        courseSlope: roundSummaries.courseSlope,
+        totalStrokes: roundSummaries.totalStrokes,
         scoreDifferential: roundSummaries.scoreDifferential,
       })
       .from(roundSummaries)
+      .innerJoin(courses, eq(roundSummaries.courseId, courses.id))
       .where(
         and(
           eq(roundSummaries.userId, userId),
@@ -150,10 +186,28 @@ export const getPriorClubScoreDifferentials = cache(
       .orderBy(desc(roundSummaries.date), desc(roundSummaries.roundId))
       .limit(limit);
 
-    return rows
-      .map((row) => row.scoreDifferential)
-      .filter((scoreDifferential): scoreDifferential is number => {
-        return scoreDifferential != null;
-      });
+    return rows.filter(
+      (row): row is (typeof rows)[number] & { scoreDifferential: number } => {
+        return row.scoreDifferential != null;
+      },
+    );
+  },
+);
+
+export const getPriorClubScoreDifferentials = cache(
+  async ({
+    userId,
+    clubId,
+    beforeDate,
+    limit = 4,
+  }: PriorClubScoreDifferentialsParams) => {
+    const rows = await getPriorClubScoreDifferentialRounds({
+      userId,
+      clubId,
+      beforeDate,
+      limit,
+    });
+
+    return rows.map((row) => row.scoreDifferential);
   },
 );

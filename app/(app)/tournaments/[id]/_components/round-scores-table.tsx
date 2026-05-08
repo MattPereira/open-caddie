@@ -75,13 +75,11 @@ export function RoundScoresTable({
 function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
   const [metric, setMetric] = useState<ScoreMetric>("strokes");
   const sortedRows =
-    metric === "strokes"
-      ? rows
-      : [...rows].sort(compareRoundScoreRowsByPutts);
+    metric === "strokes" ? rows : [...rows].sort(compareRoundScoreRowsByPutts);
 
   return (
-    <div className="flex w-fit max-w-full flex-col gap-3">
-      <div className="flex w-full justify-end">
+    <div className="relative w-fit max-w-full">
+      <div className="absolute -top-8 right-0 z-20">
         <ScoreMetricSwitch
           id="desktop-round-score-metric"
           metric={metric}

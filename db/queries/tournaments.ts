@@ -11,6 +11,12 @@ import {
   tournaments,
   users,
 } from "@/db/schema";
+import {
+  calculateNetStrokes,
+  calculatePlayerIndex,
+  calculateTournamentHandicap,
+} from "@/lib/scoring";
+import { getPriorClubScoreDifferentials } from "./rounds";
 
 export const getAllTournaments = cache(async () => {
   return db
@@ -131,10 +137,33 @@ export const getTournamentById = cache(async (tournamentId: number) => {
     scoresByRoundId.set(score.roundId, scores);
   }
 
-  const roundsWithScores = tournamentRounds.map((round) => ({
-    ...round,
-    scores: scoresByRoundId.get(round.id) ?? [],
-  }));
+  const roundsWithScores = (
+    await Promise.all(
+      tournamentRounds.map(async (round) => {
+        const priorScoreDifferentials = await getPriorClubScoreDifferentials({
+          userId: round.userId,
+          clubId: tournament.clubId,
+          beforeDate: tournament.date,
+        });
+        const playerIndex = calculatePlayerIndex(priorScoreDifferentials);
+        const tournamentHandicap = calculateTournamentHandicap(
+          playerIndex,
+          round.courseSlope,
+        );
+        const netStrokes = calculateNetStrokes(
+          round.isComplete ? round.totalStrokes : null,
+          tournamentHandicap,
+        );
+
+        return {
+          ...round,
+          tournamentHandicap,
+          netStrokes,
+          scores: scoresByRoundId.get(round.id) ?? [],
+        };
+      }),
+    )
+  ).sort(compareTournamentRoundStandings);
 
   return {
     ...tournament,
@@ -150,3 +179,47 @@ export const getRoundsCountByTournamentId = cache(async (tournamentId: number) =
     .where(eq(rounds.tournamentId, tournamentId));
   return row?.value ?? 0;
 });
+
+function compareTournamentRoundStandings<
+  T extends {
+    firstName: string | null;
+    lastName: string | null;
+    username: string | null;
+    netStrokes: number | null;
+    totalStrokes: number;
+  },
+>(a: T, b: T) {
+  if (a.netStrokes == null && b.netStrokes == null) {
+    return compareTournamentRoundPlayers(a, b);
+  }
+
+  if (a.netStrokes == null) return 1;
+  if (b.netStrokes == null) return -1;
+
+  const netCompare = a.netStrokes - b.netStrokes;
+  if (netCompare !== 0) return netCompare;
+
+  const grossCompare = a.totalStrokes - b.totalStrokes;
+  if (grossCompare !== 0) return grossCompare;
+
+  return compareTournamentRoundPlayers(a, b);
+}
+
+function compareTournamentRoundPlayers(
+  a: {
+    firstName: string | null;
+    lastName: string | null;
+    username: string | null;
+  },
+  b: {
+    firstName: string | null;
+    lastName: string | null;
+    username: string | null;
+  },
+) {
+  return (
+    (a.lastName ?? "").localeCompare(b.lastName ?? "") ||
+    (a.firstName ?? "").localeCompare(b.firstName ?? "") ||
+    (a.username ?? "").localeCompare(b.username ?? "")
+  );
+}

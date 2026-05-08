@@ -42,9 +42,7 @@ type RoundScoreRow = {
 };
 
 export function RoundScoresTable({ rounds }: { rounds: Round[] }) {
-  const rows = rounds
-    .map(toRoundScoreRow)
-    .sort((a, b) => compareRoundScoreRows(a, b, "strokes"));
+  const rows = rounds.map(toRoundScoreRow);
 
   return (
     <ResponsiveTable
@@ -56,9 +54,10 @@ export function RoundScoresTable({ rounds }: { rounds: Round[] }) {
 
 function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
   const [metric, setMetric] = useState<ScoreMetric>("strokes");
-  const sortedRows = [...rows].sort((a, b) =>
-    compareRoundScoreRows(a, b, metric),
-  );
+  const sortedRows =
+    metric === "strokes"
+      ? rows
+      : [...rows].sort(compareRoundScoreRowsByPutts);
 
   return (
     <div className="flex w-fit max-w-full flex-col gap-3">
@@ -84,6 +83,8 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
               <TableHead className="w-12 text-center">Out</TableHead>
               <TableHead className="w-12 text-center">In</TableHead>
               <TableHead className="w-14 text-center">Total</TableHead>
+              <TableHead className="w-16 text-center">HCP</TableHead>
+              <TableHead className="w-14 text-center">Net</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -106,6 +107,8 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
                   <ScoreTotalCell value={values.out} />
                   <ScoreTotalCell value={values.in} />
                   <ScoreTotalCell value={values.total} strong />
+                  <DerivedScoreCell value={row.round.tournamentHandicap} />
+                  <DerivedScoreCell value={row.round.netStrokes} strong />
                 </TableRow>
               );
             })}
@@ -165,8 +168,16 @@ function MobileRoundScoresCard({ row }: { row: RoundScoreRow }) {
             value={row.metrics.strokes.total}
             strong
           />
-          <MobileTotal label="Handicap" value={null} />
-          <MobileTotal label="Net" value={null} />
+          <MobileTotal
+            label="Handicap"
+            value={row.round.tournamentHandicap}
+            format="decimal"
+          />
+          <MobileTotal
+            label="Net"
+            value={row.round.netStrokes}
+            format="decimal"
+          />
         </div>
       </CardContent>
     </Card>
@@ -281,10 +292,12 @@ function ScoreMetricSwitch({
 function MobileTotal({
   label,
   value,
+  format = "score",
   strong,
 }: {
   label: string;
   value: number | null;
+  format?: "score" | "decimal";
   strong?: boolean;
 }) {
   return (
@@ -296,7 +309,7 @@ function MobileTotal({
           strong ? "font-semibold" : "font-medium",
         )}
       >
-        {formatScore(value)}
+        {format === "decimal" ? formatDecimalScore(value) : formatScore(value)}
       </span>
     </div>
   );
@@ -317,6 +330,25 @@ function ScoreTotalCell({
       )}
     >
       {formatScore(value)}
+    </TableCell>
+  );
+}
+
+function DerivedScoreCell({
+  value,
+  strong,
+}: {
+  value: number | null;
+  strong?: boolean;
+}) {
+  return (
+    <TableCell
+      className={cn(
+        "text-center tabular-nums",
+        strong ? "font-semibold" : "font-medium",
+      )}
+    >
+      {formatDecimalScore(value)}
     </TableCell>
   );
 }
@@ -370,13 +402,13 @@ function formatScore(score: number | null) {
   return score == null ? "—" : score;
 }
 
-function compareRoundScoreRows(
-  a: RoundScoreRow,
-  b: RoundScoreRow,
-  metric: ScoreMetric,
-) {
-  const totalA = a.metrics[metric].total;
-  const totalB = b.metrics[metric].total;
+function formatDecimalScore(score: number | null) {
+  return score == null ? "—" : score.toFixed(1);
+}
+
+function compareRoundScoreRowsByPutts(a: RoundScoreRow, b: RoundScoreRow) {
+  const totalA = a.metrics.putts.total;
+  const totalB = b.metrics.putts.total;
 
   if (totalA == null && totalB == null) {
     return a.playerName.localeCompare(b.playerName);

@@ -31,7 +31,6 @@ type WinnerRow = {
   playerName: string;
   initials: string;
   primaryValue: string;
-  description: string;
 };
 
 export function WinnersTabContent({
@@ -99,7 +98,7 @@ function WinnerCategoryCard({
       </CardHeader>
       <CardContent>
         {winners.length > 0 ? (
-          <ItemGroup>
+          <ItemGroup className="gap-3">
             {winners.map((winner, index) => (
               <WinnerItem
                 key={`${metric}-${winner.round.id}`}
@@ -120,29 +119,29 @@ function WinnerCategoryCard({
 
 function WinnerItem({ winner, rank }: { winner: WinnerRow; rank: number }) {
   return (
-    <Item asChild variant="outline" className="items-center gap-3 p-3">
+    <Item asChild variant="outline" className="items-center gap-3 p-2">
       <Link href={`/rounds/${winner.round.id}`}>
         <span
           className={cn(
-            "flex size-10 shrink-0 items-center justify-center rounded-lg border text-base font-semibold tabular-nums",
+            "flex size-12 shrink-0 items-center justify-center rounded-lg border text-base font-semibold tabular-nums",
           )}
         >
           {rank}
         </span>
         <ItemMedia className="self-center translate-y-0">
-          <Avatar className={cn("size-10")}>
+          <Avatar className={cn("size-12")}>
             {winner.round.image ? (
               <AvatarImage src={winner.round.image} alt={winner.playerName} />
             ) : null}
             <AvatarFallback>{winner.initials}</AvatarFallback>
           </Avatar>
         </ItemMedia>
-        <ItemContent className="min-w-0">
-          <ItemTitle>{winner.playerName}</ItemTitle>
-          <ItemDescription>{winner.description}</ItemDescription>
+        <ItemContent className="min-w-0 gap-0!">
+          <ItemTitle className="text-base">{winner.playerName}</ItemTitle>
+          <ItemDescription></ItemDescription>
         </ItemContent>
         <ItemActions className="ml-auto flex-col items-end gap-1">
-          <span className="text-right text-base font-semibold tabular-nums">
+          <span className="text-right text-base tabular-nums">
             {winner.primaryValue}
           </span>
         </ItemActions>
@@ -154,9 +153,7 @@ function WinnerItem({ winner, rank }: { winner: WinnerRow; rank: number }) {
 function toWinnerRows(rounds: TournamentRound[], metric: WinnerMetric) {
   return rounds.map((round) => {
     const playerName = displayName({ ...round, email: null });
-    const gross = formatWholeScore(round.totalStrokes);
     const net = formatDecimalScore(round.netStrokes);
-    const handicap = formatDecimalScore(round.tournamentHandicap);
     const putts = formatWholeScore(round.totalPutts);
 
     return {
@@ -164,10 +161,6 @@ function toWinnerRows(rounds: TournamentRound[], metric: WinnerMetric) {
       playerName,
       initials: getInitials({ ...round, email: null }),
       primaryValue: metric === "strokes" ? net : putts,
-      description:
-        metric === "strokes"
-          ? `Gross ${gross} / HCP ${handicap}`
-          : `Gross ${gross} / Net ${net}`,
     };
   });
 }

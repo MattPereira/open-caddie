@@ -1,5 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { StatTile } from "@/components/stat-tile";
 
 export type GreenieCardGreenie = {
   hole: number;
@@ -32,31 +33,16 @@ export function GreenieCard({ greenie }: { greenie: GreenieCardGreenie }) {
             {greenie.courseName}
           </span>
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          <GreenieStat label="Hole" value={greenie.hole} />
-          <GreenieStat label="Distance" value={formatGreenieDistance(greenie)} />
+        <div className="flex shrink-0 items-stretch gap-1.5 self-stretch sm:items-center sm:self-auto">
+          <StatTile label="Hole" value={greenie.hole} size="responsive" />
+          <StatTile
+            label="Dist"
+            value={formatGreenieDistance(greenie)}
+            size="responsive"
+          />
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-function GreenieStat({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="flex min-w-16 flex-col gap-0.5 rounded-md bg-muted px-3 py-1.5">
-      <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-        <span>{label}</span>
-      </div>
-      <span className="text-end text-sm font-semibold tabular-nums text-card-foreground">
-        {value}
-      </span>
-    </div>
   );
 }
 

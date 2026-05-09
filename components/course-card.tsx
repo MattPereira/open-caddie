@@ -1,4 +1,5 @@
 import { MediaCard } from "@/components/media-card";
+import { StatTile } from "@/components/stat-tile";
 
 export type CourseCardCourse = {
   name: string;
@@ -25,28 +26,9 @@ export function CourseCard({
       onClick={onClick}
     >
       <div className="flex shrink-0 items-center justify-end gap-1.5">
-        <CourseStat label="Rating" value={course.rating} />
-        <CourseStat label="Slope" value={course.slope} />
+        <StatTile label="Rating" value={course.rating} size="responsive" />
+        <StatTile label="Slope" value={course.slope} size="responsive" />
       </div>
     </MediaCard>
-  );
-}
-
-function CourseStat({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="flex min-w-20 flex-col gap-0.5 rounded-md bg-muted px-3 py-1">
-      <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-        <span>{label}</span>
-      </div>
-      <span className="text-end text-sm font-semibold tabular-nums text-card-foreground">
-        {value}
-      </span>
-    </div>
   );
 }

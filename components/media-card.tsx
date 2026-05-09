@@ -36,9 +36,13 @@ export function MediaCard({
   const content = (
     <>
       <MediaCardImage src={imageUrl} alt={imageAlt} />
-      <div className="flex min-w-0 flex-1 flex-col justify-between gap-1.5 px-3 py-1.5">
+      <div className="flex min-w-0 flex-1 flex-col justify-between gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2">
         <CardHeader className="px-0!">
-          {header ? <CardTitle className="truncate">{header}</CardTitle> : null}
+          {header ? (
+            <CardTitle className="truncate text-sm sm:text-base">
+              {header}
+            </CardTitle>
+          ) : null}
         </CardHeader>
 
         {children ? <div className="min-w-0">{children}</div> : null}
@@ -61,7 +65,7 @@ export function MediaCard({
   );
 
   return (
-    <Card size="sm" className="py-0!">
+    <Card className="py-0!">
       <CardContent className="p-0!">
         {href ? (
           <Link

@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { StatTile } from "@/components/stat-tile";
 
 export type PlayerCardPlayer = {
   email: string | null;
@@ -57,8 +58,8 @@ export function PlayerCard({
       </div>
       {showStats ? (
         <div className="flex shrink-0 items-center gap-1.5">
-          <PlayerStat label="Rounds" value={player.roundsCount ?? 0} />
-          <PlayerStat label="Greenies" value={player.greeniesCount ?? 0} />
+          <StatTile label="Rounds" value={player.roundsCount ?? 0} />
+          <StatTile label="Greenies" value={player.greeniesCount ?? 0} />
         </div>
       ) : null}
     </div>
@@ -80,18 +81,5 @@ export function PlayerCard({
         )}
       </CardContent>
     </Card>
-  );
-}
-
-function PlayerStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="flex flex-col gap-0.5 rounded-md bg-muted px-2.5 py-1.5">
-      <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-        <span>{label}</span>
-      </div>
-      <span className="text-end text-sm font-semibold tabular-nums text-card-foreground">
-        {value}
-      </span>
-    </div>
   );
 }

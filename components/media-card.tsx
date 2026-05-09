@@ -5,6 +5,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { GolfHoleIcon } from "@hugeicons/core-free-icons";
 import type { VariantProps } from "class-variance-authority";
 
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -87,20 +88,25 @@ export function MediaCard({
 
 function MediaCardImage({ src, alt }: { src: string | null; alt: string }) {
   return (
-    <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-xl bg-muted sm:h-22 sm:w-40">
-      {src ? (
-        <Image
-          src={src}
-          alt={alt}
-          fill
-          sizes="(min-width: 640px) 160px, 112px"
-          className="object-cover"
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center text-muted-foreground">
-          <HugeiconsIcon icon={GolfHoleIcon} size={32} aria-hidden />
-        </div>
-      )}
+    <div className="w-1/3 shrink-0">
+      <AspectRatio
+        ratio={16 / 10}
+        className="overflow-hidden rounded-xl bg-muted"
+      >
+        {src ? (
+          <Image
+            src={src}
+            alt={alt}
+            fill
+            sizes="(min-width: 640px) 33vw, 33vw"
+            className="object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+            <HugeiconsIcon icon={GolfHoleIcon} size={32} aria-hidden />
+          </div>
+        )}
+      </AspectRatio>
     </div>
   );
 }

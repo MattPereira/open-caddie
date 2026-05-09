@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 import { displayName, getInitials } from "@/components/player-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -24,19 +22,24 @@ import { cn } from "@/lib/utils";
 
 type Tournament = NonNullable<Awaited<ReturnType<typeof getTournamentById>>>;
 type TournamentRound = Tournament["rounds"][number];
+type TournamentGreenie = Tournament["greenies"][number];
 type WinnerMetric = "strokes" | "putts";
 
 type WinnerRow = {
-  round: TournamentRound;
+  key: string;
+  leftValue: string | number;
   playerName: string;
   initials: string;
+  image: string | null;
   primaryValue: string;
 };
 
 export function WinnersTabContent({
   rounds,
+  greenies,
 }: {
   rounds: Tournament["rounds"];
+  greenies: Tournament["greenies"];
 }) {
   const strokesWinners = toWinnerRows(
     rounds
@@ -49,7 +52,11 @@ export function WinnersTabContent({
     rounds.filter(isEligiblePuttsRound).sort(comparePuttsWinners).slice(0, 3),
     "putts",
   );
-  const hasWinners = strokesWinners.length > 0 || puttsWinners.length > 0;
+  const greenieWinners = toGreenieWinnerRows(greenies);
+  const hasWinners =
+    strokesWinners.length > 0 ||
+    puttsWinners.length > 0 ||
+    greenieWinners.length > 0;
 
   return (
     <TabsContent value="winners">
@@ -59,13 +66,16 @@ export function WinnersTabContent({
             title="Strokes"
             description="Lowest net strokes"
             winners={strokesWinners}
-            metric="strokes"
           />
           <WinnerCategoryCard
             title="Putts"
             description="Fewest total putts"
             winners={puttsWinners}
-            metric="putts"
+          />
+          <WinnerCategoryCard
+            title="Greenies"
+            description="Closest to the pin"
+            winners={greenieWinners}
           />
         </div>
       ) : (
@@ -81,17 +91,15 @@ function WinnerCategoryCard({
   title,
   description,
   winners,
-  metric,
 }: {
   title: string;
   description: string;
   winners: WinnerRow[];
-  metric: WinnerMetric;
 }) {
   return (
     <Card className="min-w-0">
       <CardHeader>
-        <div className="min-w-0">
+        <div className="min-w-0 flex justify-between">
           <CardTitle className="truncate">{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
         </div>
@@ -99,12 +107,8 @@ function WinnerCategoryCard({
       <CardContent>
         {winners.length > 0 ? (
           <ItemGroup className="gap-3">
-            {winners.map((winner, index) => (
-              <WinnerItem
-                key={`${metric}-${winner.round.id}`}
-                winner={winner}
-                rank={index + 1}
-              />
+            {winners.map((winner) => (
+              <WinnerItem key={winner.key} winner={winner} />
             ))}
           </ItemGroup>
         ) : (
@@ -117,52 +121,71 @@ function WinnerCategoryCard({
   );
 }
 
-function WinnerItem({ winner, rank }: { winner: WinnerRow; rank: number }) {
+function WinnerItem({ winner }: { winner: WinnerRow }) {
   return (
-    <Item asChild variant="outline" className="items-center gap-3 p-2">
-      <Link href={`/rounds/${winner.round.id}`}>
-        <span
-          className={cn(
-            "flex size-12 shrink-0 items-center justify-center rounded-lg border text-base font-semibold tabular-nums",
-          )}
-        >
-          {rank}
+    <Item variant="outline" className="items-center gap-3 p-2">
+      <span
+        className={cn(
+          "flex size-12 shrink-0 items-center justify-center rounded-lg border text-base font-semibold tabular-nums",
+        )}
+      >
+        {winner.leftValue}
+      </span>
+      <ItemMedia className="self-center translate-y-0">
+        <Avatar className={cn("size-12")}>
+          {winner.image ? (
+            <AvatarImage src={winner.image} alt={winner.playerName} />
+          ) : null}
+          <AvatarFallback>{winner.initials}</AvatarFallback>
+        </Avatar>
+      </ItemMedia>
+      <ItemContent className="min-w-0 gap-0!">
+        <ItemTitle className="text-base">{winner.playerName}</ItemTitle>
+        <ItemDescription></ItemDescription>
+      </ItemContent>
+      <ItemActions className="ml-auto flex-col items-end gap-1">
+        <span className="text-right text-base tabular-nums">
+          {winner.primaryValue}
         </span>
-        <ItemMedia className="self-center translate-y-0">
-          <Avatar className={cn("size-12")}>
-            {winner.round.image ? (
-              <AvatarImage src={winner.round.image} alt={winner.playerName} />
-            ) : null}
-            <AvatarFallback>{winner.initials}</AvatarFallback>
-          </Avatar>
-        </ItemMedia>
-        <ItemContent className="min-w-0 gap-0!">
-          <ItemTitle className="text-base">{winner.playerName}</ItemTitle>
-          <ItemDescription></ItemDescription>
-        </ItemContent>
-        <ItemActions className="ml-auto flex-col items-end gap-1">
-          <span className="text-right text-base tabular-nums">
-            {winner.primaryValue}
-          </span>
-        </ItemActions>
-      </Link>
+      </ItemActions>
     </Item>
   );
 }
 
 function toWinnerRows(rounds: TournamentRound[], metric: WinnerMetric) {
-  return rounds.map((round) => {
+  return rounds.map((round, index) => {
     const playerName = displayName({ ...round, email: null });
     const net = formatDecimalScore(round.netStrokes);
     const putts = formatWholeScore(round.totalPutts);
 
     return {
-      round,
+      key: `${metric}-${round.id}`,
+      leftValue: index + 1,
       playerName,
       initials: getInitials({ ...round, email: null }),
+      image: round.image,
       primaryValue: metric === "strokes" ? net : putts,
     };
   });
+}
+
+function toGreenieWinnerRows(greenies: TournamentGreenie[]) {
+  const winnersByHole = new Map<number, TournamentGreenie>();
+
+  for (const greenie of [...greenies].sort(compareGreenies)) {
+    if (!winnersByHole.has(greenie.hole)) {
+      winnersByHole.set(greenie.hole, greenie);
+    }
+  }
+
+  return Array.from(winnersByHole.values()).map((greenie) => ({
+    key: `greenie-${greenie.roundId}-${greenie.hole}`,
+    leftValue: greenie.hole,
+    playerName: displayName({ ...greenie, email: null }),
+    initials: getInitials({ ...greenie, email: null }),
+    image: greenie.image,
+    primaryValue: formatGreenieDistance(greenie),
+  }));
 }
 
 function isEligibleStrokesRound(round: TournamentRound) {
@@ -196,6 +219,21 @@ function comparePuttsWinners(a: TournamentRound, b: TournamentRound) {
   return comparePlayers(a, b);
 }
 
+function compareGreenies(a: TournamentGreenie, b: TournamentGreenie) {
+  const holeCompare = a.hole - b.hole;
+  if (holeCompare !== 0) return holeCompare;
+
+  const feetCompare = a.feet - b.feet;
+  if (feetCompare !== 0) return feetCompare;
+
+  const inchesCompare = a.inches - b.inches;
+  if (inchesCompare !== 0) return inchesCompare;
+
+  return displayName({ ...a, email: null }).localeCompare(
+    displayName({ ...b, email: null }),
+  );
+}
+
 function compareNullableNumbers(a: number | null, b: number | null) {
   if (a == null && b == null) return 0;
   if (a == null) return 1;
@@ -215,4 +253,14 @@ function formatWholeScore(score: number | null) {
 
 function formatDecimalScore(score: number | null) {
   return score == null ? "-" : score.toFixed(1);
+}
+
+function formatGreenieDistance(
+  greenie: Pick<TournamentGreenie, "feet" | "inches">,
+) {
+  if (greenie.inches === 0) {
+    return `${greenie.feet}'`;
+  }
+
+  return `${greenie.feet}' ${greenie.inches}"`;
 }

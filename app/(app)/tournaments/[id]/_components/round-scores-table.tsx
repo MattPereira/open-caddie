@@ -100,8 +100,8 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
               ))}
               <TableHead className="w-12 text-center">Out</TableHead>
               <TableHead className="w-12 text-center">In</TableHead>
-              <TableHead className="w-14 text-center">Total</TableHead>
-              <TableHead className="w-16 text-center">HCP</TableHead>
+              <TableHead className="w-14 text-center">Tot</TableHead>
+              <TableHead className="w-16 text-center">Hcp</TableHead>
               <TableHead className="w-14 text-center">Net</TableHead>
             </TableRow>
           </TableHeader>

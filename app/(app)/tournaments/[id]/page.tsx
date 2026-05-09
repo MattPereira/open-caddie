@@ -66,7 +66,10 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
 
         <RoundsTabContent rounds={tournament.rounds} />
         <GreeniesTabContent greenies={tournament.greenies} />
-        <WinnersTabContent rounds={tournament.rounds} />
+        <WinnersTabContent
+          rounds={tournament.rounds}
+          greenies={tournament.greenies}
+        />
       </Tabs>
     </main>
   );

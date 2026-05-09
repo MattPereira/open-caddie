@@ -104,6 +104,7 @@ export const getTournamentById = cache(async (tournamentId: number) => {
           roundId: roundScores.roundId,
           hole: roundScores.hole,
           par: courseHoles.par,
+          handicap: courseHoles.handicap,
           strokes: roundScores.strokes,
           putts: roundScores.putts,
         })

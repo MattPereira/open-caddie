@@ -24,6 +24,7 @@ type Tournament = NonNullable<Awaited<ReturnType<typeof getTournamentById>>>;
 type TournamentRound = Tournament["rounds"][number];
 type TournamentGreenie = Tournament["greenies"][number];
 type WinnerMetric = "strokes" | "putts";
+type TournamentRoundScore = TournamentRound["scores"][number];
 
 type WinnerRow = {
   key: string;
@@ -32,6 +33,7 @@ type WinnerRow = {
   initials: string;
   image: string | null;
   primaryValue: string;
+  primaryValueAdjusted?: boolean;
 };
 
 export function WinnersTabContent({
@@ -53,10 +55,12 @@ export function WinnersTabContent({
     "putts",
   );
   const greenieWinners = toGreenieWinnerRows(greenies);
+  const skinWinners = toSkinWinnerRows(rounds);
   const hasWinners =
     strokesWinners.length > 0 ||
     puttsWinners.length > 0 ||
-    greenieWinners.length > 0;
+    greenieWinners.length > 0 ||
+    skinWinners.length > 0;
 
   return (
     <TabsContent value="winners">
@@ -76,6 +80,11 @@ export function WinnersTabContent({
             title="Greenies"
             description="Closest to the pin"
             winners={greenieWinners}
+          />
+          <WinnerCategoryCard
+            title="Skins"
+            description="Unique low adjusted score"
+            winners={skinWinners}
           />
         </div>
       ) : (
@@ -144,7 +153,15 @@ function WinnerItem({ winner }: { winner: WinnerRow }) {
         <ItemDescription></ItemDescription>
       </ItemContent>
       <ItemActions className="ml-auto flex-col items-end gap-1">
-        <span className="text-right text-base tabular-nums">
+        <span
+          className={cn(
+            "text-right text-base tabular-nums",
+            winner.primaryValueAdjusted === true &&
+              "text-red-600 dark:text-red-500",
+            winner.primaryValueAdjusted === false &&
+              "text-black dark:text-foreground",
+          )}
+        >
           {winner.primaryValue}
         </span>
       </ItemActions>
@@ -188,12 +205,101 @@ function toGreenieWinnerRows(greenies: TournamentGreenie[]) {
   }));
 }
 
+function toSkinWinnerRows(rounds: TournamentRound[]) {
+  const completeRounds = rounds.filter(isEligibleSkinsRound);
+  const winners: WinnerRow[] = [];
+
+  for (let hole = 1; hole <= 18; hole++) {
+    const scores = completeRounds.flatMap((round) => {
+      const score = round.scores.find((roundScore) => roundScore.hole === hole);
+
+      if (!isEligibleSkinsScore(score)) {
+        return [];
+      }
+
+      const adjustedStrokes = getAdjustedSkinsStrokes({
+        strokes: score.strokes,
+        holeHandicap: score.handicap,
+        tournamentHandicap: round.tournamentHandicap,
+      });
+
+      return [
+        {
+          round,
+          rawStrokes: score.strokes,
+          adjustedStrokes,
+        },
+      ];
+    });
+
+    if (scores.length !== completeRounds.length) {
+      continue;
+    }
+
+    const lowestScore = Math.min(
+      ...scores.map((score) => score.adjustedStrokes),
+    );
+    const lowScores = scores.filter(
+      (score) => score.adjustedStrokes === lowestScore,
+    );
+
+    if (lowScores.length !== 1) {
+      continue;
+    }
+
+    const [winner] = lowScores;
+    const playerName = displayName({ ...winner.round, email: null });
+
+    winners.push({
+      key: `skin-${winner.round.id}-${hole}`,
+      leftValue: hole,
+      playerName,
+      initials: getInitials({ ...winner.round, email: null }),
+      image: winner.round.image,
+      primaryValue: winner.adjustedStrokes.toString(),
+      primaryValueAdjusted: winner.rawStrokes !== winner.adjustedStrokes,
+    });
+  }
+
+  return winners;
+}
+
 function isEligibleStrokesRound(round: TournamentRound) {
   return round.isComplete && round.netStrokes != null;
 }
 
 function isEligiblePuttsRound(round: TournamentRound) {
   return round.isComplete && round.recordedPuttsCount >= 18;
+}
+
+function isEligibleSkinsRound(round: TournamentRound) {
+  return round.isComplete;
+}
+
+function isEligibleSkinsScore(
+  score: TournamentRoundScore | undefined,
+): score is TournamentRoundScore & {
+  handicap: number;
+  strokes: number;
+} {
+  return score?.strokes != null && score.handicap != null;
+}
+
+function getAdjustedSkinsStrokes({
+  strokes,
+  holeHandicap,
+  tournamentHandicap,
+}: {
+  strokes: number;
+  holeHandicap: number;
+  tournamentHandicap: number;
+}) {
+  const strokedHoleCount = Math.min(
+    18,
+    Math.max(0, Math.floor(tournamentHandicap / 2)),
+  );
+
+  return holeHandicap <= strokedHoleCount ? strokes - 1 : strokes;
 }
 
 function compareStrokesWinners(a: TournamentRound, b: TournamentRound) {

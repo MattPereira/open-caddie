@@ -45,7 +45,7 @@ const statTileValueVariants = cva(
         sm: "text-xs",
         md: "text-sm",
         lg: "text-base font-semibold",
-        responsive: "text-sm font-semibold",
+        responsive: "text-sm",
       },
     },
     defaultVariants: {

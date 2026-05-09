@@ -1,7 +1,8 @@
 import { cache } from "react";
-import { and, asc, count, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
 import {
+  clubMembers,
   clubs,
   courseHoles,
   courses,
@@ -180,6 +181,37 @@ export const getTournamentById = cache(async (tournamentId: number) => {
     rounds: roundsWithScores,
     greenies: tournamentGreenies,
   };
+});
+
+export const getUpcomingTournamentsForUser = cache(async (userId: string) => {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+
+  return db
+    .select({
+      id: tournaments.id,
+      date: tournaments.date,
+      startsAt: tournaments.startsAt,
+      season: tournaments.season,
+      clubId: tournaments.clubId,
+      clubName: clubs.name,
+      courseId: tournaments.courseId,
+      courseHandle: courses.handle,
+      courseName: courses.name,
+      courseImgUrl: courses.imgUrl,
+    })
+    .from(tournaments)
+    .innerJoin(clubs, eq(tournaments.clubId, clubs.id))
+    .innerJoin(courses, eq(tournaments.courseId, courses.id))
+    .innerJoin(
+      clubMembers,
+      and(
+        eq(clubMembers.clubId, tournaments.clubId),
+        eq(clubMembers.userId, userId),
+      ),
+    )
+    .where(gte(tournaments.date, today))
+    .orderBy(asc(tournaments.date), asc(tournaments.startsAt));
 });
 
 export const getRoundsCountByTournamentId = cache(async (tournamentId: number) => {

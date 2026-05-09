@@ -18,7 +18,7 @@ export function GreenieCard({ greenie }: { greenie: GreenieCardGreenie }) {
 
   return (
     <Card size="sm" className="gap-0 py-0!">
-      <CardContent className="flex items-center gap-3 p-2!">
+      <CardContent className="flex items-start gap-3 p-2!">
         <Avatar className="size-15 rounded-lg">
           {greenie.image ? (
             <AvatarImage src={greenie.image} alt={playerName} />
@@ -33,7 +33,7 @@ export function GreenieCard({ greenie }: { greenie: GreenieCardGreenie }) {
             {greenie.courseName}
           </span>
         </div>
-        <div className="flex shrink-0 items-stretch gap-1.5 self-stretch sm:items-center sm:self-auto">
+        <div className="flex shrink-0 gap-1.5 self-end">
           <StatTile label="Hole" value={greenie.hole} size="responsive" />
           <StatTile
             label="Dist"

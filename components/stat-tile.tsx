@@ -11,7 +11,7 @@ const statTileVariants = cva(
         md: "min-w-16 px-3 py-1",
         lg: "min-w-20 px-4 py-1.5",
         responsive:
-          "min-w-16 justify-center px-2 py-0.5 sm:min-w-16 sm:justify-start sm:px-3 sm:py-1 md:min-w-16 md:px-4 md:py-1.5",
+          "min-w-16 px-2 py-0.5 sm:min-w-16 sm:px-3 sm:py-1 md:min-w-16 md:px-4 md:py-1.5",
       },
     },
     defaultVariants: {

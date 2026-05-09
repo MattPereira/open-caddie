@@ -3,6 +3,7 @@ import { and, asc, count, desc, eq, isNotNull, lt } from "drizzle-orm";
 import { db } from "@/db";
 import {
   clubs,
+  courseHoles,
   courses,
   greenies,
   roundScores,
@@ -76,10 +77,18 @@ export const getRoundById = cache(async (roundId: number) => {
       .select({
         roundId: roundScores.roundId,
         hole: roundScores.hole,
+        par: courseHoles.par,
         strokes: roundScores.strokes,
         putts: roundScores.putts,
       })
       .from(roundScores)
+      .leftJoin(
+        courseHoles,
+        and(
+          eq(courseHoles.courseId, round.courseId),
+          eq(courseHoles.hole, roundScores.hole),
+        ),
+      )
       .where(eq(roundScores.roundId, roundId))
       .orderBy(asc(roundScores.hole)),
     db

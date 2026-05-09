@@ -1,8 +1,9 @@
 import { cache } from "react";
-import { asc, count, desc, eq } from "drizzle-orm";
+import { and, asc, count, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
   clubs,
+  courseHoles,
   courses,
   greenies,
   roundScores,
@@ -102,11 +103,19 @@ export const getTournamentById = cache(async (tournamentId: number) => {
         .select({
           roundId: roundScores.roundId,
           hole: roundScores.hole,
+          par: courseHoles.par,
           strokes: roundScores.strokes,
           putts: roundScores.putts,
         })
         .from(roundScores)
         .innerJoin(rounds, eq(roundScores.roundId, rounds.id))
+        .leftJoin(
+          courseHoles,
+          and(
+            eq(courseHoles.courseId, rounds.courseId),
+            eq(courseHoles.hole, roundScores.hole),
+          ),
+        )
         .where(eq(rounds.tournamentId, tournamentId))
         .orderBy(asc(roundScores.roundId), asc(roundScores.hole)),
       db

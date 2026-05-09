@@ -32,6 +32,7 @@ export type RoundScoresTableRound = {
   netStrokes: number | null;
   scores: {
     hole: number;
+    par: number | null;
     strokes: number | null;
     putts: number | null;
   }[];
@@ -54,8 +55,16 @@ type RoundScoreRow = {
   round: RoundScoresTableRound;
   playerName: string;
   initials: string;
+  pars: (number | null)[];
   metrics: Record<ScoreMetric, MetricValues>;
 };
+
+type ScoreSymbol =
+  | "double-circle"
+  | "circle"
+  | "none"
+  | "square"
+  | "double-square";
 
 export function RoundScoresTable({
   rounds,
@@ -119,7 +128,11 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
                       key={`${row.round.id}-${index}`}
                       className="text-center tabular-nums"
                     >
-                      {formatScore(score)}
+                      <HoleScore
+                        score={score}
+                        par={row.pars[index] ?? null}
+                        showSymbol={metric === "strokes"}
+                      />
                     </TableCell>
                   ))}
                   <ScoreTotalCell value={values.out} />
@@ -168,6 +181,8 @@ function MobileRoundScoresCard({ row }: { row: RoundScoreRow }) {
         <MobileScoreLine
           holes={frontNine}
           values={values.scores}
+          pars={row.pars}
+          showSymbols={metric === "strokes"}
           totalLabel="Out"
           totalValue={values.out}
           roundId={row.round.id}
@@ -175,6 +190,8 @@ function MobileRoundScoresCard({ row }: { row: RoundScoreRow }) {
         <MobileScoreLine
           holes={backNine}
           values={values.scores}
+          pars={row.pars}
+          showSymbols={metric === "strokes"}
           totalLabel="In"
           totalValue={values.in}
           roundId={row.round.id}
@@ -228,12 +245,16 @@ function PlayerLabel({ row }: { row: RoundScoreRow }) {
 function MobileScoreLine({
   holes,
   values,
+  pars,
+  showSymbols,
   totalLabel,
   totalValue,
   roundId,
 }: {
   holes: number[];
   values: (number | null)[];
+  pars: (number | null)[];
+  showSymbols: boolean;
   totalLabel: string;
   totalValue: number | null;
   roundId: number;
@@ -255,9 +276,14 @@ function MobileScoreLine({
         {holes.map((hole) => (
           <div
             key={`${roundId}-${hole}-score`}
-            className="min-w-0 px-1 py-1.5 text-center text-sm font-medium tabular-nums"
+            className="flex min-w-0 justify-center px-1 py-1.5 text-center text-sm font-medium tabular-nums"
           >
-            {formatScore(values[hole - 1])}
+            <HoleScore
+              score={values[hole - 1]}
+              par={pars[hole - 1] ?? null}
+              showSymbol={showSymbols}
+              size="sm"
+            />
           </div>
         ))}
         <div className="min-w-0 px-1 py-1.5 text-center text-sm font-semibold tabular-nums">
@@ -382,6 +408,38 @@ function DerivedScoreCell({
   );
 }
 
+function HoleScore({
+  score,
+  par,
+  showSymbol,
+  size = "default",
+}: {
+  score: number | null;
+  par: number | null;
+  showSymbol: boolean;
+  size?: "default" | "sm";
+}) {
+  const symbol =
+    showSymbol && score != null && par != null
+      ? getScoreSymbol(score, par)
+      : "none";
+
+  return (
+    <span
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center border-current leading-none tabular-nums",
+        size === "sm" ? "size-6 text-sm" : "size-7 text-sm",
+        symbol === "circle" && "rounded-full border",
+        symbol === "double-circle" && "rounded-full border-[3px] border-double",
+        symbol === "square" && "rounded-sm border",
+        symbol === "double-square" && "rounded-sm border-[3px] border-double",
+      )}
+    >
+      {formatScore(score)}
+    </span>
+  );
+}
+
 function toRoundScoreRow(round: RoundScoresTableRound): RoundScoreRow {
   const scoresByHole = new Map(
     round.scores.map((score) => [score.hole, score]),
@@ -392,6 +450,7 @@ function toRoundScoreRow(round: RoundScoresTableRound): RoundScoreRow {
     round,
     playerName: displayName(player),
     initials: getInitials(player),
+    pars: holes.map((hole) => scoresByHole.get(hole)?.par ?? null),
     metrics: {
       strokes: toMetricValues(
         holes.map((hole) => scoresByHole.get(hole)?.strokes ?? null),
@@ -433,6 +492,16 @@ function formatScore(score: number | null) {
 
 function formatDecimalScore(score: number | null) {
   return score == null ? "—" : score.toFixed(1);
+}
+
+function getScoreSymbol(score: number, par: number): ScoreSymbol {
+  const scoreToPar = score - par;
+
+  if (scoreToPar <= -2) return "double-circle";
+  if (scoreToPar === -1) return "circle";
+  if (scoreToPar === 1) return "square";
+  if (scoreToPar >= 2) return "double-square";
+  return "none";
 }
 
 function compareRoundScoreRowsByPutts(a: RoundScoreRow, b: RoundScoreRow) {

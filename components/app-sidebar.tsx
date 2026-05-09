@@ -51,11 +51,11 @@ type SidebarUser = {
   isAdmin: boolean;
 };
 
-export function AppSidebar({ user }: { user: SidebarUser }) {
+export function AppSidebar({ user }: { user: SidebarUser | null }) {
   const pathname = usePathname();
   const { setTheme } = useTheme();
   const { isMobile } = useSidebar();
-  const initials = getInitials(user.name);
+  const initials = user ? getInitials(user.name) : null;
 
   return (
     <Sidebar>
@@ -90,38 +90,16 @@ export function AppSidebar({ user }: { user: SidebarUser }) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                >
-                  <Avatar className="size-8">
-                    {user.image ? (
-                      <AvatarImage src={user.image} alt={user.name} />
-                    ) : null}
-                    <AvatarFallback>{initials}</AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">{user.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {user.email}
-                    </span>
-                  </div>
-                  <HugeiconsIcon icon={ExpandIcon} className="ml-auto" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-                side={isMobile ? "top" : "right"}
-                align="end"
-                sideOffset={4}
-              >
-                <DropdownMenuLabel className="p-0 font-normal">
-                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+      {user ? (
+        <SidebarFooter>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton
+                    size="lg"
+                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  >
                     <Avatar className="size-8">
                       {user.image ? (
                         <AvatarImage src={user.image} alt={user.name} />
@@ -134,68 +112,94 @@ export function AppSidebar({ user }: { user: SidebarUser }) {
                         {user.email}
                       </span>
                     </div>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuGroup>
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile">
-                      <HugeiconsIcon icon={UserCircleIcon} />
-                      Profile
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem disabled>
-                    <HugeiconsIcon icon={Notification01Icon} />
-                    Notifications
-                  </DropdownMenuItem>
-                  {user.isAdmin ? (
+                    <HugeiconsIcon icon={ExpandIcon} className="ml-auto" />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+                  side={isMobile ? "top" : "right"}
+                  align="end"
+                  sideOffset={4}
+                >
+                  <DropdownMenuLabel className="p-0 font-normal">
+                    <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                      <Avatar className="size-8">
+                        {user.image ? (
+                          <AvatarImage src={user.image} alt={user.name} />
+                        ) : null}
+                        <AvatarFallback>{initials}</AvatarFallback>
+                      </Avatar>
+                      <div className="grid flex-1 text-left text-sm leading-tight">
+                        <span className="truncate font-medium">
+                          {user.name}
+                        </span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {user.email}
+                        </span>
+                      </div>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuGroup>
                     <DropdownMenuItem asChild>
-                      <Link href="/admin">
-                        <HugeiconsIcon icon={UserShield01Icon} />
-                        Admin
+                      <Link href="/profile">
+                        <HugeiconsIcon icon={UserCircleIcon} />
+                        Profile
                       </Link>
                     </DropdownMenuItem>
-                  ) : null}
-                  <DropdownMenuItem disabled>
-                    <HugeiconsIcon icon={Settings02Icon} />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuSub>
-                    <DropdownMenuSubTrigger>
-                      <HugeiconsIcon icon={Sun01Icon} />
-                      Theme
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuSubContent>
-                      <DropdownMenuItem onSelect={() => setTheme("light")}>
+                    <DropdownMenuItem disabled>
+                      <HugeiconsIcon icon={Notification01Icon} />
+                      Notifications
+                    </DropdownMenuItem>
+                    {user.isAdmin ? (
+                      <DropdownMenuItem asChild>
+                        <Link href="/admin">
+                          <HugeiconsIcon icon={UserShield01Icon} />
+                          Admin
+                        </Link>
+                      </DropdownMenuItem>
+                    ) : null}
+                    <DropdownMenuItem disabled>
+                      <HugeiconsIcon icon={Settings02Icon} />
+                      Settings
+                    </DropdownMenuItem>
+                    <DropdownMenuSub>
+                      <DropdownMenuSubTrigger>
                         <HugeiconsIcon icon={Sun01Icon} />
-                        Light
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setTheme("dark")}>
-                        <HugeiconsIcon icon={Moon02Icon} />
-                        Dark
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setTheme("system")}>
-                        <HugeiconsIcon icon={ComputerIcon} />
-                        System
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuSub>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    void signOutAction();
-                  }}
-                >
-                  <HugeiconsIcon icon={Logout01Icon} />
-                  Log out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
+                        Theme
+                      </DropdownMenuSubTrigger>
+                      <DropdownMenuSubContent>
+                        <DropdownMenuItem onSelect={() => setTheme("light")}>
+                          <HugeiconsIcon icon={Sun01Icon} />
+                          Light
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setTheme("dark")}>
+                          <HugeiconsIcon icon={Moon02Icon} />
+                          Dark
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setTheme("system")}>
+                          <HugeiconsIcon icon={ComputerIcon} />
+                          System
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuSub>
+                  </DropdownMenuGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      void signOutAction();
+                    }}
+                  >
+                    <HugeiconsIcon icon={Logout01Icon} />
+                    Log out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      ) : null}
     </Sidebar>
   );
 }

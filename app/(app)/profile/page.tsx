@@ -16,7 +16,7 @@ function getInitials(first?: string | null, last?: string | null) {
 
 export default async function ProfilePage() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/");
 
   const [roundsCount, greeniesCount] = await Promise.all([
     getRoundsCountByUserId(user.id),

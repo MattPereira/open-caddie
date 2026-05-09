@@ -5,7 +5,7 @@ import { useState } from "react";
 import { InfoAlert } from "@/components/info-alert";
 import { LoginForm, type LoginFormValues } from "@/components/login-form";
 import { Button } from "@/components/ui/button";
-import { signInWithEmail } from "./actions";
+import { signInWithEmail } from "../actions";
 
 export function LoginPageForm() {
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -21,7 +21,7 @@ export function LoginPageForm() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center p-6">
+    <main className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center p-6">
       {sentTo ? (
         <div className="flex w-full max-w-sm flex-col gap-4">
           <InfoAlert title="Check your email">

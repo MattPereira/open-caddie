@@ -1,6 +1,4 @@
-import { redirect } from "next/navigation";
-
-export const dynamic = "force-dynamic";
+import { auth } from "@/auth";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
@@ -10,25 +8,16 @@ import {
 } from "@/components/ui/sidebar";
 import { getCurrentUser } from "@/db/queries/users";
 
+export const dynamic = "force-dynamic";
+
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { firstName, lastName, username, email, image, isAdmin } = user;
-  const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
-  const sidebarUser = {
-    name: fullName || username || email || "Account",
-    email: email ?? "",
-    image: image ?? null,
-    isAdmin,
-  };
+  const session = await auth();
+  const user = session?.user ? ((await getCurrentUser()) ?? session.user) : null;
+  const sidebarUser = user ? getSidebarUser(user) : null;
 
   return (
     <SidebarProvider>
@@ -42,4 +31,25 @@ export default async function AppLayout({
       </SidebarInset>
     </SidebarProvider>
   );
+}
+
+type SidebarSourceUser = {
+  firstName?: string | null;
+  lastName?: string | null;
+  username?: string | null;
+  email?: string | null;
+  image?: string | null;
+  isAdmin?: boolean | null;
+};
+
+function getSidebarUser(user: SidebarSourceUser) {
+  const { firstName, lastName, username, email, image, isAdmin } = user;
+  const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
+
+  return {
+    name: fullName || username || email || "Account",
+    email: email ?? "",
+    image: image ?? null,
+    isAdmin: isAdmin ?? false,
+  };
 }

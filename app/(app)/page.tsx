@@ -10,10 +10,15 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { LoginPageForm } from "./_components/login-page-form";
 
 export default async function Home() {
   const session = await auth();
   const firstName = session?.user?.firstName;
+
+  if (!session?.user) {
+    return <LoginPageForm />;
+  }
 
   return (
     <main className="flex min-h-[calc(100vh-3rem)] flex-col items-center justify-center px-4 py-10">

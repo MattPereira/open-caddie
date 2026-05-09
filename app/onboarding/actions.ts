@@ -22,7 +22,7 @@ export async function submitOnboarding(
   values: OnboardingValues,
 ): Promise<{ error: string } | void> {
   const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  if (!session?.user?.id) redirect("/");
 
   const parsed = OnboardingSchema.safeParse(values);
   if (!parsed.success) {

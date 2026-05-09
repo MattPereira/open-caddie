@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { GolfHoleIcon } from "@hugeicons/core-free-icons";
+import { RoboticIcon } from "@hugeicons/core-free-icons";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -60,7 +60,7 @@ export function LoginForm({ className, onSubmit, ...props }: LoginFormProps) {
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
             <div className="flex size-8 items-center justify-center rounded-md">
-              <HugeiconsIcon icon={GolfHoleIcon} strokeWidth={2} size={38} />
+              <HugeiconsIcon icon={RoboticIcon} strokeWidth={2} size={38} />
             </div>
             <h1 className="text-xl font-bold">Welcome to Open Caddie</h1>
             <FieldDescription>

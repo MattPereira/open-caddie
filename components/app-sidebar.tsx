@@ -3,13 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  ChampionIcon,
-  RankingIcon,
-  UserMultipleIcon,
-  GolfHoleIcon,
-  GolfCartIcon,
   ExpandIcon,
   UserCircleIcon,
   Notification01Icon,
@@ -47,20 +42,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { signOutAction } from "@/app/(app)/actions";
-
-type NavItem = {
-  title: string;
-  href: string;
-  icon: IconSvgElement;
-};
-
-const items: NavItem[] = [
-  { title: "Tournaments", href: "/tournaments", icon: ChampionIcon },
-  { title: "Standings", href: "/standings", icon: RankingIcon },
-  { title: "Greenies", href: "/greenies", icon: GolfHoleIcon },
-  { title: "Courses", href: "/courses", icon: GolfCartIcon },
-  { title: "Players", href: "/players", icon: UserMultipleIcon },
-];
+import { appNavItems } from "@/components/app-nav-items";
 
 type SidebarUser = {
   name: string;
@@ -89,7 +71,7 @@ export function AppSidebar({ user }: { user: SidebarUser }) {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map((item) => {
+              {appNavItems.map((item) => {
                 const isActive =
                   pathname === item.href ||
                   pathname?.startsWith(`${item.href}/`);

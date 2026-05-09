@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { appPageIcons } from "@/components/app-nav-items";
+import { PageHeading } from "@/components/page-heading";
 import { getAllUsers } from "@/db/queries/users";
 import { PlayersBrowser } from "./_components/players-browser";
 
@@ -14,7 +16,7 @@ export default async function PlayersPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
-      <h1 className="text-2xl font-semibold tracking-normal">Players</h1>
+      <PageHeading icon={appPageIcons.players}>Players</PageHeading>
       <PlayersBrowser players={players} />
     </main>
   );

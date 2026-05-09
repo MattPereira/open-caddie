@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { appPageIcons } from "@/components/app-nav-items";
+import { PageHeading } from "@/components/page-heading";
 import { getAllTournaments } from "@/db/queries/tournaments";
 import { TournamentsBrowser } from "./_components/tournaments-browser";
 
@@ -15,7 +17,7 @@ export default async function TournamentsPage() {
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-normal">Tournaments</h1>
+        <PageHeading icon={appPageIcons.tournaments}>Tournaments</PageHeading>
         <div>
           <p className="max-w-2xl text-sm text-muted-foreground">
             Browse live, upcoming, and past club tournaments.

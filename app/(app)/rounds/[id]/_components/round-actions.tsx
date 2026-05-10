@@ -5,9 +5,19 @@ import { Edit03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/components/ui/button";
-import { RoundScoresSheet, type EditableRound } from "./round-scores-sheet";
+import {
+  RoundScoresSheet,
+  type EditableRound,
+  type RoundScoresTab,
+} from "./round-scores-sheet";
 
-export function RoundActions({ round }: { round: EditableRound }) {
+export function RoundActions({
+  initialTab = "front",
+  round,
+}: {
+  initialTab?: RoundScoresTab;
+  round: EditableRound;
+}) {
   const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
@@ -16,11 +26,14 @@ export function RoundActions({ round }: { round: EditableRound }) {
         <HugeiconsIcon icon={Edit03Icon} data-icon="inline-start" />
         Edit
       </Button>
-      <RoundScoresSheet
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        round={round}
-      />
+      {sheetOpen ? (
+        <RoundScoresSheet
+          initialTab={initialTab}
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          round={round}
+        />
+      ) : null}
     </>
   );
 }

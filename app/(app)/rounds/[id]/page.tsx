@@ -61,7 +61,9 @@ export default async function RoundPage({ params }: RoundPageProps) {
       <section className="flex min-w-0 flex-col gap-3">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold tracking-normal">Greenies</h2>
-          {canEdit ? <RoundActions round={round} /> : null}
+          {canEdit ? (
+            <RoundActions initialTab="greenies" round={round} />
+          ) : null}
         </div>
         {round.greenies.length === 0 ? (
           <Card className="border-dashed">

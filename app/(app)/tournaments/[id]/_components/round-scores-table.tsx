@@ -195,32 +195,8 @@ function MobileRoundScoresCard({
         <CardTitle className="min-w-0">
           <PlayerLabel row={row} />
         </CardTitle>
-        <ScoreMetricSwitch
-          id={`round-${row.round.id}-score-metric`}
-          metric={metric}
-          onMetricChange={setMetric}
-          size="sm"
-        />
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        <MobileScoreLine
-          holes={frontNine}
-          values={values.scores}
-          pars={row.pars}
-          showSymbols={metric === "strokes"}
-          totalLabel="Out"
-          totalValue={values.out}
-          roundId={row.round.id}
-        />
-        <MobileScoreLine
-          holes={backNine}
-          values={values.scores}
-          pars={row.pars}
-          showSymbols={metric === "strokes"}
-          totalLabel="In"
-          totalValue={values.in}
-          roundId={row.round.id}
-        />
         {showMobileTotals ? (
           <div className="grid min-w-0 grid-cols-4 gap-2">
             <MobileTotal label="Putts" value={row.metrics.putts.total} />
@@ -241,6 +217,33 @@ function MobileRoundScoresCard({
             />
           </div>
         ) : null}
+
+        <MobileScoreLine
+          holes={frontNine}
+          values={values.scores}
+          pars={row.pars}
+          showSymbols={metric === "strokes"}
+          totalLabel="Out"
+          totalValue={values.out}
+          roundId={row.round.id}
+        />
+        <MobileScoreLine
+          holes={backNine}
+          values={values.scores}
+          pars={row.pars}
+          showSymbols={metric === "strokes"}
+          totalLabel="In"
+          totalValue={values.in}
+          roundId={row.round.id}
+        />
+        <div className="flex w-full justify-end">
+          <ScoreMetricSwitch
+            id={`round-${row.round.id}-score-metric`}
+            metric={metric}
+            onMetricChange={setMetric}
+            size="sm"
+          />
+        </div>
       </CardContent>
     </Card>
   );

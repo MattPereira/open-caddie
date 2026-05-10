@@ -54,7 +54,12 @@ export type EditableRound = {
 };
 
 const holeNumbers = Array.from({ length: 18 }, (_, index) => index + 1);
-const scoreTabs = [
+export type RoundScoresTab = "front" | "back" | "greenies";
+const scoreTabs: {
+  value: Exclude<RoundScoresTab, "greenies">;
+  label: string;
+  holes: number[];
+}[] = [
   { value: "front", label: "Front", holes: holeNumbers.slice(0, 9) },
   { value: "back", label: "Back", holes: holeNumbers.slice(9) },
 ];
@@ -96,10 +101,12 @@ function toNumberInputValue(value: number | "") {
 }
 
 export function RoundScoresSheet({
+  initialTab = "front",
   open,
   onOpenChange,
   round,
 }: {
+  initialTab?: RoundScoresTab;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   round: EditableRound;
@@ -110,6 +117,7 @@ export function RoundScoresSheet({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+  const [activeTab, setActiveTab] = useState<RoundScoresTab>(initialTab);
 
   const form = useForm<RoundScoresUpdateValues>({
     resolver: zodResolver(RoundScoresUpdateSchema),
@@ -206,7 +214,13 @@ export function RoundScoresSheet({
                   </p>
                 ) : null}
 
-                <Tabs defaultValue="front" className="gap-3">
+                <Tabs
+                  value={activeTab}
+                  onValueChange={(value) =>
+                    setActiveTab(value as RoundScoresTab)
+                  }
+                  className="gap-3"
+                >
                   <TabsList className="w-full">
                     {scoreTabs.map((tab) => (
                       <TabsTrigger key={tab.value} value={tab.value}>
@@ -245,24 +259,15 @@ export function RoundScoresSheet({
                         This course does not have any par 3 holes.
                       </p>
                     ) : (
-                      <>
-                        <div className="grid grid-cols-[3.5rem_1fr_1fr_2rem] gap-2 text-xs font-medium text-muted-foreground">
-                          <span />
-                          <span>Feet</span>
-                          <span>Inches</span>
-                          <span />
-                        </div>
-
-                        {greenieRows.map((greenie, index) => (
-                          <GreenieInputRow
-                            key={greenie.hole}
-                            form={form}
-                            greenie={greenie}
-                            index={index}
-                            existing={existingGreenieHoles.has(greenie.hole)}
-                          />
-                        ))}
-                      </>
+                      greenieRows.map((greenie, index) => (
+                        <GreenieInputRow
+                          key={greenie.hole}
+                          form={form}
+                          greenie={greenie}
+                          index={index}
+                          existing={existingGreenieHoles.has(greenie.hole)}
+                        />
+                      ))
                     )}
                   </TabsContent>
                 </Tabs>
@@ -397,6 +402,7 @@ function ScoreInputRow({
                 type="number"
                 min={1}
                 step={1}
+                className="text-center"
                 {...field}
                 value={toNumberInputValue(field.value)}
                 onChange={(e) =>
@@ -422,6 +428,7 @@ function ScoreInputRow({
                 type="number"
                 min={0}
                 step={1}
+                className="text-center"
                 {...field}
                 value={toNumberInputValue(field.value)}
                 onChange={(e) =>
@@ -528,19 +535,21 @@ function GreenieInputRow({
 
   return (
     <div className="grid grid-cols-[3.5rem_1fr_1fr_auto] items-start gap-2">
-      <div className="pt-2 text-sm font-medium">Hole {greenie.hole}</div>
+      <div className="pt-7 text-sm font-medium">Hole {greenie.hole}</div>
 
       <FormField
         control={form.control}
         name={`greenies.${index}.feet`}
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="sr-only">Hole {greenie.hole} feet</FormLabel>
+            <FormLabel>Feet</FormLabel>
             <FormControl>
               <Input
                 type="number"
                 min={0}
                 step={1}
+                className="text-center"
+                aria-label={`Hole ${greenie.hole} feet`}
                 {...field}
                 value={toNumberInputValue(field.value)}
                 onChange={(e) =>
@@ -560,15 +569,15 @@ function GreenieInputRow({
         name={`greenies.${index}.inches`}
         render={({ field }) => (
           <FormItem>
-            <FormLabel className="sr-only">
-              Hole {greenie.hole} inches
-            </FormLabel>
+            <FormLabel>Inches</FormLabel>
             <FormControl>
               <Input
                 type="number"
                 min={0}
                 max={11}
                 step={1}
+                className="text-center"
+                aria-label={`Hole ${greenie.hole} inches`}
                 {...field}
                 value={toNumberInputValue(field.value)}
                 onChange={(e) =>
@@ -583,7 +592,7 @@ function GreenieInputRow({
         )}
       />
 
-      <div className="flex items-center gap-1 pt-0.5">
+      <div className="flex items-center gap-1 pt-[1.625rem]">
         <Button
           type="button"
           variant="destructive"

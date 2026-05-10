@@ -276,7 +276,7 @@ export function RoundScoringForm({
               variant="destructive"
               onClick={() => setConfirming(true)}
             >
-              Abandon round
+              Delete round
             </Button>
             <Button type="button" variant="outline" onClick={handleBack}>
               Back to home

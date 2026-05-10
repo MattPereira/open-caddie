@@ -1,9 +1,10 @@
 import Link from "next/link";
 import {
-  Edit03Icon,
   PlayCircleIcon,
   UserCircleIcon,
   Add01Icon,
+  ChatBotIcon,
+  GolfBallIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -114,9 +115,7 @@ export default async function Home({ searchParams }: HomePageProps) {
       ) : (
         <section className="flex w-full max-w-3xl flex-col items-center gap-8">
           <h1 className="text-center text-2xl font-medium tracking-normal text-foreground sm:text-3xl">
-            {session.user.firstName
-              ? `Good morning, ${session.user.firstName}`
-              : "Good morning"}
+            {session.user.firstName && `Swing away, ${session.user.firstName}`}
           </h1>
 
           <div className="grid grid-cols-2 md:grid-cols-2 items-center gap-3">
@@ -132,8 +131,11 @@ export default async function Home({ searchParams }: HomePageProps) {
                   </>
                 ) : (
                   <>
-                    <HugeiconsIcon icon={Add01Icon} data-icon="inline-start" />
-                    Start Round
+                    <HugeiconsIcon
+                      icon={GolfBallIcon}
+                      data-icon="inline-start"
+                    />
+                    Start round
                   </>
                 )}
               </Link>
@@ -144,6 +146,7 @@ export default async function Home({ searchParams }: HomePageProps) {
               variant="outline"
               size="xl"
               className="w-full"
+              disabled
             >
               <HugeiconsIcon icon={Add01Icon} data-icon="inline-start" />
               Add Course
@@ -154,9 +157,10 @@ export default async function Home({ searchParams }: HomePageProps) {
               variant="outline"
               size="xl"
               className="w-full"
+              disabled
             >
-              <HugeiconsIcon icon={Edit03Icon} data-icon="inline-start" />
-              Edit round
+              <HugeiconsIcon icon={ChatBotIcon} data-icon="inline-start" />
+              Ask caddie
             </Button>
 
             <Button
@@ -164,6 +168,7 @@ export default async function Home({ searchParams }: HomePageProps) {
               variant="outline"
               size="xl"
               className="w-full"
+              disabled
             >
               <HugeiconsIcon icon={UserCircleIcon} data-icon="inline-start" />
               View profile

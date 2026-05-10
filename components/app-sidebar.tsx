@@ -54,14 +54,20 @@ type SidebarUser = {
 export function AppSidebar({ user }: { user: SidebarUser | null }) {
   const pathname = usePathname();
   const { setTheme } = useTheme();
-  const { isMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
   const initials = user ? getInitials(user.name) : null;
+  const closeMobileSidebar = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
 
   return (
     <Sidebar>
       <SidebarHeader>
         <Link
           href="/"
+          onNavigate={closeMobileSidebar}
           className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xl font-semibold outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
           Open Caddie
@@ -78,7 +84,7 @@ export function AppSidebar({ user }: { user: SidebarUser | null }) {
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={isActive} size="lg">
-                      <Link href={item.href}>
+                      <Link href={item.href} onNavigate={closeMobileSidebar}>
                         <HugeiconsIcon icon={item.icon} />
                         <span>{item.title}</span>
                       </Link>
@@ -100,14 +106,16 @@ export function AppSidebar({ user }: { user: SidebarUser | null }) {
                     size="lg"
                     className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                   >
-                    <Avatar className="size-8">
+                    <Avatar className="size-10">
                       {user.image ? (
                         <AvatarImage src={user.image} alt={user.name} />
                       ) : null}
                       <AvatarFallback>{initials}</AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-medium">{user.name}</span>
+                      <span className="truncate font-medium text-base">
+                        {user.name}
+                      </span>
                       <span className="truncate text-xs text-muted-foreground">
                         {user.email}
                       </span>
@@ -142,7 +150,7 @@ export function AppSidebar({ user }: { user: SidebarUser | null }) {
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
                     <DropdownMenuItem asChild>
-                      <Link href="/profile">
+                      <Link href="/profile" onNavigate={closeMobileSidebar}>
                         <HugeiconsIcon icon={UserCircleIcon} />
                         Profile
                       </Link>
@@ -153,7 +161,7 @@ export function AppSidebar({ user }: { user: SidebarUser | null }) {
                     </DropdownMenuItem>
                     {user.isAdmin ? (
                       <DropdownMenuItem asChild>
-                        <Link href="/admin">
+                        <Link href="/admin" onNavigate={closeMobileSidebar}>
                           <HugeiconsIcon icon={UserShield01Icon} />
                           Admin
                         </Link>

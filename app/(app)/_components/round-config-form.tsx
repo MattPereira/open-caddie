@@ -99,8 +99,14 @@ export function RoundConfigForm({
     },
   });
 
-  const tournamentId = useWatch({ control: form.control, name: "tournamentId" });
-  const courseHandle = useWatch({ control: form.control, name: "courseHandle" });
+  const tournamentId = useWatch({
+    control: form.control,
+    name: "tournamentId",
+  });
+  const courseHandle = useWatch({
+    control: form.control,
+    name: "courseHandle",
+  });
   const dateValue = useWatch({ control: form.control, name: "date" });
 
   const selectedTournament = useMemo(
@@ -356,16 +362,17 @@ export function RoundConfigForm({
           )}
         />
 
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div className="grid grid-cols-2 gap-2 sm:flex-row sm:justify-end">
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             disabled={isPending}
             onClick={onCancel}
+            size="lg"
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isPending}>
+          <Button type="submit" disabled={isPending} size="lg">
             {isPending ? "Starting round…" : "Start round"}
           </Button>
         </div>

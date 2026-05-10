@@ -7,6 +7,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { getCurrentUser } from "@/db/queries/users";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -16,16 +17,21 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  const user = session?.user ? ((await getCurrentUser()) ?? session.user) : null;
+  const user = session?.user
+    ? ((await getCurrentUser()) ?? session.user)
+    : null;
   const sidebarUser = user ? getSidebarUser(user) : null;
 
   return (
     <SidebarProvider>
       <AppSidebar user={sidebarUser} />
       <SidebarInset>
-        <header className="flex h-14 items-center gap-2 border-b px-3">
-          <SidebarTrigger className="size-8" />
-          <ThemeToggle className="ml-auto size-8" />
+        <header className="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b px-3">
+          <SidebarTrigger className="size-8 justify-self-start" />
+          <Link href="/" className="justify-self-center text-lg font-semibold">
+            Open Caddie
+          </Link>
+          <ThemeToggle className="size-8 justify-self-end" />
         </header>
         <div className="flex flex-1 flex-col">{children}</div>
       </SidebarInset>

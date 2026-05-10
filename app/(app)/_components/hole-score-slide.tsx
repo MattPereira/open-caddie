@@ -14,12 +14,16 @@ export type HoleScorePatch = {
   putts: number | null;
 };
 
+type ScoreOption = {
+  label: string;
+  value: number;
+};
+
 type HoleScoreSlideProps = {
   hole: number;
   par: number;
   initialStrokes: number | null;
   initialPutts: number | null;
-  isActive: boolean;
   onScoreChangeAction: (patch: HoleScorePatch) => void;
   onAdvanceHoleAction: () => void;
 };
@@ -45,15 +49,12 @@ export function HoleScoreSlide({
   par,
   initialStrokes,
   initialPutts,
-  isActive,
   onScoreChangeAction,
   onAdvanceHoleAction,
 }: HoleScoreSlideProps) {
   const [strokesStr, setStrokesStr] = useState(toInputValue(initialStrokes));
   const [puttsStr, setPuttsStr] = useState(toInputValue(initialPutts));
 
-  const strokesRef = useRef<HTMLInputElement>(null);
-  const puttsRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingPatchRef = useRef<HoleScorePatch | null>(null);
   const onScoreChangeRef = useRef(onScoreChangeAction);
@@ -62,11 +63,20 @@ export function HoleScoreSlide({
   );
   const puttsDirtyRef = useRef(false);
 
-  const strokeChips = useMemo(
-    () => [par - 1, par, par + 1].filter((n) => n >= 1),
+  const strokeOptions = useMemo<ScoreOption[]>(
+    () =>
+      [
+        { label: "birdie", value: par - 1 },
+        { label: "par", value: par },
+        { label: "bogey", value: par + 1 },
+        { label: "double", value: par + 2 },
+      ].filter((option) => option.value >= 1),
     [par],
   );
-  const puttChips = [1, 2, 3];
+  const puttOptions = [0, 1, 2, 3].map((value) => ({
+    label: String(value),
+    value,
+  }));
 
   useEffect(() => {
     onScoreChangeRef.current = onScoreChangeAction;
@@ -109,12 +119,6 @@ export function HoleScoreSlide({
     };
   }, [flushSave]);
 
-  useEffect(() => {
-    if (!isActive) return;
-    const target = strokesStr === "" ? strokesRef.current : puttsRef.current;
-    target?.focus({ preventScroll: true });
-  }, [isActive, strokesStr]);
-
   const currentStrokes = parseStrokes(strokesStr);
   const currentPutts = parsePutts(puttsStr);
 
@@ -134,8 +138,6 @@ export function HoleScoreSlide({
     flushSave({ strokes: n, putts: currentPutts });
     if (currentPutts != null) {
       onAdvanceHoleAction();
-    } else {
-      puttsRef.current?.focus({ preventScroll: true });
     }
   };
 
@@ -166,30 +168,30 @@ export function HoleScoreSlide({
 
   return (
     <div className="flex w-full flex-col gap-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-8">
         <ScoreField
           id={`hole-${hole}-strokes`}
           label="Strokes"
-          inputRef={strokesRef}
           value={strokesStr}
           onChange={handleStrokesChange}
           onBlur={handleStrokesBlur}
-          chips={strokeChips}
+          options={strokeOptions}
           activeChip={currentStrokes}
           onChipClick={handleStrokesChip}
           min={1}
+          optionColumns={2}
         />
         <ScoreField
           id={`hole-${hole}-putts`}
           label="Putts"
-          inputRef={puttsRef}
           value={puttsStr}
           onChange={handlePuttsChange}
           onBlur={handlePuttsBlur}
-          chips={puttChips}
+          options={puttOptions}
           activeChip={currentPutts}
           onChipClick={handlePuttsChip}
           min={0}
+          optionColumns={2}
         />
       </div>
     </div>
@@ -199,34 +201,33 @@ export function HoleScoreSlide({
 type ScoreFieldProps = {
   id: string;
   label: string;
-  inputRef: React.RefObject<HTMLInputElement | null>;
   value: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
-  chips: number[];
+  options: ScoreOption[];
   activeChip: number | null;
   onChipClick: (n: number) => void;
   min: number;
+  optionColumns?: 1 | 2;
 };
 
 function ScoreField({
   id,
   label,
-  inputRef,
   value,
   onChange,
   onBlur,
-  chips,
+  options,
   activeChip,
   onChipClick,
   min,
+  optionColumns = 1,
 }: ScoreFieldProps) {
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>
       <Input
         id={id}
-        ref={inputRef}
         type="number"
         inputMode="numeric"
         min={min}
@@ -236,16 +237,21 @@ function ScoreField({
         onBlur={onBlur}
         className="h-11 text-center text-lg tabular-nums"
       />
-      <div className="flex flex-col gap-2">
-        {chips.map((n) => (
+      <div
+        className={cn(
+          "grid gap-2",
+          optionColumns === 2 ? "grid-cols-2" : "grid-cols-1",
+        )}
+      >
+        {options.map((option) => (
           <Button
-            key={n}
+            key={option.label}
             type="button"
-            variant={activeChip === n ? "default" : "secondary"}
+            variant={activeChip === option.value ? "default" : "secondary"}
             className={cn("h-10 text-base tabular-nums")}
-            onClick={() => onChipClick(n)}
+            onClick={() => onChipClick(option.value)}
           >
-            {n}
+            {option.label}
           </Button>
         ))}
       </div>

@@ -194,11 +194,11 @@ export function RoundScoringForm({
         >
           <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
         </Button>
-        <div className="flex flex-col items-center gap-0.5 text-center">
+        <div className="flex items-center gap-2 text-center text-base tabular-nums">
           <span className="text-base font-semibold tabular-nums">
             Hole {scores[current]?.hole ?? current + 1}
           </span>
-          <span className="text-xs text-muted-foreground">
+          <span className="font-normal text-muted-foreground">
             Par {scores[current]?.par ?? "—"}
           </span>
         </div>
@@ -215,16 +215,15 @@ export function RoundScoringForm({
         </Button>
       </div>
 
-      <Carousel setApi={setApi} className="w-full min-w-0 px-5">
+      <Carousel setApi={setApi} className="w-full min-w-0">
         <CarouselContent>
-          {scores.map((entry, index) => (
+          {scores.map((entry) => (
             <CarouselItem key={entry.hole}>
               <HoleScoreSlide
                 hole={entry.hole}
                 par={entry.par ?? 4}
                 initialStrokes={entry.strokes}
                 initialPutts={entry.putts}
-                isActive={current === index}
                 onScoreChangeAction={(patch) => handleSave(entry.hole, patch)}
                 onAdvanceHoleAction={() => api?.scrollNext()}
               />

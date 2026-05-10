@@ -99,7 +99,15 @@ export const getRoundById = cache(async (roundId: number) => {
     return round;
   }
 
-  const [scores, roundGreenies] = await Promise.all([
+  const [holes, scores, roundGreenies] = await Promise.all([
+    db
+      .select({
+        hole: courseHoles.hole,
+        par: courseHoles.par,
+      })
+      .from(courseHoles)
+      .where(eq(courseHoles.courseId, round.courseId))
+      .orderBy(asc(courseHoles.hole)),
     db
       .select({
         roundId: roundScores.roundId,
@@ -174,6 +182,7 @@ export const getRoundById = cache(async (roundId: number) => {
             tournamentHandicap,
           ),
     scores,
+    holes,
     greenies: roundGreenies,
     handicap:
       round.tournamentId == null || round.clubId == null

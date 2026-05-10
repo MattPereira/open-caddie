@@ -9,6 +9,9 @@ export type RoundCardRound = {
   date: Date | string;
   courseName: string | null;
   courseImgUrl: string | null;
+  tournamentId?: number | null;
+  tournamentSeason?: number | null;
+  clubName?: string | null;
 };
 
 export function RoundCard({
@@ -21,12 +24,22 @@ export function RoundCard({
   onClick?: () => void;
 }) {
   const courseName = round.courseName ?? "Course to be announced";
+  const badges = [];
+
+  if (round.clubName) {
+    badges.push({ label: round.clubName });
+  }
+
+  if (round.tournamentSeason != null) {
+    badges.push({ label: `Season ${round.tournamentSeason}` });
+  }
 
   return (
     <MediaCard
       imageUrl={round.courseImgUrl}
       imageAlt={courseName}
       header={courseName}
+      badges={badges}
       href={href}
       onClick={onClick}
     >

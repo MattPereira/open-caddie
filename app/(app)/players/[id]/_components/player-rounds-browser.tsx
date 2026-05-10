@@ -15,6 +15,9 @@ type Round = {
   date: string;
   courseName: string | null;
   courseImgUrl: string | null;
+  tournamentId: number | null;
+  tournamentSeason: number | null;
+  clubName: string | null;
   totalStrokes: number | null;
 };
 
@@ -88,6 +91,9 @@ function filterRounds(rounds: Round[], query: string) {
   return rounds.filter((round) => {
     const haystack = [
       round.courseName ?? "",
+      round.tournamentId == null ? "" : "Tournament",
+      round.clubName ?? "",
+      round.tournamentSeason == null ? "" : `Season ${round.tournamentSeason}`,
       formatDate(round.date, "short"),
       formatDate(round.date, "standard"),
       round.date,

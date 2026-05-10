@@ -2,14 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { CourseCard } from "@/components/course-card";
 import { GreenieCard } from "@/components/greenie-card";
-import { InfoAlert } from "@/components/info-alert";
 import { displayName } from "@/components/player-card";
+import { RoundCard } from "@/components/round-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { getRoundById } from "@/db/queries/rounds";
+import { getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/utils";
+import { RoundActions } from "./_components/round-actions";
 import { RoundScoresTable } from "../../tournaments/[id]/_components/round-scores-table";
 
 type RoundPageProps = {
@@ -32,57 +33,36 @@ export async function generateMetadata({
 }
 
 export default async function RoundPage({ params }: RoundPageProps) {
-  const round = await getRoundFromParams(params);
+  const [round, currentUser] = await Promise.all([
+    getRoundFromParams(params),
+    getCurrentUser(),
+  ]);
 
   if (!round) notFound();
+  const canEdit = currentUser?.id === round.userId;
 
   return (
     <main className="flex min-w-0 flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-normal">
-          Round Details
-        </h1>
-        <div className="text-sm text-muted-foreground">
-          <span>{formatDate(round.date, "long")}</span>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-2xl font-semibold tracking-normal">Round</h1>
         </div>
-        {round.tournamentId ? (
-          <Link
-            href={`/tournaments/${round.tournamentId}`}
-            className="flex w-fit flex-wrap items-center gap-2 pt-1"
-          >
-            <Badge variant="outline">Tournament</Badge>
-            {round.clubName ? (
-              <Badge variant="secondary">{round.clubName}</Badge>
-            ) : null}
-            {round.tournamentSeason == null ? null : (
-              <Badge variant="secondary">Season {round.tournamentSeason}</Badge>
-            )}
-          </Link>
-        ) : null}
+        <RoundCard round={round} />
       </div>
 
       <section className="flex min-w-0 flex-col gap-3">
-        <h2 className="text-xl font-semibold tracking-normal">Course</h2>
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-          <CourseCard
-            course={{
-              name: round.courseName,
-              rating: round.courseRating,
-              slope: round.courseSlope,
-              imgUrl: round.courseImgUrl,
-            }}
-            href={`/courses/${encodeURIComponent(round.courseHandle)}`}
-          />
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold tracking-normal">Scores</h2>
+          {canEdit ? <RoundActions round={round} /> : null}
         </div>
-      </section>
-
-      <section className="flex min-w-0 flex-col gap-3">
-        <h2 className="text-xl font-semibold tracking-normal">Scores</h2>
         <RoundScoresTable rounds={[round]} />
       </section>
 
       <section className="flex min-w-0 flex-col gap-3">
-        <h2 className="text-xl font-semibold tracking-normal">Greenies</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold tracking-normal">Greenies</h2>
+          {canEdit ? <RoundActions round={round} /> : null}
+        </div>
         {round.greenies.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="py-10 text-center">
@@ -132,7 +112,7 @@ function HandicapSection({ round }: { round: Round }) {
     <section className="flex min-w-0 flex-col gap-3">
       <h2 className="text-xl font-semibold tracking-normal">Handicap</h2>
 
-      <Card>
+      <Card size="sm">
         <CardContent className="flex flex-col gap-4">
           <div className="grid w-full max-w-lg grid-cols-2 gap-2">
             <HandicapStat

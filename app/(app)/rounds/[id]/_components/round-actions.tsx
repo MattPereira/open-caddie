@@ -1,29 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Edit03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import {
-  UserSheet,
-  type AdminUser,
-} from "@/app/(app)/admin/_components/user-sheet";
 import { Button } from "@/components/ui/button";
+import { RoundScoresSheet, type EditableRound } from "./round-scores-sheet";
 
-export function PlayerProfileActions({
-  player,
-  canManageUsers,
-}: {
-  player: AdminUser;
-  canManageUsers: boolean;
-}) {
-  const router = useRouter();
+export function RoundActions({ round }: { round: EditableRound }) {
   const [sheetOpen, setSheetOpen] = useState(false);
-
-  const refreshPage = () => {
-    router.refresh();
-  };
 
   return (
     <>
@@ -31,14 +16,10 @@ export function PlayerProfileActions({
         <HugeiconsIcon icon={Edit03Icon} data-icon="inline-start" />
         Edit
       </Button>
-      <UserSheet
+      <RoundScoresSheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        mode="edit"
-        user={player}
-        canManageUsers={canManageUsers}
-        onSaved={refreshPage}
-        onDeleted={refreshPage}
+        round={round}
       />
     </>
   );

@@ -2,7 +2,15 @@ import { cache } from "react";
 import { asc, count, desc, eq, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { courses, greenies, roundSummaries, rounds, users } from "@/db/schema";
+import {
+  clubs,
+  courses,
+  greenies,
+  roundSummaries,
+  rounds,
+  tournaments,
+  users,
+} from "@/db/schema";
 
 export const getUserById = cache(async (id: string) => {
   const [row] = await db.select().from(users).where(eq(users.id, id)).limit(1);
@@ -56,10 +64,15 @@ export const getUserRoundsById = cache(async (userId: string) => {
       date: roundSummaries.date,
       courseName: courses.name,
       courseImgUrl: courses.imgUrl,
+      tournamentId: roundSummaries.tournamentId,
+      tournamentSeason: tournaments.season,
+      clubName: clubs.name,
       totalStrokes: roundSummaries.totalStrokes,
     })
     .from(roundSummaries)
     .innerJoin(courses, eq(roundSummaries.courseId, courses.id))
+    .leftJoin(tournaments, eq(roundSummaries.tournamentId, tournaments.id))
+    .leftJoin(clubs, eq(tournaments.clubId, clubs.id))
     .where(eq(roundSummaries.userId, userId))
     .orderBy(desc(roundSummaries.date), desc(roundSummaries.roundId));
 });

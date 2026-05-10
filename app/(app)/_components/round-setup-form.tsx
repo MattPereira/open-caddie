@@ -62,7 +62,7 @@ export type TournamentOption = {
   courseImgUrl: string | null;
 };
 
-type RoundConfigFormProps = {
+type RoundSetupFormProps = {
   courses: CourseOption[];
   tournaments: TournamentOption[];
   defaultDateIso: string;
@@ -72,13 +72,13 @@ type RoundConfigFormProps = {
 
 type RoundMode = "tournament" | "casual";
 
-export function RoundConfigForm({
+export function RoundSetupForm({
   courses,
   tournaments,
   defaultDateIso,
   onCreated,
   onCancel,
-}: RoundConfigFormProps) {
+}: RoundSetupFormProps) {
   const [isPending, startTransition] = useTransition();
   const [roundMode, setRoundMode] = useState<RoundMode>("tournament");
   const [courseOpen, setCourseOpen] = useState(false);

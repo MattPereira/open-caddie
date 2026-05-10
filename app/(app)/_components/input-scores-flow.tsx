@@ -4,11 +4,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import {
-  RoundConfigForm,
+  RoundSetupForm,
   type CourseOption,
   type TournamentOption,
-} from "./round-config-form";
-import { RoundScoringForm } from "./round-scoring-form";
+} from "./round-setup-form";
+import { RoundScoresForm } from "./round-scores-form";
 import type { RoundScoresTableRound } from "../tournaments/[id]/_components/round-scores-table";
 
 export type ActiveRound = {
@@ -43,7 +43,7 @@ export function InputScoresFlow({
   if (view === "scoring" && activeRound) {
     return (
       <section className="flex w-full max-w-md flex-1 flex-col">
-        <RoundScoringForm
+        <RoundScoresForm
           roundId={activeRound.roundId}
           round={activeRound.tableRound}
           holes={activeRound.holes}
@@ -56,7 +56,7 @@ export function InputScoresFlow({
 
   return (
     <section className="flex w-full max-w-md flex-col gap-4">
-      <RoundConfigForm
+      <RoundSetupForm
         courses={courses}
         tournaments={tournaments}
         defaultDateIso={defaultDateIso}

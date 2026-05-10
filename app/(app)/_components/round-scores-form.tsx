@@ -29,7 +29,7 @@ type ScoreEntry = {
   putts: number | null;
 };
 
-type RoundScoringFormProps = {
+type RoundScoresFormProps = {
   roundId: number;
   round: RoundScoresTableRound;
   holes: { hole: number; par: number }[];
@@ -56,13 +56,13 @@ function buildInitialScores(
   });
 }
 
-export function RoundScoringForm({
+export function RoundScoresForm({
   roundId,
   round,
   holes,
   onBackToHome,
   onAbandoned,
-}: RoundScoringFormProps) {
+}: RoundScoresFormProps) {
   const router = useRouter();
   const initialScores = useMemo(
     () => buildInitialScores(round.scores, holes),

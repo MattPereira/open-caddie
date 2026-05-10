@@ -29,7 +29,7 @@ export function PlayerProfileActions({
     <>
       <Button variant="outline" size="lg" onClick={() => setSheetOpen(true)}>
         <HugeiconsIcon icon={Edit03Icon} data-icon="inline-start" />
-        Edit player
+        Edit
       </Button>
       <UserSheet
         open={sheetOpen}

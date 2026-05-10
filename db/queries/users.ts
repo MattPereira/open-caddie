@@ -1,8 +1,8 @@
 import { cache } from "react";
-import { asc, count, eq, sql } from "drizzle-orm";
+import { asc, count, desc, eq, sql } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { greenies, rounds, users } from "@/db/schema";
+import { courses, greenies, roundSummaries, rounds, users } from "@/db/schema";
 
 export const getUserById = cache(async (id: string) => {
   const [row] = await db.select().from(users).where(eq(users.id, id)).limit(1);
@@ -13,6 +13,55 @@ export const getCurrentUser = cache(async () => {
   const session = await auth();
   if (!session?.user?.id) return null;
   return getUserById(session.user.id);
+});
+
+export const getUserPlayingStatsById = cache(async (userId: string) => {
+  const [[row], [greeniesRow]] = await Promise.all([
+    db
+      .select({
+        roundsCount: count(roundSummaries.roundId),
+        averageStrokes:
+          sql<number | null>`avg(${roundSummaries.totalStrokes}) filter (where ${roundSummaries.isComplete})::double precision`.mapWith(
+            (value) => (value == null ? null : Number(value)),
+          ),
+        averagePutts:
+          sql<number | null>`avg(${roundSummaries.totalPutts}) filter (where ${roundSummaries.recordedPuttsCount} = 18)::double precision`.mapWith(
+            (value) => (value == null ? null : Number(value)),
+          ),
+      })
+      .from(roundSummaries)
+      .where(eq(roundSummaries.userId, userId)),
+    db
+      .select({ greeniesCount: count() })
+      .from(greenies)
+      .innerJoin(rounds, eq(greenies.roundId, rounds.id))
+      .where(eq(rounds.userId, userId)),
+  ]);
+
+  const roundsCount = row?.roundsCount ?? 0;
+
+  return {
+    roundsCount,
+    averageStrokes: row?.averageStrokes ?? null,
+    averagePutts: row?.averagePutts ?? null,
+    averageGreeniesPerRound:
+      roundsCount === 0 ? null : (greeniesRow?.greeniesCount ?? 0) / roundsCount,
+  };
+});
+
+export const getUserRoundsById = cache(async (userId: string) => {
+  return db
+    .select({
+      id: roundSummaries.roundId,
+      date: roundSummaries.date,
+      courseName: courses.name,
+      courseImgUrl: courses.imgUrl,
+      totalStrokes: roundSummaries.totalStrokes,
+    })
+    .from(roundSummaries)
+    .innerJoin(courses, eq(roundSummaries.courseId, courses.id))
+    .where(eq(roundSummaries.userId, userId))
+    .orderBy(desc(roundSummaries.date), desc(roundSummaries.roundId));
 });
 
 export const getAllUsers = cache(async () => {

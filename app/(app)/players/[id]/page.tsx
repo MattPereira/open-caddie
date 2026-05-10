@@ -2,10 +2,18 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { displayName, getInitials } from "@/components/player-card";
+import { StatTile } from "@/components/stat-tile";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getCurrentUser, getUserById } from "@/db/queries/users";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  getCurrentUser,
+  getUserById,
+  getUserPlayingStatsById,
+  getUserRoundsById,
+} from "@/db/queries/users";
 import { PlayerProfileActions } from "./_components/player-profile-actions";
+import { PlayerRoundsBrowser } from "./_components/player-rounds-browser";
 
 type PlayerPageProps = {
   params: Promise<{
@@ -26,13 +34,15 @@ export async function generateMetadata({
 }
 
 export default async function PlayerPage({ params }: PlayerPageProps) {
-  const [player, currentUser] = await Promise.all([
-    getPlayerFromParams(params),
-    getCurrentUser(),
-  ]);
+  const player = await getPlayerFromParams(params);
 
   if (!player) notFound();
 
+  const [currentUser, stats, rounds] = await Promise.all([
+    getCurrentUser(),
+    getUserPlayingStatsById(player.id),
+    getUserRoundsById(player.id),
+  ]);
   const name = displayName(player);
   const canManageUsers = currentUser?.isAdmin ?? false;
   const canEdit = canManageUsers || currentUser?.id === player.id;
@@ -40,7 +50,28 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex justify-between">
-        <h1 className="text-2xl font-semibold tracking-normal">Player</h1>
+        <div className="flex items-center gap-3">
+          <div className="size-16 shrink-0 overflow-hidden rounded-lg bg-muted">
+            <AspectRatio ratio={1} className="size-full">
+              <Avatar className="size-full rounded-lg">
+                {player.image ? (
+                  <AvatarImage src={player.image} alt={name} />
+                ) : null}
+                <AvatarFallback className="text-lg font-medium">
+                  {getInitials(player)}
+                </AvatarFallback>
+              </Avatar>
+            </AspectRatio>
+          </div>
+          <div className="flex min-w-0 flex-col gap-1">
+            <h2 className="truncate text-xl font-semibold tracking-normal">
+              {name}
+            </h2>
+            <p className="truncate text-sm text-muted-foreground">
+              {player.email ?? "-"}
+            </p>
+          </div>
+        </div>
 
         {canEdit ? (
           <PlayerProfileActions
@@ -49,28 +80,38 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
           />
         ) : null}
       </div>
-      <div className="flex items-center gap-4">
-        <div className="size-16 shrink-0 overflow-hidden rounded-lg bg-muted">
-          <AspectRatio ratio={1} className="size-full">
-            <Avatar className="size-full rounded-lg">
-              {player.image ? (
-                <AvatarImage src={player.image} alt={name} />
-              ) : null}
-              <AvatarFallback className="text-lg font-medium">
-                {getInitials(player)}
-              </AvatarFallback>
-            </Avatar>
-          </AspectRatio>
-        </div>
-        <div className="flex min-w-0 flex-col gap-1">
-          <h2 className="truncate text-xl font-semibold tracking-normal">
-            {name}
-          </h2>
-          <p className="truncate text-sm text-muted-foreground">
-            {player.email ?? "-"}
-          </p>
-        </div>
-      </div>
+
+      <Card className="py-3">
+        <CardHeader className="px-3">
+          <CardTitle>Round averages</CardTitle>
+        </CardHeader>
+        <CardContent className="px-3">
+          <div className="grid grid-cols-3 gap-3">
+            <StatTile
+              label="Strokes"
+              value={formatAverage(stats.averageStrokes)}
+              size="lg"
+            />
+            <StatTile
+              label="Putts"
+              value={formatAverage(stats.averagePutts)}
+              size="lg"
+            />
+            <StatTile
+              label="Greenies"
+              value={formatAverage(stats.averageGreeniesPerRound)}
+              size="lg"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <PlayerRoundsBrowser
+        rounds={rounds.map((round) => ({
+          ...round,
+          date: round.date.toISOString().slice(0, 10),
+        }))}
+      />
     </main>
   );
 }
@@ -79,4 +120,8 @@ async function getPlayerFromParams(params: PlayerPageProps["params"]) {
   const { id } = await params;
 
   return getUserById(id);
+}
+
+function formatAverage(value: number | null) {
+  return value == null ? "-" : value.toFixed(1);
 }

@@ -131,27 +131,19 @@ function HandicapSection({ round }: { round: Round }) {
   return (
     <section className="flex min-w-0 flex-col gap-3">
       <h2 className="text-xl font-semibold tracking-normal">Handicap</h2>
+
       <Card>
         <CardContent className="flex flex-col gap-4">
           <div className="grid w-full max-w-lg grid-cols-2 gap-2">
             <HandicapStat
-              label="Index"
-              value={formatNullableDecimal(handicap.playerIndex)}
-            />
-            <HandicapStat
               label="Handicap"
               value={formatNullableDecimal(handicap.tournamentHandicap)}
             />
+            <HandicapStat
+              label="Index"
+              value={formatNullableDecimal(handicap.playerIndex)}
+            />
           </div>
-
-          <InfoAlert title="Formulas">
-            <div className="flex flex-col gap-2">
-              <div>
-                Index = average of lowest 2 score diffs from prev 4 club rounds.
-              </div>
-              <div>Handicap = index * course slope / 113.</div>
-            </div>
-          </InfoAlert>
 
           {handicap.priorRounds.length === 0 ? (
             <p className="text-sm text-muted-foreground">

@@ -36,7 +36,7 @@ export function MediaCard({
   const content = (
     <>
       <MediaCardImage src={imageUrl} alt={imageAlt} />
-      <div className="flex min-w-0 flex-1 flex-col justify-between gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2">
+      <div className="flex min-w-0 flex-1 flex-col justify-between gap-1.5 px-2 py-1.5 sm:px-4 sm:py-2">
         <CardHeader className="px-0!">
           {header ? (
             <CardTitle className="truncate text-sm sm:text-base">

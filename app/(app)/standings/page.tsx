@@ -10,7 +10,9 @@ export const metadata: Metadata = {
 export default function StandingsPage() {
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
-      <PageHeading icon={appPageIcons.standings}>Standings</PageHeading>
+      <PageHeading icon={appPageIcons.standings} description="Coming soon...">
+        Standings
+      </PageHeading>
     </main>
   );
 }

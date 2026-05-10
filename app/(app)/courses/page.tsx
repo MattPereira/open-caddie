@@ -16,15 +16,12 @@ export default async function CoursesPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
-      <div className="flex flex-col gap-2">
-        <PageHeading icon={appPageIcons.courses}>Courses</PageHeading>
-        <div>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Browse the courses used for club tournaments and rounds.
-          </p>
-        </div>
-      </div>
-
+      <PageHeading
+        icon={appPageIcons.courses}
+        description="Select a course to view scorecard details"
+      >
+        Courses
+      </PageHeading>
       <CoursesBrowser courses={courses} />
     </main>
   );

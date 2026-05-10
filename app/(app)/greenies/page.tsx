@@ -16,14 +16,12 @@ export default async function GreeniesPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
-      <div className="flex flex-col gap-2">
-        <PageHeading icon={appPageIcons.greenies}>Greenies</PageHeading>
-        <div>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Browse the closest to the pin shots on par 3s
-          </p>
-        </div>
-      </div>
+      <PageHeading
+        icon={appPageIcons.greenies}
+        description="Browse the closest to the pin shots on par 3s"
+      >
+        Greenies
+      </PageHeading>
 
       <GreeniesBrowser
         greenies={greenies.map((greenie) => ({

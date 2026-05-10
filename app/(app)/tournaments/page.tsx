@@ -16,15 +16,12 @@ export default async function TournamentsPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
-      <div className="flex flex-col gap-2">
-        <PageHeading icon={appPageIcons.tournaments}>Tournaments</PageHeading>
-        <div>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Browse live, upcoming, and past club tournaments.
-          </p>
-        </div>
-      </div>
-
+      <PageHeading
+        icon={appPageIcons.tournaments}
+        description="Browse live, upcoming, and past tournaments"
+      >
+        Tournaments
+      </PageHeading>
       <TournamentsBrowser
         tournaments={tournaments.map((tournament) => ({
           ...tournament,

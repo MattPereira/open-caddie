@@ -16,7 +16,12 @@ export default async function PlayersPage() {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
-      <PageHeading icon={appPageIcons.players}>Players</PageHeading>
+      <PageHeading
+        icon={appPageIcons.players}
+        description="Select a player to view their profile"
+      >
+        Players
+      </PageHeading>
       <PlayersBrowser players={players} />
     </main>
   );

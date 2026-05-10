@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/popover";
 import { CourseCard } from "@/components/course-card";
 import { TournamentCard } from "@/components/tournament-card";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, toIsoDate, fromIsoDate } from "@/lib/utils";
 import { createRound } from "../actions";
 import { RoundConfigSchema, type RoundConfigValues } from "../schema";
 
@@ -65,18 +65,6 @@ type RoundConfigFormProps = {
   onCreated: (result: { roundId: number; values: RoundConfigValues }) => void;
   onCancel: () => void;
 };
-
-function toIsoDate(date: Date): string {
-  const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(date.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-function fromIsoDate(value: string): Date | undefined {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
-  return new Date(`${value}T00:00:00.000Z`);
-}
 
 export function RoundConfigForm({
   courses,
@@ -167,7 +155,7 @@ export function RoundConfigForm({
             name="tournamentId"
             render={() => (
               <FormItem className="flex flex-col">
-                <FormLabel>Tournament (optional)</FormLabel>
+                <FormLabel>Tournament</FormLabel>
                 <div className="flex gap-2">
                   <Popover
                     open={tournamentOpen}
@@ -185,7 +173,7 @@ export function RoundConfigForm({
                         >
                           {selectedTournament
                             ? `${formatDate(selectedTournament.date, "standard")} · ${selectedTournament.courseName}`
-                            : "No tournament"}
+                            : "Choose a tournament"}
                           <HugeiconsIcon icon={ArrowDown01Icon} size={16} />
                         </Button>
                       </FormControl>
@@ -222,21 +210,6 @@ export function RoundConfigForm({
                       </Command>
                     </PopoverContent>
                   </Popover>
-                  {selectedTournament ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={() =>
-                        form.setValue("tournamentId", null, {
-                          shouldValidate: true,
-                        })
-                      }
-                      aria-label="Clear tournament"
-                    >
-                      <HugeiconsIcon icon={Cancel01Icon} size={16} />
-                    </Button>
-                  ) : null}
                 </div>
                 <FormMessage />
               </FormItem>

@@ -62,3 +62,8 @@ export function toIsoDate(date: Date): string {
   const d = String(date.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
 }
+
+export function fromIsoDate(value: string): Date | undefined {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
+  return new Date(`${value}T00:00:00.000Z`);
+}

@@ -102,11 +102,13 @@ function toNumberInputValue(value: number | "") {
 
 export function RoundScoresSheet({
   initialTab = "front",
+  onSaved,
   open,
   onOpenChange,
   round,
 }: {
   initialTab?: RoundScoresTab;
+  onSaved?: (values: RoundScoresUpdateValues) => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   round: EditableRound;
@@ -188,6 +190,7 @@ export function RoundScoresSheet({
         });
         return;
       }
+      onSaved?.(values);
       closeSheet();
       router.refresh();
     });

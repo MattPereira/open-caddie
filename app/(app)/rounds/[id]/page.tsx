@@ -39,7 +39,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
   ]);
 
   if (!round) notFound();
-  const canEdit = currentUser?.id === round.userId;
+  const canEdit = currentUser?.isAdmin || currentUser?.id === round.userId;
 
   return (
     <main className="flex min-w-0 flex-1 flex-col gap-6 p-4 sm:p-8">
@@ -55,7 +55,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
           <h2 className="text-xl font-semibold tracking-normal">Scores</h2>
           {canEdit ? <RoundActions round={round} /> : null}
         </div>
-        <RoundScoresTable rounds={[round]} />
+        <RoundScoresTable currentUser={currentUser} rounds={[round]} />
       </section>
 
       <section className="flex min-w-0 flex-col gap-3">

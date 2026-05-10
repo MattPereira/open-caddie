@@ -5,7 +5,13 @@ import { RoundScoresTable } from "./round-scores-table";
 
 type Tournament = NonNullable<Awaited<ReturnType<typeof getTournamentById>>>;
 
-export function RoundsTabContent({ rounds }: { rounds: Tournament["rounds"] }) {
+export function RoundsTabContent({
+  currentUser,
+  rounds,
+}: {
+  currentUser: { id: string; isAdmin: boolean } | null;
+  rounds: Tournament["rounds"];
+}) {
   return (
     <TabsContent value="rounds" className="flex flex-col gap-3">
       {rounds.length === 0 ? (
@@ -17,7 +23,7 @@ export function RoundsTabContent({ rounds }: { rounds: Tournament["rounds"] }) {
           </CardContent>
         </Card>
       ) : (
-        <RoundScoresTable rounds={rounds} />
+        <RoundScoresTable currentUser={currentUser} rounds={rounds} />
       )}
     </TabsContent>
   );

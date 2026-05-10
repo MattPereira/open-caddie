@@ -66,7 +66,12 @@ export const getTournamentById = cache(async (tournamentId: number) => {
     return tournament;
   }
 
-  const [tournamentRounds, tournamentRoundScores, tournamentGreenies] =
+  const [
+    tournamentRounds,
+    tournamentRoundScores,
+    tournamentGreenies,
+    tournamentHoles,
+  ] =
     await Promise.all([
       db
         .select({
@@ -139,6 +144,14 @@ export const getTournamentById = cache(async (tournamentId: number) => {
         .innerJoin(courses, eq(rounds.courseId, courses.id))
         .where(eq(rounds.tournamentId, tournamentId))
         .orderBy(asc(greenies.hole), asc(greenies.feet), asc(greenies.inches)),
+      db
+        .select({
+          hole: courseHoles.hole,
+          par: courseHoles.par,
+        })
+        .from(courseHoles)
+        .where(eq(courseHoles.courseId, tournament.courseId))
+        .orderBy(asc(courseHoles.hole)),
     ]);
 
   const scoresByRoundId = new Map<number, typeof tournamentRoundScores>();
@@ -146,6 +159,12 @@ export const getTournamentById = cache(async (tournamentId: number) => {
     const scores = scoresByRoundId.get(score.roundId) ?? [];
     scores.push(score);
     scoresByRoundId.set(score.roundId, scores);
+  }
+  const greeniesByRoundId = new Map<number, typeof tournamentGreenies>();
+  for (const greenie of tournamentGreenies) {
+    const roundGreenies = greeniesByRoundId.get(greenie.roundId) ?? [];
+    roundGreenies.push(greenie);
+    greeniesByRoundId.set(greenie.roundId, roundGreenies);
   }
 
   const roundsWithScores = (
@@ -171,6 +190,8 @@ export const getTournamentById = cache(async (tournamentId: number) => {
           tournamentHandicap,
           netStrokes,
           scores: scoresByRoundId.get(round.id) ?? [],
+          holes: tournamentHoles,
+          greenies: greeniesByRoundId.get(round.id) ?? [],
         };
       }),
     )

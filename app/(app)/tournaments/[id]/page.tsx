@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getTournamentById } from "@/db/queries/tournaments";
+import { getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/utils";
 import { GreeniesTabContent } from "./_components/greenies-tab-content";
 import { RoundsTabContent } from "./_components/rounds-tab-content";
@@ -27,7 +28,10 @@ export async function generateMetadata({
 }
 
 export default async function TournamentPage({ params }: TournamentPageProps) {
-  const tournament = await getTournamentFromParams(params);
+  const [tournament, currentUser] = await Promise.all([
+    getTournamentFromParams(params),
+    getCurrentUser(),
+  ]);
 
   if (!tournament) notFound();
 
@@ -64,7 +68,7 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
           </TabsTrigger>
         </TabsList>
 
-        <RoundsTabContent rounds={tournament.rounds} />
+        <RoundsTabContent currentUser={currentUser} rounds={tournament.rounds} />
         <GreeniesTabContent greenies={tournament.greenies} />
         <WinnersTabContent
           rounds={tournament.rounds}

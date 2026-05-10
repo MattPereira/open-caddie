@@ -126,10 +126,27 @@ export async function deleteRound(
     return { ok: false, error: "You must be signed in." };
   }
 
+  const [currentUser] = await db
+    .select({ isAdmin: users.isAdmin })
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1);
+  if (!currentUser) {
+    return { ok: false, error: "You must be signed in." };
+  }
+
   const result = await db
     .delete(rounds)
-    .where(and(eq(rounds.id, roundId), eq(rounds.userId, session.user.id)))
-    .returning({ id: rounds.id, tournamentId: rounds.tournamentId });
+    .where(
+      currentUser.isAdmin
+        ? eq(rounds.id, roundId)
+        : and(eq(rounds.id, roundId), eq(rounds.userId, session.user.id)),
+    )
+    .returning({
+      id: rounds.id,
+      tournamentId: rounds.tournamentId,
+      userId: rounds.userId,
+    });
 
   if (result.length === 0) {
     return { ok: false, error: "Round not found." };
@@ -137,7 +154,7 @@ export async function deleteRound(
 
   revalidatePath("/");
   revalidatePath("/greenies");
-  revalidatePath(`/players/${session.user.id}`);
+  revalidatePath(`/players/${result[0].userId}`);
   revalidatePath(`/rounds/${roundId}`);
   if (result[0].tournamentId != null) {
     revalidatePath(`/tournaments/${result[0].tournamentId}`);
@@ -204,16 +221,26 @@ export async function updateRoundScores(
 
   const { roundId, scores } = parsed.data;
 
+  const [currentUser] = await db
+    .select({ isAdmin: users.isAdmin })
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1);
+  if (!currentUser) {
+    return { ok: false, error: "You must be signed in." };
+  }
+
   const [owned] = await db
     .select({
       id: rounds.id,
+      userId: rounds.userId,
       courseId: rounds.courseId,
       tournamentId: rounds.tournamentId,
     })
     .from(rounds)
-    .where(and(eq(rounds.id, roundId), eq(rounds.userId, session.user.id)))
+    .where(eq(rounds.id, roundId))
     .limit(1);
-  if (!owned) {
+  if (!owned || (!currentUser.isAdmin && owned.userId !== session.user.id)) {
     return { ok: false, error: "Round not found." };
   }
 
@@ -312,7 +339,7 @@ export async function updateRoundScores(
 
   revalidatePath("/");
   revalidatePath("/greenies");
-  revalidatePath(`/players/${session.user.id}`);
+  revalidatePath(`/players/${owned.userId}`);
   revalidatePath(`/rounds/${roundId}`);
   if (owned.tournamentId != null) {
     revalidatePath(`/tournaments/${owned.tournamentId}`);

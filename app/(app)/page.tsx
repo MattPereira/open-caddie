@@ -63,6 +63,7 @@ export default async function Home({ searchParams }: HomePageProps) {
           })),
           tableRound: {
             id: activeRoundDetails.id,
+            userId: activeRoundDetails.userId,
             firstName: activeRoundDetails.firstName,
             lastName: activeRoundDetails.lastName,
             username: activeRoundDetails.username,
@@ -78,6 +79,15 @@ export default async function Home({ searchParams }: HomePageProps) {
               par: s.par,
               strokes: s.strokes,
               putts: s.putts,
+            })),
+            holes: activeRoundDetails.holes.map((h) => ({
+              hole: h.hole,
+              par: h.par,
+            })),
+            greenies: activeRoundDetails.greenies.map((g) => ({
+              hole: g.hole,
+              feet: g.feet,
+              inches: g.inches,
             })),
           },
         }

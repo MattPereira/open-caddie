@@ -15,12 +15,11 @@ import {
 } from "@/components/ui/carousel";
 import { deleteRound, upsertRoundScore } from "../actions";
 import { HoleScoreSlide } from "./hole-score-slide";
-import {
-  RoundScoresTable,
-  type RoundScoresTableRound,
-} from "../tournaments/[id]/_components/round-scores-table";
+import type { RoundScoresTableRound } from "@/components/round-scores-card";
 import { calculateNetStrokes } from "@/lib/scoring";
 import { Separator } from "@/components/ui/separator";
+import { RoundSummary } from "./round-summary";
+import type { RoundScoresUpdateValues } from "../schema";
 
 type ScoreEntry = {
   hole: number;
@@ -175,6 +174,27 @@ export function RoundScoresForm({
     });
   };
 
+  const handleSheetScoresSaved = (values: RoundScoresUpdateValues) => {
+    setSaveError(null);
+    setScores((prev) => {
+      const savedScoresByHole = new Map(
+        values.scores.map((score) => [score.hole, score]),
+      );
+
+      return prev.map((entry) => {
+        const savedScore = savedScoresByHole.get(entry.hole);
+        if (!savedScore) return entry;
+
+        return {
+          ...entry,
+          strokes:
+            savedScore.strokes === "" ? null : savedScore.strokes,
+          putts: savedScore.putts === "" ? null : savedScore.putts,
+        };
+      });
+    });
+  };
+
   const handleBack = () => {
     router.refresh();
     onBackToHome();
@@ -194,8 +214,10 @@ export function RoundScoresForm({
 
   return (
     <div className="flex w-full min-w-0 flex-1 flex-col gap-10 p-0">
-      <RoundScoresTable
-        rounds={[liveRound]}
+      <RoundSummary
+        onScoresSaved={handleSheetScoresSaved}
+        round={liveRound}
+        showEdit
         showMobileTotals={activeStep === 3}
       />
 

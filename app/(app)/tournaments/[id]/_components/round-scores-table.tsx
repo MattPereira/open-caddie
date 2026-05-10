@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Edit03Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import {
   formatDecimalScore,
@@ -9,11 +11,12 @@ import {
   PlayerLabel,
   RoundScoresCard,
   ScoreMetricSwitch,
-  type MetricValues,
+  toRoundScoreRow,
   type RoundScoreRow,
   type RoundScoresTableRound,
   type ScoreMetric,
 } from "@/components/round-scores-card";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -22,20 +25,34 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ResponsiveTable, TableFrame } from "@/components/responsive-table";
-import { displayName, getInitials } from "@/components/player-card";
 import { cn } from "@/lib/utils";
+import {
+  RoundScoresSheet,
+  type EditableRound,
+} from "../../../rounds/[id]/_components/round-scores-sheet";
 
 export type { RoundScoresTableRound } from "@/components/round-scores-card";
 
 const holes = Array.from({ length: 18 }, (_, index) => index + 1);
 
 type RoundScoresTableProps = {
+  currentUser?: {
+    id: string;
+    isAdmin: boolean;
+  } | null;
   rounds: RoundScoresTableRound[];
   showMobileTotals?: boolean;
 };
 
 export function RoundScoresTable({
+  currentUser,
   rounds,
   showMobileTotals = true,
 }: RoundScoresTableProps) {
@@ -46,6 +63,7 @@ export function RoundScoresTable({
       desktop={<DesktopRoundScoresTable rows={rows} />}
       mobile={
         <MobileRoundScoresCards
+          currentUser={currentUser}
           rows={rows}
           showMobileTotals={showMobileTotals}
         />
@@ -124,22 +142,68 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
 }
 
 function MobileRoundScoresCards({
+  currentUser,
   rows,
   showMobileTotals,
 }: {
+  currentUser?: RoundScoresTableProps["currentUser"];
   rows: RoundScoreRow[];
   showMobileTotals: boolean;
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-3">
-      {rows.map((row) => (
-        <RoundScoresCard
-          key={row.round.id}
-          row={row}
-          showMobileTotals={showMobileTotals}
-        />
-      ))}
+      {rows.map((row) => {
+        const editableRound = toEditableRound(row.round);
+        const canEdit =
+          currentUser != null &&
+          editableRound != null &&
+          (currentUser.isAdmin || currentUser.id === editableRound.userId);
+
+        return (
+          <RoundScoresCard
+            key={row.round.id}
+            action={
+              canEdit ? (
+                <RoundScoresCardEditAction round={editableRound} />
+              ) : null
+            }
+            row={row}
+            showMobileTotals={showMobileTotals}
+          />
+        );
+      })}
     </div>
+  );
+}
+
+function RoundScoresCardEditAction({ round }: { round: EditableRound }) {
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  return (
+    <>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              size="icon-sm"
+              onClick={() => setSheetOpen(true)}
+              aria-label="Edit round"
+            >
+              <HugeiconsIcon icon={Edit03Icon} aria-hidden />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Edit round</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      {sheetOpen ? (
+        <RoundScoresSheet
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          round={round}
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -181,50 +245,18 @@ function DerivedScoreCell({
   );
 }
 
-function toRoundScoreRow(round: RoundScoresTableRound): RoundScoreRow {
-  const scoresByHole = new Map(
-    round.scores.map((score) => [score.hole, score]),
-  );
-  const player = { ...round, email: null };
+function toEditableRound(round: RoundScoresTableRound): EditableRound | null {
+  if (!round.userId || !round.holes || !round.greenies) {
+    return null;
+  }
 
   return {
-    round,
-    playerName: displayName(player),
-    initials: getInitials(player),
-    pars: holes.map((hole) => scoresByHole.get(hole)?.par ?? null),
-    metrics: {
-      strokes: toMetricValues(
-        holes.map((hole) => scoresByHole.get(hole)?.strokes ?? null),
-        toRecordedTotal(round.totalStrokes, round.recordedStrokesCount),
-      ),
-      putts: toMetricValues(
-        holes.map((hole) => scoresByHole.get(hole)?.putts ?? null),
-        toRecordedTotal(round.totalPutts, round.recordedPuttsCount),
-      ),
-    },
+    id: round.id,
+    userId: round.userId,
+    holes: round.holes,
+    scores: round.scores,
+    greenies: round.greenies,
   };
-}
-
-function toMetricValues(
-  scores: (number | null)[],
-  total: number | null,
-): MetricValues {
-  return {
-    scores,
-    out: sumScores(scores.slice(0, 9)),
-    in: sumScores(scores.slice(9)),
-    total,
-  };
-}
-
-function sumScores(scores: (number | null)[]) {
-  const recordedScores = scores.filter((score) => score != null);
-  if (recordedScores.length === 0) return null;
-  return recordedScores.reduce((total, score) => total + score, 0);
-}
-
-function toRecordedTotal(total: number, recordedCount: number) {
-  return recordedCount === 0 ? null : total;
 }
 
 function compareRoundScoreRowsByPutts(a: RoundScoreRow, b: RoundScoreRow) {

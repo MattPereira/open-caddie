@@ -167,33 +167,31 @@ export function HoleScoreSlide({
   };
 
   return (
-    <div className="flex w-full flex-col gap-4">
-      <div className="grid grid-cols-2 gap-8">
-        <ScoreField
-          id={`hole-${hole}-strokes`}
-          label="Strokes"
-          value={strokesStr}
-          onChange={handleStrokesChange}
-          onBlur={handleStrokesBlur}
-          options={strokeOptions}
-          activeChip={currentStrokes}
-          onChipClick={handleStrokesChip}
-          min={1}
-          optionColumns={2}
-        />
-        <ScoreField
-          id={`hole-${hole}-putts`}
-          label="Putts"
-          value={puttsStr}
-          onChange={handlePuttsChange}
-          onBlur={handlePuttsBlur}
-          options={puttOptions}
-          activeChip={currentPutts}
-          onChipClick={handlePuttsChip}
-          min={0}
-          optionColumns={2}
-        />
-      </div>
+    <div className="grid grid-cols-2 gap-5">
+      <ScoreField
+        id={`hole-${hole}-strokes`}
+        label="Strokes"
+        value={strokesStr}
+        onChange={handleStrokesChange}
+        onBlur={handleStrokesBlur}
+        options={strokeOptions}
+        activeChip={currentStrokes}
+        onChipClick={handleStrokesChip}
+        min={1}
+        optionColumns={2}
+      />
+      <ScoreField
+        id={`hole-${hole}-putts`}
+        label="Putts"
+        value={puttsStr}
+        onChange={handlePuttsChange}
+        onBlur={handlePuttsBlur}
+        options={puttOptions}
+        activeChip={currentPutts}
+        onChipClick={handlePuttsChip}
+        min={0}
+        optionColumns={2}
+      />
     </div>
   );
 }

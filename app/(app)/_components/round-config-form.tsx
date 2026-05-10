@@ -175,38 +175,41 @@ export function RoundConfigForm({
           </p>
         ) : null}
 
-        <RadioGroup
-          value={roundMode}
-          onValueChange={handleRoundModeChange}
-          className="grid gap-2 grid-cols-2"
-        >
-          <FieldLabel htmlFor="round-mode-tournament">
-            <Field orientation="horizontal">
-              <FieldContent>
-                <FieldTitle>Tournament</FieldTitle>
-                <FieldDescription>For organized clubs</FieldDescription>
-              </FieldContent>
-              <RadioGroupItem value="tournament" id="round-mode-tournament" />
-            </Field>
-          </FieldLabel>
-          <FieldLabel htmlFor="round-mode-casual">
-            <Field orientation="horizontal">
-              <FieldContent>
-                <FieldTitle>Casual</FieldTitle>
-                <FieldDescription>For informal play</FieldDescription>
-              </FieldContent>
-              <RadioGroupItem value="casual" id="round-mode-casual" />
-            </Field>
-          </FieldLabel>
-        </RadioGroup>
+        <div className="flex flex-col gap-2">
+          <div className="text-sm font-medium">Round type</div>
+
+          <RadioGroup
+            value={roundMode}
+            onValueChange={handleRoundModeChange}
+            className="grid gap-2 grid-cols-2"
+          >
+            <FieldLabel htmlFor="round-mode-tournament">
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldTitle>Tournament</FieldTitle>
+                  <FieldDescription>For organized clubs</FieldDescription>
+                </FieldContent>
+                <RadioGroupItem value="tournament" id="round-mode-tournament" />
+              </Field>
+            </FieldLabel>
+            <FieldLabel htmlFor="round-mode-casual">
+              <Field orientation="horizontal">
+                <FieldContent>
+                  <FieldTitle>Casual</FieldTitle>
+                  <FieldDescription>For informal play</FieldDescription>
+                </FieldContent>
+                <RadioGroupItem value="casual" id="round-mode-casual" />
+              </Field>
+            </FieldLabel>
+          </RadioGroup>
+        </div>
 
         {roundMode === "tournament" ? (
           <FormField
             control={form.control}
             name="tournamentId"
             render={() => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Tournament</FormLabel>
+              <FormItem className="flex flex-col mb-23">
                 <div className="flex gap-2">
                   <Popover
                     open={tournamentOpen}

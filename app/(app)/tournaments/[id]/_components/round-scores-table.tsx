@@ -66,17 +66,26 @@ type ScoreSymbol =
   | "square"
   | "double-square";
 
+type RoundScoresTableProps = {
+  rounds: RoundScoresTableRound[];
+  showMobileTotals?: boolean;
+};
+
 export function RoundScoresTable({
   rounds,
-}: {
-  rounds: RoundScoresTableRound[];
-}) {
+  showMobileTotals = true,
+}: RoundScoresTableProps) {
   const rows = rounds.map(toRoundScoreRow);
 
   return (
     <ResponsiveTable
       desktop={<DesktopRoundScoresTable rows={rows} />}
-      mobile={<MobileRoundScoresCards rows={rows} />}
+      mobile={
+        <MobileRoundScoresCards
+          rows={rows}
+          showMobileTotals={showMobileTotals}
+        />
+      }
     />
   );
 }
@@ -150,17 +159,33 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
   );
 }
 
-function MobileRoundScoresCards({ rows }: { rows: RoundScoreRow[] }) {
+function MobileRoundScoresCards({
+  rows,
+  showMobileTotals,
+}: {
+  rows: RoundScoreRow[];
+  showMobileTotals: boolean;
+}) {
   return (
     <div className="flex min-w-0 flex-col gap-3">
       {rows.map((row) => (
-        <MobileRoundScoresCard key={row.round.id} row={row} />
+        <MobileRoundScoresCard
+          key={row.round.id}
+          row={row}
+          showMobileTotals={showMobileTotals}
+        />
       ))}
     </div>
   );
 }
 
-function MobileRoundScoresCard({ row }: { row: RoundScoreRow }) {
+function MobileRoundScoresCard({
+  row,
+  showMobileTotals,
+}: {
+  row: RoundScoreRow;
+  showMobileTotals: boolean;
+}) {
   const [metric, setMetric] = useState<ScoreMetric>("strokes");
   const values = row.metrics[metric];
 
@@ -196,24 +221,26 @@ function MobileRoundScoresCard({ row }: { row: RoundScoreRow }) {
           totalValue={values.in}
           roundId={row.round.id}
         />
-        <div className="grid min-w-0 grid-cols-4 gap-2">
-          <MobileTotal label="Putts" value={row.metrics.putts.total} />
-          <MobileTotal
-            label="Strokes"
-            value={row.metrics.strokes.total}
-            strong
-          />
-          <MobileTotal
-            label="Handicap"
-            value={row.round.tournamentHandicap}
-            format="decimal"
-          />
-          <MobileTotal
-            label="Net"
-            value={row.round.netStrokes}
-            format="decimal"
-          />
-        </div>
+        {showMobileTotals ? (
+          <div className="grid min-w-0 grid-cols-4 gap-2">
+            <MobileTotal label="Putts" value={row.metrics.putts.total} />
+            <MobileTotal
+              label="Strokes"
+              value={row.metrics.strokes.total}
+              strong
+            />
+            <MobileTotal
+              label="Handicap"
+              value={row.round.tournamentHandicap}
+              format="decimal"
+            />
+            <MobileTotal
+              label="Net"
+              value={row.round.netStrokes}
+              format="decimal"
+            />
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

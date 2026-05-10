@@ -280,12 +280,12 @@ export function RoundScoresSheet({
             <SheetFooter className="shrink-0">
               {confirmingDiscard ? (
                 <div className="flex flex-col gap-3">
-                  <p className="text-sm font-medium">
+                  <div className="text-sm font-medium">
                     You have unsaved changes!
                     <div className="text-sm text-muted-foreground">
                       Choose how to proceed:
                     </div>
-                  </p>
+                  </div>
 
                   <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     <Button

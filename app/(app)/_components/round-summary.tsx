@@ -1,104 +1,121 @@
-"use client";
-
-import { useState } from "react";
-import { Edit03Icon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import Link from "next/link";
 
 import {
   RoundScoresCard,
   toRoundScoreRow,
   type RoundScoresTableRound,
 } from "@/components/round-scores-card";
+import { StatTile } from "@/components/stat-tile";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  RoundScoresSheet,
-  type EditableRound,
-} from "../rounds/[id]/_components/round-scores-sheet";
-import type { RoundScoresUpdateValues } from "../schema";
+
+const scoreTypeLabels = {
+  eagles: "Eagles",
+  birdies: "Birdies",
+  pars: "Pars",
+  bogeys: "Bogeys",
+  doubles: "Doubles",
+  triples: "Triples",
+  quads: "Quads",
+} as const;
+
+type ScoreType = keyof typeof scoreTypeLabels;
 
 export function RoundSummary({
-  onScoresSaved,
   round,
-  showEdit = false,
   showMobileTotals = true,
 }: {
-  onScoresSaved?: (values: RoundScoresUpdateValues) => void;
   round: RoundScoresTableRound;
-  showEdit?: boolean;
   showMobileTotals?: boolean;
 }) {
-  const editableRound = toEditableRound(round);
+  const scoreTypeCounts = getScoreTypeCounts(round);
+  const visibleScoreTypes = Object.entries(scoreTypeCounts).filter(
+    ([, count]) => count > 0,
+  ) as [ScoreType, number][];
+  const visiblePuttGroups = getPuttGroups(round);
 
   return (
-    <RoundScoresCard
-      action={
-        showEdit && editableRound ? (
-          <RoundSummaryEditAction
-            onScoresSaved={onScoresSaved}
-            round={editableRound}
-          />
-        ) : null
-      }
-      row={toRoundScoreRow(round)}
-      showMobileTotals={showMobileTotals}
-    />
-  );
-}
+    <div className="flex flex-col gap-8">
+      <RoundScoresCard
+        row={toRoundScoreRow(round)}
+        showMobileTotals={showMobileTotals}
+      />
 
-function RoundSummaryEditAction({
-  onScoresSaved,
-  round,
-}: {
-  onScoresSaved?: (values: RoundScoresUpdateValues) => void;
-  round: EditableRound;
-}) {
-  const [sheetOpen, setSheetOpen] = useState(false);
-
-  return (
-    <>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              size="icon-sm"
-              onClick={() => setSheetOpen(true)}
-              aria-label="Edit round"
-            >
-              <HugeiconsIcon icon={Edit03Icon} aria-hidden />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Edit round</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      {sheetOpen ? (
-        <RoundScoresSheet
-          onSaved={onScoresSaved}
-          open={sheetOpen}
-          onOpenChange={setSheetOpen}
-          round={round}
-        />
+      {visibleScoreTypes.length > 0 ? (
+        <div className="grid grid-cols-4 gap-2">
+          {visibleScoreTypes.map(([scoreType, count]) => (
+            <StatTile
+              key={scoreType}
+              label={scoreTypeLabels[scoreType]}
+              value={count}
+              size="responsive"
+            />
+          ))}
+        </div>
       ) : null}
-    </>
+      {visiblePuttGroups.length > 0 ? (
+        <div className="grid grid-cols-4 gap-2">
+          {visiblePuttGroups.map(({ putts, count }) => (
+            <StatTile
+              key={putts}
+              label={`${putts} Putts`}
+              value={count}
+              size="responsive"
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {round.tournamentId != null ? (
+        <Button asChild size="lg">
+          <Link href={`/tournaments/${round.tournamentId}`}>
+            See tournament
+          </Link>
+        </Button>
+      ) : null}
+    </div>
   );
 }
 
-function toEditableRound(round: RoundScoresTableRound): EditableRound | null {
-  if (!round.userId || !round.holes || !round.greenies) {
-    return null;
-  }
+function getScoreTypeCounts(round: RoundScoresTableRound) {
+  return round.scores.reduce<Record<ScoreType, number>>(
+    (counts, score) => {
+      if (score.strokes == null || score.par == null) return counts;
 
-  return {
-    id: round.id,
-    userId: round.userId,
-    holes: round.holes,
-    scores: round.scores,
-    greenies: round.greenies,
-  };
+      const scoreToPar = score.strokes - score.par;
+
+      if (scoreToPar <= -2) counts.eagles += 1;
+      if (scoreToPar === -1) counts.birdies += 1;
+      if (scoreToPar === 0) counts.pars += 1;
+      if (scoreToPar === 1) counts.bogeys += 1;
+      if (scoreToPar === 2) counts.doubles += 1;
+      if (scoreToPar === 3) counts.triples += 1;
+      if (scoreToPar >= 4) counts.quads += 1;
+
+      return counts;
+    },
+    {
+      eagles: 0,
+      birdies: 0,
+      pars: 0,
+      bogeys: 0,
+      doubles: 0,
+      triples: 0,
+      quads: 0,
+    },
+  );
+}
+
+function getPuttGroups(round: RoundScoresTableRound) {
+  const puttCounts = round.scores.reduce<Map<number, number>>(
+    (counts, score) => {
+      if (score.putts == null) return counts;
+      counts.set(score.putts, (counts.get(score.putts) ?? 0) + 1);
+      return counts;
+    },
+    new Map(),
+  );
+
+  return Array.from(puttCounts, ([putts, count]) => ({ putts, count })).sort(
+    (a, b) => a.putts - b.putts,
+  );
 }

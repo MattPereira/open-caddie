@@ -4,7 +4,11 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowLeftBigIcon,
+  ArrowRightBigIcon,
+  Edit03Icon,
+} from "@hugeicons/core-free-icons";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,11 +19,24 @@ import {
 } from "@/components/ui/carousel";
 import { deleteRound, upsertRoundScore } from "../actions";
 import { HoleScoreSlide } from "./hole-score-slide";
-import type { RoundScoresTableRound } from "@/components/round-scores-card";
+import {
+  RoundScoresCard,
+  toRoundScoreRow,
+  type RoundScoresTableRound,
+} from "@/components/round-scores-card";
 import { calculateNetStrokes } from "@/lib/scoring";
-import { Separator } from "@/components/ui/separator";
-import { RoundSummary } from "./round-summary";
 import type { RoundScoresUpdateValues } from "../schema";
+import { RoundSummary } from "./round-summary";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  RoundScoresSheet,
+  type EditableRound,
+} from "../rounds/[id]/_components/round-scores-sheet";
 
 type ScoreEntry = {
   hole: number;
@@ -141,6 +158,7 @@ export function RoundScoresForm({
     };
   }, [round, scores]);
   const isComplete = liveRound.recordedStrokesCount === HOLE_NUMBERS.length;
+  const editableRound = toEditableRound(liveRound);
 
   useEffect(() => {
     if (activeStep === 3 && !isComplete) {
@@ -187,8 +205,7 @@ export function RoundScoresForm({
 
         return {
           ...entry,
-          strokes:
-            savedScore.strokes === "" ? null : savedScore.strokes,
+          strokes: savedScore.strokes === "" ? null : savedScore.strokes,
           putts: savedScore.putts === "" ? null : savedScore.putts,
         };
       });
@@ -214,46 +231,63 @@ export function RoundScoresForm({
 
   return (
     <div className="flex w-full min-w-0 flex-1 flex-col gap-10 p-0">
-      <RoundSummary
-        onScoresSaved={handleSheetScoresSaved}
-        round={liveRound}
-        showEdit
-        showMobileTotals={activeStep === 3}
-      />
+      {activeStep === 3 ? (
+        <RoundSummary round={liveRound} />
+      ) : (
+        <RoundScoresCard
+          action={
+            editableRound ? (
+              <RoundScoresFormEditAction
+                onScoresSaved={handleSheetScoresSaved}
+                round={editableRound}
+              />
+            ) : null
+          }
+          row={toRoundScoreRow(liveRound)}
+          showMobileTotals={false}
+        />
+      )}
 
       {activeStep === 2 ? (
         <>
           <div className="flex items-center justify-between gap-2 px-5">
             <Button
               type="button"
-              variant="outline"
-              size="icon-sm"
+              variant="ghost"
+              size="icon-xl"
               className="rounded-full"
               disabled={!canScrollPrev}
               onClick={() => api?.scrollPrev()}
               aria-label="Previous hole"
             >
-              <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
+              <HugeiconsIcon
+                size="lg"
+                icon={ArrowLeftBigIcon}
+                strokeWidth={2}
+              />
             </Button>
             <div className="flex items-center gap-2 text-center text-base tabular-nums">
               <span className="text-base font-semibold">
                 Hole {scores[current]?.hole ?? current + 1}
               </span>
-              <Separator orientation="vertical" />
               <span className="font-medium text-muted-foreground">
                 Par {scores[current]?.par ?? "—"}
               </span>
             </div>
             <Button
               type="button"
-              variant="outline"
-              size="icon-sm"
+              variant="ghost"
+              size="icon-xl"
               className="rounded-full"
               disabled={!canScrollNext}
               onClick={() => api?.scrollNext()}
               aria-label="Next hole"
             >
-              <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
+              <HugeiconsIcon
+                size="lg"
+                icon={ArrowRightBigIcon}
+                strokeWidth={2}
+              />
             </Button>
           </div>
 
@@ -328,13 +362,15 @@ export function RoundScoresForm({
               </Button>
             ) : null}
 
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={() => setConfirming(true)}
-            >
-              Delete round
-            </Button>
+            {activeStep === 2 ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setConfirming(true)}
+              >
+                Delete round
+              </Button>
+            ) : null}
             {activeStep === 3 ? (
               <Button type="button" variant="outline" onClick={onShowScores}>
                 Back to scores
@@ -349,4 +385,56 @@ export function RoundScoresForm({
       </div>
     </div>
   );
+}
+
+function RoundScoresFormEditAction({
+  onScoresSaved,
+  round,
+}: {
+  onScoresSaved: (values: RoundScoresUpdateValues) => void;
+  round: EditableRound;
+}) {
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  return (
+    <>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="button"
+              size="icon-sm"
+              onClick={() => setSheetOpen(true)}
+              aria-label="Edit round"
+            >
+              <HugeiconsIcon icon={Edit03Icon} aria-hidden />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Edit round</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      {sheetOpen ? (
+        <RoundScoresSheet
+          onSaved={onScoresSaved}
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
+          round={round}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function toEditableRound(round: RoundScoresTableRound): EditableRound | null {
+  if (!round.userId || !round.holes || !round.greenies) {
+    return null;
+  }
+
+  return {
+    id: round.id,
+    userId: round.userId,
+    holes: round.holes,
+    scores: round.scores,
+    greenies: round.greenies,
+  };
 }

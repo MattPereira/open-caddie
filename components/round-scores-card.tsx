@@ -16,6 +16,7 @@ const backNine = holes.slice(9);
 
 export type RoundScoresTableRound = {
   id: number;
+  tournamentId?: number | null;
   userId?: string;
   firstName: string | null;
   lastName: string | null;

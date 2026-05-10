@@ -245,7 +245,7 @@ function ScoreField({
           <Button
             key={option.label}
             type="button"
-            variant={activeChip === option.value ? "default" : "secondary"}
+            variant={activeChip === option.value ? "default" : "outline"}
             className={cn("h-10 text-base tabular-nums")}
             onClick={() => onChipClick(option.value)}
           >

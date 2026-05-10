@@ -63,6 +63,7 @@ export default async function Home({ searchParams }: HomePageProps) {
           })),
           tableRound: {
             id: activeRoundDetails.id,
+            tournamentId: activeRoundDetails.tournamentId,
             userId: activeRoundDetails.userId,
             firstName: activeRoundDetails.firstName,
             lastName: activeRoundDetails.lastName,

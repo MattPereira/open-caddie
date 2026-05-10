@@ -5,8 +5,19 @@ import { and, eq } from "drizzle-orm";
 
 import { auth, signIn, signOut } from "@/auth";
 import { db } from "@/db";
-import { courses, rounds, tournaments, users } from "@/db/schema";
-import { RoundConfigSchema, type RoundConfigValues } from "./schema";
+import {
+  courses,
+  roundScores,
+  rounds,
+  tournaments,
+  users,
+} from "@/db/schema";
+import {
+  RoundConfigSchema,
+  RoundScoreSchema,
+  type RoundConfigValues,
+  type RoundScoreValues,
+} from "./schema";
 
 export async function signInWithEmail(
   email: string,
@@ -122,4 +133,48 @@ export async function deleteRound(
 
   revalidatePath("/");
   return { ok: true };
+}
+
+export async function upsertRoundScore(
+  values: RoundScoreValues,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { ok: false, error: "You must be signed in." };
+  }
+
+  const parsed = RoundScoreSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { roundId, hole, strokes, putts } = parsed.data;
+
+  const [owned] = await db
+    .select({ id: rounds.id })
+    .from(rounds)
+    .where(and(eq(rounds.id, roundId), eq(rounds.userId, session.user.id)))
+    .limit(1);
+  if (!owned) {
+    return { ok: false, error: "Round not found." };
+  }
+
+  try {
+    await db
+      .insert(roundScores)
+      .values({ roundId, hole, strokes, putts })
+      .onConflictDoUpdate({
+        target: [roundScores.roundId, roundScores.hole],
+        set: { strokes, putts },
+      });
+    return { ok: true };
+  } catch (e: unknown) {
+    const code =
+      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
+      (e as { code?: string })?.code;
+    if (code === "23514") {
+      return { ok: false, error: "Score is out of allowed range." };
+    }
+    throw e;
+  }
 }

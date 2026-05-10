@@ -1,11 +1,16 @@
 import Link from "next/link";
-import { Edit03Icon, UserCircleIcon } from "@hugeicons/core-free-icons";
+import {
+  Edit03Icon,
+  PlayCircleIcon,
+  UserCircleIcon,
+  Add01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { getAllCourses } from "@/db/queries/courses";
-import { getActiveRoundForUser } from "@/db/queries/rounds";
+import { getActiveRoundForUser, getRoundById } from "@/db/queries/rounds";
 import { getUpcomingTournamentsForUser } from "@/db/queries/tournaments";
 import { LoginPageForm } from "./_components/login-page-form";
 import {
@@ -32,26 +37,59 @@ export default async function Home({ searchParams }: HomePageProps) {
     getActiveRoundForUser(userId),
   ]);
 
-  const activeRound: ActiveRound | null = activeRow
-    ? {
-        roundId: activeRow.roundId,
-        courseName: activeRow.courseName,
-        date: activeRow.date,
-        tournamentLabel:
-          activeRow.tournamentId != null
-            ? `Tournament${activeRow.tournamentSeason ? ` · Season ${activeRow.tournamentSeason}` : ""}`
-            : null,
-      }
+  const activeRoundDetails = activeRow
+    ? await getRoundById(activeRow.roundId)
     : null;
+
+  const activeCourse =
+    activeRow != null
+      ? courses.find((c) => c.id === activeRow.courseId)
+      : undefined;
+
+  const activeRound: ActiveRound | null =
+    activeRow && activeRoundDetails
+      ? {
+          roundId: activeRow.roundId,
+          courseName: activeRow.courseName,
+          date: activeRow.date,
+          tournamentLabel:
+            activeRow.tournamentId != null
+              ? `Tournament${activeRow.tournamentSeason ? ` · Season ${activeRow.tournamentSeason}` : ""}`
+              : null,
+          holes: (activeCourse?.holes ?? []).map((h) => ({
+            hole: h.hole,
+            par: h.par,
+          })),
+          tableRound: {
+            id: activeRoundDetails.id,
+            firstName: activeRoundDetails.firstName,
+            lastName: activeRoundDetails.lastName,
+            username: activeRoundDetails.username,
+            image: activeRoundDetails.image,
+            recordedStrokesCount: activeRoundDetails.recordedStrokesCount,
+            recordedPuttsCount: activeRoundDetails.recordedPuttsCount,
+            totalStrokes: activeRoundDetails.totalStrokes,
+            totalPutts: activeRoundDetails.totalPutts,
+            tournamentHandicap: activeRoundDetails.tournamentHandicap,
+            netStrokes: activeRoundDetails.netStrokes,
+            scores: activeRoundDetails.scores.map((s) => ({
+              hole: s.hole,
+              par: s.par,
+              strokes: s.strokes,
+              putts: s.putts,
+            })),
+          },
+        }
+      : null;
 
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
-  const hasActiveRound = activeRound != null || action === "new";
+  const showScoringFlow = action === "new";
 
   return (
     <main className="flex min-h-[calc(100vh-3rem)] flex-col items-center justify-center px-4 py-10">
-      {hasActiveRound ? (
+      {showScoringFlow ? (
         <InputScoresFlow
           defaultDateIso={toIsoDate(today)}
           courses={courses.map((c) => ({
@@ -84,10 +122,43 @@ export default async function Home({ searchParams }: HomePageProps) {
           <div className="grid grid-cols-2 md:grid-cols-2 items-center gap-3">
             <Button asChild variant="outline" size="xl" className="w-full">
               <Link href="/?action=new">
-                <HugeiconsIcon icon={Edit03Icon} data-icon="inline-start" />
-                Input scores
+                {activeRound ? (
+                  <>
+                    <HugeiconsIcon
+                      icon={PlayCircleIcon}
+                      data-icon="inline-start"
+                    />
+                    Resume round
+                  </>
+                ) : (
+                  <>
+                    <HugeiconsIcon icon={Add01Icon} data-icon="inline-start" />
+                    Start Round
+                  </>
+                )}
               </Link>
             </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="xl"
+              className="w-full"
+            >
+              <HugeiconsIcon icon={Add01Icon} data-icon="inline-start" />
+              Add Course
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="xl"
+              className="w-full"
+            >
+              <HugeiconsIcon icon={Edit03Icon} data-icon="inline-start" />
+              Edit round
+            </Button>
+
             <Button
               type="button"
               variant="outline"

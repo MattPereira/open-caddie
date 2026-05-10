@@ -7,7 +7,7 @@ import { GreenieCard } from "@/components/greenie-card";
 import { InfoAlert } from "@/components/info-alert";
 import { displayName } from "@/components/player-card";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { getRoundById } from "@/db/queries/rounds";
 import { formatDate } from "@/lib/utils";
 import { RoundScoresTable } from "../../tournaments/[id]/_components/round-scores-table";

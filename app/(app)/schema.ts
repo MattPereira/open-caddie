@@ -7,3 +7,12 @@ export const RoundConfigSchema = z.object({
 });
 
 export type RoundConfigValues = z.infer<typeof RoundConfigSchema>;
+
+export const RoundScoreSchema = z.object({
+  roundId: z.number().int().positive(),
+  hole: z.number().int().min(1).max(18),
+  strokes: z.number().int().min(1).nullable(),
+  putts: z.number().int().min(0).nullable(),
+});
+
+export type RoundScoreValues = z.infer<typeof RoundScoreSchema>;

@@ -8,13 +8,16 @@ import {
   type CourseOption,
   type TournamentOption,
 } from "./round-config-form";
-import { RoundScoringPlaceholder } from "./round-scoring-placeholder";
+import { RoundScoringForm } from "./round-scoring-form";
+import type { RoundScoresTableRound } from "../tournaments/[id]/_components/round-scores-table";
 
 export type ActiveRound = {
   roundId: number;
   courseName: string;
   date: Date | string;
   tournamentLabel: string | null;
+  tableRound: RoundScoresTableRound;
+  holes: { hole: number; par: number }[];
 };
 
 type InputScoresFlowProps = {
@@ -34,25 +37,18 @@ export function InputScoresFlow({
 }: InputScoresFlowProps) {
   const router = useRouter();
   const [view, setView] = useState<View>(activeRound ? "scoring" : "config");
-  const [round, setRound] = useState<ActiveRound | null>(activeRound);
 
   const goHome = () => router.push("/");
 
-  if (view === "scoring" && round) {
+  if (view === "scoring" && activeRound) {
     return (
-      <section className="flex w-full max-w-md flex-col gap-6">
-        <RoundScoringPlaceholder
-          roundId={round.roundId}
-          summary={{
-            courseName: round.courseName,
-            date: round.date,
-            tournamentLabel: round.tournamentLabel,
-          }}
+      <section className="flex w-full max-w-md flex-1 flex-col">
+        <RoundScoringForm
+          roundId={activeRound.roundId}
+          round={activeRound.tableRound}
+          holes={activeRound.holes}
           onBackToHome={goHome}
-          onAbandoned={() => {
-            setRound(null);
-            goHome();
-          }}
+          onAbandoned={goHome}
         />
       </section>
     );
@@ -68,21 +64,9 @@ export function InputScoresFlow({
         tournaments={tournaments}
         defaultDateIso={defaultDateIso}
         onCancel={goHome}
-        onCreated={({ roundId, values }) => {
-          const course = courses.find((c) => c.handle === values.courseHandle);
-          const tournament =
-            values.tournamentId != null
-              ? (tournaments.find((t) => t.id === values.tournamentId) ?? null)
-              : null;
-          setRound({
-            roundId,
-            courseName: course?.name ?? "",
-            date: values.date,
-            tournamentLabel: tournament
-              ? `${tournament.clubName}${tournament.season ? ` · Season ${tournament.season}` : ""}`
-              : null,
-          });
+        onCreated={() => {
           setView("scoring");
+          router.refresh();
         }}
       />
     </section>

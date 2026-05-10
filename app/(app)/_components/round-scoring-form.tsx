@@ -20,6 +20,7 @@ import {
   type RoundScoresTableRound,
 } from "../tournaments/[id]/_components/round-scores-table";
 import { calculateNetStrokes } from "@/lib/scoring";
+import { Separator } from "@/components/ui/separator";
 
 type ScoreEntry = {
   hole: number;
@@ -195,10 +196,11 @@ export function RoundScoringForm({
           <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
         </Button>
         <div className="flex items-center gap-2 text-center text-base tabular-nums">
-          <span className="text-base font-semibold tabular-nums">
+          <span className="text-base font-semibold">
             Hole {scores[current]?.hole ?? current + 1}
           </span>
-          <span className="font-normal text-muted-foreground">
+          <Separator orientation="vertical" />
+          <span className="font-medium text-muted-foreground">
             Par {scores[current]?.par ?? "—"}
           </span>
         </div>

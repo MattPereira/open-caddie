@@ -55,10 +55,7 @@ export function InputScoresFlow({
   }
 
   return (
-    <section className="flex w-full max-w-md flex-col gap-6">
-      <h1 className="text-center text-2xl font-medium tracking-normal text-foreground sm:text-3xl">
-        Start round
-      </h1>
+    <section className="flex w-full max-w-md flex-col gap-4">
       <RoundConfigForm
         courses={courses}
         tournaments={tournaments}

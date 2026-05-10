@@ -66,10 +66,10 @@ export function HoleScoreSlide({
   const strokeOptions = useMemo<ScoreOption[]>(
     () =>
       [
-        { label: "birdie", value: par - 1 },
-        { label: "par", value: par },
-        { label: "bogey", value: par + 1 },
-        { label: "double", value: par + 2 },
+        { label: "Birdie", value: par - 1 },
+        { label: "Par", value: par },
+        { label: "Bogey", value: par + 1 },
+        { label: "Double", value: par + 2 },
       ].filter((option) => option.value >= 1),
     [par],
   );

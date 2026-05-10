@@ -51,7 +51,11 @@ export function PlayersBrowser({ players }: { players: Player[] }) {
           ) : (
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
               {filtered.map((player) => (
-                <PlayerCard key={player.id} player={player} />
+                <PlayerCard
+                  key={player.id}
+                  player={player}
+                  href={`/players/${encodeURIComponent(player.id)}`}
+                />
               ))}
             </div>
           )}

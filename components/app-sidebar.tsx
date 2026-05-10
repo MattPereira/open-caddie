@@ -49,6 +49,7 @@ type SidebarUser = {
   email: string;
   image?: string | null;
   isAdmin: boolean;
+  id: string;
 };
 
 export function AppSidebar({ user }: { user: SidebarUser | null }) {
@@ -150,7 +151,10 @@ export function AppSidebar({ user }: { user: SidebarUser | null }) {
                   <DropdownMenuSeparator />
                   <DropdownMenuGroup>
                     <DropdownMenuItem asChild>
-                      <Link href="/profile" onNavigate={closeMobileSidebar}>
+                      <Link
+                        href={`/players/${user.id}`}
+                        onNavigate={closeMobileSidebar}
+                      >
                         <HugeiconsIcon icon={UserCircleIcon} />
                         Profile
                       </Link>

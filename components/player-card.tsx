@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,9 +35,11 @@ export function getInitials(player: PlayerCardPlayer) {
 
 export function PlayerCard({
   player,
+  href,
   onClick,
 }: {
   player: PlayerCardPlayer;
+  href?: string;
   onClick?: () => void;
 }) {
   const name = displayName(player);
@@ -76,6 +80,10 @@ export function PlayerCard({
           >
             {body}
           </button>
+        ) : href ? (
+          <Link href={href} className="block hover:bg-accent">
+            {body}
+          </Link>
         ) : (
           body
         )}

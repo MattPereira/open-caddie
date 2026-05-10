@@ -46,10 +46,11 @@ type SidebarSourceUser = {
   email?: string | null;
   image?: string | null;
   isAdmin?: boolean | null;
+  id?: string | null;
 };
 
 function getSidebarUser(user: SidebarSourceUser) {
-  const { firstName, lastName, username, email, image, isAdmin } = user;
+  const { firstName, lastName, username, email, image, isAdmin, id } = user;
   const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
 
   return {
@@ -57,5 +58,6 @@ function getSidebarUser(user: SidebarSourceUser) {
     email: email ?? "",
     image: image ?? null,
     isAdmin: isAdmin ?? false,
+    id: id ?? "",
   };
 }

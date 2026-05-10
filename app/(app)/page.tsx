@@ -135,7 +135,7 @@ export default async function Home({ searchParams }: HomePageProps) {
                       icon={GolfBallIcon}
                       data-icon="inline-start"
                     />
-                    Start round
+                    Play round
                   </>
                 )}
               </Link>
@@ -149,7 +149,14 @@ export default async function Home({ searchParams }: HomePageProps) {
               disabled
             >
               <HugeiconsIcon icon={Add01Icon} data-icon="inline-start" />
-              Add Course
+              Add course
+            </Button>
+
+            <Button asChild variant="outline" size="xl" className="w-full">
+              <Link href={`/players/${session.user.id}`}>
+                <HugeiconsIcon icon={UserCircleIcon} data-icon="inline-start" />
+                See profile
+              </Link>
             </Button>
 
             <Button
@@ -161,17 +168,6 @@ export default async function Home({ searchParams }: HomePageProps) {
             >
               <HugeiconsIcon icon={ChatBotIcon} data-icon="inline-start" />
               Ask caddie
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="xl"
-              className="w-full"
-              disabled
-            >
-              <HugeiconsIcon icon={UserCircleIcon} data-icon="inline-start" />
-              View profile
             </Button>
           </div>
         </section>

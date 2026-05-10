@@ -43,6 +43,9 @@ type UserSheetProps = {
   onOpenChange: (open: boolean) => void;
   mode: "create" | "edit";
   user?: AdminUser;
+  canManageUsers?: boolean;
+  onSaved?: () => void;
+  onDeleted?: () => void;
 };
 
 const emptyDefaults: UserFormValues = {
@@ -66,7 +69,15 @@ function toFormValues(user?: AdminUser): UserFormValues {
   };
 }
 
-export function UserSheet({ open, onOpenChange, mode, user }: UserSheetProps) {
+export function UserSheet({
+  open,
+  onOpenChange,
+  mode,
+  user,
+  canManageUsers = true,
+  onSaved,
+  onDeleted,
+}: UserSheetProps) {
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -77,6 +88,8 @@ export function UserSheet({ open, onOpenChange, mode, user }: UserSheetProps) {
     defaultValues: toFormValues(user),
   });
   const serverError = form.formState.errors.root?.server?.message;
+  const showAdminControls = mode === "create" || canManageUsers;
+  const showDelete = mode === "edit" && canManageUsers && user;
 
   useEffect(() => {
     if (open) {
@@ -105,6 +118,7 @@ export function UserSheet({ open, onOpenChange, mode, user }: UserSheetProps) {
       }
       setConfirmingDelete(false);
       handleOpenChange(false);
+      onDeleted?.();
     });
   };
 
@@ -124,6 +138,7 @@ export function UserSheet({ open, onOpenChange, mode, user }: UserSheetProps) {
         return;
       }
       handleOpenChange(false);
+      onSaved?.();
     });
   };
 
@@ -132,12 +147,12 @@ export function UserSheet({ open, onOpenChange, mode, user }: UserSheetProps) {
       <SheetContent className="flex w-full flex-col gap-0 sm:max-w-md">
         <SheetHeader>
           <SheetTitle>
-            {mode === "create" ? "Add user" : "Edit user"}
+            {mode === "create" ? "Add player" : "Edit player"}
           </SheetTitle>
           <SheetDescription>
             {mode === "create"
-              ? "Create a new user. A magic-link sign-in email will be sent to them."
-              : "Update this user's account details."}
+              ? "Create a new player. A magic-link sign-in email will be sent to them."
+              : "Update this player's account details."}
           </SheetDescription>
         </SheetHeader>
 
@@ -236,31 +251,33 @@ export function UserSheet({ open, onOpenChange, mode, user }: UserSheetProps) {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="isAdmin"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
-                      <div className="space-y-0.5">
-                        <FormLabel>Admin</FormLabel>
-                        <FormDescription>
-                          Grants access to the Admin Console.
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+                {showAdminControls ? (
+                  <FormField
+                    control={form.control}
+                    name="isAdmin"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                        <div className="space-y-0.5">
+                          <FormLabel>Admin</FormLabel>
+                          <FormDescription>
+                            Access to admin console
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                ) : null}
               </div>
             </div>
 
             <SheetFooter>
-              {confirmingDelete && mode === "edit" && user ? (
+              {confirmingDelete && showDelete ? (
                 <div className="flex flex-col gap-3">
                   <p className="text-sm font-medium">
                     Are you sure? This permanently deletes this user.
@@ -310,7 +327,7 @@ export function UserSheet({ open, onOpenChange, mode, user }: UserSheetProps) {
                       Cancel
                     </Button>
                   </SheetClose>
-                  {mode === "edit" && user ? (
+                  {showDelete ? (
                     <Button
                       type="button"
                       variant="destructive"

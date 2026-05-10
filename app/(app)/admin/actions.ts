@@ -132,20 +132,29 @@ export async function createUser(
   await signIn("resend", { email, redirect: false, redirectTo: "/" });
 
   revalidatePath("/admin");
+  revalidatePath("/players");
   return { ok: true };
 }
 
 export async function updateUser(
   values: UserUpdateValues,
 ): Promise<ActionResult> {
-  await requireAdmin();
+  const me = await getCurrentUser();
+  if (!me) {
+    return { ok: false, error: "You must be signed in." };
+  }
 
   const parsed = UserUpdateSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  const { id, isAdmin } = parsed.data;
+  const { id } = parsed.data;
+  const canManageUsers = me.isAdmin;
+  if (!canManageUsers && me.id !== id) {
+    return { ok: false, error: "You can only edit your own profile." };
+  }
+
   const email = parsed.data.email.toLowerCase();
   const firstName = emptyToNull(parsed.data.firstName);
   const lastName = emptyToNull(parsed.data.lastName);
@@ -153,7 +162,7 @@ export async function updateUser(
   const image = parsed.data.image.length > 0 ? parsed.data.image : null;
 
   const [current] = await db
-    .select({ email: users.email })
+    .select({ email: users.email, isAdmin: users.isAdmin })
     .from(users)
     .where(eq(users.id, id))
     .limit(1);
@@ -161,6 +170,7 @@ export async function updateUser(
     return { ok: false, error: "User not found." };
   }
 
+  const isAdmin = canManageUsers ? parsed.data.isAdmin : current.isAdmin;
   const emailChanged = current.email?.toLowerCase() !== email;
 
   if (emailChanged) {
@@ -210,6 +220,8 @@ export async function updateUser(
   }
 
   revalidatePath("/admin");
+  revalidatePath("/players");
+  revalidatePath(`/players/${id}`);
   return { ok: true };
 }
 
@@ -240,6 +252,8 @@ export async function deleteUser(id: string): Promise<ActionResult> {
 
   await db.delete(users).where(eq(users.id, id));
   revalidatePath("/admin");
+  revalidatePath("/players");
+  revalidatePath(`/players/${id}`);
   return { ok: true };
 }
 

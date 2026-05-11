@@ -82,20 +82,20 @@ export function InputScoresFlow({
     (value) => {
       setScoreState((previous) => ({
         ...previous,
-        scores:
-          typeof value === "function" ? value(previous.scores) : value,
+        scores: typeof value === "function" ? value(previous.scores) : value,
       }));
     },
     [],
   );
 
   const liveRound = useMemo(
-    () =>
-      activeRound ? buildLiveRound(activeRound.tableRound, scores) : null,
+    () => (activeRound ? buildLiveRound(activeRound.tableRound, scores) : null),
     [activeRound, scores],
   );
   const showSummary =
     activeStep === 3 && liveRound != null && isRoundComplete(liveRound);
+
+  const showScoringForm = activeStep === 2 && activeRound && liveRound;
 
   const goHome = () => router.push("/");
 
@@ -109,12 +109,13 @@ export function InputScoresFlow({
               type="button"
               variant="outline"
               className="flex-1"
+              size="xl"
               onClick={() => setActiveStep(2)}
             >
               Back to scores
             </Button>
             {liveRound.tournamentId != null ? (
-              <Button asChild className="flex-1">
+              <Button asChild className="flex-1" size="xl">
                 <Link href={`/tournaments/${liveRound.tournamentId}`}>
                   See tournament
                 </Link>
@@ -122,7 +123,7 @@ export function InputScoresFlow({
             ) : null}
           </div>
         </div>
-      ) : activeStep === 2 && activeRound && liveRound ? (
+      ) : showScoringForm ? (
         <RoundScoresForm
           key={activeRound.roundId}
           roundId={activeRound.roundId}

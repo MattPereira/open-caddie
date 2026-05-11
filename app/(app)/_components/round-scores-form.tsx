@@ -42,10 +42,7 @@ import {
   buildInitialScores,
   isRoundComplete,
 } from "./round-score-state";
-import {
-  HoleGreenieManager,
-  type GreenieValue,
-} from "./hole-greenie-manager";
+import { HoleGreenieManager, type GreenieValue } from "./hole-greenie-manager";
 
 type GreenieEntry = GreenieValue & { hole: number };
 
@@ -310,9 +307,7 @@ export function RoundScoresForm({
               ? { feet: currentGreenie.feet, inches: currentGreenie.inches }
               : null
           }
-          onSaveAction={(value) =>
-            handleGreenieSave(currentHoleNumber, value)
-          }
+          onSaveAction={(value) => handleGreenieSave(currentHoleNumber, value)}
           onDeleteAction={() => handleGreenieDelete(currentHoleNumber)}
         />
       ) : null}
@@ -382,7 +377,7 @@ export function RoundScoresForm({
                 <Button
                   type="button"
                   variant="destructive"
-                  size="icon-lg"
+                  size="icon-xl"
                   onClick={() => setConfirming(true)}
                   aria-label="Delete round"
                 >
@@ -393,6 +388,7 @@ export function RoundScoresForm({
                   variant="outline"
                   className="ml-auto flex-1"
                   onClick={handleBack}
+                  size="xl"
                 >
                   Back home
                 </Button>

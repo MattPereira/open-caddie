@@ -64,7 +64,6 @@ export function RoundSummary({
           ))}
         </div>
       ) : null}
-
     </div>
   );
 }

@@ -1,7 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import Link from "next/link";
+import {
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { useRouter } from "next/navigation";
 
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -25,52 +32,29 @@ import {
   toRoundScoreRow,
   type RoundScoresTableRound,
 } from "@/components/round-scores-card";
-import { calculateNetStrokes } from "@/lib/scoring";
-import { RoundSummary } from "./round-summary";
-
-type ScoreEntry = {
-  hole: number;
-  par: number | null;
-  strokes: number | null;
-  putts: number | null;
-};
+import {
+  type ScoreEntry,
+  buildInitialScores,
+  isRoundComplete,
+} from "./round-score-state";
 
 type RoundScoresFormProps = {
   roundId: number;
   round: RoundScoresTableRound;
   holes: { hole: number; par: number }[];
-  activeStep: 2 | 3;
-  onShowScores: () => void;
+  scores: ScoreEntry[];
+  setScores: Dispatch<SetStateAction<ScoreEntry[]>>;
   onShowSummary: () => void;
   onBackToHome: () => void;
   onAbandoned: () => void;
 };
 
-const HOLE_NUMBERS = Array.from({ length: 18 }, (_, i) => i + 1);
-
-function buildInitialScores(
-  roundScores: RoundScoresTableRound["scores"],
-  holes: { hole: number; par: number }[],
-): ScoreEntry[] {
-  const scoreByHole = new Map(roundScores.map((s) => [s.hole, s]));
-  const parByHole = new Map(holes.map((h) => [h.hole, h.par]));
-  return HOLE_NUMBERS.map((hole) => {
-    const existing = scoreByHole.get(hole);
-    return {
-      hole,
-      par: existing?.par ?? parByHole.get(hole) ?? null,
-      strokes: existing?.strokes ?? null,
-      putts: existing?.putts ?? null,
-    };
-  });
-}
-
 export function RoundScoresForm({
   roundId,
   round,
   holes,
-  activeStep,
-  onShowScores,
+  scores,
+  setScores,
   onShowSummary,
   onBackToHome,
   onAbandoned,
@@ -84,7 +68,6 @@ export function RoundScoresForm({
     const idx = initialScores.findIndex((s) => s.strokes == null);
     return idx === -1 ? initialScores.length - 1 : idx;
   }, [initialScores]);
-  const [scores, setScores] = useState<ScoreEntry[]>(initialScores);
   const [api, setApi] = useState<CarouselApi | null>(null);
   const [current, setCurrent] = useState(initialHoleIndex);
   const didJumpRef = useRef(false);
@@ -122,38 +105,7 @@ export function RoundScoresForm({
     };
   }, [api]);
 
-  const liveRound = useMemo<RoundScoresTableRound>(() => {
-    const totalStrokes = scores.reduce((s, x) => s + (x.strokes ?? 0), 0);
-    const totalPutts = scores.reduce((s, x) => s + (x.putts ?? 0), 0);
-    const recordedStrokesCount = scores.filter((s) => s.strokes != null).length;
-    const recordedPuttsCount = scores.filter((s) => s.putts != null).length;
-    const completeTotalStrokes =
-      recordedStrokesCount === HOLE_NUMBERS.length ? totalStrokes : null;
-    return {
-      ...round,
-      totalStrokes,
-      totalPutts,
-      recordedStrokesCount,
-      recordedPuttsCount,
-      netStrokes:
-        round.tournamentHandicap == null
-          ? null
-          : calculateNetStrokes(completeTotalStrokes, round.tournamentHandicap),
-      scores: scores.map(({ hole, par, strokes, putts }) => ({
-        hole,
-        par,
-        strokes,
-        putts,
-      })),
-    };
-  }, [round, scores]);
-  const isComplete = liveRound.recordedStrokesCount === HOLE_NUMBERS.length;
-
-  useEffect(() => {
-    if (activeStep === 3 && !isComplete) {
-      onShowScores();
-    }
-  }, [activeStep, isComplete, onShowScores]);
+  const isComplete = isRoundComplete(round);
 
   const handleSave = (
     hole: number,
@@ -203,90 +155,78 @@ export function RoundScoresForm({
 
   return (
     <div className="flex w-full min-w-0 flex-1 flex-col gap-10 p-0">
-      {activeStep === 2 ? (
-        <>
-          <div className="flex items-center justify-between gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xl"
-              className="rounded-full"
-              disabled={!canScrollPrev}
-              onClick={() => api?.scrollPrev()}
-              aria-label="Previous hole"
-            >
-              <HugeiconsIcon
-                size="lg"
-                icon={ArrowLeftBigIcon}
-                strokeWidth={2}
-              />
-            </Button>
-            <div className="flex flex-col items-center gap-0 text-center text-base tabular-nums">
-              <span className="text-base font-semibold">
-                Hole {currentHoleNumber ?? current + 1}
-              </span>
-              <span className="font-medium text-muted-foreground">
-                Par {currentHolePar ?? "—"}
-              </span>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-xl"
-              className="rounded-full"
-              disabled={!canScrollNext}
-              onClick={() => api?.scrollNext()}
-              aria-label="Next hole"
-            >
-              <HugeiconsIcon
-                size="lg"
-                icon={ArrowRightBigIcon}
-                strokeWidth={2}
-              />
-            </Button>
-          </div>
+      <div className="flex flex-col gap-4">
+        <h1 className="text-center text-xl font-medium tracking-normal">
+          {round.courseName ?? "Round scores"}
+        </h1>
 
-          <Carousel setApi={setApi} className="w-full min-w-0">
-            <CarouselContent>
-              {scores.map((entry) => (
-                <CarouselItem key={entry.hole}>
-                  <HoleScoreSlide
-                    hole={entry.hole}
-                    par={entry.par ?? 4}
-                    initialStrokes={entry.strokes}
-                    initialPutts={entry.putts}
-                    onScoreChangeAction={(patch) =>
-                      handleSave(entry.hole, patch)
-                    }
-                    onAdvanceHoleAction={() => api?.scrollNext()}
-                  />
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-          </Carousel>
+        <RoundScoresCard
+          row={toRoundScoreRow(round)}
+          showMobileTotals={false}
+        />
+      </div>
 
-          {saveError ? (
-            <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              {saveError}
-            </p>
-          ) : null}
-        </>
+      <div className="flex items-center justify-between gap-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xl"
+          className="rounded-full"
+          disabled={!canScrollPrev}
+          onClick={() => api?.scrollPrev()}
+          aria-label="Previous hole"
+        >
+          <HugeiconsIcon size="lg" icon={ArrowLeftBigIcon} strokeWidth={2} />
+        </Button>
+        <div className="flex flex-col items-center gap-0 text-center text-base tabular-nums">
+          <span className="text-base font-semibold">
+            Hole {currentHoleNumber ?? current + 1}
+          </span>
+          <span className="font-medium text-muted-foreground">
+            Par {currentHolePar ?? "—"}
+          </span>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xl"
+          className="rounded-full"
+          disabled={!canScrollNext}
+          onClick={() => api?.scrollNext()}
+          aria-label="Next hole"
+        >
+          <HugeiconsIcon size="lg" icon={ArrowRightBigIcon} strokeWidth={2} />
+        </Button>
+      </div>
+
+      <Carousel setApi={setApi} className="w-full min-w-0">
+        <CarouselContent>
+          {scores.map((entry) => (
+            <CarouselItem key={entry.hole}>
+              <HoleScoreSlide
+                hole={entry.hole}
+                par={entry.par ?? 4}
+                initialStrokes={entry.strokes}
+                initialPutts={entry.putts}
+                onScoreChangeAction={(patch) => handleSave(entry.hole, patch)}
+                onAdvanceHoleAction={() => api?.scrollNext()}
+              />
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
+
+      {saveError ? (
+        <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {saveError}
+        </p>
       ) : null}
 
-      {activeStep === 3 ? (
-        <RoundSummary round={liveRound} />
-      ) : (
-        <>
-          <RoundScoresCard
-            row={toRoundScoreRow(liveRound)}
-            showMobileTotals={false}
-          />
-
-          {currentHolePar === 3 ? (
-            <div className="font-medium">Greenie</div>
-          ) : null}
-        </>
-      )}
+      <>
+        {currentHolePar === 3 ? (
+          <div className="font-medium">Greenie</div>
+        ) : null}
+      </>
 
       <div className="mt-auto flex flex-col gap-3">
         {abandonError ? (
@@ -321,25 +261,7 @@ export function RoundScoresForm({
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            {activeStep === 3 ? (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  onClick={onShowScores}
-                >
-                  Back to scores
-                </Button>
-                {liveRound.tournamentId != null ? (
-                  <Button asChild className="flex-1">
-                    <Link href={`/tournaments/${liveRound.tournamentId}`}>
-                      See tournament
-                    </Link>
-                  </Button>
-                ) : null}
-              </>
-            ) : isComplete ? (
+            {isComplete ? (
               <>
                 <Button
                   type="button"
@@ -358,7 +280,11 @@ export function RoundScoresForm({
                 >
                   Back home
                 </Button>
-                <Button type="button" className="flex-1" onClick={onShowSummary}>
+                <Button
+                  type="button"
+                  className="flex-1"
+                  onClick={onShowSummary}
+                >
                   See summary
                 </Button>
               </>

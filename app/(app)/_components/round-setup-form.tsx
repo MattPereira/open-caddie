@@ -28,7 +28,9 @@ import {
   Field,
   FieldContent,
   FieldDescription,
+  FieldLegend,
   FieldLabel,
+  FieldSet,
   FieldTitle,
 } from "@/components/ui/field";
 import {
@@ -169,47 +171,56 @@ export function RoundSetupForm({
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex w-full flex-col gap-4"
       >
-        {serverError ? (
-          <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {serverError}
-          </p>
-        ) : null}
+        <div className="flex flex-col gap-1 mb-2">
+          <h1 className="text-2xl font-medium tracking-normal text-center">
+            Set up round
+          </h1>
+        </div>
 
-        <div className="flex flex-col gap-2">
-          <div className="text-sm font-medium">Round type</div>
-
+        <FieldSet>
+          <FieldLegend variant="label" className="text-base!">
+            Type
+          </FieldLegend>
           <RadioGroup
             value={roundMode}
             onValueChange={handleRoundModeChange}
-            className="grid gap-2 grid-cols-2"
+            className="grid grid-cols-2 gap-2"
           >
             <FieldLabel htmlFor="round-mode-tournament">
               <Field orientation="horizontal">
                 <FieldContent>
-                  <FieldTitle>Tournament</FieldTitle>
+                  <FieldTitle className="text-base">Tournament</FieldTitle>
                   <FieldDescription>For organized clubs</FieldDescription>
                 </FieldContent>
-                <RadioGroupItem value="tournament" id="round-mode-tournament" />
+                <RadioGroupItem
+                  value="tournament"
+                  id="round-mode-tournament"
+                  className="size-5"
+                />
               </Field>
             </FieldLabel>
             <FieldLabel htmlFor="round-mode-casual">
               <Field orientation="horizontal">
                 <FieldContent>
-                  <FieldTitle>Casual</FieldTitle>
+                  <FieldTitle className="text-base">Casual</FieldTitle>
                   <FieldDescription>For informal play</FieldDescription>
                 </FieldContent>
-                <RadioGroupItem value="casual" id="round-mode-casual" />
+                <RadioGroupItem
+                  value="casual"
+                  id="round-mode-casual"
+                  className="size-5"
+                />
               </Field>
             </FieldLabel>
           </RadioGroup>
-        </div>
+        </FieldSet>
 
         {roundMode === "tournament" ? (
           <FormField
             control={form.control}
             name="tournamentId"
             render={() => (
-              <FormItem className="flex flex-col mb-23">
+              <FormItem className="flex flex-col mb-31">
                 <div className="flex gap-2">
                   <Popover
                     open={tournamentOpen}
@@ -220,15 +231,21 @@ export function RoundSetupForm({
                         <Button
                           type="button"
                           variant="outline"
+                          size="xl"
                           className={cn(
-                            "flex-1 justify-between font-normal",
+                            "w-full justify-between font-normal",
                             !selectedTournament && "text-muted-foreground",
                           )}
                         >
-                          {selectedTournament
-                            ? `${formatDate(selectedTournament.date, "standard")} · ${selectedTournament.courseName}`
-                            : "Pick a tournament"}
-                          <HugeiconsIcon icon={ArrowDown01Icon} size={16} />
+                          <span className="truncate">
+                            {selectedTournament
+                              ? `${formatDate(selectedTournament.date, "standard")} · ${selectedTournament.courseName}`
+                              : "Choose a tournament"}
+                          </span>
+                          <HugeiconsIcon
+                            icon={ArrowDown01Icon}
+                            data-icon="inline-end"
+                          />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
@@ -288,20 +305,26 @@ export function RoundSetupForm({
               name="courseHandle"
               render={() => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Course</FormLabel>
+                  <FormLabel className="text-base">Course</FormLabel>
                   <Popover open={courseOpen} onOpenChange={setCourseOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           type="button"
                           variant="outline"
+                          size="xl"
                           className={cn(
-                            "justify-between font-normal",
+                            "w-full justify-between font-normal",
                             !selectedCourse && "text-muted-foreground",
                           )}
                         >
-                          {selectedCourse?.name ?? "Pick a course"}
-                          <HugeiconsIcon icon={ArrowDown01Icon} size={16} />
+                          <span className="truncate">
+                            {selectedCourse?.name ?? "Choose a course"}
+                          </span>
+                          <HugeiconsIcon
+                            icon={ArrowDown01Icon}
+                            data-icon="inline-end"
+                          />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
@@ -347,22 +370,28 @@ export function RoundSetupForm({
               name="date"
               render={() => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Date</FormLabel>
+                  <FormLabel className="text-base">Date</FormLabel>
                   <Popover open={dateOpen} onOpenChange={setDateOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button
                           type="button"
                           variant="outline"
+                          size="xl"
                           className={cn(
-                            "justify-start font-normal",
+                            "w-full justify-start font-normal",
                             !dateValue && "text-muted-foreground",
                           )}
                         >
-                          <HugeiconsIcon icon={Calendar01Icon} size={16} />
-                          {dateValue
-                            ? formatDate(dateValue, "standard")
-                            : "Pick a date"}
+                          <HugeiconsIcon
+                            icon={Calendar01Icon}
+                            data-icon="inline-start"
+                          />
+                          <span className="truncate">
+                            {dateValue
+                              ? formatDate(dateValue, "standard")
+                              : "Choose a date"}
+                          </span>
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
@@ -395,7 +424,7 @@ export function RoundSetupForm({
             variant="secondary"
             disabled={isPending}
             onClick={onCancel}
-            size="lg"
+            size="xl"
           >
             Cancel
           </Button>
@@ -407,11 +436,16 @@ export function RoundSetupForm({
               !courseHandle ||
               !dateValue
             }
-            size="lg"
+            size="xl"
           >
-            {isPending ? "Creating round…" : "Create round"}
+            {isPending ? "Creating round…" : "Start round"}
           </Button>
         </div>
+        {serverError ? (
+          <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {serverError}
+          </p>
+        ) : null}
       </form>
     </Form>
   );

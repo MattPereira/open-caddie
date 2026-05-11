@@ -18,6 +18,7 @@ export type RoundScoresTableRound = {
   id: number;
   tournamentId?: number | null;
   userId?: string;
+  courseName?: string | null;
   firstName: string | null;
   lastName: string | null;
   username: string | null;

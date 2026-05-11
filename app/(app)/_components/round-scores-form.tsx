@@ -9,7 +9,6 @@ import {
   useState,
   useTransition,
 } from "react";
-import { useRouter } from "next/navigation";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -53,7 +52,6 @@ type RoundScoresFormProps = {
   scores: ScoreEntry[];
   setScores: Dispatch<SetStateAction<ScoreEntry[]>>;
   onShowSummary: () => void;
-  onBackToHome: () => void;
   onAbandoned: () => void;
 };
 
@@ -64,10 +62,8 @@ export function RoundScoresForm({
   scores,
   setScores,
   onShowSummary,
-  onBackToHome,
   onAbandoned,
 }: RoundScoresFormProps) {
-  const router = useRouter();
   const initialScores = useMemo(
     () => buildInitialScores(round.scores, holes),
     [round.scores, holes],
@@ -197,11 +193,6 @@ export function RoundScoresForm({
     });
   };
 
-  const handleBack = () => {
-    router.refresh();
-    onBackToHome();
-  };
-
   const handleAbandon = () => {
     setAbandonError(null);
     startAbandonTransition(async () => {
@@ -222,11 +213,24 @@ export function RoundScoresForm({
       : null;
 
   return (
-    <div className="flex w-full min-w-0 flex-1 flex-col gap-8 p-0">
+    <div className="flex w-full min-w-0 flex-1 flex-col gap-8 p-0 sm:flex-none">
       <div className="flex flex-col gap-4">
-        <h1 className="text-center text-xl font-medium tracking-normal">
-          {round.courseName ?? "Round scores"}
-        </h1>
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center">
+          <div />
+          <h1 className="text-center text-xl font-medium tracking-normal">
+            {round.courseName ?? "Round scores"}
+          </h1>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="justify-self-end text-muted-foreground"
+            onClick={() => setConfirming(true)}
+            aria-label="Delete round"
+          >
+            <HugeiconsIcon icon={Delete02Icon} aria-hidden />
+          </Button>
+        </div>
 
         <RoundScoresCard
           row={toRoundScoreRow(round)}
@@ -312,7 +316,13 @@ export function RoundScoresForm({
         />
       ) : null}
 
-      <div className="mt-auto flex flex-col gap-3">
+      {isComplete ? (
+        <Button type="button" size="xl" onClick={onShowSummary}>
+          Round summary
+        </Button>
+      ) : null}
+
+      <div className="mt-auto flex flex-col gap-3 sm:mt-0">
         {abandonError ? (
           <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {abandonError}
@@ -345,55 +355,27 @@ export function RoundScoresForm({
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            {isComplete ? (
-              <>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon-lg"
-                  onClick={() => setConfirming(true)}
-                  aria-label="Delete round"
-                >
-                  <HugeiconsIcon icon={Delete02Icon} aria-hidden />
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="ml-auto flex-1"
-                  onClick={handleBack}
-                >
-                  Back home
-                </Button>
-                <Button
-                  type="button"
-                  className="flex-1"
-                  onClick={onShowSummary}
-                >
-                  See summary
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="icon-xl"
-                  onClick={() => setConfirming(true)}
-                  aria-label="Delete round"
-                >
-                  <HugeiconsIcon icon={Delete02Icon} aria-hidden />
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="ml-auto flex-1"
-                  onClick={handleBack}
-                  size="xl"
-                >
-                  Back home
-                </Button>
-              </>
-            )}
+            <Button
+              type="button"
+              variant="secondary"
+              className="ml-auto flex-1"
+              size="xl"
+              disabled={!canScrollPrev}
+              onClick={() => api?.scrollPrev()}
+            >
+              Back
+            </Button>
+
+            <Button
+              type="button"
+              className="flex-1"
+              size="xl"
+              disabled={!canScrollNext}
+              onClick={() => api?.scrollNext()}
+              variant="secondary"
+            >
+              Next
+            </Button>
           </div>
         )}
       </div>

@@ -58,5 +58,8 @@ export function buildLiveRound(
 }
 
 export function isRoundComplete(round: RoundScoresTableRound) {
-  return round.recordedStrokesCount === HOLE_NUMBERS.length;
+  return (
+    round.recordedStrokesCount === HOLE_NUMBERS.length &&
+    round.recordedPuttsCount === HOLE_NUMBERS.length
+  );
 }

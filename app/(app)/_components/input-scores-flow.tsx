@@ -100,11 +100,11 @@ export function InputScoresFlow({
   const goHome = () => router.push("/");
 
   return (
-    <section className="flex w-full max-w-md flex-1 flex-col justify-center gap-6">
+    <section className="flex w-full max-w-md flex-1 flex-col justify-center gap-6 sm:flex-none">
       {showSummary ? (
-        <div className="flex w-full min-w-0 flex-1 flex-col gap-10 p-0">
+        <div className="flex w-full min-w-0 flex-1 flex-col gap-10 p-0 sm:flex-none">
           <RoundSummary round={liveRound} />
-          <div className="mt-auto flex items-center gap-2">
+          <div className="mt-auto flex items-center gap-2 sm:mt-0">
             <Button
               type="button"
               variant="outline"
@@ -132,7 +132,6 @@ export function InputScoresFlow({
           scores={scores}
           setScores={setScores}
           onShowSummary={() => setActiveStep(3)}
-          onBackToHome={goHome}
           onAbandoned={goHome}
         />
       ) : (

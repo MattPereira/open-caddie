@@ -17,7 +17,7 @@ export default async function Home({ searchParams }: HomePageProps) {
   const showScoringFlow = action === "new";
 
   return (
-    <main className="flex min-h-[calc(100vh-3rem)] flex-col items-center justify-center p-5">
+    <main className="flex min-h-[calc(100svh-3.5rem)] flex-col items-center justify-center p-5">
       {showScoringFlow ? (
         <InputScoresFlowLoader userId={userId} />
       ) : (

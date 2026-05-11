@@ -70,13 +70,17 @@ export function HoleScoreSlide({
         { label: "Par", value: par },
         { label: "Bogey", value: par + 1 },
         { label: "Double", value: par + 2 },
+        { label: "Triple", value: par + 3 },
       ].filter((option) => option.value >= 1),
     [par],
   );
-  const puttOptions = [0, 1, 2, 3].map((value) => ({
-    label: String(value),
-    value,
-  }));
+  const puttOptions = [
+    { label: "Zero", value: 0 },
+    { label: "One", value: 1 },
+    { label: "Two", value: 2 },
+    { label: "Three", value: 3 },
+    { label: "Four", value: 4 },
+  ];
 
   useEffect(() => {
     onScoreChangeRef.current = onScoreChangeAction;
@@ -224,29 +228,29 @@ function ScoreField({
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        type="number"
-        inputMode="numeric"
-        min={min}
-        step={1}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={onBlur}
-        className="h-11 text-center text-lg tabular-nums"
-      />
       <div
         className={cn(
           "grid gap-2",
           optionColumns === 2 ? "grid-cols-2" : "grid-cols-1",
         )}
       >
+        <Input
+          id={id}
+          type="number"
+          inputMode="numeric"
+          min={min}
+          step={1}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+          className="h-10 text-center text-base tabular-nums"
+        />
         {options.map((option) => (
           <Button
             key={option.label}
             type="button"
-            variant={activeChip === option.value ? "default" : "outline"}
-            className={cn("h-10 text-base tabular-nums")}
+            variant={activeChip === option.value ? "default" : "secondary"}
+            className="h-10 text-base tabular-nums"
             onClick={() => onChipClick(option.value)}
           >
             {option.label}

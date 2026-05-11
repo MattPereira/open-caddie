@@ -107,10 +107,18 @@ export function RoundScoresCard({
 
   return (
     <Card size="sm" className="min-w-0">
-      <CardHeader className="flex flex-row items-center justify-between gap-3">
-        <CardTitle className="min-w-0 flex-1">
+      <CardHeader className="flex justify-between items-center">
+        <CardTitle className="min-w-0">
           <PlayerLabel row={row} />
         </CardTitle>
+
+        <ScoreMetricSwitch
+          id={`round-${row.round.id}-score-metric`}
+          metric={metric}
+          onMetricChange={setMetric}
+          size="sm"
+        />
+
         {action}
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -153,14 +161,6 @@ export function RoundScoresCard({
           totalValue={values.in}
           roundId={row.round.id}
         />
-        <div className="flex w-full justify-end">
-          <ScoreMetricSwitch
-            id={`round-${row.round.id}-score-metric`}
-            metric={metric}
-            onMetricChange={setMetric}
-            size="sm"
-          />
-        </div>
       </CardContent>
     </Card>
   );

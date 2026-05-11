@@ -100,7 +100,7 @@ export default async function Home({ searchParams }: HomePageProps) {
   const showScoringFlow = action === "new";
 
   return (
-    <main className="flex min-h-[calc(100vh-3rem)] flex-col items-center justify-center px-4 py-10">
+    <main className="flex min-h-[calc(100vh-3rem)] flex-col items-center justify-center p-5">
       {showScoringFlow ? (
         <InputScoresFlow
           defaultDateIso={toIsoDate(today)}

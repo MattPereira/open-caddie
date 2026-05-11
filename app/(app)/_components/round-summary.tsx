@@ -1,12 +1,9 @@
-import Link from "next/link";
-
 import {
   RoundScoresCard,
   toRoundScoreRow,
   type RoundScoresTableRound,
 } from "@/components/round-scores-card";
 import { StatTile } from "@/components/stat-tile";
-import { Button } from "@/components/ui/button";
 
 const scoreTypeLabels = {
   eagles: "Eagles",
@@ -34,11 +31,14 @@ export function RoundSummary({
   const visiblePuttGroups = getPuttGroups(round);
 
   return (
-    <div className="flex flex-col gap-8">
-      <RoundScoresCard
-        row={toRoundScoreRow(round)}
-        showMobileTotals={showMobileTotals}
-      />
+    <div className="flex flex-col gap-10">
+      <div className="flex flex-col gap-5">
+        <h1 className="text-2xl font-medium">Round summary</h1>
+        <RoundScoresCard
+          row={toRoundScoreRow(round)}
+          showMobileTotals={showMobileTotals}
+        />
+      </div>
 
       {visibleScoreTypes.length > 0 ? (
         <div className="grid grid-cols-4 gap-2">
@@ -65,13 +65,6 @@ export function RoundSummary({
         </div>
       ) : null}
 
-      {round.tournamentId != null ? (
-        <Button asChild size="lg">
-          <Link href={`/tournaments/${round.tournamentId}`}>
-            See tournament
-          </Link>
-        </Button>
-      ) : null}
     </div>
   );
 }

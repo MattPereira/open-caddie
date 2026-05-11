@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowLeftBigIcon,
   ArrowRightBigIcon,
-  Edit03Icon,
+  Delete02Icon,
 } from "@hugeicons/core-free-icons";
 
 import { Button } from "@/components/ui/button";
@@ -25,18 +26,7 @@ import {
   type RoundScoresTableRound,
 } from "@/components/round-scores-card";
 import { calculateNetStrokes } from "@/lib/scoring";
-import type { RoundScoresUpdateValues } from "../schema";
 import { RoundSummary } from "./round-summary";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  RoundScoresSheet,
-  type EditableRound,
-} from "../rounds/[id]/_components/round-scores-sheet";
 
 type ScoreEntry = {
   hole: number;
@@ -158,7 +148,6 @@ export function RoundScoresForm({
     };
   }, [round, scores]);
   const isComplete = liveRound.recordedStrokesCount === HOLE_NUMBERS.length;
-  const editableRound = toEditableRound(liveRound);
 
   useEffect(() => {
     if (activeStep === 3 && !isComplete) {
@@ -192,26 +181,6 @@ export function RoundScoresForm({
     });
   };
 
-  const handleSheetScoresSaved = (values: RoundScoresUpdateValues) => {
-    setSaveError(null);
-    setScores((prev) => {
-      const savedScoresByHole = new Map(
-        values.scores.map((score) => [score.hole, score]),
-      );
-
-      return prev.map((entry) => {
-        const savedScore = savedScoresByHole.get(entry.hole);
-        if (!savedScore) return entry;
-
-        return {
-          ...entry,
-          strokes: savedScore.strokes === "" ? null : savedScore.strokes,
-          putts: savedScore.putts === "" ? null : savedScore.putts,
-        };
-      });
-    });
-  };
-
   const handleBack = () => {
     router.refresh();
     onBackToHome();
@@ -229,28 +198,14 @@ export function RoundScoresForm({
     });
   };
 
+  const currentHoleNumber = scores[current]?.hole;
+  const currentHolePar = scores[current]?.par;
+
   return (
     <div className="flex w-full min-w-0 flex-1 flex-col gap-10 p-0">
-      {activeStep === 3 ? (
-        <RoundSummary round={liveRound} />
-      ) : (
-        <RoundScoresCard
-          action={
-            editableRound ? (
-              <RoundScoresFormEditAction
-                onScoresSaved={handleSheetScoresSaved}
-                round={editableRound}
-              />
-            ) : null
-          }
-          row={toRoundScoreRow(liveRound)}
-          showMobileTotals={false}
-        />
-      )}
-
       {activeStep === 2 ? (
         <>
-          <div className="flex items-center justify-between gap-2 px-5">
+          <div className="flex items-center justify-between gap-2">
             <Button
               type="button"
               variant="ghost"
@@ -266,12 +221,12 @@ export function RoundScoresForm({
                 strokeWidth={2}
               />
             </Button>
-            <div className="flex items-center gap-2 text-center text-base tabular-nums">
+            <div className="flex flex-col items-center gap-0 text-center text-base tabular-nums">
               <span className="text-base font-semibold">
-                Hole {scores[current]?.hole ?? current + 1}
+                Hole {currentHoleNumber ?? current + 1}
               </span>
               <span className="font-medium text-muted-foreground">
-                Par {scores[current]?.par ?? "—"}
+                Par {currentHolePar ?? "—"}
               </span>
             </div>
             <Button
@@ -318,6 +273,21 @@ export function RoundScoresForm({
         </>
       ) : null}
 
+      {activeStep === 3 ? (
+        <RoundSummary round={liveRound} />
+      ) : (
+        <>
+          <RoundScoresCard
+            row={toRoundScoreRow(liveRound)}
+            showMobileTotals={false}
+          />
+
+          {currentHolePar === 3 ? (
+            <div className="font-medium">Greenie</div>
+          ) : null}
+        </>
+      )}
+
       <div className="mt-auto flex flex-col gap-3">
         {abandonError ? (
           <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -350,91 +320,72 @@ export function RoundScoresForm({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-2 sm:flex-row sm:justify-between">
-            {activeStep === 2 && isComplete ? (
-              <Button
-                type="button"
-                className="col-span-2"
-                onClick={onShowSummary}
-                size="lg"
-              >
-                See round summary
-              </Button>
-            ) : null}
-
-            {activeStep === 2 ? (
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={() => setConfirming(true)}
-              >
-                Delete round
-              </Button>
-            ) : null}
+          <div className="flex items-center gap-2">
             {activeStep === 3 ? (
-              <Button type="button" variant="outline" onClick={onShowScores}>
-                Back to scores
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={onShowScores}
+                >
+                  Back to scores
+                </Button>
+                {liveRound.tournamentId != null ? (
+                  <Button asChild className="flex-1">
+                    <Link href={`/tournaments/${liveRound.tournamentId}`}>
+                      See tournament
+                    </Link>
+                  </Button>
+                ) : null}
+              </>
+            ) : isComplete ? (
+              <>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon-lg"
+                  onClick={() => setConfirming(true)}
+                  aria-label="Delete round"
+                >
+                  <HugeiconsIcon icon={Delete02Icon} aria-hidden />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="ml-auto flex-1"
+                  onClick={handleBack}
+                >
+                  Back home
+                </Button>
+                <Button type="button" className="flex-1" onClick={onShowSummary}>
+                  See summary
+                </Button>
+              </>
             ) : (
-              <Button type="button" variant="outline" onClick={handleBack}>
-                Back to home
-              </Button>
+              <>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="icon-lg"
+                  onClick={() => setConfirming(true)}
+                  aria-label="Delete round"
+                >
+                  <HugeiconsIcon icon={Delete02Icon} aria-hidden />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="ml-auto flex-1"
+                  onClick={handleBack}
+                >
+                  Back home
+                </Button>
+              </>
             )}
           </div>
         )}
       </div>
     </div>
   );
-}
-
-function RoundScoresFormEditAction({
-  onScoresSaved,
-  round,
-}: {
-  onScoresSaved: (values: RoundScoresUpdateValues) => void;
-  round: EditableRound;
-}) {
-  const [sheetOpen, setSheetOpen] = useState(false);
-
-  return (
-    <>
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="button"
-              size="icon-sm"
-              onClick={() => setSheetOpen(true)}
-              aria-label="Edit round"
-            >
-              <HugeiconsIcon icon={Edit03Icon} aria-hidden />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Edit round</TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-      {sheetOpen ? (
-        <RoundScoresSheet
-          onSaved={onScoresSaved}
-          open={sheetOpen}
-          onOpenChange={setSheetOpen}
-          round={round}
-        />
-      ) : null}
-    </>
-  );
-}
-
-function toEditableRound(round: RoundScoresTableRound): EditableRound | null {
-  if (!round.userId || !round.holes || !round.greenies) {
-    return null;
-  }
-
-  return {
-    id: round.id,
-    userId: round.userId,
-    holes: round.holes,
-    scores: round.scores,
-    greenies: round.greenies,
-  };
 }

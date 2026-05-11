@@ -25,7 +25,12 @@ import {
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
-import { deleteRound, upsertRoundScore } from "../actions";
+import {
+  deleteRound,
+  deleteRoundGreenie,
+  upsertRoundGreenie,
+  upsertRoundScore,
+} from "../actions";
 import { HoleScoreSlide } from "./hole-score-slide";
 import {
   RoundScoresCard,
@@ -37,6 +42,12 @@ import {
   buildInitialScores,
   isRoundComplete,
 } from "./round-score-state";
+import {
+  HoleGreenieManager,
+  type GreenieValue,
+} from "./hole-greenie-manager";
+
+type GreenieEntry = GreenieValue & { hole: number };
 
 type RoundScoresFormProps = {
   roundId: number;
@@ -72,10 +83,14 @@ export function RoundScoresForm({
   const [current, setCurrent] = useState(initialHoleIndex);
   const didJumpRef = useRef(false);
   const saveVersionRef = useRef<Record<number, number>>({});
+  const greenieSaveVersionRef = useRef<Record<number, number>>({});
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [, startSaveTransition] = useTransition();
+  const [greenies, setGreenies] = useState<GreenieEntry[]>(
+    () => round.greenies ?? [],
+  );
 
   const [confirming, setConfirming] = useState(false);
   const [abandonError, setAbandonError] = useState<string | null>(null);
@@ -133,6 +148,58 @@ export function RoundScoresForm({
     });
   };
 
+  const handleGreenieSave = (hole: number, value: GreenieValue) => {
+    const previousGreenie = greenies.find((g) => g.hole === hole) ?? null;
+    const saveVersion = (greenieSaveVersionRef.current[hole] ?? 0) + 1;
+    greenieSaveVersionRef.current[hole] = saveVersion;
+
+    setSaveError(null);
+    setGreenies((prev) => {
+      const nextGreenie = { hole, ...value };
+      return prev.some((g) => g.hole === hole)
+        ? prev.map((g) => (g.hole === hole ? nextGreenie : g))
+        : [...prev, nextGreenie].sort((a, b) => a.hole - b.hole);
+    });
+    startSaveTransition(async () => {
+      const result = await upsertRoundGreenie({ roundId, hole, ...value });
+      if (!result.ok) {
+        if (greenieSaveVersionRef.current[hole] !== saveVersion) return;
+        setGreenies((prev) => {
+          const withoutCurrent = prev.filter((g) => g.hole !== hole);
+          return previousGreenie
+            ? [...withoutCurrent, previousGreenie].sort(
+                (a, b) => a.hole - b.hole,
+              )
+            : withoutCurrent;
+        });
+        setSaveError(result.error);
+      }
+    });
+  };
+
+  const handleGreenieDelete = (hole: number) => {
+    const previousGreenie = greenies.find((g) => g.hole === hole) ?? null;
+    const saveVersion = (greenieSaveVersionRef.current[hole] ?? 0) + 1;
+    greenieSaveVersionRef.current[hole] = saveVersion;
+
+    setSaveError(null);
+    setGreenies((prev) => prev.filter((g) => g.hole !== hole));
+    startSaveTransition(async () => {
+      const result = await deleteRoundGreenie({ roundId, hole });
+      if (!result.ok) {
+        if (greenieSaveVersionRef.current[hole] !== saveVersion) return;
+        if (previousGreenie) {
+          setGreenies((prev) =>
+            [...prev.filter((g) => g.hole !== hole), previousGreenie].sort(
+              (a, b) => a.hole - b.hole,
+            ),
+          );
+        }
+        setSaveError(result.error);
+      }
+    });
+  };
+
   const handleBack = () => {
     router.refresh();
     onBackToHome();
@@ -152,9 +219,13 @@ export function RoundScoresForm({
 
   const currentHoleNumber = scores[current]?.hole;
   const currentHolePar = scores[current]?.par;
+  const currentGreenie =
+    currentHoleNumber != null
+      ? (greenies.find((g) => g.hole === currentHoleNumber) ?? null)
+      : null;
 
   return (
-    <div className="flex w-full min-w-0 flex-1 flex-col gap-10 p-0">
+    <div className="flex w-full min-w-0 flex-1 flex-col gap-8 p-0">
       <div className="flex flex-col gap-4">
         <h1 className="text-center text-xl font-medium tracking-normal">
           {round.courseName ?? "Round scores"}
@@ -230,11 +301,21 @@ export function RoundScoresForm({
         </p>
       ) : null}
 
-      <>
-        {currentHolePar === 3 ? (
-          <div className="font-medium">Greenie</div>
-        ) : null}
-      </>
+      {currentHolePar === 3 && currentHoleNumber != null ? (
+        <HoleGreenieManager
+          key={currentHoleNumber}
+          hole={currentHoleNumber}
+          initialGreenie={
+            currentGreenie
+              ? { feet: currentGreenie.feet, inches: currentGreenie.inches }
+              : null
+          }
+          onSaveAction={(value) =>
+            handleGreenieSave(currentHoleNumber, value)
+          }
+          onDeleteAction={() => handleGreenieDelete(currentHoleNumber)}
+        />
+      ) : null}
 
       <div className="mt-auto flex flex-col gap-3">
         {abandonError ? (

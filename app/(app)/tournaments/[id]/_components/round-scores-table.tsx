@@ -76,6 +76,11 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
   const [metric, setMetric] = useState<ScoreMetric>("strokes");
   const sortedRows =
     metric === "strokes" ? rows : [...rows].sort(compareRoundScoreRowsByPutts);
+  const greenieHoles = new Set(
+    rows.flatMap(
+      (row) => row.round.greenies?.map((greenie) => greenie.hole) ?? [],
+    ),
+  );
 
   return (
     <div className="relative w-fit max-w-full">
@@ -94,7 +99,14 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
                 Player
               </TableHead>
               {holes.map((hole) => (
-                <TableHead key={hole} className="w-10 text-center">
+                <TableHead
+                  key={hole}
+                  className={cn(
+                    "w-10 text-center",
+                    greenieHoles.has(hole) &&
+                      "text-green-600 dark:text-green-400",
+                  )}
+                >
                   {hole}
                 </TableHead>
               ))}

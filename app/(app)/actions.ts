@@ -16,9 +16,13 @@ import {
 } from "@/db/schema";
 import {
   RoundConfigSchema,
+  RoundGreenieDeleteSchema,
+  RoundGreenieSchema,
   RoundScoreSchema,
   RoundScoresUpdateSchema,
   type RoundConfigValues,
+  type RoundGreenieDeleteValues,
+  type RoundGreenieValues,
   type RoundScoreValues,
   type RoundScoresUpdateValues,
 } from "./schema";
@@ -204,6 +208,129 @@ export async function upsertRoundScore(
     }
     throw e;
   }
+}
+
+export async function upsertRoundGreenie(
+  values: RoundGreenieValues,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { ok: false, error: "You must be signed in." };
+  }
+
+  const parsed = RoundGreenieSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { roundId, hole, feet, inches } = parsed.data;
+
+  const [owned] = await db
+    .select({
+      id: rounds.id,
+      userId: rounds.userId,
+      courseId: rounds.courseId,
+      tournamentId: rounds.tournamentId,
+    })
+    .from(rounds)
+    .where(and(eq(rounds.id, roundId), eq(rounds.userId, session.user.id)))
+    .limit(1);
+  if (!owned) {
+    return { ok: false, error: "Round not found." };
+  }
+
+  const [parThreeHole] = await db
+    .select({ hole: courseHoles.hole })
+    .from(courseHoles)
+    .where(
+      and(
+        eq(courseHoles.courseId, owned.courseId),
+        eq(courseHoles.hole, hole),
+        eq(courseHoles.par, 3),
+      ),
+    )
+    .limit(1);
+  if (!parThreeHole) {
+    return { ok: false, error: "Greenies can only be recorded on par 3 holes." };
+  }
+
+  try {
+    await db.transaction(async (tx) => {
+      await tx
+        .insert(roundScores)
+        .values({ roundId, hole, strokes: null, putts: null })
+        .onConflictDoNothing({
+          target: [roundScores.roundId, roundScores.hole],
+        });
+
+      await tx
+        .insert(greenies)
+        .values({ roundId, hole, feet, inches })
+        .onConflictDoUpdate({
+          target: [greenies.roundId, greenies.hole],
+          set: { feet, inches },
+        });
+    });
+  } catch (e: unknown) {
+    const code =
+      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
+      (e as { code?: string })?.code;
+    if (code === "23514") {
+      return { ok: false, error: "Greenie distance is out of allowed range." };
+    }
+    throw e;
+  }
+
+  revalidatePath("/");
+  revalidatePath("/greenies");
+  revalidatePath(`/players/${owned.userId}`);
+  revalidatePath(`/rounds/${roundId}`);
+  if (owned.tournamentId != null) {
+    revalidatePath(`/tournaments/${owned.tournamentId}`);
+  }
+  return { ok: true };
+}
+
+export async function deleteRoundGreenie(
+  values: RoundGreenieDeleteValues,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { ok: false, error: "You must be signed in." };
+  }
+
+  const parsed = RoundGreenieDeleteSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { roundId, hole } = parsed.data;
+
+  const [owned] = await db
+    .select({
+      id: rounds.id,
+      userId: rounds.userId,
+      tournamentId: rounds.tournamentId,
+    })
+    .from(rounds)
+    .where(and(eq(rounds.id, roundId), eq(rounds.userId, session.user.id)))
+    .limit(1);
+  if (!owned) {
+    return { ok: false, error: "Round not found." };
+  }
+
+  await db
+    .delete(greenies)
+    .where(and(eq(greenies.roundId, roundId), eq(greenies.hole, hole)));
+
+  revalidatePath("/");
+  revalidatePath("/greenies");
+  revalidatePath(`/players/${owned.userId}`);
+  revalidatePath(`/rounds/${roundId}`);
+  if (owned.tournamentId != null) {
+    revalidatePath(`/tournaments/${owned.tournamentId}`);
+  }
+  return { ok: true };
 }
 
 export async function updateRoundScores(

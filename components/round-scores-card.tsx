@@ -105,6 +105,9 @@ export function RoundScoresCard({
 }) {
   const [metric, setMetric] = useState<ScoreMetric>("strokes");
   const values = row.metrics[metric];
+  const greenieHoles = new Set(
+    row.round.greenies?.map((greenie) => greenie.hole) ?? [],
+  );
 
   return (
     <Card size="sm" className="min-w-0">
@@ -152,6 +155,7 @@ export function RoundScoresCard({
           totalLabel="Out"
           totalValue={values.out}
           roundId={row.round.id}
+          greenieHoles={greenieHoles}
         />
         <MobileScoreLine
           holes={backNine}
@@ -161,6 +165,7 @@ export function RoundScoresCard({
           totalLabel="In"
           totalValue={values.in}
           roundId={row.round.id}
+          greenieHoles={greenieHoles}
         />
       </CardContent>
     </Card>
@@ -246,6 +251,7 @@ function MobileScoreLine({
   totalLabel,
   totalValue,
   roundId,
+  greenieHoles,
 }: {
   holes: number[];
   values: (number | null)[];
@@ -254,6 +260,7 @@ function MobileScoreLine({
   totalLabel: string;
   totalValue: number | null;
   roundId: number;
+  greenieHoles: Set<number>;
 }) {
   return (
     <div>
@@ -261,7 +268,11 @@ function MobileScoreLine({
         {holes.map((hole) => (
           <div
             key={`${roundId}-${hole}-header`}
-            className="min-w-0 bg-muted px-1 py-1 text-center text-xs font-medium text-muted-foreground"
+            className={cn(
+              "min-w-0 bg-muted px-1 py-1 text-center text-xs font-medium text-muted-foreground",
+              greenieHoles.has(hole) &&
+                "text-green-600 font-bold dark:text-green-400",
+            )}
           >
             {hole}
           </div>

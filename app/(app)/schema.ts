@@ -17,6 +17,24 @@ export const RoundScoreSchema = z.object({
 
 export type RoundScoreValues = z.infer<typeof RoundScoreSchema>;
 
+export const RoundGreenieSchema = z.object({
+  roundId: z.number().int().positive(),
+  hole: z.number().int().min(1).max(18),
+  feet: z.number().int().min(0),
+  inches: z.number().int().min(0).max(11),
+});
+
+export type RoundGreenieValues = z.infer<typeof RoundGreenieSchema>;
+
+export const RoundGreenieDeleteSchema = RoundGreenieSchema.pick({
+  roundId: true,
+  hole: true,
+});
+
+export type RoundGreenieDeleteValues = z.infer<
+  typeof RoundGreenieDeleteSchema
+>;
+
 function optionalInt(label: string, min: number, max?: number) {
   const numberSchema = z
     .number({ message: `${label} must be a number` })

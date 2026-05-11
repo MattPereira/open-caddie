@@ -180,6 +180,7 @@ export function HoleScoreSlide({
         min={1}
         optionColumns={2}
       />
+
       <ScoreField
         id={`hole-${hole}-putts`}
         label="Putts"
@@ -226,7 +227,7 @@ function ScoreField({
       <Label htmlFor={id}>{label}</Label>
       <div
         className={cn(
-          "grid gap-2",
+          "grid gap-2 border p-3 rounded-lg",
           optionColumns === 2 ? "grid-cols-2" : "grid-cols-1",
         )}
       >

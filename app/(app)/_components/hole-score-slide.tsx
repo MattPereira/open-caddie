@@ -69,17 +69,13 @@ export function HoleScoreSlide({
         { label: "Birdie", value: par - 1 },
         { label: "Par", value: par },
         { label: "Bogey", value: par + 1 },
-        { label: "Double", value: par + 2 },
-        { label: "Triple", value: par + 3 },
       ].filter((option) => option.value >= 1),
     [par],
   );
   const puttOptions = [
-    { label: "Zero", value: 0 },
     { label: "One", value: 1 },
     { label: "Two", value: 2 },
     { label: "Three", value: 3 },
-    { label: "Four", value: 4 },
   ];
 
   useEffect(() => {
@@ -243,14 +239,14 @@ function ScoreField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
-          className="h-10 text-center text-base tabular-nums"
+          className="h-14 text-center tabular-nums"
         />
         {options.map((option) => (
           <Button
             key={option.label}
             type="button"
             variant={activeChip === option.value ? "default" : "secondary"}
-            className="h-10 text-base tabular-nums"
+            className="h-14 tabular-nums"
             onClick={() => onChipClick(option.value)}
           >
             {option.label}

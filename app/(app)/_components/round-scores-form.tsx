@@ -13,9 +13,9 @@ import { useRouter } from "next/navigation";
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  ArrowLeftBigIcon,
-  ArrowRightBigIcon,
+  ArrowLeft02Icon,
   Delete02Icon,
+  ArrowRight02Icon,
 } from "@hugeicons/core-free-icons";
 
 import { Button } from "@/components/ui/button";
@@ -166,7 +166,7 @@ export function RoundScoresForm({
         />
       </div>
 
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 px-">
         <Button
           type="button"
           variant="ghost"
@@ -176,14 +176,18 @@ export function RoundScoresForm({
           onClick={() => api?.scrollPrev()}
           aria-label="Previous hole"
         >
-          <HugeiconsIcon size="lg" icon={ArrowLeftBigIcon} strokeWidth={2} />
+          <HugeiconsIcon
+            icon={ArrowLeft02Icon}
+            strokeWidth={2}
+            className="size-6"
+          />
         </Button>
-        <div className="flex flex-col items-center gap-0 text-center text-base tabular-nums">
-          <span className="text-base font-semibold">
-            Hole {currentHoleNumber ?? current + 1}
+        <div className="flex flex-col items-center leading-tight">
+          <span className="text-lg font-medium tracking-tight">
+            Hole {currentHoleNumber}
           </span>
-          <span className="font-medium text-muted-foreground">
-            Par {currentHolePar ?? "—"}
+          <span className="text-xs uppercase tracking-wider text-muted-foreground">
+            Par {currentHolePar}
           </span>
         </div>
         <Button
@@ -195,7 +199,11 @@ export function RoundScoresForm({
           onClick={() => api?.scrollNext()}
           aria-label="Next hole"
         >
-          <HugeiconsIcon size="lg" icon={ArrowRightBigIcon} strokeWidth={2} />
+          <HugeiconsIcon
+            icon={ArrowRight02Icon}
+            strokeWidth={2}
+            className="size-6"
+          />
         </Button>
       </div>
 

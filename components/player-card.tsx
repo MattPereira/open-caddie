@@ -37,26 +37,47 @@ export function PlayerCard({
   player,
   href,
   onClick,
+  size = "default",
 }: {
   player: PlayerCardPlayer;
   href?: string;
   onClick?: () => void;
+  size?: "default" | "sm";
 }) {
   const name = displayName(player);
   const showStats =
     player.roundsCount !== undefined || player.greeniesCount !== undefined;
+  const compact = size === "sm";
   const body = (
-    <div className="flex w-full items-center gap-3 p-2 text-left">
-      <Avatar className="size-12">
+    <div
+      className={
+        compact
+          ? "flex w-full items-center gap-2.5 p-1.5 text-left"
+          : "flex w-full items-center gap-3 p-2 text-left"
+      }
+    >
+      <Avatar className={compact ? "size-9" : "size-12"}>
         {player.image ? <AvatarImage src={player.image} alt={name} /> : null}
         <AvatarFallback>{getInitials(player)}</AvatarFallback>
       </Avatar>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-2">
-          <span className="truncate font-medium">{name}</span>
+          <span
+            className={
+              compact ? "truncate text-sm font-medium" : "truncate font-medium"
+            }
+          >
+            {name}
+          </span>
           {player.isAdmin ? <Badge variant="outline">Admin</Badge> : null}
         </div>
-        <span className="truncate text-xs text-muted-foreground">
+        <span
+          className={
+            compact
+              ? "truncate text-[11px] text-muted-foreground"
+              : "truncate text-xs text-muted-foreground"
+          }
+        >
           {player.email ?? "—"}
         </span>
       </div>

@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, asc, count, desc, eq, gte } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import {
   clubMembers,
@@ -234,6 +234,42 @@ export const getUpcomingTournamentsForUser = cache(async (userId: string) => {
     .where(gte(tournaments.date, today))
     .orderBy(asc(tournaments.date), asc(tournaments.startsAt));
 });
+
+export const getAddablePlayersForTournament = cache(
+  async (tournamentId: number) => {
+    const [tournament] = await db
+      .select({ clubId: tournaments.clubId })
+      .from(tournaments)
+      .where(eq(tournaments.id, tournamentId))
+      .limit(1);
+
+    if (!tournament) return [];
+
+    return db
+      .select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        username: users.username,
+        image: users.image,
+        isAdmin: users.isAdmin,
+      })
+      .from(clubMembers)
+      .innerJoin(users, eq(clubMembers.userId, users.id))
+      .leftJoin(
+        rounds,
+        and(
+          eq(rounds.userId, users.id),
+          eq(rounds.tournamentId, tournamentId),
+        ),
+      )
+      .where(
+        and(eq(clubMembers.clubId, tournament.clubId), isNull(rounds.id)),
+      )
+      .orderBy(asc(users.firstName), asc(users.lastName), asc(users.username));
+  },
+);
 
 export const getRoundsCountByTournamentId = cache(async (tournamentId: number) => {
   const [row] = await db

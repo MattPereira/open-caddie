@@ -2,9 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getTournamentById } from "@/db/queries/tournaments";
+import {
+  getAddablePlayersForTournament,
+  getTournamentById,
+} from "@/db/queries/tournaments";
 import { getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/utils";
+import { AddPlayersSheet } from "./_components/add-players-sheet";
 import { GreeniesTabContent } from "./_components/greenies-tab-content";
 import { RoundsTabContent } from "./_components/rounds-tab-content";
 import { WinnersTabContent } from "./_components/winners-tab-content";
@@ -35,15 +39,27 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
 
   if (!tournament) notFound();
 
+  const addablePlayers = currentUser?.isAdmin
+    ? await getAddablePlayersForTournament(tournament.id)
+    : [];
+
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold tracking-normal">
-          {tournament.courseName ?? "Course to be announced"}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {formatDate(tournament.date, "long")}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-semibold tracking-normal">
+            {tournament.courseName ?? "Course to be announced"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {formatDate(tournament.date, "long")}
+          </p>
+        </div>
+        {currentUser?.isAdmin ? (
+          <AddPlayersSheet
+            tournamentId={tournament.id}
+            players={addablePlayers}
+          />
+        ) : null}
       </div>
 
       <Tabs defaultValue="rounds" className="w-full">
@@ -68,7 +84,10 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
           </TabsTrigger>
         </TabsList>
 
-        <RoundsTabContent currentUser={currentUser} rounds={tournament.rounds} />
+        <RoundsTabContent
+          currentUser={currentUser}
+          rounds={tournament.rounds}
+        />
         <GreeniesTabContent greenies={tournament.greenies} />
         <WinnersTabContent
           rounds={tournament.rounds}

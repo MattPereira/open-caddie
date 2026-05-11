@@ -11,7 +11,9 @@ import { getRoundById } from "@/db/queries/rounds";
 import { getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/utils";
 import { RoundActions } from "./_components/round-actions";
-import { RoundScoresTable } from "../../tournaments/[id]/_components/round-scores-table";
+import { StatTile } from "@/components/stat-tile";
+import { RoundScoresCard } from "@/components/round-scores-card";
+import { toRoundScoreRow } from "@/components/round-scores-card-row";
 
 type RoundPageProps = {
   params: Promise<{
@@ -47,20 +49,22 @@ export default async function RoundPage({ params }: RoundPageProps) {
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold tracking-normal">Round</h1>
         </div>
-        <RoundCard round={round} />
+        <div className="w-full max-w-lg">
+          <RoundCard round={round} />
+        </div>
       </div>
 
       <section className="flex min-w-0 flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold tracking-normal">Scores</h2>
+        <div className="flex items-center justify-between lg:justify-start gap-4">
+          <h2 className="text-lg font-semibold tracking-normal">Scores</h2>
           {canEdit ? <RoundActions round={round} /> : null}
         </div>
-        <RoundScoresTable currentUser={currentUser} rounds={[round]} />
+        <RoundScoresCard row={toRoundScoreRow(round)} showMobileTotals />
       </section>
 
       <section className="flex min-w-0 flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold tracking-normal">Greenies</h2>
+        <div className="flex items-center justify-between lg:justify-start gap-4">
+          <h2 className="text-lg font-semibold tracking-normal">Greenies</h2>
           {canEdit ? (
             <RoundActions initialTab="greenies" round={round} />
           ) : null}
@@ -112,44 +116,46 @@ function HandicapSection({ round }: { round: Round }) {
 
   return (
     <section className="flex min-w-0 flex-col gap-3">
-      <h2 className="text-xl font-semibold tracking-normal">Handicap</h2>
+      <h2 className="text-lg font-semibold tracking-normal">
+        Tournament Handicap
+      </h2>
 
-      <Card size="sm">
-        <CardContent className="flex flex-col gap-4">
-          <div className="grid w-full max-w-lg grid-cols-2 gap-2">
-            <HandicapStat
-              label="Handicap"
-              value={formatNullableDecimal(handicap.tournamentHandicap)}
-            />
-            <HandicapStat
-              label="Index"
-              value={formatNullableDecimal(handicap.playerIndex)}
-            />
-          </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        <StatTile
+          label="Handicap"
+          value={formatNullableDecimal(handicap.tournamentHandicap)}
+        />
+        <StatTile
+          label="Index"
+          value={formatNullableDecimal(handicap.playerIndex)}
+        />
+      </div>
 
-          {handicap.priorRounds.length === 0 ? (
+      {handicap.priorRounds.length === 0 ? (
+        <Card size="sm">
+          <CardContent className="flex flex-col gap-4">
             <p className="text-sm text-muted-foreground">
               No eligible prior club tournament rounds were found.
             </p>
-          ) : (
-            <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
-              {handicap.priorRounds.map((priorRound) => (
-                <PriorHandicapRoundCard
-                  key={priorRound.id}
-                  priorRound={priorRound}
-                />
-              ))}
-            </div>
-          )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
+          {handicap.priorRounds.map((priorRound) => (
+            <PriorHandicapRoundCard
+              key={priorRound.id}
+              priorRound={priorRound}
+            />
+          ))}
+        </div>
+      )}
 
-          {!hasEnoughPriorRounds ? (
-            <p className="text-sm text-muted-foreground">
-              At least 2 eligible prior rounds are needed to calculate a player
-              index.
-            </p>
-          ) : null}
-        </CardContent>
-      </Card>
+      {!hasEnoughPriorRounds ? (
+        <p className="text-sm text-muted-foreground">
+          At least 2 eligible prior rounds are needed to calculate a player
+          index.
+        </p>
+      ) : null}
     </section>
   );
 }
@@ -181,48 +187,22 @@ function PriorHandicapRoundCard({
               {formatDate(priorRound.date, "standard")}
             </span>
           </div>
-          {priorRound.usedForPlayerIndex ? <Badge>Used</Badge> : null}
+          {priorRound.usedForPlayerIndex ? (
+            <Badge variant="secondary">Used</Badge>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-4 gap-1.5">
-          <HandicapRoundStat label="Rating" value={priorRound.courseRating} />
-          <HandicapRoundStat label="Slope" value={priorRound.courseSlope} />
-          <HandicapRoundStat label="Strokes" value={priorRound.totalStrokes} />
-          <HandicapRoundStat
+          <StatTile label="Rating" value={priorRound.courseRating} />
+          <StatTile label="Slope" value={priorRound.courseSlope} />
+          <StatTile label="Strokes" value={priorRound.totalStrokes} />
+          <StatTile
             label="Diff"
             value={formatDecimal(priorRound.scoreDifferential)}
           />
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-function HandicapRoundStat({
-  label,
-  value,
-}: {
-  label: string;
-  value: string | number;
-}) {
-  return (
-    <div className="flex min-w-0 flex-col gap-0.5 rounded-md bg-muted px-2 py-1.5">
-      <span className="truncate text-xs font-medium text-muted-foreground">
-        {label}
-      </span>
-      <span className="text-right text-sm font-semibold tabular-nums">
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function HandicapStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-0.5 rounded-md bg-muted px-3 py-2">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      <span className="text-lg font-semibold tabular-nums">{value}</span>
-    </div>
   );
 }
 

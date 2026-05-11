@@ -33,9 +33,9 @@ import {
 import { HoleScoreSlide } from "./hole-score-slide";
 import {
   RoundScoresCard,
-  toRoundScoreRow,
   type RoundScoresTableRound,
 } from "@/components/round-scores-card";
+import { toRoundScoreRow } from "@/components/round-scores-card-row";
 import {
   type ScoreEntry,
   buildInitialScores,

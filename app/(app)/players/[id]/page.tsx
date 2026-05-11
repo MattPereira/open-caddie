@@ -81,7 +81,7 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
         ) : null}
       </div>
 
-      <Card className="py-3">
+      <Card className="py-3 lg:max-w-1/2">
         <CardHeader className="px-3">
           <CardTitle>Round averages</CardTitle>
         </CardHeader>
@@ -90,17 +90,11 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
             <StatTile
               label="Strokes"
               value={formatAverage(stats.averageStrokes)}
-              size="lg"
             />
-            <StatTile
-              label="Putts"
-              value={formatAverage(stats.averagePutts)}
-              size="lg"
-            />
+            <StatTile label="Putts" value={formatAverage(stats.averagePutts)} />
             <StatTile
               label="Greenies"
               value={formatAverage(stats.averageGreeniesPerRound)}
-              size="lg"
             />
           </div>
         </CardContent>

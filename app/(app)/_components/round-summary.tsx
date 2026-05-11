@@ -1,8 +1,8 @@
 import {
   RoundScoresCard,
-  toRoundScoreRow,
   type RoundScoresTableRound,
 } from "@/components/round-scores-card";
+import { toRoundScoreRow } from "@/components/round-scores-card-row";
 import { StatTile } from "@/components/stat-tile";
 
 const scoreTypeLabels = {
@@ -47,7 +47,6 @@ export function RoundSummary({
               key={scoreType}
               label={scoreTypeLabels[scoreType]}
               value={count}
-              size="responsive"
             />
           ))}
         </div>
@@ -59,7 +58,6 @@ export function RoundSummary({
               key={putts}
               label={`${putts} Putts`}
               value={count}
-              size="responsive"
             />
           ))}
         </div>

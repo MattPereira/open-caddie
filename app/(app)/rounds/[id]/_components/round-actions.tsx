@@ -22,7 +22,7 @@ export function RoundActions({
 
   return (
     <>
-      <Button onClick={() => setSheetOpen(true)}>
+      <Button size="sm" onClick={() => setSheetOpen(true)}>
         <HugeiconsIcon icon={Edit03Icon} data-icon="inline-start" />
         Edit
       </Button>

@@ -11,11 +11,11 @@ import {
   PlayerLabel,
   RoundScoresCard,
   ScoreMetricSwitch,
-  toRoundScoreRow,
   type RoundScoreRow,
   type RoundScoresTableRound,
   type ScoreMetric,
 } from "@/components/round-scores-card";
+import { toRoundScoreRow } from "@/components/round-scores-card-row";
 import { Button } from "@/components/ui/button";
 import {
   Table,

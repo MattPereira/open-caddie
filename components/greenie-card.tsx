@@ -34,12 +34,8 @@ export function GreenieCard({ greenie }: { greenie: GreenieCardGreenie }) {
           </span>
         </div>
         <div className="flex shrink-0 gap-1.5 self-end">
-          <StatTile label="Hole" value={greenie.hole} size="responsive" />
-          <StatTile
-            label="Dist"
-            value={formatGreenieDistance(greenie)}
-            size="responsive"
-          />
+          <StatTile label="Hole" value={greenie.hole} />
+          <StatTile label="Dist" value={formatGreenieDistance(greenie)} />
         </div>
       </CardContent>
     </Card>

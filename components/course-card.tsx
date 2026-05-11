@@ -26,8 +26,8 @@ export function CourseCard({
       onClick={onClick}
     >
       <div className="flex shrink-0 items-center justify-end gap-1.5">
-        <StatTile label="Rating" value={course.rating} size="responsive" />
-        <StatTile label="Slope" value={course.slope} size="responsive" />
+        <StatTile label="Rating" value={course.rating} />
+        <StatTile label="Slope" value={course.slope} />
       </div>
     </MediaCard>
   );

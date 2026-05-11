@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Edit03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -190,6 +191,7 @@ function MobileRoundScoresCards({
 
 function RoundScoresCardEditAction({ round }: { round: EditableRound }) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const router = useRouter();
 
   return (
     <>
@@ -212,6 +214,7 @@ function RoundScoresCardEditAction({ round }: { round: EditableRound }) {
         <RoundScoresSheet
           open={sheetOpen}
           onOpenChange={setSheetOpen}
+          onDeleted={() => router.refresh()}
           round={round}
         />
       ) : null}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Edit03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -19,6 +20,7 @@ export function RoundActions({
   round: EditableRound;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const router = useRouter();
 
   return (
     <>
@@ -31,6 +33,10 @@ export function RoundActions({
           initialTab={initialTab}
           open={sheetOpen}
           onOpenChange={setSheetOpen}
+          onDeleted={() => {
+            router.push(`/players/${round.userId}`);
+            router.refresh();
+          }}
           round={round}
         />
       ) : null}

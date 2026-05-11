@@ -103,12 +103,14 @@ function toNumberInputValue(value: number | "") {
 export function RoundScoresSheet({
   initialTab = "front",
   onSaved,
+  onDeleted,
   open,
   onOpenChange,
   round,
 }: {
   initialTab?: RoundScoresTab;
   onSaved?: (values: RoundScoresUpdateValues) => void;
+  onDeleted?: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   round: EditableRound;
@@ -173,8 +175,7 @@ export function RoundScoresSheet({
       }
       setConfirmingDelete(false);
       closeSheet();
-      router.push(`/players/${round.userId}`);
-      router.refresh();
+      onDeleted?.();
     });
   };
 

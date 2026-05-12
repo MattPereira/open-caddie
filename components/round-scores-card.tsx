@@ -19,6 +19,7 @@ export type {
   RoundScoresTableRound,
   ScoreMetric,
 } from "@/components/round-scores-card-row";
+import { StatTile } from "./stat-tile";
 
 const holes = Array.from({ length: 18 }, (_, index) => index + 1);
 const frontNine = holes.slice(0, 9);
@@ -47,7 +48,7 @@ export function RoundScoresCard({
   );
 
   return (
-    <Card size="sm" className="min-w-0 max-w-lg">
+    <Card size="sm" className="min-w-0 max-w-lg gap-1.5! py-2!">
       <CardHeader className="flex justify-between items-center">
         <CardTitle className="min-w-0">
           <PlayerLabel row={row} />
@@ -62,24 +63,18 @@ export function RoundScoresCard({
 
         {action}
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-3 px-2!">
         {showMobileTotals ? (
           <div className="grid min-w-0 grid-cols-4 gap-2">
-            <MobileTotal label="Putts" value={row.metrics.putts.total} />
-            <MobileTotal
-              label="Strokes"
-              value={row.metrics.strokes.total}
-              strong
+            <StatTile label="Putts" value={row.metrics.putts.total} />
+            <StatTile label="Shots" value={row.metrics.strokes.total} />
+            <StatTile
+              label="Hcp"
+              value={formatDecimalScore(row.round.tournamentHandicap)}
             />
-            <MobileTotal
-              label="Handicap"
-              value={row.round.tournamentHandicap}
-              format="decimal"
-            />
-            <MobileTotal
+            <StatTile
               label="Net"
-              value={row.round.netStrokes}
-              format="decimal"
+              value={formatDecimalScore(row.round.netStrokes)}
             />
           </div>
         ) : null}
@@ -112,12 +107,6 @@ export function RoundScoresCard({
 export function PlayerLabel({ row }: { row: RoundScoreRow }) {
   const label = (
     <div className="flex min-w-0 items-center gap-2">
-      <Avatar size="sm">
-        {row.round.image ? (
-          <AvatarImage src={row.round.image} alt={row.playerName} />
-        ) : null}
-        <AvatarFallback>{row.initials}</AvatarFallback>
-      </Avatar>
       <span className="truncate">{row.playerName}</span>
     </div>
   );

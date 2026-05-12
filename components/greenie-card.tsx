@@ -18,8 +18,8 @@ export function GreenieCard({ greenie }: { greenie: GreenieCardGreenie }) {
 
   return (
     <Card size="sm" className="gap-0 py-1.5!">
-      <CardContent className="flex items-start gap-2 px-1.5!">
-        <Avatar className="size-16 rounded-lg">
+      <CardContent className="flex items-start gap-3 px-1.5!">
+        <Avatar className="size-18 rounded-lg">
           {greenie.image ? (
             <AvatarImage src={greenie.image} alt={playerName} />
           ) : null}
@@ -35,9 +35,17 @@ export function GreenieCard({ greenie }: { greenie: GreenieCardGreenie }) {
             </span>
           </div>
 
-          <div className="flex items-end gap-2 h-full">
-            <StatTile label="Hole" value={greenie.hole} />
-            <StatTile label="Dist" value={formatGreenieDistance(greenie)} />
+          <div className=" flex flex-col items-end gap-2">
+            <StatTile
+              className="w-22"
+              label="Hole"
+              value={greenie.hole.toString()}
+            />
+            <StatTile
+              className="w-22"
+              label="Dist"
+              value={formatGreenieDistance(greenie)}
+            />
           </div>
         </div>
       </CardContent>

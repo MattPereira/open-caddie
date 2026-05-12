@@ -14,6 +14,8 @@ type MediaCardBadge = {
   variant?: VariantProps<typeof badgeVariants>["variant"];
 };
 
+type MediaCardVariant = "wide" | "square";
+
 type MediaCardProps = {
   imageUrl: string | null;
   imageAlt: string;
@@ -22,6 +24,7 @@ type MediaCardProps = {
   badges?: MediaCardBadge[];
   href?: string;
   onClick?: () => void;
+  variant?: MediaCardVariant;
 };
 
 export function MediaCard({
@@ -90,9 +93,15 @@ export function MediaCard({
   );
 }
 
-function MediaCardImage({ src, alt }: { src: string | null; alt: string }) {
+export function MediaCardImage({
+  src,
+  alt,
+}: {
+  src: string | null;
+  alt: string;
+}) {
   return (
-    <div className="w-1/3 shrink-0">
+    <div className={"w-1/3 shrink-0"}>
       <AspectRatio
         ratio={16 / 9}
         className="overflow-hidden rounded-xl bg-muted"

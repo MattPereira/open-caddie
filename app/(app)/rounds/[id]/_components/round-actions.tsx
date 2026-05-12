@@ -24,9 +24,8 @@ export function RoundActions({
 
   return (
     <>
-      <Button size="sm" onClick={() => setSheetOpen(true)}>
-        <HugeiconsIcon icon={Edit03Icon} data-icon="inline-start" />
-        Edit
+      <Button size="sm" variant="outline" onClick={() => setSheetOpen(true)}>
+        <HugeiconsIcon icon={Edit03Icon} />
       </Button>
       {sheetOpen ? (
         <RoundScoresSheet

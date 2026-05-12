@@ -164,7 +164,7 @@ function MobileRoundScoresCards({
   showMobileTotals: boolean;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-4">
       {rows.map((row) => {
         const editableRound = toEditableRound(row.round);
         const canEdit =
@@ -200,6 +200,7 @@ function RoundScoresCardEditAction({ round }: { round: EditableRound }) {
           <TooltipTrigger asChild>
             <Button
               type="button"
+              variant="ghost"
               size="icon-sm"
               onClick={() => setSheetOpen(true)}
               aria-label="Edit round"

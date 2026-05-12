@@ -1,21 +1,8 @@
 import { displayName, getInitials } from "@/components/player-card";
+import { GreenieCard } from "@/components/greenie-card";
+import { StatTile } from "@/components/stat-tile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemMedia,
-  ItemTitle,
-} from "@/components/ui/item";
+import { Card, CardContent } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 import type { getTournamentById } from "@/db/queries/tournaments";
 import { cn } from "@/lib/utils";
@@ -28,12 +15,15 @@ type TournamentRoundScore = TournamentRound["scores"][number];
 
 type WinnerRow = {
   key: string;
-  leftValue: string | number;
   playerName: string;
   initials: string;
   image: string | null;
   primaryValue: string;
   primaryValueAdjusted?: boolean;
+};
+
+type SkinWinnerRow = WinnerRow & {
+  hole: number;
 };
 
 export function WinnersTabContent({
@@ -54,7 +44,7 @@ export function WinnersTabContent({
     rounds.filter(isEligiblePuttsRound).sort(comparePuttsWinners).slice(0, 3),
     "putts",
   );
-  const greenieWinners = toGreenieWinnerRows(greenies);
+  const greenieWinners = getGreenieWinners(greenies);
   const skinWinners = toSkinWinnerRows(rounds);
   const hasWinners =
     strokesWinners.length > 0 ||
@@ -62,122 +52,203 @@ export function WinnersTabContent({
     greenieWinners.length > 0 ||
     skinWinners.length > 0;
 
-  return (
-    <TabsContent value="winners">
-      {hasWinners ? (
-        <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2">
-          <WinnerCategoryCard
-            title="Strokes"
-            description="Lowest net strokes"
-            winners={strokesWinners}
-          />
-          <WinnerCategoryCard
-            title="Putts"
-            description="Fewest total putts"
-            winners={puttsWinners}
-          />
-          <WinnerCategoryCard
-            title="Greenies"
-            description="Closest to the pin"
-            winners={greenieWinners}
-          />
-          <WinnerCategoryCard
-            title="Skins"
-            description="Unique low adjusted score"
-            winners={skinWinners}
-          />
-        </div>
-      ) : (
+  if (!hasWinners) {
+    return (
+      <TabsContent value="winners">
         <p className="text-sm text-muted-foreground">
           No complete rounds are eligible for winners yet.
         </p>
-      )}
+      </TabsContent>
+    );
+  }
+
+  return (
+    <TabsContent value="winners">
+      <div className="flex flex-col gap-6">
+        <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2">
+          <WinnersSection
+            title="Strokes"
+            description="Lowest net strokes"
+            empty="No eligible rounds in this category yet."
+          >
+            {strokesWinners.map((winner) => (
+              <SimpleWinnerCard key={winner.key} winner={winner} />
+            ))}
+          </WinnersSection>
+
+          <WinnersSection
+            title="Putts"
+            description="Fewest total putts"
+            empty="No eligible rounds in this category yet."
+          >
+            {puttsWinners.map((winner) => (
+              <SimpleWinnerCard key={winner.key} winner={winner} />
+            ))}
+          </WinnersSection>
+        </div>
+
+        <WinnersSection
+          title="Greenies"
+          description="Closest to the pin on each par 3"
+          empty="No greenies recorded yet."
+          gridClassName="grid grid-cols-1 lg:grid-cols-2 gap-3"
+        >
+          {greenieWinners.map((greenie) => (
+            <GreenieCard
+              key={`greenie-${greenie.roundId}-${greenie.hole}`}
+              greenie={greenie}
+            />
+          ))}
+        </WinnersSection>
+
+        <WinnersSection
+          title="Skins"
+          description="Unique lowest hole score with handicaps"
+          empty="No skins won yet."
+          gridClassName="grid grid-cols-1 lg:grid-cols-2 gap-3"
+        >
+          {skinWinners.map((winner) => (
+            <SkinWinnerCard key={winner.key} winner={winner} />
+          ))}
+        </WinnersSection>
+      </div>
     </TabsContent>
   );
 }
 
-function WinnerCategoryCard({
+function WinnersSection({
   title,
   description,
-  winners,
+  empty,
+  gridClassName = "flex flex-col gap-2",
+  children,
 }: {
   title: string;
   description: string;
-  winners: WinnerRow[];
+  empty: string;
+  gridClassName?: string;
+  children: React.ReactNode;
+}) {
+  const hasChildren = Array.isArray(children)
+    ? children.length > 0
+    : Boolean(children);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <SectionHeading title={title} description={description} />
+      {hasChildren ? (
+        <div className={gridClassName}>{children}</div>
+      ) : (
+        <p className="rounded-lg bg-muted px-3 py-6 text-center text-sm text-muted-foreground">
+          {empty}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function SectionHeading({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
 }) {
   return (
-    <Card className="min-w-0">
-      <CardHeader>
-        <div className="min-w-0 flex justify-between">
-          <CardTitle className="truncate">{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
+    <div>
+      <h3 className="text-lg font-medium">{title}</h3>
+      <div className="text-sm text-muted-foreground">{description}</div>
+    </div>
+  );
+}
+
+function WinnerCard({
+  playerName,
+  initials,
+  image,
+  subtitle,
+  children,
+}: {
+  playerName: string;
+  initials: string;
+  image: string | null;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card size="sm" className="gap-0 py-1.5!">
+      <CardContent className="flex items-start gap-3 px-1.5!">
+        <Avatar className="size-18 rounded-lg">
+          {image ? <AvatarImage src={image} alt={playerName} /> : null}
+          <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+        </Avatar>
+        <div className="flex h-full w-full items-center justify-between gap-4">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="truncate text-base font-medium">{playerName}</div>
+            {subtitle ? (
+              <span className="truncate text-xs text-muted-foreground">
+                {subtitle}
+              </span>
+            ) : null}
+          </div>
+          <div className="flex flex-col items-end gap-2">{children}</div>
         </div>
-      </CardHeader>
-      <CardContent>
-        {winners.length > 0 ? (
-          <ItemGroup className="gap-3">
-            {winners.map((winner) => (
-              <WinnerItem key={winner.key} winner={winner} />
-            ))}
-          </ItemGroup>
-        ) : (
-          <p className="rounded-lg bg-muted px-3 py-6 text-center text-sm text-muted-foreground">
-            No eligible rounds in this category yet.
-          </p>
-        )}
       </CardContent>
     </Card>
   );
 }
 
-function WinnerItem({ winner }: { winner: WinnerRow }) {
+function SimpleWinnerCard({ winner }: { winner: WinnerRow }) {
   return (
-    <Item variant="outline" className="items-center gap-3 p-2">
+    <WinnerCard
+      playerName={winner.playerName}
+      initials={winner.initials}
+      image={winner.image}
+    >
       <span
         className={cn(
-          "flex size-12 shrink-0 items-center justify-center rounded-lg border text-base font-semibold tabular-nums",
+          "text-right text-lg tabular-nums",
+          winner.primaryValueAdjusted === true &&
+            "text-red-600 dark:text-red-500",
         )}
       >
-        {winner.leftValue}
+        {winner.primaryValue}
       </span>
-      <ItemMedia className="self-center translate-y-0">
-        <Avatar className={cn("size-12")}>
-          {winner.image ? (
-            <AvatarImage src={winner.image} alt={winner.playerName} />
-          ) : null}
-          <AvatarFallback>{winner.initials}</AvatarFallback>
-        </Avatar>
-      </ItemMedia>
-      <ItemContent className="min-w-0 gap-0!">
-        <ItemTitle className="text-base">{winner.playerName}</ItemTitle>
-        <ItemDescription></ItemDescription>
-      </ItemContent>
-      <ItemActions className="ml-auto flex-col items-end gap-1">
-        <span
-          className={cn(
-            "text-right text-base tabular-nums",
-            winner.primaryValueAdjusted === true &&
-              "text-red-600 dark:text-red-500",
-            winner.primaryValueAdjusted === false &&
-              "text-black dark:text-foreground",
-          )}
-        >
-          {winner.primaryValue}
-        </span>
-      </ItemActions>
-    </Item>
+    </WinnerCard>
   );
 }
 
-function toWinnerRows(rounds: TournamentRound[], metric: WinnerMetric) {
-  return rounds.map((round, index) => {
+function SkinWinnerCard({ winner }: { winner: SkinWinnerRow }) {
+  return (
+    <WinnerCard
+      playerName={winner.playerName}
+      initials={winner.initials}
+      image={winner.image}
+    >
+      <StatTile className="w-22" label="Hole" value={winner.hole.toString()} />
+      <StatTile
+        className={cn(
+          "w-22",
+          winner.primaryValueAdjusted && "text-red-600 dark:text-red-500",
+        )}
+        label="Score"
+        value={winner.primaryValue}
+      />
+    </WinnerCard>
+  );
+}
+
+function toWinnerRows(
+  rounds: TournamentRound[],
+  metric: WinnerMetric,
+): WinnerRow[] {
+  return rounds.map((round) => {
     const playerName = displayName({ ...round, email: null });
     const net = formatDecimalScore(round.netStrokes);
     const putts = formatWholeScore(round.totalPutts);
 
     return {
       key: `${metric}-${round.id}`,
-      leftValue: index + 1,
       playerName,
       initials: getInitials({ ...round, email: null }),
       image: round.image,
@@ -186,7 +257,7 @@ function toWinnerRows(rounds: TournamentRound[], metric: WinnerMetric) {
   });
 }
 
-function toGreenieWinnerRows(greenies: TournamentGreenie[]) {
+function getGreenieWinners(greenies: TournamentGreenie[]) {
   const winnersByHole = new Map<number, TournamentGreenie>();
 
   for (const greenie of [...greenies].sort(compareGreenies)) {
@@ -195,19 +266,12 @@ function toGreenieWinnerRows(greenies: TournamentGreenie[]) {
     }
   }
 
-  return Array.from(winnersByHole.values()).map((greenie) => ({
-    key: `greenie-${greenie.roundId}-${greenie.hole}`,
-    leftValue: greenie.hole,
-    playerName: displayName({ ...greenie, email: null }),
-    initials: getInitials({ ...greenie, email: null }),
-    image: greenie.image,
-    primaryValue: formatGreenieDistance(greenie),
-  }));
+  return Array.from(winnersByHole.values());
 }
 
-function toSkinWinnerRows(rounds: TournamentRound[]) {
+function toSkinWinnerRows(rounds: TournamentRound[]): SkinWinnerRow[] {
   const completeRounds = rounds.filter(isEligibleSkinsRound);
-  const winners: WinnerRow[] = [];
+  const winners: SkinWinnerRow[] = [];
 
   for (let hole = 1; hole <= 18; hole++) {
     const scores = completeRounds.flatMap((round) => {
@@ -252,7 +316,7 @@ function toSkinWinnerRows(rounds: TournamentRound[]) {
 
     winners.push({
       key: `skin-${winner.round.id}-${hole}`,
-      leftValue: hole,
+      hole,
       playerName,
       initials: getInitials({ ...winner.round, email: null }),
       image: winner.round.image,
@@ -359,14 +423,4 @@ function formatWholeScore(score: number | null) {
 
 function formatDecimalScore(score: number | null) {
   return score == null ? "-" : score.toFixed(1);
-}
-
-function formatGreenieDistance(
-  greenie: Pick<TournamentGreenie, "feet" | "inches">,
-) {
-  if (greenie.inches === 0) {
-    return `${greenie.feet}'`;
-  }
-
-  return `${greenie.feet}' ${greenie.inches}"`;
 }

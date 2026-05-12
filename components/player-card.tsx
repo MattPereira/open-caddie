@@ -56,7 +56,7 @@ export function PlayerCard({
           : "flex w-full items-center gap-3 p-2 text-left"
       }
     >
-      <Avatar className={compact ? "size-9" : "size-12"}>
+      <Avatar className={compact ? "size-9" : "size-18"}>
         {player.image ? <AvatarImage src={player.image} alt={name} /> : null}
         <AvatarFallback>{getInitials(player)}</AvatarFallback>
       </Avatar>
@@ -82,7 +82,7 @@ export function PlayerCard({
         </span>
       </div>
       {showStats ? (
-        <div className="flex shrink-0 items-center gap-1.5">
+        <div className="flex flex-col shrink-0 items-center gap-1.5">
           <StatTile label="Rounds" value={player.roundsCount ?? 0} />
           <StatTile label="Greenies" value={player.greeniesCount ?? 0} />
         </div>

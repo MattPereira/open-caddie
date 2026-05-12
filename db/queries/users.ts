@@ -28,14 +28,16 @@ export const getUserPlayingStatsById = cache(async (userId: string) => {
     db
       .select({
         roundsCount: count(roundSummaries.roundId),
-        averageStrokes:
-          sql<number | null>`avg(${roundSummaries.totalStrokes}) filter (where ${roundSummaries.isComplete})::double precision`.mapWith(
-            (value) => (value == null ? null : Number(value)),
-          ),
-        averagePutts:
-          sql<number | null>`avg(${roundSummaries.totalPutts}) filter (where ${roundSummaries.recordedPuttsCount} = 18)::double precision`.mapWith(
-            (value) => (value == null ? null : Number(value)),
-          ),
+        averageStrokes: sql<
+          number | null
+        >`avg(${roundSummaries.totalStrokes}) filter (where ${roundSummaries.isComplete})::double precision`.mapWith(
+          (value) => (value == null ? null : Number(value)),
+        ),
+        averagePutts: sql<
+          number | null
+        >`avg(${roundSummaries.totalPutts}) filter (where ${roundSummaries.recordedPuttsCount} = 18)::double precision`.mapWith(
+          (value) => (value == null ? null : Number(value)),
+        ),
       })
       .from(roundSummaries)
       .where(eq(roundSummaries.userId, userId)),
@@ -53,7 +55,9 @@ export const getUserPlayingStatsById = cache(async (userId: string) => {
     averageStrokes: row?.averageStrokes ?? null,
     averagePutts: row?.averagePutts ?? null,
     averageGreeniesPerRound:
-      roundsCount === 0 ? null : (greeniesRow?.greeniesCount ?? 0) / roundsCount,
+      roundsCount === 0
+        ? null
+        : (greeniesRow?.greeniesCount ?? 0) / roundsCount,
   };
 });
 
@@ -66,8 +70,9 @@ export const getUserRoundsById = cache(async (userId: string) => {
       courseImgUrl: courses.imgUrl,
       tournamentId: roundSummaries.tournamentId,
       tournamentSeason: tournaments.season,
-      clubName: clubs.name,
+      clubName: clubs.handle,
       totalStrokes: roundSummaries.totalStrokes,
+      totalPutts: roundSummaries.totalPutts,
     })
     .from(roundSummaries)
     .innerJoin(courses, eq(roundSummaries.courseId, courses.id))
@@ -106,10 +111,8 @@ export const getAllUsers = cache(async () => {
       username: users.username,
       image: users.image,
       isAdmin: users.isAdmin,
-      roundsCount:
-        sql<number>`coalesce("rc"."value", 0)`.mapWith(Number),
-      greeniesCount:
-        sql<number>`coalesce("gc"."value", 0)`.mapWith(Number),
+      roundsCount: sql<number>`coalesce("rc"."value", 0)`.mapWith(Number),
+      greeniesCount: sql<number>`coalesce("gc"."value", 0)`.mapWith(Number),
     })
     .from(users)
     .leftJoin(roundsCountSq, eq(roundsCountSq.userId, users.id))

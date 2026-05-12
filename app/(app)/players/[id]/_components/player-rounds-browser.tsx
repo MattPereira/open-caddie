@@ -19,6 +19,7 @@ type Round = {
   tournamentSeason: number | null;
   clubName: string | null;
   totalStrokes: number | null;
+  totalPutts: number | null;
 };
 
 export function PlayerRoundsBrowser({ rounds }: { rounds: Round[] }) {

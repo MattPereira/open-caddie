@@ -46,48 +46,48 @@ export default async function RoundPage({ params }: RoundPageProps) {
   return (
     <main className="flex min-w-0 flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-normal">Round</h1>
-        </div>
-        <div className="w-full max-w-lg">
+        <h1 className="text-xl font-semibold tracking-normal">Round</h1>
+        <div className="w-full">
           <RoundCard round={round} />
         </div>
       </div>
 
-      <section className="flex min-w-0 flex-col gap-3">
-        <div className="flex items-center justify-between lg:justify-start gap-4">
-          <h2 className="text-lg font-semibold tracking-normal">Scores</h2>
-          {canEdit ? <RoundActions round={round} /> : null}
-        </div>
-        <RoundScoresCard row={toRoundScoreRow(round)} showMobileTotals />
-      </section>
-
-      <section className="flex min-w-0 flex-col gap-3">
-        <div className="flex items-center justify-between lg:justify-start gap-4">
-          <h2 className="text-lg font-semibold tracking-normal">Greenies</h2>
-          {canEdit ? (
-            <RoundActions initialTab="greenies" round={round} />
-          ) : null}
-        </div>
-        {round.greenies.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="py-10 text-center">
-              <p className="text-sm text-muted-foreground">
-                No greenies have been recorded for this round.
-              </p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 xl:grid-cols-3 2xl:grid-cols-3">
-            {round.greenies.map((greenie) => (
-              <GreenieCard
-                key={`${greenie.roundId}-${greenie.hole}`}
-                greenie={greenie}
-              />
-            ))}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <section className="flex min-w-0 flex-col gap-3">
+          <div className="flex items-center justify-between lg:justify-start gap-4">
+            <h2 className="text-lg font-semibold tracking-normal">Scores</h2>
+            {canEdit ? <RoundActions round={round} /> : null}
           </div>
-        )}
-      </section>
+          <RoundScoresCard row={toRoundScoreRow(round)} showMobileTotals />
+        </section>
+
+        <section className="flex min-w-0 flex-col gap-3">
+          <div className="flex items-center justify-between lg:justify-start gap-4">
+            <h2 className="text-lg font-semibold tracking-normal">Greenies</h2>
+            {canEdit ? (
+              <RoundActions initialTab="greenies" round={round} />
+            ) : null}
+          </div>
+          {round.greenies.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="py-10 text-center">
+                <p className="text-sm text-muted-foreground">
+                  No greenies have been recorded for this round.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="w-full">
+              {round.greenies.map((greenie) => (
+                <GreenieCard
+                  key={`${greenie.roundId}-${greenie.hole}`}
+                  greenie={greenie}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
 
       {round.handicap ? <HandicapSection round={round} /> : null}
     </main>
@@ -116,16 +116,16 @@ function HandicapSection({ round }: { round: Round }) {
 
   return (
     <section className="flex min-w-0 flex-col gap-3">
-      <h2 className="text-lg font-semibold tracking-normal">
-        Tournament Handicap
-      </h2>
+      <h2 className="text-lg font-semibold tracking-normal">Handicap</h2>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <div className="flex gap-2">
         <StatTile
+          className="w-fit"
           label="Handicap"
           value={formatNullableDecimal(handicap.tournamentHandicap)}
         />
         <StatTile
+          className="w-fit"
           label="Index"
           value={formatNullableDecimal(handicap.playerIndex)}
         />
@@ -187,15 +187,13 @@ function PriorHandicapRoundCard({
               {formatDate(priorRound.date, "standard")}
             </span>
           </div>
-          {priorRound.usedForPlayerIndex ? (
-            <Badge variant="secondary">Used</Badge>
-          ) : null}
+          {priorRound.usedForPlayerIndex ? <Badge>Used</Badge> : null}
         </div>
 
         <div className="grid grid-cols-4 gap-1.5">
-          <StatTile label="Rating" value={priorRound.courseRating} />
-          <StatTile label="Slope" value={priorRound.courseSlope} />
-          <StatTile label="Strokes" value={priorRound.totalStrokes} />
+          <StatTile label="Rtg" value={priorRound.courseRating} />
+          <StatTile label="Slp" value={priorRound.courseSlope} />
+          <StatTile label="Str" value={priorRound.totalStrokes} />
           <StatTile
             label="Diff"
             value={formatDecimal(priorRound.scoreDifferential)}

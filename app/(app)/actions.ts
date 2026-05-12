@@ -50,6 +50,10 @@ export async function signInWithEmail(
   return { ok: true };
 }
 
+export async function signInWithGoogle() {
+  await signIn("google", { redirectTo: "/" });
+}
+
 export async function signOutAction() {
   await signOut({ redirectTo: "/" });
 }

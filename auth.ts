@@ -1,4 +1,5 @@
 import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { db } from "@/db";
@@ -13,6 +14,9 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
   }),
   session: { strategy: "jwt" },
   providers: [
+    Google({
+      allowDangerousEmailAccountLinking: true,
+    }),
     Resend({
       from: "auth@login.ccgc.app",
     }),

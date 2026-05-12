@@ -5,7 +5,7 @@ import { useState } from "react";
 import { InfoAlert } from "@/components/info-alert";
 import { LoginForm, type LoginFormValues } from "@/components/login-form";
 import { Button } from "@/components/ui/button";
-import { signInWithEmail } from "../actions";
+import { signInWithEmail, signInWithGoogle } from "../actions";
 
 export function LoginPageForm() {
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -39,7 +39,7 @@ export function LoginPageForm() {
         </div>
       ) : (
         <div className="w-full max-w-sm">
-          <LoginForm onSubmit={onSubmit} />
+          <LoginForm onSubmit={onSubmit} onGoogleSignIn={signInWithGoogle} />
         </div>
       )}
     </main>

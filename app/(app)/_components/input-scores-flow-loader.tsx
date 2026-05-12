@@ -25,6 +25,7 @@ export async function InputScoresFlowLoader({ userId }: { userId: string }) {
       ? {
           roundId: activeRow.roundId,
           courseName: activeRow.courseName,
+          courseImgUrl: activeRoundDetails.courseImgUrl,
           date: activeRow.date,
           tournamentLabel:
             activeRow.tournamentId != null

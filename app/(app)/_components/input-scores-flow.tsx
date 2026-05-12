@@ -29,6 +29,7 @@ import type { RoundScoresTableRound } from "../tournaments/[id]/_components/roun
 export type ActiveRound = {
   roundId: number;
   courseName: string;
+  courseImgUrl: string | null;
   date: Date | string;
   tournamentLabel: string | null;
   tableRound: RoundScoresTableRound;
@@ -93,7 +94,10 @@ export function InputScoresFlow({
     [activeRound, scores],
   );
   const showSummary =
-    activeStep === 3 && liveRound != null && isRoundComplete(liveRound);
+    activeStep === 3 &&
+    activeRound != null &&
+    liveRound != null &&
+    isRoundComplete(liveRound);
 
   const showScoringForm = activeStep === 2 && activeRound && liveRound;
 
@@ -103,7 +107,11 @@ export function InputScoresFlow({
     <section className="flex w-full max-w-md flex-1 flex-col justify-center gap-6 sm:flex-none">
       {showSummary ? (
         <div className="flex w-full min-w-0 flex-1 flex-col gap-10 p-0 sm:flex-none">
-          <RoundSummary round={liveRound} />
+          <RoundSummary
+            round={liveRound}
+            courseImgUrl={activeRound.courseImgUrl}
+            date={activeRound.date}
+          />
           <div className="mt-auto flex items-center gap-2 sm:mt-0">
             <Button
               type="button"
@@ -128,6 +136,8 @@ export function InputScoresFlow({
           key={activeRound.roundId}
           roundId={activeRound.roundId}
           round={liveRound}
+          courseImgUrl={activeRound.courseImgUrl}
+          date={activeRound.date}
           holes={activeRound.holes}
           scores={scores}
           setScores={setScores}

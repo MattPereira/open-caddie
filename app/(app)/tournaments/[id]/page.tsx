@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { CourseHero } from "@/components/course-hero";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   getAddablePlayersForTournament,
@@ -45,22 +46,19 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-semibold tracking-normal">
-            {tournament.courseName ?? "Course to be announced"}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {formatDate(tournament.date, "long")}
-          </p>
-        </div>
-        {currentUser?.isAdmin ? (
-          <AddPlayersSheet
-            tournamentId={tournament.id}
-            players={addablePlayers}
-          />
-        ) : null}
-      </div>
+      <CourseHero
+        courseName={tournament.courseName}
+        courseImgUrl={tournament.courseImgUrl}
+        subtitle={formatDate(tournament.date, "long")}
+        action={
+          currentUser?.isAdmin ? (
+            <AddPlayersSheet
+              tournamentId={tournament.id}
+              players={addablePlayers}
+            />
+          ) : null
+        }
+      />
 
       <Tabs defaultValue="rounds" className="w-full">
         <TabsList className="w-full p-1 sm:w-fit mb-3 h-10!">

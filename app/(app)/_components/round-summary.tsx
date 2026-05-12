@@ -1,9 +1,11 @@
+import { CourseHero } from "@/components/course-hero";
 import {
   RoundScoresCard,
   type RoundScoresTableRound,
 } from "@/components/round-scores-card";
 import { toRoundScoreRow } from "@/components/round-scores-card-row";
 import { StatTile } from "@/components/stat-tile";
+import { formatDate } from "@/lib/utils";
 
 const scoreTypeLabels = {
   eagles: "Eagles",
@@ -19,9 +21,13 @@ type ScoreType = keyof typeof scoreTypeLabels;
 
 export function RoundSummary({
   round,
+  courseImgUrl,
+  date,
   showMobileTotals = true,
 }: {
   round: RoundScoresTableRound;
+  courseImgUrl: string | null;
+  date: Date | string;
   showMobileTotals?: boolean;
 }) {
   const scoreTypeCounts = getScoreTypeCounts(round);
@@ -33,7 +39,11 @@ export function RoundSummary({
   return (
     <div className="flex flex-col gap-10">
       <div className="flex flex-col gap-5">
-        <h1 className="text-2xl font-medium">Round summary</h1>
+        <CourseHero
+          courseName={round.courseName ?? null}
+          courseImgUrl={courseImgUrl}
+          subtitle={formatDate(date, "long")}
+        />
         <RoundScoresCard
           row={toRoundScoreRow(round)}
           showMobileTotals={showMobileTotals}

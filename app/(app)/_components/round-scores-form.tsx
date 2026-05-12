@@ -18,12 +18,15 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import { Button } from "@/components/ui/button";
+import { CourseHero } from "@/components/course-hero";
+import { HeroActionButton } from "@/components/hero-action-button";
 import {
   Carousel,
   type CarouselApi,
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
+import { formatDate } from "@/lib/utils";
 import {
   deleteRound,
   deleteRoundGreenie,
@@ -48,6 +51,8 @@ type GreenieEntry = GreenieValue & { hole: number };
 type RoundScoresFormProps = {
   roundId: number;
   round: RoundScoresTableRound;
+  courseImgUrl: string | null;
+  date: Date | string;
   holes: { hole: number; par: number }[];
   scores: ScoreEntry[];
   setScores: Dispatch<SetStateAction<ScoreEntry[]>>;
@@ -58,6 +63,8 @@ type RoundScoresFormProps = {
 export function RoundScoresForm({
   roundId,
   round,
+  courseImgUrl,
+  date,
   holes,
   scores,
   setScores,
@@ -213,24 +220,22 @@ export function RoundScoresForm({
       : null;
 
   return (
-    <div className="flex w-full min-w-0 flex-1 flex-col gap-8 p-0 sm:flex-none">
+    <div className="flex w-full min-w-0 flex-1 flex-col gap-4 p-0 sm:flex-none">
       <div className="flex flex-col gap-4">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-center">
-          <div />
-          <h1 className="text-center text-xl font-medium tracking-normal">
-            {round.courseName ?? "Round scores"}
-          </h1>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="justify-self-end text-muted-foreground"
-            onClick={() => setConfirming(true)}
-            aria-label="Delete round"
-          >
-            <HugeiconsIcon icon={Delete02Icon} aria-hidden />
-          </Button>
-        </div>
+        <CourseHero
+          courseName={round.courseName ?? null}
+          courseImgUrl={courseImgUrl}
+          subtitle={formatDate(date, "long")}
+          action={
+            <HeroActionButton
+              type="button"
+              onClick={() => setConfirming(true)}
+              aria-label="Delete round"
+            >
+              <HugeiconsIcon icon={Delete02Icon} aria-hidden />
+            </HeroActionButton>
+          }
+        />
 
         <RoundScoresCard
           row={toRoundScoreRow(round)}

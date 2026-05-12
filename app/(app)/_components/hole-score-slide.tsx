@@ -235,6 +235,7 @@ function ScoreField({
             onChange={(e) => onChange(e.target.value)}
             onBlur={onBlur}
             className="h-12 text-center tabular-nums"
+            placeholder="0"
           />
         </div>
 

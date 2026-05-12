@@ -144,6 +144,7 @@ export function HoleGreenieManager({
         variant="secondary"
         size="xl"
         onClick={() => setMode("editing")}
+        className="mt-8"
       >
         Add Greenie
       </Button>

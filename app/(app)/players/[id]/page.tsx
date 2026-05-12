@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 
 import { displayName, getInitials } from "@/components/player-card";
 import { StatTile } from "@/components/stat-tile";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   getCurrentUser,
@@ -51,17 +50,21 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex justify-between">
         <div className="flex items-center gap-3">
-          <div className="size-16 shrink-0 overflow-hidden rounded-lg bg-muted">
-            <AspectRatio ratio={1} className="size-full">
-              <Avatar className="size-full rounded-lg">
-                {player.image ? (
-                  <AvatarImage src={player.image} alt={name} />
-                ) : null}
-                <AvatarFallback className="text-lg font-medium">
-                  {getInitials(player)}
-                </AvatarFallback>
-              </Avatar>
-            </AspectRatio>
+          <div className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-muted">
+            {player.image ? (
+              <Image
+                src={player.image}
+                alt={name}
+                fill
+                sizes="96px"
+                className="object-cover"
+                priority
+              />
+            ) : (
+              <div className="flex size-full items-center justify-center text-xl font-medium text-muted-foreground">
+                {getInitials(player)}
+              </div>
+            )}
           </div>
           <div className="flex min-w-0 flex-col gap-1">
             <h2 className="truncate text-xl font-semibold tracking-normal">

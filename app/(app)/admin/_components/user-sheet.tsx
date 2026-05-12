@@ -14,6 +14,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { ImageUploadField } from "@/components/image-upload-field";
+import { getInitials } from "@/components/player-card";
 import { Input } from "@/components/ui/input";
 import {
   Sheet,
@@ -82,6 +84,7 @@ export function UserSheet({
   const [isDeleting, startDeleteTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(UserFormSchema),
@@ -231,25 +234,32 @@ export function UserSheet({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="image"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Profile image URL</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="url"
-                          inputMode="url"
-                          placeholder="https://…"
-                          maxLength={2048}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {mode === "edit" && user ? (
+                  <FormField
+                    control={form.control}
+                    name="image"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Profile image</FormLabel>
+                        <FormControl>
+                          <ImageUploadField
+                            value={field.value || null}
+                            onChange={(url) => field.onChange(url ?? "")}
+                            pathPrefix={`users/${user.id}`}
+                            fallback={getInitials(user)}
+                            onUploadingChange={setIsUploading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                  <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                    You can upload a profile picture after the account is
+                    created.
+                  </p>
+                )}
 
                 {showAdminControls ? (
                   <FormField
@@ -311,7 +321,10 @@ export function UserSheet({
                 </div>
               ) : (
                 <>
-                  <Button type="submit" disabled={isPending}>
+                  <Button
+                    type="submit"
+                    disabled={isPending || isUploading}
+                  >
                     {isPending
                       ? "Saving…"
                       : mode === "create"

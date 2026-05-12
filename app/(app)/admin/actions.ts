@@ -14,6 +14,7 @@ import {
   users,
 } from "@/db/schema";
 import { getCurrentUser } from "@/db/queries/users";
+import { safeDeleteBlob } from "@/lib/blob";
 import {
   ClubCreateSchema,
   ClubUpdateSchema,
@@ -162,7 +163,11 @@ export async function updateUser(
   const image = parsed.data.image.length > 0 ? parsed.data.image : null;
 
   const [current] = await db
-    .select({ email: users.email, isAdmin: users.isAdmin })
+    .select({
+      email: users.email,
+      isAdmin: users.isAdmin,
+      image: users.image,
+    })
     .from(users)
     .where(eq(users.id, id))
     .limit(1);
@@ -172,6 +177,7 @@ export async function updateUser(
 
   const isAdmin = canManageUsers ? parsed.data.isAdmin : current.isAdmin;
   const emailChanged = current.email?.toLowerCase() !== email;
+  const imageChanged = current.image !== image;
 
   if (emailChanged) {
     const [taken] = await db
@@ -217,6 +223,10 @@ export async function updateUser(
       return { ok: false, error: "Email or username already in use." };
     }
     throw e;
+  }
+
+  if (imageChanged) {
+    await safeDeleteBlob(current.image);
   }
 
   revalidatePath("/admin");

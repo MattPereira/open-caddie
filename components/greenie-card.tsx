@@ -17,9 +17,9 @@ export function GreenieCard({ greenie }: { greenie: GreenieCardGreenie }) {
   const playerName = formatGreeniePlayerName(greenie);
 
   return (
-    <Card size="sm" className="gap-0 py-0!">
-      <CardContent className="flex items-start gap-3 p-2!">
-        <Avatar className="size-15 rounded-lg">
+    <Card size="sm" className="gap-0 py-1.5!">
+      <CardContent className="flex items-start gap-2 px-1.5!">
+        <Avatar className="size-16 rounded-lg">
           {greenie.image ? (
             <AvatarImage src={greenie.image} alt={playerName} />
           ) : null}
@@ -27,15 +27,18 @@ export function GreenieCard({ greenie }: { greenie: GreenieCardGreenie }) {
             {getInitials(greenie)}
           </AvatarFallback>
         </Avatar>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <CardTitle className="truncate">{playerName}</CardTitle>
-          <span className="truncate text-xs text-muted-foreground">
-            {greenie.courseName}
-          </span>
-        </div>
-        <div className="flex shrink-0 gap-1.5 self-end">
-          <StatTile label="Hole" value={greenie.hole} />
-          <StatTile label="Dist" value={formatGreenieDistance(greenie)} />
+        <div className="flex w-full h-full items-start justify-between gap-4">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <div className="truncate text-base font-medium">{playerName}</div>
+            <span className="truncate text-xs text-muted-foreground">
+              {greenie.courseName}
+            </span>
+          </div>
+
+          <div className="flex items-end gap-2 h-full">
+            <StatTile label="Hole" value={greenie.hole} />
+            <StatTile label="Dist" value={formatGreenieDistance(greenie)} />
+          </div>
         </div>
       </CardContent>
     </Card>

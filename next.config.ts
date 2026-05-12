@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         hostname: "t4.ftcdn.net",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+        pathname: "/**",
+      },
     ],
   },
 };

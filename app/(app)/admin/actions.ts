@@ -502,7 +502,7 @@ export async function updateCourse(
   const imgUrl = parsed.data.imgUrl.length > 0 ? parsed.data.imgUrl : null;
 
   const [current] = await db
-    .select({ id: courses.id })
+    .select({ id: courses.id, imgUrl: courses.imgUrl })
     .from(courses)
     .where(eq(courses.id, id))
     .limit(1);
@@ -537,6 +537,10 @@ export async function updateCourse(
     throw e;
   }
 
+  if (current.imgUrl !== imgUrl) {
+    await safeDeleteBlob(current.imgUrl);
+  }
+
   revalidatePath("/admin");
   return { ok: true };
 }
@@ -568,7 +572,18 @@ export async function deleteCourse(id: number): Promise<ActionResult> {
     };
   }
 
+  const [current] = await db
+    .select({ imgUrl: courses.imgUrl })
+    .from(courses)
+    .where(eq(courses.id, id))
+    .limit(1);
+
   await db.delete(courses).where(eq(courses.id, id));
+
+  if (current) {
+    await safeDeleteBlob(current.imgUrl);
+  }
+
   revalidatePath("/admin");
   return { ok: true };
 }

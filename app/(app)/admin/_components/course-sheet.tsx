@@ -13,6 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { ImageUploadField } from "@/components/image-upload-field";
 import { Input } from "@/components/ui/input";
 import {
   Sheet,
@@ -101,6 +102,7 @@ export function CourseSheet({
   const [isDeleting, startDeleteTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(CourseFormSchema),
@@ -262,19 +264,32 @@ export function CourseSheet({
                   />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="imgUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Image URL</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="url" placeholder="https://…" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {mode === "edit" && course ? (
+                  <FormField
+                    control={form.control}
+                    name="imgUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Course image</FormLabel>
+                        <FormControl>
+                          <ImageUploadField
+                            value={field.value || null}
+                            onChange={(url) => field.onChange(url ?? "")}
+                            pathPrefix={`courses/${course.id}`}
+                            aspectRatio={16 / 9}
+                            variant="wide"
+                            onUploadingChange={setIsUploading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                  <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                    You can upload a course image after the course is created.
+                  </p>
+                )}
 
                 <div className="flex flex-col gap-3 rounded-md border p-3">
                   <div className="flex items-center justify-between gap-3">
@@ -396,7 +411,7 @@ export function CourseSheet({
                 </div>
               ) : (
                 <>
-                  <Button type="submit" disabled={isPending}>
+                  <Button type="submit" disabled={isPending || isUploading}>
                     {isPending
                       ? "Saving…"
                       : mode === "create"

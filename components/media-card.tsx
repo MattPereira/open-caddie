@@ -36,7 +36,7 @@ export function MediaCard({
   const content = (
     <>
       <MediaCardImage src={imageUrl} alt={imageAlt} />
-      <div className="flex min-w-0 flex-1 flex-col justify-between gap-1.5 px-2 py-1.5 sm:px-4 sm:py-2">
+      <div className="flex min-w-0 flex-1 flex-col self-stretch justify-between p-1 lg:p-2">
         <CardHeader className="px-0!">
           {header ? (
             <CardTitle className="truncate text-sm sm:text-base">
@@ -53,7 +53,7 @@ export function MediaCard({
               <Badge
                 key={index}
                 variant={badge.variant ?? "outline"}
-                className="max-w-full truncate"
+                className="max-w-full truncate font-light lg:text-sm lg:p-3"
               >
                 {badge.label}
               </Badge>
@@ -65,12 +65,12 @@ export function MediaCard({
   );
 
   return (
-    <Card className="py-0!">
-      <CardContent className="p-0!">
+    <Card className="py-1.5">
+      <CardContent className="px-1.5">
         {href ? (
           <Link
             href={href}
-            className="flex w-full items-center text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="gap-4 rounded-lg flex w-full items-center text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             {content}
           </Link>
@@ -78,7 +78,7 @@ export function MediaCard({
           <button
             type="button"
             onClick={onClick}
-            className="flex w-full items-center text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="gap-2 lg:gap-4 rounded-lg flex w-full items-center text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             {content}
           </button>
@@ -94,7 +94,7 @@ function MediaCardImage({ src, alt }: { src: string | null; alt: string }) {
   return (
     <div className="w-1/3 shrink-0">
       <AspectRatio
-        ratio={16 / 10}
+        ratio={16 / 9}
         className="overflow-hidden rounded-xl bg-muted"
       >
         {src ? (

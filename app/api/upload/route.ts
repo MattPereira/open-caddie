@@ -6,9 +6,18 @@ import { auth } from "@/auth";
 const ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 2 * 1024 * 1024;
 
-function parseTargetUserId(pathname: string): string | null {
-  const match = pathname.match(/^users\/([^/]+)\//);
-  return match ? match[1] : null;
+type UploadTarget =
+  | { kind: "user"; id: string }
+  | { kind: "course"; id: string };
+
+function parseUploadTarget(pathname: string): UploadTarget | null {
+  const userMatch = pathname.match(/^users\/([^/]+)\//);
+  if (userMatch) return { kind: "user", id: userMatch[1] };
+
+  const courseMatch = pathname.match(/^courses\/([^/]+)\//);
+  if (courseMatch) return { kind: "course", id: courseMatch[1] };
+
+  return null;
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -25,14 +34,20 @@ export async function POST(request: Request): Promise<NextResponse> {
           throw new Error("Unauthorized");
         }
 
-        const targetUserId = parseTargetUserId(pathname);
-        if (!targetUserId) {
+        const target = parseUploadTarget(pathname);
+        if (!target) {
           throw new Error("Invalid upload path");
         }
 
-        const isSelf = me.id === targetUserId;
-        if (!isSelf && !me.isAdmin) {
-          throw new Error("Forbidden");
+        if (target.kind === "user") {
+          const isSelf = me.id === target.id;
+          if (!isSelf && !me.isAdmin) {
+            throw new Error("Forbidden");
+          }
+        } else if (target.kind === "course") {
+          if (!me.isAdmin) {
+            throw new Error("Forbidden");
+          }
         }
 
         return {

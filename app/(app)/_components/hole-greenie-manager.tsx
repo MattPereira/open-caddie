@@ -154,28 +154,23 @@ export function HoleGreenieManager({
   const inchesId = `hole-${hole}-greenie-inches`;
   return (
     <div>
-      <div className="mb-1 text-sm font-medium">
-        Greenie
-        {mode === "saved" ? (
-          <span className="ml-2 text-xs font-medium text-green-600 dark:text-green-400">
-            Saved
-          </span>
-        ) : null}
-      </div>
-      <div className="relative border rounded-lg p-3 flex flex-col">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => handleDelete()}
-          aria-label="Delete greenie"
-          className="absolute top-0.5 right-0.5"
-        >
-          <HugeiconsIcon icon={Cancel01Icon} aria-hidden strokeWidth={2} />
-        </Button>
+      <div className="flex flex-col">
+        <Label className="mb-2 font-medium">
+          Greenie{" "}
+          {mode === "saved" ? (
+            <span className="ml-2 text-xs font-medium text-green-600 dark:text-green-400">
+              Saved
+            </span>
+          ) : null}
+        </Label>
         <div className="flex gap-3 items-end">
-          <div className="flex flex-1 flex-col gap-2">
-            <Label htmlFor={feetId}>Feet</Label>
+          <div className="relative flex-1">
+            <Label
+              htmlFor={feetId}
+              className="absolute left-2 top-1 text-xs  tracking-wide text-muted-foreground"
+            >
+              Feet
+            </Label>
             <Input
               id={feetId}
               type="number"
@@ -185,11 +180,17 @@ export function HoleGreenieManager({
               value={feetStr}
               onChange={(e) => handleFeetChange(e.target.value)}
               onBlur={handleBlur}
-              className="h-10 text-center tabular-nums"
+              className="h-12 pt-5 text-center tabular-nums"
             />
           </div>
-          <div className="flex flex-1 flex-col gap-2">
-            <Label htmlFor={inchesId}>Inches</Label>
+
+          <div className="relative flex-1">
+            <Label
+              htmlFor={inchesId}
+              className="absolute left-2 top-1 text-xs tracking-wide text-muted-foreground"
+            >
+              Inches
+            </Label>
             <Input
               id={inchesId}
               type="number"
@@ -200,9 +201,19 @@ export function HoleGreenieManager({
               value={inchesStr}
               onChange={(e) => handleInchesChange(e.target.value)}
               onBlur={handleBlur}
-              className="h-10 text-center tabular-nums"
+              className="h-12 pt-5 text-center tabular-nums"
             />
           </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-lg"
+            onClick={() => handleDelete()}
+            aria-label="Delete greenie"
+            className="h-12"
+          >
+            <HugeiconsIcon icon={Cancel01Icon} aria-hidden strokeWidth={2} />
+          </Button>
         </div>
       </div>
     </div>

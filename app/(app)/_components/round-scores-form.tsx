@@ -220,7 +220,7 @@ export function RoundScoresForm({
       : null;
 
   return (
-    <div className="flex w-full min-w-0 flex-1 flex-col gap-4 p-0 sm:flex-none">
+    <div className="flex w-full min-w-0 flex-1 flex-col gap-5 p-0 sm:flex-none">
       <div className="flex flex-col gap-4">
         <CourseHero
           courseName={round.courseName ?? null}

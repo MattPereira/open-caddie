@@ -167,7 +167,7 @@ export function HoleScoreSlide({
   };
 
   return (
-    <div className="grid grid-cols-2 gap-5">
+    <div className="flex flex-col gap-5">
       <ScoreField
         id={`hole-${hole}-strokes`}
         label="Strokes"
@@ -180,7 +180,6 @@ export function HoleScoreSlide({
         min={1}
         optionColumns={2}
       />
-
       <ScoreField
         id={`hole-${hole}-putts`}
         label="Putts"
@@ -220,34 +219,31 @@ function ScoreField({
   activeChip,
   onChipClick,
   min,
-  optionColumns = 1,
 }: ScoreFieldProps) {
   return (
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>
-      <div
-        className={cn(
-          "grid gap-2 border p-3 rounded-lg",
-          optionColumns === 2 ? "grid-cols-2" : "grid-cols-1",
-        )}
-      >
-        <Input
-          id={id}
-          type="number"
-          inputMode="numeric"
-          min={min}
-          step={1}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onBlur={onBlur}
-          className="h-14 text-center tabular-nums"
-        />
+      <div className="grid grid-cols-4 gap-2">
+        <div className="flex flex-col items-center justify-between gap-2">
+          <Input
+            id={id}
+            type="number"
+            inputMode="numeric"
+            min={min}
+            step={1}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onBlur={onBlur}
+            className="h-12 text-center tabular-nums"
+          />
+        </div>
+
         {options.map((option) => (
           <Button
             key={option.label}
             type="button"
             variant={activeChip === option.value ? "default" : "secondary"}
-            className="h-14 tabular-nums"
+            className="h-12 tabular-nums"
             onClick={() => onChipClick(option.value)}
           >
             {option.label}

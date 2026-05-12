@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { StatTile } from "@/components/stat-tile";
 
 export type GreenieCardGreenie = {
@@ -13,13 +13,18 @@ export type GreenieCardGreenie = {
   courseName: string;
 };
 
-export function GreenieCard({ greenie }: { greenie: GreenieCardGreenie }) {
+type GreenieCardProps = {
+  greenie: GreenieCardGreenie;
+  showCourse?: boolean;
+};
+
+export function GreenieCard({ greenie, showCourse = true }: GreenieCardProps) {
   const playerName = formatGreeniePlayerName(greenie);
 
   return (
     <Card size="sm" className="gap-0 py-1.5!">
-      <CardContent className="flex items-start gap-3 px-1.5!">
-        <Avatar className="size-18 rounded-lg">
+      <CardContent className="flex gap-2 px-1.5!">
+        <Avatar className="size-16 rounded-lg">
           {greenie.image ? (
             <AvatarImage src={greenie.image} alt={playerName} />
           ) : null}
@@ -27,25 +32,29 @@ export function GreenieCard({ greenie }: { greenie: GreenieCardGreenie }) {
             {getInitials(greenie)}
           </AvatarFallback>
         </Avatar>
-        <div className="flex w-full h-full items-start justify-between gap-4">
+        <div className="flex flex-1 min-w-0 self-stretch items-start justify-between gap-4">
           <div className="flex min-w-0 flex-1 flex-col">
-            <div className="truncate text-base font-medium">{playerName}</div>
-            <span className="truncate text-xs text-muted-foreground">
-              {greenie.courseName}
-            </span>
+            <div className="truncate text-base">{playerName}</div>
+            {showCourse ? (
+              <span className="truncate text-xs text-muted-foreground">
+                {greenie.courseName}
+              </span>
+            ) : null}
           </div>
 
-          <div className=" flex flex-col items-end gap-2">
-            <StatTile
-              className="w-22"
-              label="Hole"
-              value={greenie.hole.toString()}
-            />
-            <StatTile
-              className="w-22"
-              label="Dist"
-              value={formatGreenieDistance(greenie)}
-            />
+          <div className="flex flex-col justify-end h-full">
+            <div className="flex flex-row items-end gap-2 h-full">
+              <StatTile
+                className="w-16"
+                label="Hole"
+                value={greenie.hole.toString()}
+              />
+              <StatTile
+                className="w-16"
+                label="Dist"
+                value={formatGreenieDistance(greenie)}
+              />
+            </div>
           </div>
         </div>
       </CardContent>

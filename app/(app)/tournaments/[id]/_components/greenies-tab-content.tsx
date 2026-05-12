@@ -21,6 +21,7 @@ export function GreeniesTabContent({
             <GreenieCard
               key={`${greenie.roundId}-${greenie.hole}`}
               greenie={greenie}
+              showCourse={false}
             />
           ))}
         </div>

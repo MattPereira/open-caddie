@@ -18,6 +18,8 @@ type WinnerRow = {
   playerName: string;
   initials: string;
   image: string | null;
+  position?: number;
+  primaryLabel: string;
   primaryValue: string;
   primaryValueAdjusted?: boolean;
 };
@@ -64,8 +66,8 @@ export function WinnersTabContent({
 
   return (
     <TabsContent value="winners">
-      <div className="flex flex-col gap-6">
-        <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="flex flex-col gap-6 max-w-6xl">
+        <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
           <WinnersSection
             title="Strokes"
             description="Lowest net strokes"
@@ -97,6 +99,7 @@ export function WinnersTabContent({
             <GreenieCard
               key={`greenie-${greenie.roundId}-${greenie.hole}`}
               greenie={greenie}
+              showCourse={false}
             />
           ))}
         </WinnersSection>
@@ -120,7 +123,7 @@ function WinnersSection({
   title,
   description,
   empty,
-  gridClassName = "flex flex-col gap-2",
+  gridClassName = "flex flex-col gap-3",
   children,
 }: {
   title: string;
@@ -166,32 +169,32 @@ function WinnerCard({
   playerName,
   initials,
   image,
-  subtitle,
+  nameAlign = "center",
   children,
 }: {
   playerName: string;
   initials: string;
   image: string | null;
-  subtitle?: string;
+  nameAlign?: "top" | "center";
   children: React.ReactNode;
 }) {
   return (
     <Card size="sm" className="gap-0 py-1.5!">
-      <CardContent className="flex items-start gap-3 px-1.5!">
-        <Avatar className="size-18 rounded-lg">
+      <CardContent className="flex items-start gap-2 px-1.5!">
+        <Avatar className="size-16 rounded-lg">
           {image ? <AvatarImage src={image} alt={playerName} /> : null}
           <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
         </Avatar>
-        <div className="flex h-full w-full items-center justify-between gap-4">
-          <div className="flex min-w-0 flex-1 flex-col">
-            <div className="truncate text-base font-medium">{playerName}</div>
-            {subtitle ? (
-              <span className="truncate text-xs text-muted-foreground">
-                {subtitle}
-              </span>
-            ) : null}
+        <div
+          className={cn(
+            "flex h-full w-full justify-between gap-3",
+            nameAlign === "top" ? "items-start" : "items-center",
+          )}
+        >
+          <div className="truncate text-base">{playerName}</div>
+          <div className="flex flex-col h-full justify-end">
+            <div className="flex flex-row items-end gap-2">{children}</div>
           </div>
-          <div className="flex flex-col items-end gap-2">{children}</div>
         </div>
       </CardContent>
     </Card>
@@ -204,16 +207,23 @@ function SimpleWinnerCard({ winner }: { winner: WinnerRow }) {
       playerName={winner.playerName}
       initials={winner.initials}
       image={winner.image}
+      nameAlign="top"
     >
-      <span
+      {winner.position != null ? (
+        <StatTile
+          className="w-16"
+          label="Pos"
+          value={formatOrdinal(winner.position)}
+        />
+      ) : null}
+      <StatTile
         className={cn(
-          "text-right text-lg tabular-nums",
-          winner.primaryValueAdjusted === true &&
-            "text-red-600 dark:text-red-500",
+          "w-16",
+          winner.primaryValueAdjusted && "text-red-600 dark:text-red-500",
         )}
-      >
-        {winner.primaryValue}
-      </span>
+        label={winner.primaryLabel}
+        value={winner.primaryValue}
+      />
     </WinnerCard>
   );
 }
@@ -224,11 +234,12 @@ function SkinWinnerCard({ winner }: { winner: SkinWinnerRow }) {
       playerName={winner.playerName}
       initials={winner.initials}
       image={winner.image}
+      nameAlign="top"
     >
-      <StatTile className="w-22" label="Hole" value={winner.hole.toString()} />
+      <StatTile className="w-16" label="Hole" value={winner.hole.toString()} />
       <StatTile
         className={cn(
-          "w-22",
+          "w-16",
           winner.primaryValueAdjusted && "text-red-600 dark:text-red-500",
         )}
         label="Score"
@@ -242,7 +253,7 @@ function toWinnerRows(
   rounds: TournamentRound[],
   metric: WinnerMetric,
 ): WinnerRow[] {
-  return rounds.map((round) => {
+  return rounds.map((round, index) => {
     const playerName = displayName({ ...round, email: null });
     const net = formatDecimalScore(round.netStrokes);
     const putts = formatWholeScore(round.totalPutts);
@@ -252,6 +263,8 @@ function toWinnerRows(
       playerName,
       initials: getInitials({ ...round, email: null }),
       image: round.image,
+      position: index + 1,
+      primaryLabel: metric === "strokes" ? "Net" : "Putts",
       primaryValue: metric === "strokes" ? net : putts,
     };
   });
@@ -320,6 +333,7 @@ function toSkinWinnerRows(rounds: TournamentRound[]): SkinWinnerRow[] {
       playerName,
       initials: getInitials({ ...winner.round, email: null }),
       image: winner.round.image,
+      primaryLabel: "Score",
       primaryValue: winner.adjustedStrokes.toString(),
       primaryValueAdjusted: winner.rawStrokes !== winner.adjustedStrokes,
     });
@@ -423,4 +437,19 @@ function formatWholeScore(score: number | null) {
 
 function formatDecimalScore(score: number | null) {
   return score == null ? "-" : score.toFixed(1);
+}
+
+function formatOrdinal(n: number) {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  switch (n % 10) {
+    case 1:
+      return `${n}st`;
+    case 2:
+      return `${n}nd`;
+    case 3:
+      return `${n}rd`;
+    default:
+      return `${n}th`;
+  }
 }

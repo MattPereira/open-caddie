@@ -69,7 +69,7 @@ export function RoundScoresCard({
         {showMobileTotals ? (
           <div className="grid min-w-0 grid-cols-4 gap-2">
             <StatTile label="Putts" value={row.metrics.putts.total} />
-            <StatTile label="Shots" value={row.metrics.strokes.total} />
+            <StatTile label="Strokes" value={row.metrics.strokes.total} />
             <StatTile
               label="Hcp"
               value={formatDecimalScore(row.round.tournamentHandicap)}

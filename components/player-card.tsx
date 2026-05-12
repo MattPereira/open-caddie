@@ -82,9 +82,11 @@ export function PlayerCard({
         </span>
       </div>
       {showStats ? (
-        <div className="flex flex-col shrink-0 items-center gap-1.5">
-          <StatTile label="Rounds" value={player.roundsCount ?? 0} />
-          <StatTile label="Greenies" value={player.greeniesCount ?? 0} />
+        <div className="flex flex-col h-full justify-end">
+          <div className="flex flex-row shrink-0 items-center gap-1.5">
+            <StatTile label="Rounds" value={player.roundsCount ?? 0} />
+            <StatTile label="Greenies" value={player.greeniesCount ?? 0} />
+          </div>
         </div>
       ) : null}
     </div>

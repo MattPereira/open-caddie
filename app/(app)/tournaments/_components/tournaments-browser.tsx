@@ -44,7 +44,7 @@ export function TournamentsBrowser({
   const visibleGroups = groups.filter((group) => group.tournaments.length > 0);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 max-w-6xl">
       <SearchInput
         placeholder="Search tournaments..."
         value={query}

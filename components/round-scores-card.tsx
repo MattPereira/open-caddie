@@ -36,10 +36,12 @@ export function RoundScoresCard({
   action,
   row,
   showMobileTotals,
+  visibleNine = "both",
 }: {
   action?: ReactNode;
   row: RoundScoreRow;
   showMobileTotals: boolean;
+  visibleNine?: "front" | "back" | "both";
 }) {
   const [metric, setMetric] = useState<ScoreMetric>("strokes");
   const values = row.metrics[metric];
@@ -79,26 +81,30 @@ export function RoundScoresCard({
           </div>
         ) : null}
 
-        <MobileScoreLine
-          holes={frontNine}
-          values={values.scores}
-          pars={row.pars}
-          showSymbols={metric === "strokes"}
-          totalLabel="Out"
-          totalValue={values.out}
-          roundId={row.round.id}
-          greenieHoles={greenieHoles}
-        />
-        <MobileScoreLine
-          holes={backNine}
-          values={values.scores}
-          pars={row.pars}
-          showSymbols={metric === "strokes"}
-          totalLabel="In"
-          totalValue={values.in}
-          roundId={row.round.id}
-          greenieHoles={greenieHoles}
-        />
+        {visibleNine !== "back" ? (
+          <MobileScoreLine
+            holes={frontNine}
+            values={values.scores}
+            pars={row.pars}
+            showSymbols={metric === "strokes"}
+            totalLabel="Out"
+            totalValue={values.out}
+            roundId={row.round.id}
+            greenieHoles={greenieHoles}
+          />
+        ) : null}
+        {visibleNine !== "front" ? (
+          <MobileScoreLine
+            holes={backNine}
+            values={values.scores}
+            pars={row.pars}
+            showSymbols={metric === "strokes"}
+            totalLabel="In"
+            totalValue={values.in}
+            roundId={row.round.id}
+            greenieHoles={greenieHoles}
+          />
+        ) : null}
       </CardContent>
     </Card>
   );

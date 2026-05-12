@@ -240,6 +240,11 @@ export function RoundScoresForm({
         <RoundScoresCard
           row={toRoundScoreRow(round)}
           showMobileTotals={false}
+          visibleNine={
+            currentHoleNumber != null && currentHoleNumber > 9
+              ? "back"
+              : "front"
+          }
         />
       </div>
 

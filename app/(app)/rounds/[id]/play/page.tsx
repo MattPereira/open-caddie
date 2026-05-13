@@ -53,7 +53,7 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
   };
 
   return (
-    <main className="flex min-h-[calc(100svh-3.5rem)] flex-col items-center justify-center p-5">
+    <main className="flex min-h-[calc(100svh-3.5rem)] flex-col items-center p-5">
       <section className="flex w-full max-w-md flex-1 flex-col justify-center gap-6 sm:flex-none">
         <RoundPlay
           roundId={round.id}

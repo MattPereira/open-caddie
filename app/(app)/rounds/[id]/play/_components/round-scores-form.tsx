@@ -326,12 +326,6 @@ export function RoundScoresForm({
         />
       ) : null}
 
-      {isComplete ? (
-        <Button type="button" size="xl" onClick={onShowSummary}>
-          Round summary
-        </Button>
-      ) : null}
-
       <div className="mt-auto flex flex-col gap-3 sm:mt-0">
         {abandonError ? (
           <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -389,6 +383,12 @@ export function RoundScoresForm({
           </div>
         )}
       </div>
+
+      {isComplete ? (
+        <Button type="button" size="xl" onClick={onShowSummary}>
+          Round summary
+        </Button>
+      ) : null}
     </div>
   );
 }

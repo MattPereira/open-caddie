@@ -6,7 +6,10 @@ import { GreenieCard } from "@/components/greenie-card";
 import { displayName } from "@/components/player-card";
 import { RoundCard } from "@/components/round-card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { PlayCircleIcon } from "@hugeicons/core-free-icons";
 import { getRoundById } from "@/db/queries/rounds";
 import { getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/utils";
@@ -45,11 +48,19 @@ export default async function RoundPage({ params }: RoundPageProps) {
 
   return (
     <main className="flex min-w-0 flex-1 flex-col gap-6 p-4 sm:p-8">
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         <h1 className="text-xl font-semibold tracking-normal">Round</h1>
         <div className="w-full">
           <RoundCard round={round} />
         </div>
+        {canEdit ? (
+          <Button asChild size="xl" className="w-full">
+            <Link href={`/rounds/${round.id}/play`}>
+              <HugeiconsIcon icon={PlayCircleIcon} data-icon="inline-start" />
+              Play round
+            </Link>
+          </Button>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

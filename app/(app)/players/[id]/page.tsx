@@ -86,7 +86,7 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
 
       <Card className="py-3 lg:max-w-1/2">
         <CardHeader className="px-3">
-          <CardTitle>Round averages</CardTitle>
+          <CardTitle>Averages</CardTitle>
         </CardHeader>
         <CardContent className="px-3">
           <div className="grid grid-cols-3 gap-3">

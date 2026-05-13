@@ -269,6 +269,7 @@ function toEditableRound(round: RoundScoresTableRound): EditableRound | null {
   return {
     id: round.id,
     userId: round.userId,
+    firstName: round.firstName,
     holes: round.holes,
     scores: round.scores,
     greenies: round.greenies,

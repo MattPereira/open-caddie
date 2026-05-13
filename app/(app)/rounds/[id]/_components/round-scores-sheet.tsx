@@ -13,6 +13,7 @@ import {
   type RoundScoresUpdateValues,
 } from "@/app/(app)/rounds/schema";
 import { Button } from "@/components/ui/button";
+import { HoldToConfirmButton } from "@/components/hold-to-confirm-button";
 import {
   Form,
   FormControl,
@@ -36,6 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export type EditableRound = {
   id: number;
   userId: string;
+  firstName: string | null;
   holes: {
     hole: number;
     par: number;
@@ -201,8 +203,12 @@ export function RoundScoresSheet({
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent className="flex h-dvh w-full flex-col gap-0 overflow-hidden sm:max-w-xl">
         <SheetHeader className="shrink-0">
-          <SheetTitle>Edit round</SheetTitle>
-          <SheetDescription>Update strokes and putts by hole.</SheetDescription>
+          <SheetTitle>
+            {round.firstName ? `Edit ${round.firstName}'s round` : "Edit round"}
+          </SheetTitle>
+          <SheetDescription>
+            Update strokes, putts, and greenies
+          </SheetDescription>
         </SheetHeader>
 
         <Form {...form}>
@@ -227,18 +233,24 @@ export function RoundScoresSheet({
                 >
                   <TabsList className="w-full">
                     {scoreTabs.map((tab) => (
-                      <TabsTrigger key={tab.value} value={tab.value}>
+                      <TabsTrigger
+                        key={tab.value}
+                        value={tab.value}
+                        className="text-base"
+                      >
                         {tab.label}
                       </TabsTrigger>
                     ))}
-                    <TabsTrigger value="greenies">Greenies</TabsTrigger>
+                    <TabsTrigger value="greenies" className="text-base">
+                      Greenies
+                    </TabsTrigger>
                   </TabsList>
 
                   {scoreTabs.map((tab) => (
                     <TabsContent
                       key={tab.value}
                       value={tab.value}
-                      className="flex flex-col gap-2"
+                      className="flex flex-col gap-4"
                     >
                       <div className="grid grid-cols-[4rem_1fr_1fr] gap-2 text-xs font-medium text-muted-foreground">
                         <span />
@@ -257,7 +269,7 @@ export function RoundScoresSheet({
                     </TabsContent>
                   ))}
 
-                  <TabsContent value="greenies" className="flex flex-col gap-2">
+                  <TabsContent value="greenies" className="flex flex-col gap-6">
                     {greenieRows.length === 0 ? (
                       <p className="py-8 text-center text-sm text-muted-foreground">
                         This course does not have any par 3 holes.
@@ -283,15 +295,35 @@ export function RoundScoresSheet({
                 <div className="flex flex-col gap-3">
                   <div className="text-sm font-medium">
                     You have unsaved changes!
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm font-normal text-muted-foreground">
                       Choose how to proceed:
                     </div>
                   </div>
 
-                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="xl"
+                        className="flex-1"
+                        onClick={() => setConfirmingDiscard(false)}
+                      >
+                        Keep editing
+                      </Button>
+                      <Button
+                        type="submit"
+                        size="xl"
+                        className="flex-1"
+                        disabled={isPending}
+                      >
+                        {isPending ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
                     <Button
                       type="button"
-                      variant="destructive"
+                      variant="ghost"
+                      className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => {
                         form.reset(toFormValues(round));
                         closeSheet();
@@ -299,24 +331,16 @@ export function RoundScoresSheet({
                     >
                       Discard changes
                     </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setConfirmingDiscard(false)}
-                    >
-                      Keep editing
-                    </Button>
-                    <Button type="submit" disabled={isPending}>
-                      {isPending ? "Saving..." : "Save changes"}
-                    </Button>
                   </div>
                 </div>
               ) : confirmingDelete ? (
                 <div className="flex flex-col gap-3">
-                  <p className="text-sm font-medium">
-                    Are you sure? This permanently deletes this round.
-                  </p>
+                  <div className="text-sm font-medium">
+                    Delete this round?
+                    <div className="text-sm font-normal text-muted-foreground">
+                      This permanently deletes the round and all entered scores.
+                    </div>
+                  </div>
                   {deleteError ? (
                     <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                       {deleteError}
@@ -326,6 +350,7 @@ export function RoundScoresSheet({
                     <Button
                       type="button"
                       variant="outline"
+                      size="xl"
                       disabled={isDeleting}
                       onClick={() => {
                         setConfirmingDelete(false);
@@ -334,22 +359,22 @@ export function RoundScoresSheet({
                     >
                       Cancel
                     </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
+                    <HoldToConfirmButton
+                      onConfirmAction={onDelete}
                       disabled={isDeleting}
-                      onClick={onDelete}
-                    >
-                      {isDeleting ? "Deleting..." : "Yes, delete"}
-                    </Button>
+                      idleLabel={
+                        isDeleting ? "Deleting…" : "Hold to delete round"
+                      }
+                    />
                   </div>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <Button
                     type="button"
-                    variant="destructive"
+                    variant="ghost"
                     size="icon-lg"
+                    className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     disabled={isPending}
                     onClick={() => {
                       setDeleteError(null);
@@ -363,14 +388,20 @@ export function RoundScoresSheet({
                     <Button
                       type="button"
                       variant="outline"
+                      size="xl"
                       disabled={isPending}
                       className="ml-auto"
                     >
                       Cancel
                     </Button>
                   </SheetClose>
-                  <Button type="submit" disabled={isPending}>
-                    {isPending ? "Saving..." : "Save changes"}
+                  <Button
+                    type="submit"
+                    size="xl"
+                    className="w-22"
+                    disabled={isPending}
+                  >
+                    {isPending ? "Saving..." : "Save"}
                   </Button>
                 </div>
               )}
@@ -392,8 +423,8 @@ function ScoreInputRow({
   index: number;
 }) {
   return (
-    <div className="grid grid-cols-[4rem_1fr_1fr] items-start gap-2">
-      <div className="pt-2 text-sm font-medium">Hole {hole}</div>
+    <div className="grid grid-cols-[4rem_1fr_1fr] items-center gap-2">
+      <div className="text-sm font-medium">Hole {hole}</div>
 
       <FormField
         control={control}
@@ -406,7 +437,7 @@ function ScoreInputRow({
                 type="number"
                 min={1}
                 step={1}
-                className="text-center"
+                className="h-10 text-center text-base"
                 {...field}
                 value={toNumberInputValue(field.value)}
                 onChange={(e) =>
@@ -432,7 +463,7 @@ function ScoreInputRow({
                 type="number"
                 min={0}
                 step={1}
-                className="text-center"
+                className="h-10 text-center text-base"
                 {...field}
                 value={toNumberInputValue(field.value)}
                 onChange={(e) =>
@@ -487,11 +518,12 @@ function GreenieInputRow({
 
   if (!isVisible) {
     return (
-      <div className="grid grid-cols-[3.5rem_1fr] items-center gap-2">
+      <div className="grid grid-cols-[3.5rem_1fr] items-center gap-2 mt-5">
         <div className="text-sm font-medium">Hole {greenie.hole}</div>
         <Button
           type="button"
-          size="sm"
+          variant="outline"
+          size="lg"
           onClick={() => {
             setConfirmingDelete(false);
             setAction("upsert");
@@ -510,7 +542,7 @@ function GreenieInputRow({
         <div className="text-sm font-medium">Hole {greenie.hole}</div>
         <div className="flex items-center justify-end gap-1">
           <span className="mr-auto whitespace-nowrap text-xs font-medium">
-            Delete this?
+            Delete?
           </span>
           <Button
             type="button"

@@ -17,9 +17,20 @@ import {
   ArrowRight02Icon,
 } from "@hugeicons/core-free-icons";
 
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { CourseHero } from "@/components/course-hero";
 import { HeroActionButton } from "@/components/hero-action-button";
+import { HoldToConfirmButton } from "@/components/hold-to-confirm-button";
 import {
   Carousel,
   type CarouselApi,
@@ -92,7 +103,7 @@ export function RoundScoresForm({
     () => round.greenies ?? [],
   );
 
-  const [confirming, setConfirming] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [abandonError, setAbandonError] = useState<string | null>(null);
   const [isAbandoning, startAbandonTransition] = useTransition();
 
@@ -208,6 +219,7 @@ export function RoundScoresForm({
         setAbandonError(result.error);
         return;
       }
+      setConfirmOpen(false);
       onAbandoned();
     });
   };
@@ -227,13 +239,39 @@ export function RoundScoresForm({
           courseImgUrl={courseImgUrl}
           subtitle={formatDate(date, "long")}
           action={
-            <HeroActionButton
-              type="button"
-              onClick={() => setConfirming(true)}
-              aria-label="Delete round"
-            >
-              <HugeiconsIcon icon={Delete02Icon} aria-hidden />
-            </HeroActionButton>
+            <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+              <AlertDialogTrigger asChild>
+                <HeroActionButton type="button" aria-label="Delete round">
+                  <HugeiconsIcon icon={Delete02Icon} aria-hidden />
+                </HeroActionButton>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this round?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This permanently deletes your round and all scores you have
+                    entered. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                {abandonError ? (
+                  <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {abandonError}
+                  </p>
+                ) : null}
+                <AlertDialogFooter className="gap-2 sm:gap-2">
+                  <AlertDialogCancel disabled={isAbandoning}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <HoldToConfirmButton
+                    onConfirmAction={handleAbandon}
+                    disabled={isAbandoning}
+                    idleLabel={
+                      isAbandoning ? "Deleting…" : "Hold to delete round"
+                    }
+                  />
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           }
         />
 
@@ -326,62 +364,27 @@ export function RoundScoresForm({
         />
       ) : null}
 
-      <div className="mt-auto flex flex-col gap-3 sm:mt-0">
-        {abandonError ? (
-          <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {abandonError}
-          </p>
-        ) : null}
-
-        {confirming ? (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm font-medium">
-              Are you sure? This permanently deletes this round.
-            </p>
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={isAbandoning}
-                onClick={() => setConfirming(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="destructive"
-                disabled={isAbandoning}
-                onClick={handleAbandon}
-              >
-                {isAbandoning ? "Deleting…" : "Yes, abandon"}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              className="ml-auto flex-1"
-              size="xl"
-              disabled={!canScrollPrev}
-              onClick={() => api?.scrollPrev()}
-            >
-              Back
-            </Button>
-
-            <Button
-              type="button"
-              className="flex-1"
-              size="xl"
-              disabled={!canScrollNext}
-              onClick={() => api?.scrollNext()}
-              variant="secondary"
-            >
-              Next
-            </Button>
-          </div>
-        )}
+      <div className="mt-auto flex items-center gap-2 sm:mt-0">
+        <Button
+          type="button"
+          variant="secondary"
+          className="ml-auto flex-1"
+          size="xl"
+          disabled={!canScrollPrev}
+          onClick={() => api?.scrollPrev()}
+        >
+          Back
+        </Button>
+        <Button
+          type="button"
+          className="flex-1"
+          size="xl"
+          disabled={!canScrollNext}
+          onClick={() => api?.scrollNext()}
+          variant="secondary"
+        >
+          Next
+        </Button>
       </div>
 
       {isComplete ? (

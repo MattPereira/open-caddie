@@ -5,7 +5,6 @@ import { Tick02Icon, UserAdd02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/components/ui/button";
-import { HeroActionButton } from "@/components/hero-action-button";
 import {
   Sheet,
   SheetContent,
@@ -85,9 +84,9 @@ export function AddPlayersSheet({
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
-        <HeroActionButton aria-label="Add players">
+        <Button variant="ghost" size="icon" aria-label="Add players">
           <HugeiconsIcon icon={UserAdd02Icon} />
-        </HeroActionButton>
+        </Button>
       </SheetTrigger>
       <SheetContent
         side="right"

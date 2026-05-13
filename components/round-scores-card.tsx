@@ -51,10 +51,13 @@ export function RoundScoresCard({
 
   return (
     <Card size="sm" className="min-w-0 max-w-lg gap-1.5! py-2!">
-      <CardHeader className="flex justify-between items-center">
-        <CardTitle className="min-w-0">
-          <PlayerLabel row={row} />
-        </CardTitle>
+      <CardHeader className="flex justify-between items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
+          <CardTitle className="min-w-0">
+            <PlayerLabel row={row} />
+          </CardTitle>
+          {action}
+        </div>
 
         <ScoreMetricSwitch
           id={`round-${row.round.id}-score-metric`}
@@ -62,8 +65,6 @@ export function RoundScoresCard({
           onMetricChange={setMetric}
           size="sm"
         />
-
-        {action}
       </CardHeader>
       <CardContent className="flex flex-col gap-3 px-2!">
         {showMobileTotals ? (

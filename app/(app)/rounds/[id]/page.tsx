@@ -57,7 +57,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
     <main className="flex min-w-0 flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-end gap-2">
-          <h1 className="text-xl font-semibold tracking-normal">Round</h1>
+          <h1 className="text-2xl font-semibold tracking-normal">Round</h1>
           {round.clubName ? (
             <Badge variant="outline" className="font-light">
               {round.clubName}
@@ -86,7 +86,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <section className="flex min-w-0 flex-col gap-3">
-          <div className="flex items-center justify-between lg:justify-start gap-4">
+          <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold tracking-normal">Scores</h2>
             {canEdit ? <RoundActions round={round} /> : null}
           </div>
@@ -94,7 +94,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
         </section>
 
         <section className="flex min-w-0 flex-col gap-3">
-          <div className="flex items-center justify-between lg:justify-start gap-4">
+          <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold tracking-normal">Greenies</h2>
             {canEdit ? (
               <RoundActions initialTab="greenies" round={round} />

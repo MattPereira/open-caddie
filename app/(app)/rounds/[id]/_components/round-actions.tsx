@@ -24,7 +24,12 @@ export function RoundActions({
 
   return (
     <>
-      <Button size="sm" variant="outline" onClick={() => setSheetOpen(true)}>
+      <Button
+        size="icon"
+        variant="ghost"
+        aria-label="Edit"
+        onClick={() => setSheetOpen(true)}
+      >
         <HugeiconsIcon icon={Edit03Icon} />
       </Button>
       {sheetOpen ? (

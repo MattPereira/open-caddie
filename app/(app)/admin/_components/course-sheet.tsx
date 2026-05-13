@@ -28,7 +28,6 @@ import { createCourse, deleteCourse, updateCourse } from "../actions";
 import { CourseFormSchema, type CourseFormValues } from "../schema";
 
 export type AdminCourseHole = {
-  courseId: number;
   hole: number;
   par: number;
   handicap: number;

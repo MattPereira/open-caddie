@@ -15,6 +15,8 @@ import {
   getFewestPuttsRoundsByCourseId,
   getLowestRoundsByCourseId,
 } from "@/db/queries/courses";
+import { getCurrentUser } from "@/db/queries/users";
+import { EditCourseButton } from "./_components/edit-course-button";
 
 type CoursePageProps = {
   params: Promise<{
@@ -43,17 +45,19 @@ export default async function CoursePage({ params }: CoursePageProps) {
     notFound();
   }
 
-  const [lowestRounds, fewestPuttsRounds, closestGreenies] = await Promise.all([
-    getLowestRoundsByCourseId(course.id),
-    getFewestPuttsRoundsByCourseId(course.id),
-    getClosestGreeniesByCourseId(course.id),
-  ]);
+  const [lowestRounds, fewestPuttsRounds, closestGreenies, currentUser] =
+    await Promise.all([
+      getLowestRoundsByCourseId(course.id),
+      getFewestPuttsRoundsByCourseId(course.id),
+      getClosestGreeniesByCourseId(course.id),
+      getCurrentUser(),
+    ]);
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-end gap-3">
-          <h1 className="text-xl font-semibold tracking-normal">Course</h1>
+          <h1 className="text-2xl font-semibold tracking-normal">Course</h1>
           <div className="flex flex-wrap gap-2">
             <Badge variant="outline" className="">
               Rating: {course.rating}
@@ -62,15 +66,19 @@ export default async function CoursePage({ params }: CoursePageProps) {
               Slope: {course.slope}
             </Badge>
           </div>
+          {currentUser?.isAdmin ? <EditCourseButton course={course} /> : null}
         </div>
 
         <CourseHero courseName={course.name} courseImgUrl={course.imgUrl} />
       </div>
 
-      <CourseHolesTable holes={course.holes} />
+      <div className="flex flex-col gap-3">
+        <h3 className="text-lg font-semibold">Scorecard</h3>
+        <CourseHolesTable holes={course.holes} />
+      </div>
 
       <div className="flex flex-col gap-3">
-        <h3 className="text-lg font-medium">Best Rounds</h3>
+        <h3 className="text-lg font-semibold">Best Rounds</h3>
         {lowestRounds.length > 0 ? (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {lowestRounds.map((round) => (
@@ -98,7 +106,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
       </div>
 
       <div className="flex flex-col gap-3">
-        <h3 className="text-lg font-medium">Fewest Putts</h3>
+        <h3 className="text-lg font-semibold">Fewest Putts</h3>
         {fewestPuttsRounds.length > 0 ? (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {fewestPuttsRounds.map((round) => (
@@ -126,7 +134,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
       </div>
 
       <div className="flex flex-col gap-3">
-        <h3 className="text-lg font-medium">Closest Greenies</h3>
+        <h3 className="text-lg font-semibold">Closest Greenies</h3>
         {closestGreenies.length > 0 ? (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {closestGreenies.map((greenie) => (

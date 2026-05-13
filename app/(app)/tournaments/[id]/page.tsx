@@ -49,7 +49,7 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-end gap-2">
-          <h1 className="text-xl font-semibold tracking-normal">Tournament</h1>
+          <h1 className="text-2xl font-semibold tracking-normal">Tournament</h1>
           {tournament.clubHandle ? (
             <Badge variant="outline" className="font-light">
               {tournament.clubHandle}
@@ -60,19 +60,19 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
               Season {tournament.season}
             </Badge>
           ) : null}
-        </div>
-        <CourseHero
-          courseName={tournament.courseName}
-          courseImgUrl={tournament.courseImgUrl}
-          subtitle={formatDate(tournament.date, "long")}
-          action={
-            currentUser?.isAdmin ? (
+          {currentUser?.isAdmin ? (
+            <div className="ml-auto">
               <AddPlayersSheet
                 tournamentId={tournament.id}
                 players={addablePlayers}
               />
-            ) : null
-          }
+            </div>
+          ) : null}
+        </div>
+        <CourseHero
+          courseName={tournament.courseName}
+          courseImgUrl={tournament.courseImgUrl}
+          subtitle={formatDate(tournament.date, "short")}
         />
       </div>
 

@@ -5,13 +5,13 @@ type DateFormatStyle = "short" | "standard" | "long";
 
 const dateFormatOptionsByStyle = {
   short: {
-    weekday: "short",
     month: "short",
     day: "numeric",
     year: "numeric",
     timeZone: "UTC",
   },
   standard: {
+    weekday: "short",
     month: "short",
     day: "numeric",
     year: "numeric",

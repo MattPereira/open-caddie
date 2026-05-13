@@ -2,9 +2,13 @@ import { z } from "zod";
 
 export const UserFormSchema = z.object({
   email: z.email("Must be a valid email").max(254),
-  firstName: z.string().trim().max(50),
-  lastName: z.string().trim().max(50),
-  username: z.string().trim().max(50),
+  firstName: z.string().trim().min(1, "First name is required").max(50),
+  lastName: z.string().trim().min(1, "Last name is required").max(50),
+  username: z
+    .string()
+    .trim()
+    .max(50)
+    .regex(/^[A-Za-z0-9-]*$/, "Letters, numbers, and hyphens only"),
   image: z.union([z.url("Must be a valid URL").max(2048), z.literal("")]),
   isAdmin: z.boolean(),
 });
@@ -20,9 +24,7 @@ export type UserUpdateValues = z.infer<typeof UserUpdateSchema>;
 
 export const TournamentFormSchema = z.object({
   clubHandle: z.string().trim().min(1, "Club is required"),
-  date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required"),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required"),
   season: z.union([
     z
       .number({ message: "Season must be a number" })
@@ -58,14 +60,10 @@ export const PointRulesSchema = z.object({
   eagles: intNonNeg,
   aces: intNonNeg,
   strokes: z.object({
-    positions: z
-      .array(intNonNeg)
-      .min(1, "At least one position is required"),
+    positions: z.array(intNonNeg).min(1, "At least one position is required"),
   }),
   putts: z.object({
-    positions: z
-      .array(intNonNeg)
-      .min(1, "At least one position is required"),
+    positions: z.array(intNonNeg).min(1, "At least one position is required"),
   }),
   greenies: z.object({
     tiers: z
@@ -87,10 +85,7 @@ export const ClubFormSchema = z.object({
     .trim()
     .min(1, "Handle is required")
     .max(50)
-    .regex(
-      /^[a-z0-9-]+$/,
-      "Lowercase letters, numbers, and hyphens only",
-    ),
+    .regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, and hyphens only"),
   name: z.string().trim().min(1, "Name is required").max(100),
   logo: z.union([z.url("Must be a valid URL").max(2048), z.literal("")]),
   pointRules: PointRulesSchema,
@@ -135,10 +130,7 @@ export const CourseFormSchema = z.object({
     .trim()
     .min(1, "Handle is required")
     .max(50)
-    .regex(
-      /^[a-z0-9-]+$/,
-      "Lowercase letters, numbers, and hyphens only",
-    ),
+    .regex(/^[a-z0-9-]+$/, "Lowercase letters, numbers, and hyphens only"),
   name: z.string().trim().min(1, "Name is required").max(100),
   rating: ratingString,
   slope: requiredInt("Slope", 55, 155),

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, count, eq, ne } from "drizzle-orm";
+import { and, count, eq, ne, sql } from "drizzle-orm";
 import { signIn } from "@/auth";
 import { db } from "@/db";
 import {
@@ -93,7 +93,7 @@ export async function createUser(
   const [emailTaken] = await db
     .select({ id: users.id })
     .from(users)
-    .where(eq(users.email, email))
+    .where(sql`lower(${users.email}) = ${email}`)
     .limit(1);
   if (emailTaken) {
     return { ok: false, error: "That email is already in use." };
@@ -183,7 +183,7 @@ export async function updateUser(
     const [taken] = await db
       .select({ id: users.id })
       .from(users)
-      .where(and(eq(users.email, email), ne(users.id, id)))
+      .where(and(sql`lower(${users.email}) = ${email}`, ne(users.id, id)))
       .limit(1);
     if (taken) {
       return { ok: false, error: "That email is already in use." };

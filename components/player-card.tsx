@@ -56,7 +56,7 @@ export function PlayerCard({
           : "flex w-full items-center gap-3 p-2 text-left"
       }
     >
-      <Avatar className={compact ? "size-9" : "size-18"}>
+      <Avatar className={compact ? "size-9" : "size-16"}>
         {player.image ? <AvatarImage src={player.image} alt={name} /> : null}
         <AvatarFallback>{getInitials(player)}</AvatarFallback>
       </Avatar>

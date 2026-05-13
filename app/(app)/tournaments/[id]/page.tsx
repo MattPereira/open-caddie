@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { CourseHero } from "@/components/course-hero";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   getAddablePlayersForTournament,
@@ -46,19 +47,34 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
-      <CourseHero
-        courseName={tournament.courseName}
-        courseImgUrl={tournament.courseImgUrl}
-        subtitle={formatDate(tournament.date, "long")}
-        action={
-          currentUser?.isAdmin ? (
-            <AddPlayersSheet
-              tournamentId={tournament.id}
-              players={addablePlayers}
-            />
-          ) : null
-        }
-      />
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-end gap-2">
+          <h1 className="text-xl font-semibold tracking-normal">Tournament</h1>
+          {tournament.clubHandle ? (
+            <Badge variant="outline" className="font-light">
+              {tournament.clubHandle}
+            </Badge>
+          ) : null}
+          {tournament.season ? (
+            <Badge variant="outline" className="font-light">
+              Season {tournament.season}
+            </Badge>
+          ) : null}
+        </div>
+        <CourseHero
+          courseName={tournament.courseName}
+          courseImgUrl={tournament.courseImgUrl}
+          subtitle={formatDate(tournament.date, "long")}
+          action={
+            currentUser?.isAdmin ? (
+              <AddPlayersSheet
+                tournamentId={tournament.id}
+                players={addablePlayers}
+              />
+            ) : null
+          }
+        />
+      </div>
 
       <Tabs defaultValue="rounds" className="w-full">
         <TabsList className="w-full p-1 sm:w-fit mb-3 h-10!">

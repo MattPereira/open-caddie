@@ -51,20 +51,20 @@ export default async function CoursePage({ params }: CoursePageProps) {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
-      <CourseHero courseName={course.name} courseImgUrl={course.imgUrl} />
-
-      <div className="flex flex-wrap items-center gap-3">
-        <h2 className="text-xl font-semibold tracking-normal">
-          Course Details
-        </h2>
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="outline" className="px-3 py-1 text-sm">
-            Rating: {course.rating}
-          </Badge>
-          <Badge variant="outline" className="px-3 py-1 text-sm">
-            Slope: {course.slope}
-          </Badge>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-end gap-3">
+          <h1 className="text-xl font-semibold tracking-normal">Course</h1>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline" className="">
+              Rating: {course.rating}
+            </Badge>
+            <Badge variant="outline" className="">
+              Slope: {course.slope}
+            </Badge>
+          </div>
         </div>
+
+        <CourseHero courseName={course.name} courseImgUrl={course.imgUrl} />
       </div>
 
       <CourseHolesTable holes={course.holes} />

@@ -37,9 +37,9 @@ export function CourseHero({
       />
 
       <div className="absolute inset-x-0 top-0 flex flex-col gap-0.5 p-3 sm:p-4 lg:p-5">
-        <h1 className="text-2xl font-semibold tracking-normal text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:text-3xl">
+        <h2 className="text-2xl font-semibold tracking-normal text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:text-3xl">
           {courseName ?? "Course to be announced"}
-        </h1>
+        </h2>
         {subtitle ? (
           <p className="text-sm font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
             {subtitle}

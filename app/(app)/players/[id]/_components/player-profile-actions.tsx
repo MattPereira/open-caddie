@@ -27,7 +27,7 @@ export function PlayerProfileActions({
 
   return (
     <>
-      <Button onClick={() => setSheetOpen(true)}>
+      <Button variant="outline" onClick={() => setSheetOpen(true)}>
         <HugeiconsIcon icon={Edit03Icon} data-icon="inline-start" />
       </Button>
       <UserSheet

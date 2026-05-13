@@ -2,14 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { PlayCircleIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+
+import { CourseHero } from "@/components/course-hero";
 import { GreenieCard } from "@/components/greenie-card";
 import { displayName } from "@/components/player-card";
-import { RoundCard } from "@/components/round-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { PlayCircleIcon } from "@hugeicons/core-free-icons";
 import { getRoundById } from "@/db/queries/rounds";
 import { getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/utils";
@@ -45,15 +46,35 @@ export default async function RoundPage({ params }: RoundPageProps) {
 
   if (!round) notFound();
   const canEdit = currentUser?.isAdmin || currentUser?.id === round.userId;
+  const hasAllScores =
+    round.holes.length > 0 &&
+    round.holes.every((hole) => {
+      const score = round.scores.find((s) => s.hole === hole.hole);
+      return score?.strokes != null && score?.putts != null;
+    });
 
   return (
     <main className="flex min-w-0 flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex flex-col gap-3">
-        <h1 className="text-xl font-semibold tracking-normal">Round</h1>
-        <div className="w-full">
-          <RoundCard round={round} />
+        <div className="flex flex-wrap items-end gap-2">
+          <h1 className="text-xl font-semibold tracking-normal">Round</h1>
+          {round.clubName ? (
+            <Badge variant="outline" className="font-light">
+              {round.clubName}
+            </Badge>
+          ) : null}
+          {round.tournamentId && round.tournamentSeason ? (
+            <Badge variant="outline" className="font-light">
+              Season {round.tournamentSeason}
+            </Badge>
+          ) : null}
         </div>
-        {canEdit ? (
+        <CourseHero
+          courseName={round.courseName}
+          courseImgUrl={round.courseImgUrl}
+          subtitle={formatDate(round.date, "long")}
+        />
+        {canEdit && !hasAllScores ? (
           <Button asChild size="xl" className="w-full">
             <Link href={`/rounds/${round.id}/play`}>
               <HugeiconsIcon icon={PlayCircleIcon} data-icon="inline-start" />
@@ -88,7 +109,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
               </CardContent>
             </Card>
           ) : (
-            <div className="w-full">
+            <div className="flex w-full flex-col gap-3">
               {round.greenies.map((greenie) => (
                 <GreenieCard
                   key={`${greenie.roundId}-${greenie.hole}`}
@@ -129,19 +150,6 @@ function HandicapSection({ round }: { round: Round }) {
   return (
     <section className="flex min-w-0 flex-col gap-3">
       <h2 className="text-lg font-semibold tracking-normal">Handicap</h2>
-
-      <div className="flex gap-2">
-        <StatTile
-          className="w-fit"
-          label="Handicap"
-          value={formatNullableDecimal(handicap.tournamentHandicap)}
-        />
-        <StatTile
-          className="w-fit"
-          label="Index"
-          value={formatNullableDecimal(handicap.playerIndex)}
-        />
-      </div>
 
       {handicap.priorRounds.length === 0 ? (
         <Card size="sm">
@@ -214,10 +222,6 @@ function PriorHandicapRoundCard({
       </CardContent>
     </Card>
   );
-}
-
-function formatNullableDecimal(value: number | null) {
-  return value == null ? "-" : formatDecimal(value);
 }
 
 function formatDecimal(value: number) {

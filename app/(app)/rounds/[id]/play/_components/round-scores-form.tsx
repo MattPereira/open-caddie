@@ -27,6 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CourseHero } from "@/components/course-hero";
 import { HeroActionButton } from "@/components/hero-action-button";
@@ -64,6 +65,8 @@ type RoundScoresFormProps = {
   round: RoundScoresTableRound;
   courseImgUrl: string | null;
   date: Date | string;
+  clubName?: string | null;
+  tournamentSeason?: number | null;
   holes: { hole: number; par: number }[];
   scores: ScoreEntry[];
   setScores: Dispatch<SetStateAction<ScoreEntry[]>>;
@@ -76,6 +79,8 @@ export function RoundScoresForm({
   round,
   courseImgUrl,
   date,
+  clubName,
+  tournamentSeason,
   holes,
   scores,
   setScores,
@@ -233,7 +238,20 @@ export function RoundScoresForm({
 
   return (
     <div className="flex w-full min-w-0 flex-1 flex-col gap-5 p-0 sm:flex-none">
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-end gap-2">
+          <h1 className="text-xl font-semibold tracking-normal">Round</h1>
+          {clubName ? (
+            <Badge variant="outline" className="font-light">
+              {clubName}
+            </Badge>
+          ) : null}
+          {round.tournamentId && tournamentSeason ? (
+            <Badge variant="outline" className="font-light">
+              Season {tournamentSeason}
+            </Badge>
+          ) : null}
+        </div>
         <CourseHero
           courseName={round.courseName ?? null}
           courseImgUrl={courseImgUrl}
@@ -388,7 +406,7 @@ export function RoundScoresForm({
       </div>
 
       {isComplete ? (
-        <Button type="button" size="xl" onClick={onShowSummary}>
+        <Button type="button" size="2xl" onClick={onShowSummary}>
           Round summary
         </Button>
       ) : null}

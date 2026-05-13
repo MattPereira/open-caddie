@@ -37,7 +37,7 @@ export default async function Home({ searchParams }: HomePageProps) {
         </h1>
         <div className="flex w-full flex-col gap-3">
           <div className="flex w-full flex-col gap-1.5">
-            <Button asChild size="xl" className="w-full">
+            <Button asChild size="2xl" className="w-full">
               <Link
                 href={
                   activeRound

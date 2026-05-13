@@ -23,6 +23,12 @@ const nextConfig: NextConfig = {
         hostname: "matt-pereira.vercel.app",
         pathname: "/**",
       },
+      // for default images when user creates account with google sign in?
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+        pathname: "/**",
+      },
     ],
   },
 };

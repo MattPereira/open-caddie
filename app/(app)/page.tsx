@@ -4,16 +4,22 @@ import { InputScoresFlowLoader } from "./_components/input-scores-flow-loader";
 import { LoginPageForm } from "./_components/login-page-form";
 
 type HomePageProps = {
-  searchParams: Promise<{ action?: string }>;
+  searchParams: Promise<{ action?: string; error?: string; email?: string }>;
 };
 
 export default async function Home({ searchParams }: HomePageProps) {
   const session = await auth();
+  const { action, error, email } = await searchParams;
 
-  if (!session?.user?.id) return <LoginPageForm />;
+  if (!session?.user?.id)
+    return (
+      <LoginPageForm
+        hasAuthError={error !== undefined}
+        rejectedEmail={email}
+      />
+    );
 
   const userId = session.user.id;
-  const { action } = await searchParams;
   const showScoringFlow = action === "new";
 
   return (

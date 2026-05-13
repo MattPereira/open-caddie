@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
 import { DrizzleAdapter } from "@auth/drizzle-adapter";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { accounts, sessions, users, verificationTokens } from "@/db/schema";
 
@@ -23,8 +24,20 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
   ],
   pages: {
     signIn: "/",
+    error: "/",
   },
   callbacks: {
+    async signIn({ user }) {
+      const email = user.email?.trim().toLowerCase();
+      if (!email) return "/?error=AccessDenied";
+      const [existing] = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+      if (existing) return true;
+      return `/?error=AccessDenied&email=${encodeURIComponent(email)}`;
+    },
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id!;

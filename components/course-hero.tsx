@@ -15,7 +15,7 @@ export function CourseHero({
   action?: ReactNode;
 }) {
   return (
-    <div className="relative aspect-[21/9] w-full overflow-hidden rounded-xl bg-zinc-900 sm:aspect-[3/1] lg:aspect-[4/1] xl:aspect-[5/1]">
+    <div className="relative aspect-[21/9] w-full overflow-hidden rounded-xl bg-zinc-900 sm:aspect-[3/1] lg:aspect-[4/1] xl:aspect-[5/1] 2xl:aspect-[7/1]">
       {courseImgUrl ? (
         <Image
           src={courseImgUrl}
@@ -23,7 +23,7 @@ export function CourseHero({
           fill
           sizes="100vw"
           priority
-          className="object-cover"
+          className="object-cover object-bottom"
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-white/50">
@@ -33,7 +33,7 @@ export function CourseHero({
 
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-black/45"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/50 via-black/15 to-black/30"
       />
 
       <div className="absolute inset-x-0 top-0 flex flex-col gap-0.5 p-3 sm:p-4 lg:p-5">

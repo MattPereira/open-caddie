@@ -1,8 +1,7 @@
 import { displayName, getInitials } from "@/components/player-card";
 import { GreenieCard } from "@/components/greenie-card";
 import { StatTile } from "@/components/stat-tile";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
+import { WinnerCard } from "@/components/winner-card";
 import { TabsContent } from "@/components/ui/tabs";
 import type { getTournamentById } from "@/db/queries/tournaments";
 import { cn } from "@/lib/utils";
@@ -99,7 +98,6 @@ export function WinnersTabContent({
             <GreenieCard
               key={`greenie-${greenie.roundId}-${greenie.hole}`}
               greenie={greenie}
-              showCourse={false}
             />
           ))}
         </WinnersSection>
@@ -162,42 +160,6 @@ function SectionHeading({
       <h3 className="text-lg font-medium">{title}</h3>
       <div className="text-sm text-muted-foreground">{description}</div>
     </div>
-  );
-}
-
-function WinnerCard({
-  playerName,
-  initials,
-  image,
-  nameAlign = "center",
-  children,
-}: {
-  playerName: string;
-  initials: string;
-  image: string | null;
-  nameAlign?: "top" | "center";
-  children: React.ReactNode;
-}) {
-  return (
-    <Card size="sm" className="gap-0 py-1.5!">
-      <CardContent className="flex items-start gap-2 px-1.5!">
-        <Avatar className="size-16 rounded-lg">
-          {image ? <AvatarImage src={image} alt={playerName} /> : null}
-          <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
-        </Avatar>
-        <div
-          className={cn(
-            "flex h-full w-full justify-between gap-3",
-            nameAlign === "top" ? "items-start" : "items-center",
-          )}
-        >
-          <div className="truncate text-base">{playerName}</div>
-          <div className="flex flex-col h-full justify-end">
-            <div className="flex flex-row items-end gap-2">{children}</div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

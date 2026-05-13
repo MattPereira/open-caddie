@@ -596,7 +596,7 @@ function GreenieInputRow({
         )}
       />
 
-      <div className="flex items-center gap-1 pt-[1.625rem]">
+      <div className="flex items-center gap-1 pt-6.5">
         <Button
           type="button"
           variant="destructive"

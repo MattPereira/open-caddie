@@ -10,15 +10,14 @@ export type GreenieCardGreenie = {
   lastName: string | null;
   username: string | null;
   image: string | null;
-  courseName: string;
 };
 
 type GreenieCardProps = {
   greenie: GreenieCardGreenie;
-  showCourse?: boolean;
+  details?: string;
 };
 
-export function GreenieCard({ greenie, showCourse = true }: GreenieCardProps) {
+export function GreenieCard({ greenie, details }: GreenieCardProps) {
   const playerName = formatGreeniePlayerName(greenie);
 
   return (
@@ -35,9 +34,9 @@ export function GreenieCard({ greenie, showCourse = true }: GreenieCardProps) {
         <div className="flex flex-1 min-w-0 self-stretch items-start justify-between gap-4">
           <div className="flex min-w-0 flex-1 flex-col">
             <div className="truncate text-base">{playerName}</div>
-            {showCourse ? (
+            {details ? (
               <span className="truncate text-xs text-muted-foreground">
-                {greenie.courseName}
+                {details}
               </span>
             ) : null}
           </div>

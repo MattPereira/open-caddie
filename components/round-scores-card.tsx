@@ -233,34 +233,6 @@ function MobileScoreLine({
   );
 }
 
-function MobileTotal({
-  label,
-  value,
-  format = "score",
-  strong,
-}: {
-  label: string;
-  value: number | null;
-  format?: "score" | "decimal";
-  strong?: boolean;
-}) {
-  return (
-    <div className="flex min-w-0 flex-col gap-0.5 rounded-lg bg-muted px-2 py-2">
-      <span className="truncate text-xs font-medium text-muted-foreground">
-        {label}
-      </span>
-      <span
-        className={cn(
-          "text-right text-sm tabular-nums text-card-foreground",
-          strong ? "font-semibold" : "font-medium",
-        )}
-      >
-        {format === "decimal" ? formatDecimalScore(value) : formatScore(value)}
-      </span>
-    </div>
-  );
-}
-
 export function HoleScore({
   score,
   par,

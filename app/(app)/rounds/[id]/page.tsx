@@ -82,6 +82,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
                 <GreenieCard
                   key={`${greenie.roundId}-${greenie.hole}`}
                   greenie={greenie}
+                  details={greenie.courseName}
                 />
               ))}
             </div>

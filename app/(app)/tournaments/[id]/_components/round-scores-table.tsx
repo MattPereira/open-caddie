@@ -96,7 +96,7 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
         <Table className="w-max">
           <TableHeader>
             <TableRow>
-              <TableHead className="sticky left-0 z-10 min-w-48 bg-card">
+              <TableHead className="sticky left-0 z-10 min-w-32 bg-card">
                 Player
               </TableHead>
               {holes.map((hole) => (
@@ -111,11 +111,11 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
                   {hole}
                 </TableHead>
               ))}
-              <TableHead className="w-12 text-center">Out</TableHead>
-              <TableHead className="w-12 text-center">In</TableHead>
-              <TableHead className="w-14 text-center">Tot</TableHead>
-              <TableHead className="w-16 text-center">Hcp</TableHead>
-              <TableHead className="w-14 text-center">Net</TableHead>
+              <TableHead className="w-10 text-center">Out</TableHead>
+              <TableHead className="w-10 text-center">In</TableHead>
+              <TableHead className="w-12 text-center">Tot</TableHead>
+              <TableHead className="w-12 text-center">Hcp</TableHead>
+              <TableHead className="w-12 text-center">Net</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

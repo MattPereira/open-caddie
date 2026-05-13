@@ -7,11 +7,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Add01Icon, Delete02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import { deleteRound, updateRoundScores } from "@/app/(app)/actions";
+import { deleteRound, updateRoundScores } from "@/app/(app)/rounds/actions";
 import {
   RoundScoresUpdateSchema,
   type RoundScoresUpdateValues,
-} from "@/app/(app)/schema";
+} from "@/app/(app)/rounds/schema";
 import { Button } from "@/components/ui/button";
 import {
   Form,

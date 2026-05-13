@@ -15,7 +15,11 @@ export async function HomeActions({ userId }: { userId: string }) {
   return (
     <div className="grid grid-cols-2 items-center gap-3 md:grid-cols-2">
       <Button asChild variant="outline" size="xl" className="w-full">
-        <Link href="/?action=new">
+        <Link
+          href={
+            activeRound ? `/rounds/${activeRound.roundId}/play` : "/rounds/new"
+          }
+        >
           {activeRound ? (
             <>
               <HugeiconsIcon icon={PlayCircleIcon} data-icon="inline-start" />

@@ -32,7 +32,7 @@ import {
   deleteRoundGreenie,
   upsertRoundGreenie,
   upsertRoundScore,
-} from "../actions";
+} from "../../../actions";
 import { HoleScoreSlide } from "./hole-score-slide";
 import {
   RoundScoresCard,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -42,8 +43,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CourseCard } from "@/components/course-card";
 import { TournamentCard } from "@/components/tournament-card";
 import { cn, formatDate, toIsoDate, fromIsoDate } from "@/lib/utils";
-import { createRound } from "../actions";
-import { RoundConfigSchema, type RoundConfigValues } from "../schema";
+import { createRound } from "../../actions";
+import { RoundConfigSchema, type RoundConfigValues } from "../../schema";
 
 export type CourseOption = {
   handle: string;
@@ -68,8 +69,6 @@ type RoundSetupFormProps = {
   courses: CourseOption[];
   tournaments: TournamentOption[];
   defaultDateIso: string;
-  onCreated: (result: { roundId: number; values: RoundConfigValues }) => void;
-  onCancel: () => void;
 };
 
 type RoundMode = "tournament" | "casual";
@@ -78,9 +77,8 @@ export function RoundSetupForm({
   courses,
   tournaments,
   defaultDateIso,
-  onCreated,
-  onCancel,
 }: RoundSetupFormProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [roundMode, setRoundMode] = useState<RoundMode>("tournament");
   const [courseOpen, setCourseOpen] = useState(false);
@@ -161,7 +159,7 @@ export function RoundSetupForm({
         });
         return;
       }
-      onCreated({ roundId: result.roundId, values });
+      router.push(`/rounds/${result.roundId}/play`);
     });
   };
 
@@ -423,7 +421,7 @@ export function RoundSetupForm({
             type="button"
             variant="secondary"
             disabled={isPending}
-            onClick={onCancel}
+            onClick={() => router.push("/")}
             size="xl"
           >
             Cancel

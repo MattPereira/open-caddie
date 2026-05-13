@@ -19,7 +19,7 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
       allowDangerousEmailAccountLinking: true,
     }),
     Resend({
-      from: "auth@login.ccgc.app",
+      from: "auth@login.opencaddie.app",
     }),
   ],
   pages: {

@@ -231,6 +231,7 @@ export async function updateUser(
 
   revalidatePath("/admin");
   revalidatePath("/players");
+  revalidatePath("/standings");
   revalidatePath(`/players/${id}`);
   return { ok: true };
 }
@@ -312,6 +313,7 @@ export async function createTournament(
   }
 
   revalidatePath("/admin");
+  revalidatePath("/standings");
   return { ok: true };
 }
 
@@ -362,6 +364,7 @@ export async function updateTournament(
   }
 
   revalidatePath("/admin");
+  revalidatePath("/standings");
   return { ok: true };
 }
 
@@ -391,6 +394,7 @@ export async function createClub(
   }
 
   revalidatePath("/admin");
+  revalidatePath("/standings");
   return { ok: true };
 }
 
@@ -422,6 +426,7 @@ export async function updateClub(
     .where(eq(clubs.handle, handle));
 
   revalidatePath("/admin");
+  revalidatePath("/standings");
   return { ok: true };
 }
 
@@ -442,6 +447,7 @@ export async function deleteTournament(id: number): Promise<ActionResult> {
 
   await db.delete(tournaments).where(eq(tournaments.id, id));
   revalidatePath("/admin");
+  revalidatePath("/standings");
   return { ok: true };
 }
 
@@ -485,6 +491,7 @@ export async function createCourse(
   }
 
   revalidatePath("/admin");
+  revalidatePath("/standings");
   return { ok: true };
 }
 
@@ -542,6 +549,7 @@ export async function updateCourse(
   }
 
   revalidatePath("/admin");
+  revalidatePath("/standings");
   return { ok: true };
 }
 
@@ -585,5 +593,6 @@ export async function deleteCourse(id: number): Promise<ActionResult> {
   }
 
   revalidatePath("/admin");
+  revalidatePath("/standings");
   return { ok: true };
 }

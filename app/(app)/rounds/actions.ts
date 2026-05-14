@@ -80,6 +80,7 @@ export async function createRound(
       .returning({ id: rounds.id });
 
     revalidatePath("/");
+    revalidatePath("/standings");
     return { ok: true, roundId: created.id };
   } catch (e: unknown) {
     const code =
@@ -131,6 +132,7 @@ export async function deleteRound(
 
   revalidatePath("/");
   revalidatePath("/greenies");
+  revalidatePath("/standings");
   revalidatePath(`/players/${result[0].userId}`);
   revalidatePath(`/rounds/${roundId}`);
   if (result[0].tournamentId != null) {
@@ -155,7 +157,11 @@ export async function upsertRoundScore(
   const { roundId, hole, strokes, putts } = parsed.data;
 
   const [owned] = await db
-    .select({ id: rounds.id })
+    .select({
+      id: rounds.id,
+      userId: rounds.userId,
+      tournamentId: rounds.tournamentId,
+    })
     .from(rounds)
     .where(and(eq(rounds.id, roundId), eq(rounds.userId, session.user.id)))
     .limit(1);
@@ -171,6 +177,13 @@ export async function upsertRoundScore(
         target: [roundScores.roundId, roundScores.hole],
         set: { strokes, putts },
       });
+    revalidatePath("/");
+    revalidatePath("/standings");
+    revalidatePath(`/players/${owned.userId}`);
+    revalidatePath(`/rounds/${roundId}`);
+    if (owned.tournamentId != null) {
+      revalidatePath(`/tournaments/${owned.tournamentId}`);
+    }
     return { ok: true };
   } catch (e: unknown) {
     const code =
@@ -256,6 +269,7 @@ export async function upsertRoundGreenie(
 
   revalidatePath("/");
   revalidatePath("/greenies");
+  revalidatePath("/standings");
   revalidatePath(`/players/${owned.userId}`);
   revalidatePath(`/rounds/${roundId}`);
   if (owned.tournamentId != null) {
@@ -298,6 +312,7 @@ export async function deleteRoundGreenie(
 
   revalidatePath("/");
   revalidatePath("/greenies");
+  revalidatePath("/standings");
   revalidatePath(`/players/${owned.userId}`);
   revalidatePath(`/rounds/${roundId}`);
   if (owned.tournamentId != null) {
@@ -439,6 +454,7 @@ export async function updateRoundScores(
 
   revalidatePath("/");
   revalidatePath("/greenies");
+  revalidatePath("/standings");
   revalidatePath(`/players/${owned.userId}`);
   revalidatePath(`/rounds/${roundId}`);
   if (owned.tournamentId != null) {

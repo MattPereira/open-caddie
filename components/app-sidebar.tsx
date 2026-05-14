@@ -69,7 +69,7 @@ export function AppSidebar({ user }: { user: SidebarUser | null }) {
         <Link
           href="/"
           onNavigate={closeMobileSidebar}
-          className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xl font-semibold outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+          className="flex items-center gap-2 rounded-md px-2 py-1.5 font-brand text-[1.625rem] font-normal outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
         >
           Open Caddie
         </Link>

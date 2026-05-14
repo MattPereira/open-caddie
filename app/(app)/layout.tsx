@@ -28,7 +28,10 @@ export default async function AppLayout({
       <SidebarInset>
         <header className="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b px-3">
           <SidebarTrigger className="size-8 justify-self-start" />
-          <Link href="/" className="justify-self-center text-lg font-semibold">
+          <Link
+            href="/"
+            className="justify-self-center font-brand text-[1.625rem] font-normal"
+          >
             Open Caddie
           </Link>
           <ThemeToggle className="size-8 justify-self-end" />

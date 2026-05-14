@@ -27,9 +27,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { CourseHero } from "@/components/course-hero";
 import { HoldToConfirmButton } from "@/components/hold-to-confirm-button";
 import {
   Carousel,
@@ -62,10 +60,7 @@ type GreenieEntry = GreenieValue & { hole: number };
 type RoundScoresFormProps = {
   roundId: number;
   round: RoundScoresTableRound;
-  courseImgUrl: string | null;
   date: Date | string;
-  clubName?: string | null;
-  tournamentSeason?: number | null;
   holes: { hole: number; par: number }[];
   scores: ScoreEntry[];
   setScores: Dispatch<SetStateAction<ScoreEntry[]>>;
@@ -76,10 +71,7 @@ type RoundScoresFormProps = {
 export function RoundScoresForm({
   roundId,
   round,
-  courseImgUrl,
   date,
-  clubName,
-  tournamentSeason,
   holes,
   scores,
   setScores,
@@ -236,74 +228,64 @@ export function RoundScoresForm({
       : null;
 
   return (
-    <div className="flex w-full min-w-0 flex-1 flex-col gap-5 p-0 sm:flex-none">
+    <div className="flex w-full min-w-0 flex-1 flex-col gap-6 p-0 sm:flex-none">
       <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-end gap-2">
-          <h1 className="text-2xl font-semibold tracking-normal">Round</h1>
-          {clubName ? (
-            <Badge variant="outline" className="font-light">
-              {clubName}
-            </Badge>
-          ) : null}
-          {round.tournamentId && tournamentSeason ? (
-            <Badge variant="outline" className="font-light">
-              Season {tournamentSeason}
-            </Badge>
-          ) : null}
-          <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-            <AlertDialogTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Delete round"
-                className="ml-auto"
-              >
-                <HugeiconsIcon icon={Delete02Icon} aria-hidden />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete this round?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This permanently deletes your round and all scores you have
-                  entered. This cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              {abandonError ? (
-                <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {abandonError}
-                </p>
-              ) : null}
-              <AlertDialogFooter className="gap-2 sm:gap-2">
-                <AlertDialogCancel disabled={isAbandoning}>
-                  Cancel
-                </AlertDialogCancel>
-                <HoldToConfirmButton
-                  onConfirmAction={handleAbandon}
-                  disabled={isAbandoning}
-                  idleLabel={
-                    isAbandoning ? "Deleting…" : "Hold to delete round"
-                  }
-                />
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="text-2xl font-semibold tracking-normal">Round</h1>
+            <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Delete round"
+                  className="ml-auto"
+                >
+                  <HugeiconsIcon icon={Delete02Icon} aria-hidden />
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this round?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This permanently deletes your round and all scores you have
+                    entered. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                {abandonError ? (
+                  <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                    {abandonError}
+                  </p>
+                ) : null}
+                <AlertDialogFooter className="gap-2 sm:gap-2">
+                  <AlertDialogCancel disabled={isAbandoning}>
+                    Cancel
+                  </AlertDialogCancel>
+                  <HoldToConfirmButton
+                    onConfirmAction={handleAbandon}
+                    disabled={isAbandoning}
+                    idleLabel={
+                      isAbandoning ? "Deleting…" : "Hold to delete round"
+                    }
+                  />
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {[round.courseName, formatDate(date, "short")]
+              .filter(Boolean)
+              .join(" · ")}
+          </p>
         </div>
-        <CourseHero
-          courseName={round.courseName ?? null}
-          courseImgUrl={courseImgUrl}
-          subtitle={formatDate(date, "short")}
-        />
 
         <RoundScoresCard
           row={toRoundScoreRow(round)}
           showMobileTotals={false}
-          visibleNine={
-            currentHoleNumber != null && currentHoleNumber > 9
-              ? "back"
-              : "front"
-          }
+          // visibleNine={
+          //   currentHoleNumber != null && currentHoleNumber > 9 ? "back" : "front"
+          // }
         />
       </div>
 

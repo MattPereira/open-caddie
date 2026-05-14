@@ -14,20 +14,14 @@ import {
 type RoundPlayProps = {
   roundId: number;
   tableRound: RoundScoresTableRound;
-  courseImgUrl: string | null;
   date: Date | string;
-  clubName?: string | null;
-  tournamentSeason?: number | null;
   holes: { hole: number; par: number }[];
 };
 
 export function RoundPlay({
   roundId,
   tableRound,
-  courseImgUrl,
   date,
-  clubName,
-  tournamentSeason,
   holes,
 }: RoundPlayProps) {
   const router = useRouter();
@@ -45,10 +39,7 @@ export function RoundPlay({
     <RoundScoresForm
       roundId={roundId}
       round={liveRound}
-      courseImgUrl={courseImgUrl}
       date={date}
-      clubName={clubName}
-      tournamentSeason={tournamentSeason}
       holes={holes}
       scores={scores}
       setScores={setScores}

@@ -2,9 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Cancel01Icon } from "@hugeicons/core-free-icons";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -154,69 +151,44 @@ export function HoleGreenieManager({
   const feetId = `hole-${hole}-greenie-feet`;
   const inchesId = `hole-${hole}-greenie-inches`;
   return (
-    <div>
-      <div className="flex flex-col">
-        <Label className="mb-2 font-medium">
-          Greenie{" "}
-          {mode === "saved" ? (
-            <span className="ml-2 text-xs font-medium text-green-600 dark:text-green-400">
-              Saved
-            </span>
-          ) : null}
-        </Label>
-        <div className="flex gap-3 items-end">
-          <div className="relative flex-1">
-            <Label
-              htmlFor={feetId}
-              className="absolute left-2 top-1 text-xs  tracking-wide text-muted-foreground"
-            >
-              Feet
-            </Label>
-            <Input
-              id={feetId}
-              type="number"
-              inputMode="numeric"
-              min={0}
-              step={1}
-              value={feetStr}
-              onChange={(e) => handleFeetChange(e.target.value)}
-              onBlur={handleBlur}
-              className="h-12 pt-5 text-center tabular-nums"
-            />
-          </div>
-
-          <div className="relative flex-1">
-            <Label
-              htmlFor={inchesId}
-              className="absolute left-2 top-1 text-xs tracking-wide text-muted-foreground"
-            >
-              Inches
-            </Label>
-            <Input
-              id={inchesId}
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={11}
-              step={1}
-              value={inchesStr}
-              onChange={(e) => handleInchesChange(e.target.value)}
-              onBlur={handleBlur}
-              className="h-12 pt-5 text-center tabular-nums"
-            />
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-lg"
-            onClick={() => handleDelete()}
-            aria-label="Delete greenie"
-            className="h-12"
-          >
-            <HugeiconsIcon icon={Cancel01Icon} aria-hidden strokeWidth={2} />
-          </Button>
-        </div>
+    <div className="flex flex-col gap-2">
+      <Label htmlFor={feetId}>Greenie</Label>
+      <div className="flex gap-3 items-end">
+        <Input
+          id={feetId}
+          type="number"
+          inputMode="numeric"
+          min={0}
+          step={1}
+          placeholder="Feet"
+          value={feetStr}
+          onChange={(e) => handleFeetChange(e.target.value)}
+          onBlur={handleBlur}
+          className="h-12 flex-1 text-center tabular-nums"
+        />
+        <Input
+          id={inchesId}
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={11}
+          step={1}
+          placeholder="Inches"
+          value={inchesStr}
+          onChange={(e) => handleInchesChange(e.target.value)}
+          onBlur={handleBlur}
+          className="h-12 flex-1 text-center tabular-nums"
+        />
       </div>
+      <Button
+        type="button"
+        variant="link"
+        size="sm"
+        onClick={() => handleDelete()}
+        className="ml-auto h-auto p-0 text-xs font-normal text-muted-foreground"
+      >
+        Remove
+      </Button>
     </div>
   );
 }

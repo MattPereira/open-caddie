@@ -58,10 +58,7 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
         <RoundPlay
           roundId={round.id}
           tableRound={tableRound}
-          courseImgUrl={round.courseImgUrl}
           date={round.date}
-          clubName={round.clubName}
-          tournamentSeason={round.tournamentSeason}
           holes={tableRound.holes}
         />
       </section>

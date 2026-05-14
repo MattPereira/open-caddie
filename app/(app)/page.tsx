@@ -2,7 +2,7 @@ import Link from "next/link";
 import {
   ChampionIcon,
   GolfBallIcon,
-  GolfBatIcon,
+  UserCircleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -37,7 +37,7 @@ export default async function Home({ searchParams }: HomePageProps) {
         </h1>
         <div className="flex w-full flex-col gap-3">
           <div className="flex w-full flex-col gap-1.5">
-            <Button asChild size="2xl" className="w-full">
+            <Button asChild size="2xl" className="w-full rounded-full">
               <Link
                 href={
                   activeRound
@@ -56,16 +56,26 @@ export default async function Home({ searchParams }: HomePageProps) {
             ) : null}
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Button asChild variant="outline" size="xl" className="w-full">
+            <Button
+              asChild
+              variant="outline"
+              size="xl"
+              className="w-full rounded-full"
+            >
               <Link href={`/players/${userId}`}>
-                <HugeiconsIcon icon={GolfBatIcon} data-icon="inline-start" />
-                Past rounds
+                <HugeiconsIcon icon={UserCircleIcon} data-icon="inline-start" />
+                Profile
               </Link>
             </Button>
-            <Button asChild variant="outline" size="xl" className="w-full">
+            <Button
+              asChild
+              variant="outline"
+              size="xl"
+              className="w-full rounded-full"
+            >
               <Link href="/standings">
                 <HugeiconsIcon icon={ChampionIcon} data-icon="inline-start" />
-                Champions
+                Standings
               </Link>
             </Button>
           </div>

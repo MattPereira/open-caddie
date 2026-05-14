@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { AppSidebar } from "@/components/app-sidebar";
+import { HeaderWordmark } from "@/components/header-wordmark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   SidebarInset,
@@ -7,7 +8,6 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { getCurrentUser } from "@/db/queries/users";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -28,12 +28,7 @@ export default async function AppLayout({
       <SidebarInset>
         <header className="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b px-3">
           <SidebarTrigger className="size-8 justify-self-start" />
-          <Link
-            href="/"
-            className="justify-self-center font-brand text-[1.625rem] font-normal"
-          >
-            Open Caddie
-          </Link>
+          <HeaderWordmark isAuthed={!!session?.user?.id} />
           <ThemeToggle className="size-8 justify-self-end" />
         </header>
         <div className="flex flex-1 flex-col">{children}</div>

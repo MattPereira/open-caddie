@@ -67,7 +67,7 @@ export function LoginForm({
       <form onSubmit={form.handleSubmit(handleSubmit)}>
         <FieldGroup>
           <div className="flex flex-col items-center gap-2 text-center">
-            <h1 className="text-2xl font-semibold">Welcome to Open Caddie</h1>
+            <h1 className="text-2xl font-semibold">Sign in</h1>
             <FieldDescription>
               Forgot your email? Search the list of{" "}
               <Link href="/players" className="text-muted-foreground">

@@ -18,7 +18,7 @@ export default async function CoursesPage() {
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
       <PageHeading
         icon={appPageIcons.courses}
-        description="Select a course to view scorecard details"
+        description="Select a course to see player records"
       >
         Courses
       </PageHeading>

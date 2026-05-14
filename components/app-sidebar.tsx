@@ -41,7 +41,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { signOutAction } from "@/app/(app)/actions";
+import { signOutAction } from "@/app/(app)/login/actions";
 import { appNavItems } from "@/components/app-nav-items";
 
 type SidebarUser = {

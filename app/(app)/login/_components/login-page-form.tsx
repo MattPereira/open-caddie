@@ -27,7 +27,7 @@ export function LoginPageForm({
   };
 
   return (
-    <main className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center p-6">
+    <main className="flex min-h-[calc(100svh-3.5rem)] items-center justify-center p-6">
       {sentTo ? (
         <div className="flex w-full max-w-sm flex-col gap-4">
           <Alert variant="info">

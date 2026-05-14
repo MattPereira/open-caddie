@@ -23,20 +23,20 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
     }),
   ],
   pages: {
-    signIn: "/",
-    error: "/",
+    signIn: "/login",
+    error: "/login",
   },
   callbacks: {
     async signIn({ user }) {
       const email = user.email?.trim().toLowerCase();
-      if (!email) return "/?error=AccessDenied";
+      if (!email) return "/login?error=AccessDenied";
       const [existing] = await db
         .select({ id: users.id })
         .from(users)
         .where(eq(users.email, email))
         .limit(1);
       if (existing) return true;
-      return `/?error=AccessDenied&email=${encodeURIComponent(email)}`;
+      return `/login?error=AccessDenied&email=${encodeURIComponent(email)}`;
     },
     async jwt({ token, user, trigger, session }) {
       if (user) {

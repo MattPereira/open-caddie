@@ -1,10 +1,10 @@
 import type { IconSvgElement } from "@hugeicons/react";
 import {
   ChampionIcon,
-  GolfBatIcon,
   GolfCartIcon,
   GolfHoleIcon,
   GolfBallIcon,
+  UserMultipleIcon,
 } from "@hugeicons/core-free-icons";
 
 type AppNavItem = {
@@ -18,7 +18,7 @@ export const appPageIcons = {
   standings: ChampionIcon,
   greenies: GolfHoleIcon,
   courses: GolfCartIcon,
-  players: GolfBatIcon,
+  players: UserMultipleIcon,
 } satisfies Record<string, IconSvgElement>;
 
 export const appNavItems: AppNavItem[] = [

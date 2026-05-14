@@ -2,7 +2,9 @@ import Link from "next/link";
 import {
   ChampionIcon,
   GolfBallIcon,
+  GolfBatIcon,
   UserCircleIcon,
+  UserMultipleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -30,7 +32,7 @@ export default async function Home() {
           </p>
         </section>
         <div className="flex w-full max-w-sm flex-col gap-6">
-          <Button asChild size="xl" className="w-full">
+          <Button asChild size="2xl" className="w-full">
             <Link href="/login">Sign in</Link>
           </Button>
           <div className="grid grid-cols-2 gap-3">
@@ -64,7 +66,7 @@ export default async function Home() {
       <RotatingTagline />
       <div className="flex w-full max-w-sm flex-col gap-6">
         <div className="flex w-full flex-col gap-1.5">
-          <Button asChild size="xl" className="w-full">
+          <Button asChild size="2xl" className="w-full">
             <Link
               href={
                 activeRound
@@ -72,7 +74,7 @@ export default async function Home() {
                   : "/rounds/new"
               }
             >
-              <HugeiconsIcon icon={GolfBallIcon} data-icon="inline-start" />
+              <HugeiconsIcon icon={GolfBatIcon} data-icon="inline-start" />
               Play round
             </Link>
           </Button>
@@ -84,15 +86,27 @@ export default async function Home() {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <Button asChild variant="outline" size="xl" className="w-full">
-            <Link href={`/players/${userId}`}>
-              <HugeiconsIcon icon={UserCircleIcon} data-icon="inline-start" />
-              Profile
+            <Link href="/tournaments">
+              <HugeiconsIcon icon={GolfBallIcon} data-icon="inline-start" />
+              Tournaments
             </Link>
           </Button>
           <Button asChild variant="outline" size="xl" className="w-full">
             <Link href="/standings">
               <HugeiconsIcon icon={ChampionIcon} data-icon="inline-start" />
               Standings
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="xl" className="w-full">
+            <Link href="/players">
+              <HugeiconsIcon icon={UserMultipleIcon} data-icon="inline-start" />
+              Players
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="xl" className="w-full">
+            <Link href={`/players/${userId}`}>
+              <HugeiconsIcon icon={UserCircleIcon} data-icon="inline-start" />
+              Profile
             </Link>
           </Button>
         </div>

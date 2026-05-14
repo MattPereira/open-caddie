@@ -28,7 +28,7 @@ export function RotatingTagline() {
   const phrase = PHRASES[index];
 
   return (
-    <div className="relative h-8 w-full overflow-hidden sm:h-10">
+    <div className="relative h-10 w-full overflow-hidden sm:h-12">
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.p
           key={index}
@@ -36,7 +36,7 @@ export function RotatingTagline() {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: "-100%", opacity: 0 }}
           transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-          className="absolute inset-0 flex items-center justify-center whitespace-nowrap text-xl text-foreground sm:text-2xl"
+          className="absolute inset-0 flex items-center justify-center whitespace-nowrap text-2xl text-foreground sm:text-3xl"
         >
           {phrase}
         </motion.p>

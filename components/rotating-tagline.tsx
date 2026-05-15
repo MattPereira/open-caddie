@@ -29,16 +29,36 @@ export function RotatingTagline() {
 
   return (
     <div className="relative h-10 w-full overflow-hidden sm:h-12">
-      <AnimatePresence mode="popLayout" initial={false}>
+      <AnimatePresence mode="wait" initial={false}>
         <motion.p
           key={index}
-          initial={{ x: "100%", opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          exit={{ x: "-100%", opacity: 0 }}
-          transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+          variants={{
+            hidden: { transition: { staggerChildren: 0.06, staggerDirection: 1 } },
+            visible: {
+              transition: { staggerChildren: 0.06, delayChildren: 0.05 },
+            },
+          }}
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
           className="absolute inset-0 flex items-center justify-center whitespace-nowrap text-2xl text-foreground sm:text-3xl"
         >
-          {phrase}
+          {phrase.split("").map((char, i) => (
+            <motion.span
+              key={i}
+              variants={{
+                hidden: { y: -28, opacity: 0 },
+                visible: {
+                  y: 0,
+                  opacity: 1,
+                  transition: { type: "spring", stiffness: 320, damping: 14 },
+                },
+              }}
+              className="inline-block whitespace-pre"
+            >
+              {char === " " ? " " : char}
+            </motion.span>
+          ))}
         </motion.p>
       </AnimatePresence>
     </div>

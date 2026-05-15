@@ -31,6 +31,7 @@ export default async function Home() {
             standings.
           </p>
         </section>
+        <RotatingTagline />
         <div className="flex w-full max-w-sm flex-col gap-6">
           <Button asChild size="2xl" className="w-full">
             <Link href="/login">Sign in</Link>

@@ -14,9 +14,29 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteName = "Open Caddie";
+const description =
+  "A modern golf scorekeeper for individuals, tournaments, and clubs";
+
 export const metadata: Metadata = {
-  title: "Open Caddie",
-  description: "Track golf round scores and organize club tournaments",
+  title: {
+    default: siteName,
+    template: `%s | ${siteName}`,
+  },
+  description,
+  applicationName: siteName,
+  openGraph: {
+    type: "website",
+    siteName,
+    title: siteName,
+    description,
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteName,
+    description,
+  },
 };
 
 export default function RootLayout({

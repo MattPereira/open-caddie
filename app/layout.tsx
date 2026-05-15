@@ -16,8 +16,7 @@ const geistMono = Geist_Mono({
 
 const siteName = "Open Caddie";
 const description =
-  "A modern golf scorekeeper for individuals, tournaments, and clubs";
-
+  "A modern golf score keeper for singles, groups, and tournament play.";
 export const metadata: Metadata = {
   title: {
     default: siteName,

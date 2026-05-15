@@ -27,7 +27,7 @@ export default async function Home() {
             Open Caddie
           </h1>
           <p className="max-w-sm text-muted-foreground sm:max-w-none">
-            A modern golf score keeper for individuals, tournaments, and clubs.
+            A modern golf score keeper for singles, groups, and tournament play.
           </p>
         </section>
         <RotatingTagline />

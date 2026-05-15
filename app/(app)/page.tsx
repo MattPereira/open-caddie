@@ -27,8 +27,7 @@ export default async function Home() {
             Open Caddie
           </h1>
           <p className="max-w-sm text-muted-foreground sm:max-w-none">
-            Track individual round scores, club tournaments, and season-long
-            standings.
+            A modern golf score keeper for individuals, tournaments, and clubs.
           </p>
         </section>
         <RotatingTagline />

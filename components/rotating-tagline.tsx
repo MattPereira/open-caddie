@@ -5,13 +5,14 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 const PHRASES = [
   "Be the ball",
+  "It's all in the hips",
+  "You can do it!",
   "Grip it and rip it",
   "Just tap it in",
-  "It's all in the hips",
   "Keep your head down",
 ];
 
-const INTERVAL_MS = 4500;
+const INTERVAL_MS = 4000;
 
 export function RotatingTagline() {
   const [index, setIndex] = useState(0);
@@ -29,11 +30,13 @@ export function RotatingTagline() {
 
   return (
     <div className="relative h-10 w-full overflow-hidden sm:h-12">
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence mode="wait">
         <motion.p
           key={index}
           variants={{
-            hidden: { transition: { staggerChildren: 0.06, staggerDirection: 1 } },
+            hidden: {
+              transition: { staggerChildren: 0.06, staggerDirection: 1 },
+            },
             visible: {
               transition: { staggerChildren: 0.06, delayChildren: 0.05 },
             },

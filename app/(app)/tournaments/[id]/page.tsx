@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { CourseHero } from "@/components/course-hero";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   getAddablePlayersForTournament,
@@ -47,19 +45,9 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-end gap-2">
           <h1 className="text-2xl font-semibold tracking-normal">Tournament</h1>
-          {tournament.clubHandle ? (
-            <Badge variant="outline" className="font-light">
-              {tournament.clubHandle}
-            </Badge>
-          ) : null}
-          {tournament.season ? (
-            <Badge variant="outline" className="font-light">
-              Season {tournament.season}
-            </Badge>
-          ) : null}
           {currentUser?.isAdmin ? (
             <div className="ml-auto">
               <AddPlayersSheet
@@ -69,11 +57,11 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
             </div>
           ) : null}
         </div>
-        <CourseHero
-          courseName={tournament.courseName}
-          courseImgUrl={tournament.courseImgUrl}
-          subtitle={formatDate(tournament.date, "short")}
-        />
+        <p className="text-sm text-muted-foreground">
+          {[tournament.courseName, formatDate(tournament.date, "short")]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
       </div>
 
       <Tabs defaultValue="rounds" className="w-full">

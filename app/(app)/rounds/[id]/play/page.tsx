@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { getRoundById } from "@/db/queries/rounds";
+import { getTournamentById } from "@/db/queries/tournaments";
 import { getCurrentUser } from "@/db/queries/users";
 import { RoundPlay } from "./_components/round-play";
 
@@ -22,6 +23,10 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
 
   if (!round || !currentUser) notFound();
   if (currentUser.id !== round.userId && !currentUser.isAdmin) notFound();
+  const tournament =
+    round.tournamentId == null
+      ? null
+      : await getTournamentById(round.tournamentId);
 
   const tableRound = {
     id: round.id,
@@ -58,6 +63,7 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
         <RoundPlay
           roundId={round.id}
           tableRound={tableRound}
+          leaderboardRounds={tournament?.rounds}
           date={round.date}
           holes={tableRound.holes}
         />

@@ -13,37 +13,42 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowLeft02Icon,
-  Delete02Icon,
+  ChartBarLineIcon,
   ArrowRight02Icon,
 } from "@hugeicons/core-free-icons";
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { HoldToConfirmButton } from "@/components/hold-to-confirm-button";
 import {
   Carousel,
   type CarouselApi,
   CarouselContent,
   CarouselItem,
 } from "@/components/ui/carousel";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { formatDate } from "@/lib/utils";
 import {
-  deleteRound,
   deleteRoundGreenie,
   upsertRoundGreenie,
   upsertRoundScore,
 } from "../../../actions";
 import { HoleScoreSlide } from "./hole-score-slide";
 import {
+  formatScore,
   RoundScoresCard,
   type RoundScoresTableRound,
 } from "@/components/round-scores-card";
@@ -60,6 +65,7 @@ type GreenieEntry = GreenieValue & { hole: number };
 type RoundScoresFormProps = {
   roundId: number;
   round: RoundScoresTableRound;
+  leaderboardRounds?: RoundScoresTableRound[];
   date: Date | string;
   holes: { hole: number; par: number }[];
   scores: ScoreEntry[];
@@ -71,12 +77,12 @@ type RoundScoresFormProps = {
 export function RoundScoresForm({
   roundId,
   round,
+  leaderboardRounds,
   date,
   holes,
   scores,
   setScores,
   onShowSummary,
-  onAbandoned,
 }: RoundScoresFormProps) {
   const initialScores = useMemo(
     () => buildInitialScores(round.scores, holes),
@@ -98,11 +104,6 @@ export function RoundScoresForm({
   const [greenies, setGreenies] = useState<GreenieEntry[]>(
     () => round.greenies ?? [],
   );
-
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [abandonError, setAbandonError] = useState<string | null>(null);
-  const [isAbandoning, startAbandonTransition] = useTransition();
-
   useEffect(() => {
     if (!api || didJumpRef.current) return;
     didJumpRef.current = true;
@@ -207,19 +208,6 @@ export function RoundScoresForm({
     });
   };
 
-  const handleAbandon = () => {
-    setAbandonError(null);
-    startAbandonTransition(async () => {
-      const result = await deleteRound(roundId);
-      if (!result.ok) {
-        setAbandonError(result.error);
-        return;
-      }
-      setConfirmOpen(false);
-      onAbandoned();
-    });
-  };
-
   const currentHoleNumber = scores[current]?.hole;
   const currentHolePar = scores[current]?.par;
   const currentGreenie =
@@ -233,45 +221,12 @@ export function RoundScoresForm({
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between gap-2">
             <h1 className="text-2xl font-semibold tracking-normal">Round</h1>
-            <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-              <AlertDialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Delete round"
-                  className="ml-auto"
-                >
-                  <HugeiconsIcon icon={Delete02Icon} aria-hidden />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete this round?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This permanently deletes your round and all scores you have
-                    entered. This cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                {abandonError ? (
-                  <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                    {abandonError}
-                  </p>
-                ) : null}
-                <AlertDialogFooter className="gap-2 sm:gap-2">
-                  <AlertDialogCancel disabled={isAbandoning}>
-                    Cancel
-                  </AlertDialogCancel>
-                  <HoldToConfirmButton
-                    onConfirmAction={handleAbandon}
-                    disabled={isAbandoning}
-                    idleLabel={
-                      isAbandoning ? "Deleting…" : "Hold to delete round"
-                    }
-                  />
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <div className="ml-auto">
+              <TournamentLeaderboardDialog
+                currentRound={round}
+                leaderboardRounds={leaderboardRounds}
+              />
+            </div>
           </div>
           <p className="text-sm text-muted-foreground">
             {[round.courseName, formatDate(date, "short")]
@@ -397,4 +352,142 @@ export function RoundScoresForm({
       ) : null}
     </div>
   );
+}
+
+function TournamentLeaderboardDialog({
+  currentRound,
+  leaderboardRounds,
+}: {
+  currentRound: RoundScoresTableRound;
+  leaderboardRounds?: RoundScoresTableRound[];
+}) {
+  if (currentRound.tournamentId == null || !leaderboardRounds?.length) {
+    return null;
+  }
+
+  const leaderboardRows = leaderboardRounds
+    .map((leaderboardRound) =>
+      toLeaderboardRow(
+        leaderboardRound.id === currentRound.id
+          ? currentRound
+          : leaderboardRound,
+      ),
+    )
+    .sort(compareLeaderboardRows);
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button type="button" variant="outline" size="sm">
+          <HugeiconsIcon icon={ChartBarLineIcon} data-icon="inline-start" />
+          Leaderboard
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-[calc(100%-1.5rem)] sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Tournament leaderboard</DialogTitle>
+          <DialogDescription>
+            Live totals from the scores entered so far.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="overflow-hidden rounded-lg ring-1 ring-border">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead>Player</TableHead>
+                <TableHead className="w-16 text-center">Thru</TableHead>
+                <TableHead className="w-16 text-right">Str</TableHead>
+                <TableHead className="w-16 text-right">Putts</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {leaderboardRows.map((leaderboardRow) => (
+                <TableRow
+                  key={leaderboardRow.roundId}
+                  data-state={
+                    leaderboardRow.roundId === currentRound.id
+                      ? "selected"
+                      : undefined
+                  }
+                >
+                  <TableCell className="max-w-36 truncate font-medium">
+                    {leaderboardRow.playerName}
+                  </TableCell>
+                  <TableCell className="text-center tabular-nums">
+                    {formatScore(leaderboardRow.lastHole)}
+                  </TableCell>
+                  <TableCell className="text-right font-semibold tabular-nums">
+                    {formatScore(leaderboardRow.strokes)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatScore(leaderboardRow.putts)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type TournamentLeaderboardRow = {
+  roundId: number;
+  playerName: string;
+  lastHole: number | null;
+  strokes: number | null;
+  putts: number | null;
+};
+
+function toLeaderboardRow(
+  round: RoundScoresTableRound,
+): TournamentLeaderboardRow {
+  const row = toRoundScoreRow(round);
+
+  return {
+    roundId: round.id,
+    playerName: row.playerName,
+    lastHole: getLastScoredHole(round),
+    strokes: row.metrics.strokes.total,
+    putts: row.metrics.putts.total,
+  };
+}
+
+function getLastScoredHole(round: RoundScoresTableRound) {
+  return round.scores.reduce<number | null>((lastHole, score) => {
+    if (score.strokes == null && score.putts == null) return lastHole;
+    return Math.max(lastHole ?? 0, score.hole);
+  }, null);
+}
+
+function compareLeaderboardRows(
+  a: TournamentLeaderboardRow,
+  b: TournamentLeaderboardRow,
+) {
+  const strokesCompare = compareNullableNumbers(a.strokes, b.strokes);
+  if (strokesCompare !== 0) return strokesCompare;
+
+  const lastHoleCompare = compareNullableNumbersDescending(
+    a.lastHole,
+    b.lastHole,
+  );
+  if (lastHoleCompare !== 0) return lastHoleCompare;
+
+  return a.playerName.localeCompare(b.playerName);
+}
+
+function compareNullableNumbers(a: number | null, b: number | null) {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  return a - b;
+}
+
+function compareNullableNumbersDescending(a: number | null, b: number | null) {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  return b - a;
 }

@@ -14,6 +14,7 @@ import {
 type RoundPlayProps = {
   roundId: number;
   tableRound: RoundScoresTableRound;
+  leaderboardRounds?: RoundScoresTableRound[];
   date: Date | string;
   holes: { hole: number; par: number }[];
 };
@@ -21,6 +22,7 @@ type RoundPlayProps = {
 export function RoundPlay({
   roundId,
   tableRound,
+  leaderboardRounds,
   date,
   holes,
 }: RoundPlayProps) {
@@ -39,6 +41,7 @@ export function RoundPlay({
     <RoundScoresForm
       roundId={roundId}
       round={liveRound}
+      leaderboardRounds={leaderboardRounds}
       date={date}
       holes={holes}
       scores={scores}

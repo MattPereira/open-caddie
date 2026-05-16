@@ -2,10 +2,18 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Mic02Icon, MicOff02Icon } from "@hugeicons/core-free-icons";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import {
+  type BrowserSpeechRecognition,
+  getSpeechRecognitionConstructor,
+  parseScoreDictation,
+} from "./score-dictation";
 
 const SAVE_DEBOUNCE_MS = 400;
 
@@ -18,6 +26,8 @@ type ScoreOption = {
   label: string;
   value: number;
 };
+
+type DictationStatus = "idle" | "listening" | "unsupported" | "error";
 
 type HoleScoreSlideProps = {
   hole: number;
@@ -62,6 +72,11 @@ export function HoleScoreSlide({
     { strokes: initialStrokes, putts: initialPutts },
   );
   const puttsDirtyRef = useRef(false);
+  const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
+  const [dictationStatus, setDictationStatus] = useState<DictationStatus>(() =>
+    getSpeechRecognitionConstructor() ? "idle" : "unsupported",
+  );
+  const [dictationMessage, setDictationMessage] = useState<string | null>(null);
 
   const strokeOptions = useMemo<ScoreOption[]>(
     () =>
@@ -166,8 +181,128 @@ export function HoleScoreSlide({
     }
   };
 
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.abort();
+    };
+  }, []);
+
+  const applyDictatedScore = useCallback(
+    (patch: HoleScorePatch) => {
+      const nextStrokes = patch.strokes ?? currentStrokes;
+      const nextPutts = patch.putts ?? currentPutts;
+
+      setStrokesStr(toInputValue(nextStrokes));
+      setPuttsStr(toInputValue(nextPutts));
+      flushSave({ strokes: nextStrokes, putts: nextPutts });
+
+      if (nextStrokes != null && nextPutts != null) {
+        onAdvanceHoleAction();
+      }
+    },
+    [currentPutts, currentStrokes, flushSave, onAdvanceHoleAction],
+  );
+
+  const handleDictationClick = () => {
+    if (dictationStatus === "listening") {
+      recognitionRef.current?.stop();
+      setDictationStatus("idle");
+      return;
+    }
+
+    const SpeechRecognition = getSpeechRecognitionConstructor();
+    if (!SpeechRecognition) {
+      setDictationStatus("unsupported");
+      setDictationMessage("Speech input is not supported in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event) => {
+      const transcript = Array.from({ length: event.results.length })
+        .map((_, resultIndex) => event.results.item(resultIndex).item(0))
+        .map((result) => result.transcript)
+        .join(" ");
+      const patch = parseScoreDictation(transcript, par);
+
+      if (!patch) {
+        setDictationMessage("Could not read a score from that.");
+        return;
+      }
+
+      setDictationMessage(null);
+      applyDictatedScore(patch);
+    };
+    recognition.onerror = (event) => {
+      setDictationMessage(
+        event.error === "not-allowed"
+          ? "Microphone access was blocked."
+          : "Speech input failed. Try again.",
+      );
+      setDictationStatus("error");
+    };
+    recognition.onend = () => {
+      recognitionRef.current = null;
+      setDictationStatus((status) =>
+        status === "listening" ? "idle" : status,
+      );
+    };
+
+    setDictationMessage(null);
+    setDictationStatus("listening");
+    try {
+      recognition.start();
+    } catch {
+      recognitionRef.current = null;
+      setDictationStatus("error");
+      setDictationMessage("Speech input failed. Try again.");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-5">
+      <div className="flex items-center justify-end">
+        <Button
+          type="button"
+          variant={dictationStatus === "listening" ? "default" : "outline"}
+          size="sm"
+          disabled={dictationStatus === "unsupported"}
+          onClick={handleDictationClick}
+          aria-label={
+            dictationStatus === "listening"
+              ? "Stop score dictation"
+              : "Dictate score"
+          }
+          title='Try "five strokes, two putts" or "par, two putts"'
+        >
+          <HugeiconsIcon
+            icon={
+              dictationStatus === "unsupported" ? MicOff02Icon : Mic02Icon
+            }
+            data-icon="inline-start"
+          />
+          {dictationStatus === "listening" ? "Listening" : "Dictate"}
+        </Button>
+      </div>
+      {dictationMessage ? (
+        <p
+          className={cn(
+            "rounded-md border px-3 py-2 text-sm",
+            dictationStatus === "error" || dictationStatus === "unsupported"
+              ? "border-destructive/40 bg-destructive/10 text-destructive"
+              : "border-border bg-muted text-muted-foreground",
+          )}
+          role="status"
+          aria-live="polite"
+        >
+          {dictationMessage}
+        </p>
+      ) : null}
       <ScoreField
         id={`hole-${hole}-strokes`}
         label="Strokes"

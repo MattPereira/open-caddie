@@ -1,0 +1,256 @@
+{
+  "imagePath": "/home/matt/Code/Projects/open-caddie/scorecards/blue-rock-west.png",
+  "imageBytes": 240405,
+  "model": "anthropic/claude-haiku-4-5",
+  "elapsedMs": 5968,
+  "usage": {
+    "inputTokens": 2036,
+    "inputTokenDetails": {
+      "noCacheTokens": 2036,
+      "cacheReadTokens": 0,
+      "cacheWriteTokens": 0
+    },
+    "outputTokens": 648,
+    "outputTokenDetails": {},
+    "totalTokens": 2684,
+    "raw": {
+      "input_tokens": 2036,
+      "output_tokens": 648,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "cachedInputTokens": 0
+  },
+  "finishReason": "stop",
+  "timestamp": "2026-05-17T21:23:59.036Z",
+  "parsed": {
+    "tees": [
+      {
+        "name": "Blue",
+        "color": "blue",
+        "rating": 69.1,
+        "slope": 125,
+        "yardages": [
+          367,
+          301,
+          169,
+          314,
+          336,
+          518,
+          110,
+          536,
+          379,
+          336,
+          164,
+          484,
+          306,
+          390,
+          179,
+          349,
+          376,
+          400
+        ],
+        "printedOutYards": 3030,
+        "printedInYards": 2846,
+        "printedTotalYards": 5876
+      },
+      {
+        "name": "White",
+        "color": "white",
+        "rating": 67.7,
+        "slope": 123,
+        "yardages": [
+          355,
+          293,
+          144,
+          257,
+          326,
+          509,
+          99,
+          521,
+          342,
+          328,
+          156,
+          467,
+          280,
+          361,
+          168,
+          336,
+          344,
+          375
+        ],
+        "printedOutYards": 2846,
+        "printedInYards": 2813,
+        "printedTotalYards": 5659
+      },
+      {
+        "name": "Gold",
+        "color": "gold",
+        "rating": 65.5,
+        "slope": 119,
+        "yardages": [
+          330,
+          265,
+          111,
+          234,
+          312,
+          498,
+          85,
+          501,
+          316,
+          311,
+          123,
+          415,
+          251,
+          297,
+          119,
+          314,
+          323,
+          318
+        ],
+        "printedOutYards": 2671,
+        "printedInYards": 2471,
+        "printedTotalYards": 5142
+      },
+      {
+        "name": "Red",
+        "color": "red",
+        "rating": 68.4,
+        "slope": 111,
+        "yardages": [
+          316,
+          241,
+          93,
+          238,
+          305,
+          458,
+          78,
+          472,
+          316,
+          311,
+          123,
+          415,
+          251,
+          297,
+          119,
+          314,
+          323,
+          318
+        ],
+        "printedOutYards": 2517,
+        "printedInYards": 2471,
+        "printedTotalYards": 4988
+      }
+    ],
+    "holes": [
+      {
+        "hole": 1,
+        "par": 4,
+        "handicap": 11
+      },
+      {
+        "hole": 2,
+        "par": 4,
+        "handicap": 15
+      },
+      {
+        "hole": 3,
+        "par": 3,
+        "handicap": 13
+      },
+      {
+        "hole": 4,
+        "par": 4,
+        "handicap": 7
+      },
+      {
+        "hole": 5,
+        "par": 4,
+        "handicap": 9
+      },
+      {
+        "hole": 6,
+        "par": 5,
+        "handicap": 1
+      },
+      {
+        "hole": 7,
+        "par": 3,
+        "handicap": 17
+      },
+      {
+        "hole": 8,
+        "par": 5,
+        "handicap": 3
+      },
+      {
+        "hole": 9,
+        "par": 4,
+        "handicap": 5
+      },
+      {
+        "hole": 10,
+        "par": 4,
+        "handicap": 14
+      },
+      {
+        "hole": 11,
+        "par": 3,
+        "handicap": 8
+      },
+      {
+        "hole": 12,
+        "par": 5,
+        "handicap": 12
+      },
+      {
+        "hole": 13,
+        "par": 4,
+        "handicap": 18
+      },
+      {
+        "hole": 14,
+        "par": 4,
+        "handicap": 2
+      },
+      {
+        "hole": 15,
+        "par": 3,
+        "handicap": 16
+      },
+      {
+        "hole": 16,
+        "par": 4,
+        "handicap": 10
+      },
+      {
+        "hole": 17,
+        "par": 4,
+        "handicap": 6
+      },
+      {
+        "hole": 18,
+        "par": 4,
+        "handicap": 4
+      }
+    ],
+    "printedOutPar": 36,
+    "printedInPar": 35,
+    "printedTotalPar": 71
+  },
+  "sumChecks": [
+    "Blue IN yards: summed 2984 vs printed 2846",
+    "Blue TOT yards: summed 6014 vs printed 5876",
+    "White IN yards: summed 2815 vs printed 2813",
+    "White TOT yards: summed 5661 vs printed 5659",
+    "Gold OUT yards: summed 2652 vs printed 2671",
+    "Gold TOT yards: summed 5123 vs printed 5142"
+  ],
+  "corrections": null
+}

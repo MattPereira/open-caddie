@@ -109,6 +109,22 @@ about to build), the parse will produce real tees (Blue/White/Red/etc.) and
 the Unknown tee can either be deleted or repurposed. We haven't decided yet
 which — see open questions below.
 
+## Setup complete (skip in next session)
+
+### Step 1 — Install + auth ✅
+
+- `ai@^6` and `@ai-sdk/gateway@^3` installed via `pnpm add`.
+- Project linked to Vercel (`vercel link` → `matt-pereiras-projects/open-caddie`).
+- AI Gateway enabled in the Vercel dashboard.
+- Auth via Vercel OIDC. `VERCEL_OIDC_TOKEN` is pulled into `.env.local` by
+  `vercel env pull` and is valid ~24h locally. Re-pull when the SDK starts
+  returning 401s. No `AI_GATEWAY_API_KEY` or provider-specific API keys
+  needed — plain `"provider/model"` strings auto-route through the gateway.
+- Env var hygiene decided: Development-tier secrets are stored
+  **non-Sensitive** so `vercel env pull` can retrieve them cleanly.
+  Production/Preview copies can stay Sensitive. `.gitignore` updated with
+  `!.env.example` so an example file can be committed when we add one.
+
 ## Next steps — what to actually build
 
 ### Phase 1: Parsing spike (must do first)
@@ -230,8 +246,12 @@ more schema migrations land.
 
 > I want to pick up the "upload scorecard image → LLM parse → create course"
 > feature. Read `context/ADD_COURSE_FLOW.md` for the full plan, the schema
-> changes we already made, and the "Unknown tee" legacy state. Then let's
-> start with **Phase 1: the parsing spike** — propose a model choice via the
-> Vercel AI Gateway (Claude Haiku 4.5 unless you have a strong reason
-> otherwise), draft the structured-output prompt, and write
-> `scripts/spike-parse-scorecard.ts`. I'll provide local test images.
+> changes we already made, the "Unknown tee" legacy state, and the
+> "Setup complete" section — the AI SDK + Vercel AI Gateway packages are
+> already installed and OIDC auth is wired up, so skip env/install setup.
+>
+> Let's jump straight to **Phase 1: the parsing spike** — propose a model
+> choice via the Vercel AI Gateway (Claude Haiku 4.5 unless you have a strong
+> reason otherwise), draft the structured-output Zod schema and prompt, and
+> write `scripts/spike-parse-scorecard.ts` as a CLI that takes a local image
+> path and prints parsed JSON + token usage. I'll provide local test images.

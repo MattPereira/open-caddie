@@ -1,0 +1,65 @@
+{
+  "tees": [
+    {
+      "name": "Back",
+      "color": "blue",
+      "rating": 71.8,
+      "slope": 132,
+      "yardages": [
+        490, 186, 356, 179, 366, 202, 521, 404, 518, 381, 212, 366, 519, 363,
+        456, 367, 150, 514
+      ],
+      "printedOutYards": 3222,
+      "printedInYards": 3328,
+      "printedTotalYards": 6550
+    },
+    {
+      "name": "Middle",
+      "rating": 69.6,
+      "slope": 127,
+      "yardages": [
+        464, 163, 340, 163, 346, 189, 506, 389, 504, 368, 186, 339, 502, 329,
+        385, 344, 126, 502
+      ],
+      "printedOutYards": 3064,
+      "printedInYards": 3081,
+      "printedTotalYards": 6145
+    },
+    {
+      "name": "Forward",
+      "color": "red",
+      "rating": 66.7,
+      "slope": 120,
+      "yardages": [
+        439, 125, 322, 148, 326, 168, 491, 325, 418, 354, 130, 275, 424, 313,
+        370, 280, 90, 375
+      ],
+      "printedOutYards": 2762,
+      "printedInYards": 2611,
+      "printedTotalYards": 5373
+    }
+  ],
+  "holes": [
+    { "hole": 1, "par": 5, "handicap": 15 },
+    { "hole": 2, "par": 3, "handicap": 11 },
+    { "hole": 3, "par": 4, "handicap": 13 },
+    { "hole": 4, "par": 3, "handicap": 7 },
+    { "hole": 5, "par": 4, "handicap": 17 },
+    { "hole": 6, "par": 3, "handicap": 5 },
+    { "hole": 7, "par": 5, "handicap": 9 },
+    { "hole": 8, "par": 4, "handicap": 1 },
+    { "hole": 9, "par": 5, "handicap": 3 },
+    { "hole": 10, "par": 4, "handicap": 8 },
+    { "hole": 11, "par": 3, "handicap": 2 },
+    { "hole": 12, "par": 4, "handicap": 14 },
+    { "hole": 13, "par": 5, "handicap": 4 },
+    { "hole": 14, "par": 4, "handicap": 10 },
+    { "hole": 15, "par": 4, "handicap": 6 },
+    { "hole": 16, "par": 4, "handicap": 16 },
+    { "hole": 17, "par": 3, "handicap": 12 },
+    { "hole": 18, "par": 5, "handicap": 18 }
+  ],
+  "printedOutPar": 36,
+  "printedInPar": 36,
+  "printedTotalPar": 72
+}

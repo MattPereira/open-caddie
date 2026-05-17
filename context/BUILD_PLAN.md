@@ -44,39 +44,11 @@
 - [x] Course photo uploads to Vercel Blob.
 - [x] Mobile-first UI pass.
 
-### 6. Vertical slice: scorecard photo upload (AI #1)
+### 6. Vertical slice: course scorecard image upload (AI #1)
 
-- [ ] Upload to Vercel Blob.
 - [ ] Vercel AI SDK `generateObject` with vision + Zod schema for scorecard structure.
-- [ ] Show parsed result side-by-side with the original photo for human confirmation before saving.
-- [ ] Persist both the image URL and the parsed scores.
+- [ ] UI for uploading scorecard images and allowing user to confirm tee yardages and hole pars / handicaps
 
-### 7. Vertical slice: chat over the database (AI #2)
-
-- [ ] Vercel AI SDK `streamText` with tool-calling.
-- [ ] Tools: `queryRounds`, `queryPlayers`, `queryCourses`, etc. — each hits Drizzle directly.
-- [ ] No RAG, no vector store. Schema is relational, tools are the right pattern.
-
-### 8. Final Polish & Documentation
-
-- [ ] README focused on portfolio narrative: structured-output OCR, tool-calling chat, Neon DB branching, type-safe Server Actions.
-- [ ] Update Matt's resume with the project information
-
----
-
-## Stack
-
-| Layer               | Choice                                                       |
-| ------------------- | ------------------------------------------------------------ |
-| Framework           | Next.js 15 (App Router, Server Actions)                      |
-| Language            | TypeScript                                                   |
-| Database            | Neon (serverless Postgres, scales to zero, branching per PR) |
-| ORM                 | Drizzle + drizzle-kit                                        |
-| Auth                | Auth.js v5 — Google OAuth + email magic links                |
-| Email (magic links) | Resend                                                       |
-| AI SDK              | Vercel AI SDK                                                |
-| LLM (vision + chat) | Claude Sonnet 4.6 or GPT-4o                                  |
-| Image storage       | Vercel Blob                                                  |
-| Hosting             | Vercel                                                       |
-| Styling             | Tailwind CSS + shadcn/ui                                     |
-| Validation          | Zod (schemas for Server Actions + AI structured output)      |
+### 6. Vertical slice: player scorecard image upload (AI #1)
+- [ ] Vercel AI SDK `generateObject` with vision + Zod schema for scorecard structure.
+- [ ] UI for uploading handwritten scorecards images and confirmation of parsed results flow

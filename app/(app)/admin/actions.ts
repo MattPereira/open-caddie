@@ -7,6 +7,7 @@ import { db } from "@/db";
 import {
   clubs,
   courseHoles,
+  courseTees,
   courses,
   greenies,
   rounds,
@@ -14,6 +15,7 @@ import {
   users,
 } from "@/db/schema";
 import { getCurrentUser } from "@/db/queries/users";
+import { getPrimaryTeeIdByCourseId } from "@/db/queries/courses";
 import { safeDeleteBlob } from "@/lib/blob";
 import {
   ClubCreateSchema,
@@ -294,6 +296,11 @@ export async function createTournament(
     return { ok: false, error: "Selected club or course does not exist." };
   }
 
+  const teeId = await getPrimaryTeeIdByCourseId(courseId);
+  if (!teeId) {
+    return { ok: false, error: "Selected course has no tees configured." };
+  }
+
   try {
     await db.insert(tournaments).values({
       clubId,
@@ -301,6 +308,7 @@ export async function createTournament(
       season,
       startsAt,
       courseId,
+      teeId,
     });
   } catch (e: unknown) {
     const code =
@@ -348,10 +356,15 @@ export async function updateTournament(
     return { ok: false, error: "Tournament not found." };
   }
 
+  const teeId = await getPrimaryTeeIdByCourseId(courseId);
+  if (!teeId) {
+    return { ok: false, error: "Selected course has no tees configured." };
+  }
+
   try {
     await db
       .update(tournaments)
-      .set({ clubId, date, season, startsAt, courseId })
+      .set({ clubId, date, season, startsAt, courseId, teeId })
       .where(eq(tournaments.id, id));
   } catch (e: unknown) {
     const code =
@@ -468,8 +481,16 @@ export async function createCourse(
     await db.transaction(async (tx) => {
       const [course] = await tx
         .insert(courses)
-        .values({ handle, name, rating, slope, imgUrl })
+        .values({ handle, name, imgUrl })
         .returning({ id: courses.id });
+
+      await tx.insert(courseTees).values({
+        courseId: course.id,
+        name: "Default",
+        rating,
+        slope,
+        sortOrder: 0,
+      });
 
       await tx.insert(courseHoles).values(
         holes.map((hole) => ({
@@ -517,12 +538,29 @@ export async function updateCourse(
     return { ok: false, error: "Course not found." };
   }
 
+  const primaryTeeId = await getPrimaryTeeIdByCourseId(id);
+
   try {
     await db.transaction(async (tx) => {
       await tx
         .update(courses)
-        .set({ handle, name, rating, slope, imgUrl })
+        .set({ handle, name, imgUrl })
         .where(eq(courses.id, id));
+
+      if (primaryTeeId) {
+        await tx
+          .update(courseTees)
+          .set({ rating, slope })
+          .where(eq(courseTees.id, primaryTeeId));
+      } else {
+        await tx.insert(courseTees).values({
+          courseId: id,
+          name: "Default",
+          rating,
+          slope,
+          sortOrder: 0,
+        });
+      }
 
       await tx.delete(courseHoles).where(eq(courseHoles.courseId, id));
       await tx.insert(courseHoles).values(

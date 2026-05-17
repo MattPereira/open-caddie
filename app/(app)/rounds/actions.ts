@@ -14,6 +14,7 @@ import {
   tournaments,
   users,
 } from "@/db/schema";
+import { getPrimaryTeeIdByCourseId } from "@/db/queries/courses";
 import {
   RoundConfigSchema,
   RoundGreenieDeleteSchema,
@@ -51,9 +52,14 @@ export async function createRound(
     return { ok: false, error: "Course not found." };
   }
 
+  let teeId: number | null = null;
   if (tournamentId != null) {
     const [tournament] = await db
-      .select({ id: tournaments.id, courseId: tournaments.courseId })
+      .select({
+        id: tournaments.id,
+        courseId: tournaments.courseId,
+        teeId: tournaments.teeId,
+      })
       .from(tournaments)
       .where(eq(tournaments.id, tournamentId))
       .limit(1);
@@ -66,6 +72,13 @@ export async function createRound(
         error: "Tournament course does not match selected course.",
       };
     }
+    teeId = tournament.teeId;
+  } else {
+    teeId = await getPrimaryTeeIdByCourseId(course.id);
+  }
+
+  if (!teeId) {
+    return { ok: false, error: "Selected course has no tees configured." };
   }
 
   try {
@@ -74,6 +87,7 @@ export async function createRound(
       .values({
         userId: session.user.id,
         courseId: course.id,
+        teeId,
         tournamentId: tournamentId ?? null,
         date: new Date(`${date}T00:00:00.000Z`),
       })

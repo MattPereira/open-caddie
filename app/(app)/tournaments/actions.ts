@@ -43,6 +43,7 @@ export async function addPlayersToTournament(
     .select({
       id: tournaments.id,
       courseId: tournaments.courseId,
+      teeId: tournaments.teeId,
       date: tournaments.date,
     })
     .from(tournaments)
@@ -59,6 +60,7 @@ export async function addPlayersToTournament(
         tournamentId,
         userId,
         courseId: tournament.courseId,
+        teeId: tournament.teeId,
         date: tournament.date,
       })),
     )

@@ -105,21 +105,52 @@ export const tournaments = pgTable("tournaments", {
   courseId: integer("course_id")
     .notNull()
     .references(() => courses.id, { onDelete: "restrict" }),
+  teeId: integer("tee_id")
+    .notNull()
+    .references(() => courseTees.id, { onDelete: "restrict" }),
 });
 
-export const courses = pgTable(
-  "courses",
+export const courses = pgTable("courses", {
+  id: serial("id").primaryKey(),
+  handle: text("handle").notNull().unique(),
+  name: text("name").notNull(),
+  imgUrl: text("img_url"),
+  scorecardImgUrl: text("scorecard_img_url"),
+});
+
+export const courseTees = pgTable(
+  "course_tees",
   {
     id: serial("id").primaryKey(),
-    handle: text("handle").notNull().unique(),
+    courseId: integer("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    color: text("color"),
     rating: decimal("rating").notNull(),
     slope: integer("slope").notNull(),
-    imgUrl: text("img_url"),
+    sortOrder: integer("sort_order").notNull().default(0),
   },
-  (c) => [
-    check("courses_rating_check", sql`${c.rating} > 0`),
-    check("courses_slope_check", sql`${c.slope} between 55 and 155`),
+  (t) => [
+    uniqueIndex("course_tees_course_name_unique").on(t.courseId, t.name),
+    check("course_tees_rating_check", sql`${t.rating} > 0`),
+    check("course_tees_slope_check", sql`${t.slope} between 55 and 155`),
+  ],
+);
+
+export const teeYardages = pgTable(
+  "tee_yardages",
+  {
+    teeId: integer("tee_id")
+      .notNull()
+      .references(() => courseTees.id, { onDelete: "cascade" }),
+    hole: integer("hole").notNull(),
+    yards: integer("yards").notNull(),
+  },
+  (ty) => [
+    primaryKey({ columns: [ty.teeId, ty.hole] }),
+    check("tee_yardages_hole_check", sql`${ty.hole} between 1 and 18`),
+    check("tee_yardages_yards_check", sql`${ty.yards} > 0`),
   ],
 );
 
@@ -154,6 +185,9 @@ export const rounds = pgTable(
     courseId: integer("course_id")
       .notNull()
       .references(() => courses.id, { onDelete: "restrict" }),
+    teeId: integer("tee_id")
+      .notNull()
+      .references(() => courseTees.id, { onDelete: "restrict" }),
     date: date("date", { mode: "date" }).notNull(),
   },
   (r) => [
@@ -211,8 +245,8 @@ export const roundSummaries = pgView("round_summaries").as((qb) =>
       userId: rounds.userId,
       courseId: rounds.courseId,
       date: rounds.date,
-      courseRating: courses.rating,
-      courseSlope: courses.slope,
+      courseRating: courseTees.rating,
+      courseSlope: courseTees.slope,
       recordedStrokesCount:
         sql<number>`count(${roundScores.strokes})`
           .mapWith(Number)
@@ -233,12 +267,12 @@ export const roundSummaries = pgView("round_summaries").as((qb) =>
         "is_complete",
       ),
       scoreDifferential:
-        sql<number | null>`case when count(${roundScores.strokes}) = 18 then ((113.0 / ${courses.slope}) * (sum(${roundScores.strokes}) - ${courses.rating}))::double precision else null end`.mapWith(
+        sql<number | null>`case when count(${roundScores.strokes}) = 18 then ((113.0 / ${courseTees.slope}) * (sum(${roundScores.strokes}) - ${courseTees.rating}))::double precision else null end`.mapWith(
           (value) => (value == null ? null : Number(value)),
         ).as("score_differential"),
     })
     .from(rounds)
-    .innerJoin(courses, eq(rounds.courseId, courses.id))
+    .innerJoin(courseTees, eq(rounds.teeId, courseTees.id))
     .leftJoin(tournaments, eq(rounds.tournamentId, tournaments.id))
     .leftJoin(roundScores, eq(rounds.id, roundScores.roundId))
     .groupBy(
@@ -248,7 +282,7 @@ export const roundSummaries = pgView("round_summaries").as((qb) =>
       rounds.userId,
       rounds.courseId,
       rounds.date,
-      courses.rating,
-      courses.slope,
+      courseTees.rating,
+      courseTees.slope,
     ),
 );

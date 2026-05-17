@@ -9,6 +9,7 @@ import {
   users,
   courses,
   courseHoles,
+  courseTees,
   clubMembers,
   tournaments,
   roundScores,
@@ -148,14 +149,29 @@ async function main() {
       srcCourses.rows.map((c) => ({
         handle: c.handle,
         name: c.name,
-        rating: c.rating,
-        slope: c.slope,
         imgUrl: c.img_url,
       })),
     )
     .returning({ id: courses.id, handle: courses.handle });
   const courseIdByHandle = new Map(
     insertedCourses.map((c) => [c.handle, c.id]),
+  );
+
+  console.log("creating default tee per course");
+  const insertedTees = await target
+    .insert(courseTees)
+    .values(
+      srcCourses.rows.map((c) => ({
+        courseId: courseIdByHandle.get(c.handle)!,
+        name: "Default",
+        rating: c.rating,
+        slope: c.slope,
+        sortOrder: 0,
+      })),
+    )
+    .returning({ id: courseTees.id, courseId: courseTees.courseId });
+  const teeIdByCourseId = new Map(
+    insertedTees.map((t) => [t.courseId, t.id]),
   );
 
   console.log("copying course holes (deduped via DISTINCT ON)");
@@ -244,6 +260,7 @@ async function main() {
         startsAt: CCGC_DEFAULT_STARTS_AT,
         season,
         courseId,
+        teeId: teeIdByCourseId.get(courseId)!,
       })
       .returning({ id: tournaments.id });
     tournamentByDate.set(dateKey(t.date), {
@@ -267,9 +284,10 @@ async function main() {
       );
       continue;
     }
+    const teeId = teeIdByCourseId.get(tournament.courseId)!;
     await target.execute(sql`
-      INSERT INTO rounds (id, tournament_id, user_id, course_id, date)
-      VALUES (${r.id}, ${tournament.id}, ${newUid}, ${tournament.courseId}, ${tournament.date})
+      INSERT INTO rounds (id, tournament_id, user_id, course_id, tee_id, date)
+      VALUES (${r.id}, ${tournament.id}, ${newUid}, ${tournament.courseId}, ${teeId}, ${tournament.date})
     `);
     roundsInserted++;
   }

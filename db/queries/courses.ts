@@ -3,6 +3,7 @@ import { and, asc, eq, gte } from "drizzle-orm";
 import { db } from "@/db";
 import {
   courseHoles,
+  courseTees,
   courses,
   greenies,
   roundSummaries,
@@ -10,28 +11,63 @@ import {
   users,
 } from "@/db/schema";
 
+export async function getPrimaryTeeIdByCourseId(
+  courseId: number,
+): Promise<number | null> {
+  const [row] = await db
+    .select({ id: courseTees.id })
+    .from(courseTees)
+    .where(eq(courseTees.courseId, courseId))
+    .orderBy(asc(courseTees.sortOrder))
+    .limit(1);
+  return row?.id ?? null;
+}
+
+type PrimaryTee = { rating: string; slope: number };
+
+async function getPrimaryTeeByCourseId(): Promise<Map<number, PrimaryTee>> {
+  const tees = await db
+    .select({
+      courseId: courseTees.courseId,
+      rating: courseTees.rating,
+      slope: courseTees.slope,
+      sortOrder: courseTees.sortOrder,
+    })
+    .from(courseTees)
+    .orderBy(asc(courseTees.courseId), asc(courseTees.sortOrder));
+
+  const byCourse = new Map<number, PrimaryTee>();
+  for (const tee of tees) {
+    if (!byCourse.has(tee.courseId)) {
+      byCourse.set(tee.courseId, { rating: tee.rating, slope: tee.slope });
+    }
+  }
+  return byCourse;
+}
+
 export const getAllCourses = cache(async () => {
   const rows = await db
     .select({
       id: courses.id,
       handle: courses.handle,
       name: courses.name,
-      rating: courses.rating,
-      slope: courses.slope,
       imgUrl: courses.imgUrl,
     })
     .from(courses)
     .orderBy(asc(courses.name));
 
-  const holes = await db
-    .select({
-      courseId: courseHoles.courseId,
-      hole: courseHoles.hole,
-      par: courseHoles.par,
-      handicap: courseHoles.handicap,
-    })
-    .from(courseHoles)
-    .orderBy(asc(courseHoles.courseId), asc(courseHoles.hole));
+  const [holes, primaryTeeByCourse] = await Promise.all([
+    db
+      .select({
+        courseId: courseHoles.courseId,
+        hole: courseHoles.hole,
+        par: courseHoles.par,
+        handicap: courseHoles.handicap,
+      })
+      .from(courseHoles)
+      .orderBy(asc(courseHoles.courseId), asc(courseHoles.hole)),
+    getPrimaryTeeByCourseId(),
+  ]);
 
   const holesByCourse = new Map<number, typeof holes>();
   for (const hole of holes) {
@@ -40,10 +76,15 @@ export const getAllCourses = cache(async () => {
     holesByCourse.set(hole.courseId, courseHoles);
   }
 
-  return rows.map((course) => ({
-    ...course,
-    holes: holesByCourse.get(course.id) ?? [],
-  }));
+  return rows.map((course) => {
+    const tee = primaryTeeByCourse.get(course.id);
+    return {
+      ...course,
+      rating: tee?.rating ?? "0",
+      slope: tee?.slope ?? 0,
+      holes: holesByCourse.get(course.id) ?? [],
+    };
+  });
 });
 
 export const getCourseByHandle = cache(async (handle: string) => {
@@ -52,8 +93,6 @@ export const getCourseByHandle = cache(async (handle: string) => {
       id: courses.id,
       handle: courses.handle,
       name: courses.name,
-      rating: courses.rating,
-      slope: courses.slope,
       imgUrl: courses.imgUrl,
     })
     .from(courses)
@@ -64,17 +103,30 @@ export const getCourseByHandle = cache(async (handle: string) => {
     return undefined;
   }
 
-  const holes = await db
-    .select({
-      hole: courseHoles.hole,
-      par: courseHoles.par,
-      handicap: courseHoles.handicap,
-    })
-    .from(courseHoles)
-    .where(eq(courseHoles.courseId, course.id))
-    .orderBy(asc(courseHoles.hole));
+  const [holes, [primaryTee]] = await Promise.all([
+    db
+      .select({
+        hole: courseHoles.hole,
+        par: courseHoles.par,
+        handicap: courseHoles.handicap,
+      })
+      .from(courseHoles)
+      .where(eq(courseHoles.courseId, course.id))
+      .orderBy(asc(courseHoles.hole)),
+    db
+      .select({ rating: courseTees.rating, slope: courseTees.slope })
+      .from(courseTees)
+      .where(eq(courseTees.courseId, course.id))
+      .orderBy(asc(courseTees.sortOrder))
+      .limit(1),
+  ]);
 
-  return { ...course, holes };
+  return {
+    ...course,
+    rating: primaryTee?.rating ?? "0",
+    slope: primaryTee?.slope ?? 0,
+    holes,
+  };
 });
 
 export const getLowestRoundsByCourseId = cache(

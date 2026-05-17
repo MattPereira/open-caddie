@@ -24,26 +24,25 @@
 - [x] `create-next-app` (App Router, TypeScript).
 - [x] Wire up Drizzle + Neon (dev branch + prod branch).
 - [x] Configure Auth.js v5 with Resend magic links.
-- [ ] Configure Auth.js v5 with Google OAuth.
+- [x] Configure Auth.js v5 with Google OAuth.
 
 ### 3. Vertical slice: manual score entry
 
-- [ ] Auth-gated form to enter a round by hand.
-- [ ] Server Action → Drizzle insert → DB.
-- [ ] Basic list/detail view of rounds.
-- [ ] Proves the full stack end-to-end with zero AI. Also serves as the manual fallback path.
+- [x] Auth-gated form to enter a round by hand.
+- [x] Server Action → Drizzle insert → DB.
+- [x] Basic list/detail view of rounds.
 
 ### 4. Vertical slice: handicap & point calculations
 
-- [ ] Extract from old repo: handicap/points formulas (look at express models and routes files)
-- [ ] Port scoring math from the old app as pure functions.
+- [x] Extract from old repo: handicap/points formulas (look at express models and routes files)
+- [x] Port scoring math from the old app as pure functions.
+- [x] Render a tournament leaderboard and season standings table
 - [ ] Unit tests on the formulas (these are the one place tests really pay off).
-- [ ] Render a tournament leaderboard and season standings table
 
 ### 5. Course images and UI improvements
 
-- [ ] Course photo uploads to Vercel Blob.
-- [ ] Mobile-first UI pass.
+- [x] Course photo uploads to Vercel Blob.
+- [x] Mobile-first UI pass.
 
 ### 6. Vertical slice: scorecard photo upload (AI #1)
 

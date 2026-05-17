@@ -10,9 +10,12 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "db:push": "drizzle-kit push",
+    "db:push:prod": "dotenv -e .env.production.local -- drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate:prod": "dotenv -e .env.production.local -- drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
+    "db:studio:prod": "dotenv -e .env.production.local -- drizzle-kit studio",
     "db:migrate-from-ccgc": "tsx scripts/migrate-from-ccgc.ts"
   },
   "dependencies": {
@@ -55,6 +58,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/ws": "^8.18.1",
+    "dotenv-cli": "^10.0.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",

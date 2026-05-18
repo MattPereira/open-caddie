@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { auth } from "@/auth";
@@ -51,6 +51,14 @@ export async function addPlayersToTournament(
     .limit(1);
   if (!tournament) {
     return { ok: false, error: "Tournament not found." };
+  }
+
+  const existingUsers = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(inArray(users.id, userIds));
+  if (existingUsers.length !== new Set(userIds).size) {
+    return { ok: false, error: "One or more selected players no longer exist." };
   }
 
   const inserted = await db

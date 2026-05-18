@@ -102,7 +102,7 @@ export function AddPlayersSheet({
         <div className="flex min-h-0 flex-1 flex-col gap-3 px-4 pb-4">
           {players.length === 0 ? (
             <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-              All club members are already in this tournament.
+              All app users are already in this tournament.
             </p>
           ) : (
             <>

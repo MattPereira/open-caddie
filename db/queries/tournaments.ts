@@ -237,14 +237,6 @@ export const getUpcomingTournamentsForUser = cache(async (userId: string) => {
 
 export const getAddablePlayersForTournament = cache(
   async (tournamentId: number) => {
-    const [tournament] = await db
-      .select({ clubId: tournaments.clubId })
-      .from(tournaments)
-      .where(eq(tournaments.id, tournamentId))
-      .limit(1);
-
-    if (!tournament) return [];
-
     return db
       .select({
         id: users.id,
@@ -255,8 +247,8 @@ export const getAddablePlayersForTournament = cache(
         image: users.image,
         isAdmin: users.isAdmin,
       })
-      .from(clubMembers)
-      .innerJoin(users, eq(clubMembers.userId, users.id))
+      .from(users)
+      .innerJoin(tournaments, eq(tournaments.id, tournamentId))
       .leftJoin(
         rounds,
         and(
@@ -264,9 +256,7 @@ export const getAddablePlayersForTournament = cache(
           eq(rounds.tournamentId, tournamentId),
         ),
       )
-      .where(
-        and(eq(clubMembers.clubId, tournament.clubId), isNull(rounds.id)),
-      )
+      .where(isNull(rounds.id))
       .orderBy(asc(users.firstName), asc(users.lastName), asc(users.username));
   },
 );

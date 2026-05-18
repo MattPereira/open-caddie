@@ -210,6 +210,9 @@ export function RoundScoresForm({
 
   const currentHoleNumber = scores[current]?.hole;
   const currentHolePar = scores[current]?.par;
+  const currentScore = scores[current];
+  const hasCurrentHoleScore =
+    currentScore?.strokes != null && currentScore.putts != null;
   const currentGreenie =
     currentHoleNumber != null
       ? (greenies.find((g) => g.hole === currentHoleNumber) ?? null)
@@ -295,7 +298,6 @@ export function RoundScoresForm({
                 initialStrokes={entry.strokes}
                 initialPutts={entry.putts}
                 onScoreChangeAction={(patch) => handleSave(entry.hole, patch)}
-                onAdvanceHoleAction={() => api?.scrollNext()}
               />
             </CarouselItem>
           ))}
@@ -339,7 +341,7 @@ export function RoundScoresForm({
           size="xl"
           disabled={!canScrollNext}
           onClick={() => api?.scrollNext()}
-          variant="secondary"
+          variant={hasCurrentHoleScore ? "default" : "secondary"}
         >
           Next
         </Button>

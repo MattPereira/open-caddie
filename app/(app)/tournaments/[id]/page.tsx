@@ -64,8 +64,14 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
         </p>
       </div>
 
-      <Tabs defaultValue="rounds" className="w-full">
+      <Tabs defaultValue="winners" className="w-full">
         <TabsList className="w-full p-1 sm:w-fit mb-3 h-10!">
+          <TabsTrigger
+            value="winners"
+            className="flex-1 px-5 py-2 text-base sm:flex-none"
+          >
+            Winners
+          </TabsTrigger>
           <TabsTrigger
             value="rounds"
             className="flex-1 px-5 py-2 text-base sm:flex-none"
@@ -78,23 +84,17 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
           >
             Greenies
           </TabsTrigger>
-          <TabsTrigger
-            value="winners"
-            className="flex-1 px-5 py-2 text-base sm:flex-none"
-          >
-            Winners
-          </TabsTrigger>
         </TabsList>
 
+        <WinnersTabContent
+          rounds={tournament.rounds}
+          greenies={tournament.greenies}
+        />
         <RoundsTabContent
           currentUser={currentUser}
           rounds={tournament.rounds}
         />
         <GreeniesTabContent greenies={tournament.greenies} />
-        <WinnersTabContent
-          rounds={tournament.rounds}
-          greenies={tournament.greenies}
-        />
       </Tabs>
     </main>
   );

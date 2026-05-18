@@ -17,7 +17,8 @@ type WinnerRow = {
   playerName: string;
   initials: string;
   image: string | null;
-  position?: number;
+  secondaryLabel?: string;
+  secondaryValue?: string;
   primaryLabel: string;
   primaryValue: string;
   primaryValueAdjusted?: boolean;
@@ -171,11 +172,11 @@ function SimpleWinnerCard({ winner }: { winner: WinnerRow }) {
       image={winner.image}
       nameAlign="top"
     >
-      {winner.position != null ? (
+      {winner.secondaryLabel != null && winner.secondaryValue != null ? (
         <StatTile
           className="w-16"
-          label="Pos"
-          value={formatOrdinal(winner.position)}
+          label={winner.secondaryLabel}
+          value={winner.secondaryValue}
         />
       ) : null}
       <StatTile
@@ -215,7 +216,7 @@ function toWinnerRows(
   rounds: TournamentRound[],
   metric: WinnerMetric,
 ): WinnerRow[] {
-  return rounds.map((round, index) => {
+  return rounds.map((round) => {
     const playerName = displayName({ ...round, email: null });
     const net = formatDecimalScore(round.netStrokes);
     const putts = formatWholeScore(round.totalPutts);
@@ -225,7 +226,11 @@ function toWinnerRows(
       playerName,
       initials: getInitials({ ...round, email: null }),
       image: round.image,
-      position: index + 1,
+      secondaryLabel: metric === "strokes" ? "Hcp" : "Net",
+      secondaryValue:
+        metric === "strokes"
+          ? formatDecimalScore(round.tournamentHandicap)
+          : net,
       primaryLabel: metric === "strokes" ? "Net" : "Putts",
       primaryValue: metric === "strokes" ? net : putts,
     };
@@ -356,11 +361,11 @@ function comparePuttsWinners(a: TournamentRound, b: TournamentRound) {
   const puttsCompare = a.totalPutts - b.totalPutts;
   if (puttsCompare !== 0) return puttsCompare;
 
-  const grossCompare = a.totalStrokes - b.totalStrokes;
-  if (grossCompare !== 0) return grossCompare;
-
   const netCompare = compareNullableNumbers(a.netStrokes, b.netStrokes);
   if (netCompare !== 0) return netCompare;
+
+  const handicapCompare = b.tournamentHandicap - a.tournamentHandicap;
+  if (handicapCompare !== 0) return handicapCompare;
 
   return comparePlayers(a, b);
 }
@@ -399,19 +404,4 @@ function formatWholeScore(score: number | null) {
 
 function formatDecimalScore(score: number | null) {
   return score == null ? "-" : score.toFixed(1);
-}
-
-function formatOrdinal(n: number) {
-  const mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
-  switch (n % 10) {
-    case 1:
-      return `${n}st`;
-    case 2:
-      return `${n}nd`;
-    case 3:
-      return `${n}rd`;
-    default:
-      return `${n}th`;
-  }
 }

@@ -49,10 +49,10 @@ import {
 import { HoleScoreSlide } from "./hole-score-slide";
 import {
   formatScore,
-  RoundScoresCard,
   type RoundScoresTableRound,
 } from "@/components/round-scores-card";
 import { toRoundScoreRow } from "@/components/round-scores-card-row";
+import { PlayScoresOverview } from "./play-scores-overview";
 import {
   type ScoreEntry,
   buildInitialScores,
@@ -223,7 +223,9 @@ export function RoundScoresForm({
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between gap-2">
-            <h1 className="text-2xl font-semibold tracking-normal">Round</h1>
+            <h1 className="text-xl font-semibold tracking-normal">
+              {round.courseName ?? "Round"}
+            </h1>
             <div className="ml-auto">
               <TournamentLeaderboardDialog
                 currentRound={round}
@@ -232,18 +234,16 @@ export function RoundScoresForm({
             </div>
           </div>
           <p className="text-sm text-muted-foreground">
-            {[round.courseName, formatDate(date, "short")]
+            {[toRoundScoreRow(round).playerName, formatDate(date, "short")]
               .filter(Boolean)
               .join(" · ")}
           </p>
         </div>
 
-        <RoundScoresCard
-          row={toRoundScoreRow(round)}
-          showMobileTotals={false}
-          // visibleNine={
-          //   currentHoleNumber != null && currentHoleNumber > 9 ? "back" : "front"
-          // }
+        <PlayScoresOverview
+          scores={scores}
+          currentHole={currentHoleNumber ?? 1}
+          greenieHoles={new Set(greenies.map((g) => g.hole))}
         />
       </div>
 

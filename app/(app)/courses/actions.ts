@@ -15,16 +15,39 @@ import { getCurrentUser } from "@/db/queries/users";
 import { isVercelBlobUrl, safeDeleteBlob } from "@/lib/blob";
 import { parseScorecardImage } from "@/lib/scorecard-parser";
 import {
+  CourseCreateFinalizeSchema,
   CourseCreateInputSchema,
   CourseUpdateSchema,
+  type CourseCreateFinalizeValues,
   type CourseCreateInputValues,
   type CourseUpdateValues,
+  type FinalizedScorecard,
   type TeeFormValues,
 } from "./schema";
 
-type CreateResult =
+export type CreateResult =
   | { ok: true; handle: string; sumCheckIssues: string[] }
-  | { ok: false; error: string };
+  | { ok: false; error: string }
+  | {
+      ok: false;
+      needsTeeMeta: true;
+      input: CourseCreateInputValues;
+      draft: FinalizedScorecardDraft;
+      sumCheckIssues: string[];
+    };
+
+// Parser output reshaped for the client: rating/slope present when the parser
+// found them, undefined when it didn't. Yardages are kept as numbers.
+export type FinalizedScorecardDraft = {
+  tees: Array<{
+    name: string;
+    color?: string;
+    rating?: number;
+    slope?: number;
+    yardages: number[];
+  }>;
+  holes: Array<{ hole: number; par: number; handicap: number }>;
+};
 
 type UpdateResult =
   | { ok: true; handle: string; renamed: boolean }
@@ -122,11 +145,46 @@ async function fetchImageBytes(
   }
 }
 
+type CreateCourseArgs =
+  | CourseCreateInputValues
+  | CourseCreateFinalizeValues;
+
+function isFinalizeArgs(
+  values: CreateCourseArgs,
+): values is CourseCreateFinalizeValues {
+  return (
+    typeof (values as CourseCreateFinalizeValues).scorecardData === "object" &&
+    (values as CourseCreateFinalizeValues).scorecardData !== null
+  );
+}
+
 export async function createCourse(
-  values: CourseCreateInputValues,
+  values: CreateCourseArgs,
 ): Promise<CreateResult> {
   await requireAdmin();
 
+  // Branch 1: client is finalizing a previous parse with rating/slope filled.
+  if (isFinalizeArgs(values)) {
+    const parsed = CourseCreateFinalizeSchema.safeParse(values);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0].message };
+    }
+    const {
+      name,
+      imgUrl,
+      scorecardImgUrl,
+      scorecardData,
+    } = parsed.data;
+    return insertCourseFromScorecard({
+      name,
+      imgUrl,
+      scorecardImgUrl,
+      scorecard: scorecardData,
+      sumCheckIssues: [],
+    });
+  }
+
+  // Branch 2: first submit — parse the scorecard image.
   const parsed = CourseCreateInputSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
@@ -134,26 +192,8 @@ export async function createCourse(
 
   const { name, imgUrl, scorecardImgUrl } = parsed.data;
 
-  const handle = slugify(name);
-  if (handle.length === 0) {
-    return {
-      ok: false,
-      error: "Course name must contain letters or numbers.",
-    };
-  }
-
-  const [existing] = await db
-    .select({ id: courses.id })
-    .from(courses)
-    .where(eq(courses.handle, handle))
-    .limit(1);
-  if (existing) {
-    return {
-      ok: false,
-      error:
-        "A course with this name already exists. Pick a slightly different name to differentiate them.",
-    };
-  }
+  const handleCheck = await checkHandle(name);
+  if (!handleCheck.ok) return handleCheck;
 
   const image = await fetchImageBytes(scorecardImgUrl);
   if (!image) {
@@ -178,6 +218,89 @@ export async function createCourse(
     };
   }
 
+  const draft: FinalizedScorecardDraft = {
+    tees: parsedScorecard.tees.map((tee) => ({
+      name: tee.name,
+      color: tee.color,
+      rating: tee.rating,
+      slope: tee.slope,
+      yardages: tee.yardages,
+    })),
+    holes: parsedScorecard.holes,
+  };
+
+  const needsMeta = draft.tees.some(
+    (tee) => tee.rating == null || tee.slope == null,
+  );
+  if (needsMeta) {
+    return {
+      ok: false,
+      needsTeeMeta: true,
+      input: { name, imgUrl, scorecardImgUrl },
+      draft,
+      sumCheckIssues,
+    };
+  }
+
+  // Safe to coerce — every tee has rating/slope now.
+  const scorecard: FinalizedScorecard = {
+    tees: draft.tees.map((tee) => ({
+      name: tee.name,
+      color: tee.color,
+      rating: tee.rating!,
+      slope: tee.slope!,
+      yardages: tee.yardages,
+    })),
+    holes: draft.holes,
+  };
+
+  return insertCourseFromScorecard({
+    name,
+    imgUrl,
+    scorecardImgUrl,
+    scorecard,
+    sumCheckIssues,
+  });
+}
+
+async function checkHandle(
+  name: string,
+): Promise<{ ok: true; handle: string } | { ok: false; error: string }> {
+  const handle = slugify(name);
+  if (handle.length === 0) {
+    return {
+      ok: false,
+      error: "Course name must contain letters or numbers.",
+    };
+  }
+  const [existing] = await db
+    .select({ id: courses.id })
+    .from(courses)
+    .where(eq(courses.handle, handle))
+    .limit(1);
+  if (existing) {
+    return {
+      ok: false,
+      error:
+        "A course with this name already exists. Pick a slightly different name to differentiate them.",
+    };
+  }
+  return { ok: true, handle };
+}
+
+async function insertCourseFromScorecard(args: {
+  name: string;
+  imgUrl: string;
+  scorecardImgUrl: string;
+  scorecard: FinalizedScorecard;
+  sumCheckIssues: string[];
+}): Promise<CreateResult> {
+  const { name, imgUrl, scorecardImgUrl, scorecard, sumCheckIssues } = args;
+
+  const handleCheck = await checkHandle(name);
+  if (!handleCheck.ok) return handleCheck;
+  const { handle } = handleCheck;
+
   try {
     await db.transaction(async (tx) => {
       const [course] = await tx
@@ -190,7 +313,7 @@ export async function createCourse(
         })
         .returning({ id: courses.id });
 
-      for (const [index, tee] of parsedScorecard.tees.entries()) {
+      for (const [index, tee] of scorecard.tees.entries()) {
         const [insertedTee] = await tx
           .insert(courseTees)
           .values({
@@ -216,7 +339,7 @@ export async function createCourse(
       }
 
       await tx.insert(courseHoles).values(
-        parsedScorecard.holes.map((hole) => ({
+        scorecard.holes.map((hole) => ({
           courseId: course.id,
           hole: hole.hole,
           par: hole.par,

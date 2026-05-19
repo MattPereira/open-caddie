@@ -106,7 +106,39 @@ export const CourseCreateInputSchema = z.object({
   scorecardImgUrl: z.url("Scorecard image is required").max(2048),
 });
 
+// Resubmit payload when the parser came back without rating/slope on one or
+// more tees. The client fills in the missing values and round-trips the
+// already-parsed scorecard so the server skips re-parsing.
+const finalizedTeeSchema = z.object({
+  name: z.string().trim().min(1).max(50),
+  color: z.string().trim().max(30).optional(),
+  rating: z.number().positive(),
+  slope: z.number().int().min(55).max(155),
+  yardages: z.array(z.number().int()).length(18),
+});
+
+export const FinalizedScorecardSchema = z.object({
+  tees: z.array(finalizedTeeSchema).min(1),
+  holes: z
+    .array(
+      z.object({
+        hole: z.number().int().min(1).max(18),
+        par: z.number().int().min(2).max(7),
+        handicap: z.number().int().min(1).max(18),
+      }),
+    )
+    .length(18),
+});
+
+export const CourseCreateFinalizeSchema = CourseCreateInputSchema.extend({
+  scorecardData: FinalizedScorecardSchema,
+});
+
 export type CourseFormValues = z.input<typeof CourseFormSchema>;
 export type CourseUpdateValues = z.input<typeof CourseUpdateSchema>;
 export type CourseCreateInputValues = z.input<typeof CourseCreateInputSchema>;
+export type CourseCreateFinalizeValues = z.input<
+  typeof CourseCreateFinalizeSchema
+>;
+export type FinalizedScorecard = z.infer<typeof FinalizedScorecardSchema>;
 export type TeeFormValues = z.input<typeof teeSchema>;

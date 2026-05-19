@@ -23,8 +23,19 @@ export const ScorecardSchema = z.object({
         color: TeeColor.optional().describe(
           "Lowercase color label if the scorecard indicates one; omit if ambiguous.",
         ),
-        rating: z.number().describe("USGA Course Rating for this tee."),
-        slope: z.number().int().describe("USGA Slope Rating (55-155) for this tee."),
+        rating: z
+          .number()
+          .optional()
+          .describe(
+            "USGA Course Rating for this tee. OMIT if not clearly visible on the scorecard image — do not guess.",
+          ),
+        slope: z
+          .number()
+          .int()
+          .optional()
+          .describe(
+            "USGA Slope Rating (55-155) for this tee. OMIT if not clearly visible — do not guess.",
+          ),
         yardages: z
           .array(z.number().int())
           .length(18)
@@ -80,6 +91,7 @@ TEE ROWS
 - Tees are rows (or columns) labeled by color/name (Black, Blue, White, Gold, Red, etc.). Capture every tee set with 18 yardages and a rating/slope.
 - IMPORTANT: each tee row has its own yardages on every hole. Never copy yardages from one tee row to another. If a row's value is unreadable, return your best guess for that single cell — do not fill it with the row above or below.
 - Rating/slope are usually printed as "RATING/SLOPE" or "R/S", e.g. "70.0/127". If the card shows combined men's/women's like "M 66.4/115 W 72.1/121", use the men's (M) value. If only one rating is shown, use it as-is.
+- Many scorecards print rating/slope on the back of the card or on a separate panel that is NOT visible in this image. If you cannot clearly see a rating or slope for a tee row, OMIT the field entirely. Do not copy from another tee, do not guess, do not invent a plausible value. Leaving the field out is the correct behavior when the value is not in the image.
 
 PAR AND HANDICAP (shared across all tees)
 - The "Handicap" or "HCP" row gives each hole a stroke index 1-18 (1 = hardest). The 18 values must be unique and cover 1-18 exactly once. If both Men's and Women's handicap rows are shown, use the Men's Handicap row.

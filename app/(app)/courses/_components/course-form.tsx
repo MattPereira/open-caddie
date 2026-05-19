@@ -1,12 +1,28 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Form,
   FormControl,
@@ -86,143 +102,275 @@ function sumPars(holes: CourseFormValues["holes"], start: number, end: number) {
   return total;
 }
 
-type HolesSectionProps = {
+function sumYardages(
+  yardages: TeeFormValues["yardages"] | undefined,
+  start: number,
+  end: number,
+) {
+  if (!yardages) return 0;
+  let total = 0;
+  for (let i = start; i < end; i++) {
+    const y = yardages[i];
+    if (typeof y === "number") total += y;
+  }
+  return total;
+}
+
+type ScorecardTableProps = {
   control: import("react-hook-form").Control<CourseFormValues>;
+  selectedTeeIndex?: number;
 };
 
-function HolesSection({ control }: HolesSectionProps) {
-  const holes = useWatch({ control, name: "holes" }) as CourseFormValues["holes"];
-  const outPar = sumPars(holes, 0, 9);
-  const inPar = sumPars(holes, 9, 18);
+type TeeEditCardProps = {
+  control: import("react-hook-form").Control<CourseFormValues>;
+  index: number;
+};
 
+function TeeEditCard({ control, index }: TeeEditCardProps) {
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-      <HoleNineCard
+    <div className="grid grid-cols-[minmax(0,1fr)_4.75rem_4.25rem] items-end gap-3 rounded-md border p-3">
+      <FormField
         control={control}
-        title="Front"
-        startIndex={0}
-        endIndex={9}
-        subtotalLabel="Out"
-        subtotalPar={outPar}
+        name={`tees.${index}.name`}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Tee name</FormLabel>
+            <FormControl>
+              <Input {...field} placeholder="Blue" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
       />
-      <HoleNineCard
+      <FormField
         control={control}
-        title="Back"
-        startIndex={9}
-        endIndex={18}
-        subtotalLabel="In"
-        subtotalPar={inPar}
+        name={`tees.${index}.rating`}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Rating</FormLabel>
+            <FormControl>
+              <Input
+                {...field}
+                type="number"
+                inputMode="decimal"
+                min="0.1"
+                step="0.1"
+                className="tabular-nums"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name={`tees.${index}.slope`}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Slope</FormLabel>
+            <FormControl>
+              <Input
+                type="number"
+                min={55}
+                max={155}
+                step={1}
+                className="tabular-nums"
+                {...field}
+                value={toNumberInputValue(field.value)}
+                onChange={(e) =>
+                  field.onChange(
+                    e.target.value === "" ? "" : Number(e.target.value),
+                  )
+                }
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
       />
     </div>
   );
 }
 
-type HoleNineCardProps = {
-  control: import("react-hook-form").Control<CourseFormValues>;
-  title: string;
-  startIndex: number;
-  endIndex: number;
-  subtotalLabel: string;
-  subtotalPar: number;
-};
+function ScorecardTable({ control, selectedTeeIndex }: ScorecardTableProps) {
+  const holes = useWatch({ control, name: "holes" }) as CourseFormValues["holes"];
+  const tees = useWatch({ control, name: "tees" }) as TeeFormValues[];
+  const visibleTeeIndexes =
+    selectedTeeIndex == null ? tees.map((_, index) => index) : [selectedTeeIndex];
+  const outPar = sumPars(holes, 0, 9);
+  const inPar = sumPars(holes, 9, 18);
+  const totalPar = outPar + inPar;
+  const teeTotals = tees.map((tee) => ({
+    out: sumYardages(tee?.yardages, 0, 9),
+    in: sumYardages(tee?.yardages, 9, 18),
+  }));
 
-function HoleNineCard({
-  control,
-  title,
-  startIndex,
-  endIndex,
-  subtotalLabel,
-  subtotalPar,
-}: HoleNineCardProps) {
+  const renderHoleRow = (index: number) => {
+    const hole = index + 1;
+    return (
+      <TableRow key={hole}>
+        <TableCell className="h-11 px-2 font-medium tabular-nums">
+          {hole}
+        </TableCell>
+        <TableCell className="px-1 py-1 text-center">
+          <FormField
+            control={control}
+            name={`holes.${index}.par`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="sr-only">Hole {hole} par</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={2}
+                    max={7}
+                    step={1}
+                    className="mx-auto h-8 w-14 text-center tabular-nums"
+                    {...field}
+                    value={toNumberInputValue(field.value)}
+                    onChange={(e) =>
+                      field.onChange(
+                        e.target.value === "" ? "" : Number(e.target.value),
+                      )
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </TableCell>
+        <TableCell className="px-1 py-1 text-center">
+          <FormField
+            control={control}
+            name={`holes.${index}.handicap`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="sr-only">Hole {hole} handicap</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={18}
+                    step={1}
+                    className="mx-auto h-8 w-14 text-center tabular-nums"
+                    {...field}
+                    value={toNumberInputValue(field.value)}
+                    onChange={(e) =>
+                      field.onChange(
+                        e.target.value === "" ? "" : Number(e.target.value),
+                      )
+                    }
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </TableCell>
+        {visibleTeeIndexes.map((teeIndex) => (
+          <TableCell key={teeIndex} className="px-1 py-1 text-center">
+            <FormField
+              control={control}
+              name={`tees.${teeIndex}.yardages.${index}`}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="sr-only">
+                    Hole {hole} yardage
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      step={1}
+                      className="mx-auto h-8 w-20 text-center tabular-nums"
+                      {...field}
+                      value={toNumberInputValue(field.value)}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === "" ? "" : Number(e.target.value),
+                        )
+                      }
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </TableCell>
+        ))}
+      </TableRow>
+    );
+  };
+
+  const totalRow = (
+    label: string,
+    parTotal: number,
+    getTeeTotal: (teeIndex: number) => number,
+  ) => (
+    <TableRow className="bg-muted/40">
+      <TableCell className="h-10 px-2 font-medium">{label}</TableCell>
+      <TableCell className="px-1 text-center font-medium tabular-nums">
+        {parTotal || ""}
+      </TableCell>
+      <TableCell />
+      {visibleTeeIndexes.map((teeIndex) => {
+        const tee = tees[teeIndex];
+        return (
+          <TableCell
+            key={`${tee?.name ?? "tee"}-${teeIndex}-${label}`}
+            className="px-1 text-center font-medium tabular-nums"
+          >
+            {getTeeTotal(teeIndex) || ""}
+          </TableCell>
+        );
+      })}
+    </TableRow>
+  );
+
   return (
-    <section className="flex flex-col gap-2 rounded-md border p-3">
-        <div className="grid grid-cols-[5rem_1fr_1fr] items-center gap-2 text-xs font-medium">
-          <span className="text-sm text-muted-foreground">{title}</span>
-          <span>Par</span>
-          <span>Handicap</span>
-        </div>
-
-        {Array.from({ length: endIndex - startIndex }, (_, i) => {
-          const index = startIndex + i;
-          const hole = index + 1;
+    <Table className="min-w-max table-fixed">
+      <colgroup>
+        <col className="w-14" />
+        <col className="w-16" />
+        <col className="w-16" />
+        {visibleTeeIndexes.map((teeIndex) => {
+          const tee = tees[teeIndex];
           return (
-            <div
-              key={hole}
-              className="grid grid-cols-[5rem_1fr_1fr] items-start gap-2"
-            >
-              <div className="pt-2 text-sm font-medium">Hole {hole}</div>
-
-              <FormField
-                control={control}
-                name={`holes.${index}.par`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="sr-only">Hole {hole} par</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={2}
-                        max={7}
-                        step={1}
-                        className="text-center"
-                        {...field}
-                        value={toNumberInputValue(field.value)}
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value === "" ? "" : Number(e.target.value),
-                          )
-                        }
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={control}
-                name={`holes.${index}.handicap`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="sr-only">
-                      Hole {hole} handicap
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={18}
-                        step={1}
-                        className="text-center"
-                        {...field}
-                        value={toNumberInputValue(field.value)}
-                        onChange={(e) =>
-                          field.onChange(
-                            e.target.value === "" ? "" : Number(e.target.value),
-                          )
-                        }
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <col key={`${tee?.name ?? "tee"}-${teeIndex}`} className="w-28" />
           );
         })}
-
-        <div className="grid grid-cols-[5rem_1fr_1fr] items-start gap-2">
-          <div className="pt-2 text-sm font-medium">{subtotalLabel}</div>
-          <Input
-            type="number"
-            disabled
-            value={subtotalPar || ""}
-            readOnly
-            className="text-center"
-          />
-          <div />
-        </div>
-    </section>
+      </colgroup>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="px-2">Hole</TableHead>
+          <TableHead className="px-1 text-center">Par</TableHead>
+          <TableHead className="px-1 text-center">Hdcp</TableHead>
+          {visibleTeeIndexes.map((teeIndex) => {
+            const tee = tees[teeIndex];
+            return (
+              <TableHead key={teeIndex} className="px-1 text-center">
+                <span className="block truncate">
+                  {tee?.name?.trim() || `Tee ${teeIndex + 1}`}
+                </span>
+              </TableHead>
+            );
+          })}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {Array.from({ length: 9 }, (_, i) => renderHoleRow(i))}
+        {totalRow("Out", outPar, (teeIndex) => teeTotals[teeIndex].out)}
+        {Array.from({ length: 9 }, (_, i) => renderHoleRow(i + 9))}
+        {totalRow("In", inPar, (teeIndex) => teeTotals[teeIndex].in)}
+        {totalRow(
+          "Total",
+          totalPar,
+          (teeIndex) => teeTotals[teeIndex].out + teeTotals[teeIndex].in,
+        )}
+      </TableBody>
+    </Table>
   );
 }
 
@@ -233,6 +381,8 @@ export function CourseForm({ course }: CourseFormProps) {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedTeeIndex, setSelectedTeeIndex] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(CourseFormSchema),
@@ -240,11 +390,28 @@ export function CourseForm({ course }: CourseFormProps) {
   });
   const serverError = form.formState.errors.root?.server?.message;
   const teesError = form.formState.errors.tees?.root?.message;
+  const watchedTees = useWatch({
+    control: form.control,
+    name: "tees",
+  }) as TeeFormValues[];
 
   const { fields: teeFields } = useFieldArray({
     control: form.control,
     name: "tees",
   });
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 768px)");
+    const updateIsDesktop = () => setIsDesktop(mediaQuery.matches);
+    updateIsDesktop();
+    mediaQuery.addEventListener("change", updateIsDesktop);
+    return () => mediaQuery.removeEventListener("change", updateIsDesktop);
+  }, []);
+
+  const effectiveSelectedTeeIndex = teeFields[selectedTeeIndex]
+    ? selectedTeeIndex
+    : 0;
+  const selectedTee = teeFields[effectiveSelectedTeeIndex];
 
   const onSubmit = (values: CourseFormValues) => {
     form.clearErrors("root.server");
@@ -352,7 +519,6 @@ export function CourseForm({ course }: CourseFormProps) {
                       onChange={(url) => field.onChange(url ?? "")}
                       pathPrefix={`courses/${course.id}`}
                       variant="freeform"
-                      aspectRatio={16 / 9}
                       fallback="Upload a photo of the scorecard"
                       title="Scorecard image"
                       description="Crop to show only the table"
@@ -367,7 +533,7 @@ export function CourseForm({ course }: CourseFormProps) {
         </section>
 
         <section className="flex flex-col gap-3">
-          <h2 className="text-lg font-semibold">Tees</h2>
+          <h2 className="text-base font-semibold">Scorecard</h2>
 
           {teesError ? (
             <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -375,95 +541,52 @@ export function CourseForm({ course }: CourseFormProps) {
             </p>
           ) : null}
 
-          <div className="flex flex-col gap-4">
-            {teeFields.map((field, index) => (
-              <div
-                key={field.id}
-                className="flex flex-col gap-3 rounded-md border p-3"
+          {isDesktop ? (
+            <div className="grid grid-cols-3 gap-2">
+              {teeFields.map((field, index) => (
+                <TeeEditCard
+                  key={field.id}
+                  control={form.control}
+                  index={index}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <Select
+                value={String(effectiveSelectedTeeIndex)}
+                onValueChange={(value) => setSelectedTeeIndex(Number(value))}
               >
-                <FormField
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select tee" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {teeFields.map((field, index) => (
+                      <SelectItem key={field.id} value={String(index)}>
+                        {watchedTees[index]?.name?.trim() || `Tee ${index + 1}`}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+
+              {selectedTee ? (
+                <TeeEditCard
                   control={form.control}
-                  name={`tees.${index}.name`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Tee name</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Blue" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  index={effectiveSelectedTeeIndex}
                 />
+              ) : null}
+            </div>
+          )}
 
-                <FormField
-                  control={form.control}
-                  name={`tees.${index}.color`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Color (optional)</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="blue" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name={`tees.${index}.rating`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Rating</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="number"
-                            inputMode="decimal"
-                            min="0.1"
-                            step="0.1"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name={`tees.${index}.slope`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Slope</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={55}
-                            max={155}
-                            step={1}
-                            {...field}
-                            value={toNumberInputValue(field.value)}
-                            onChange={(e) =>
-                              field.onChange(
-                                e.target.value === ""
-                                  ? ""
-                                  : Number(e.target.value),
-                              )
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
-            ))}
+          <div className="overflow-x-auto rounded-md border">
+            <ScorecardTable
+              control={form.control}
+              selectedTeeIndex={isDesktop ? undefined : effectiveSelectedTeeIndex}
+            />
           </div>
         </section>
-
-        <HolesSection control={form.control} />
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           {confirmingDelete ? (

@@ -35,12 +35,16 @@ export function ImageCropperDialog({
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [prevFile, setPrevFile] = useState(file);
+  const [naturalAspectRatio, setNaturalAspectRatio] = useState<number | null>(
+    null,
+  );
 
   if (file !== prevFile) {
     setPrevFile(file);
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     setCroppedAreaPixels(null);
+    setNaturalAspectRatio(null);
   }
 
   const imageSrc = useMemo(
@@ -56,6 +60,8 @@ export function ImageCropperDialog({
   const onCropComplete = useCallback((_area: Area, areaPixels: Area) => {
     setCroppedAreaPixels(areaPixels);
   }, []);
+
+  const effectiveAspectRatio = aspectRatio ?? naturalAspectRatio ?? 4 / 3;
 
   const handleDone = async () => {
     if (!file || !croppedAreaPixels) return;
@@ -84,10 +90,13 @@ export function ImageCropperDialog({
               image={imageSrc}
               crop={crop}
               zoom={zoom}
-              aspect={aspectRatio}
+              aspect={effectiveAspectRatio}
               onCropChange={setCrop}
               onZoomChange={setZoom}
               onCropComplete={onCropComplete}
+              onMediaLoaded={(media) => {
+                setNaturalAspectRatio(media.naturalWidth / media.naturalHeight);
+              }}
             />
           ) : null}
         </div>

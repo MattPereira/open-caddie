@@ -1,12 +1,198 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq, inArray } from "drizzle-orm";
+import { and, count, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { rounds, tournaments, users } from "@/db/schema";
+import {
+  clubs,
+  courseTees,
+  courses,
+  rounds,
+  tournaments,
+  users,
+} from "@/db/schema";
+import { getCurrentUser } from "@/db/queries/users";
+import {
+  TournamentCreateSchema,
+  TournamentUpdateSchema,
+  type TournamentCreateValues,
+  type TournamentUpdateValues,
+} from "./schema";
+
+type ActionResult = { ok: true } | { ok: false; error: string };
+
+async function requireAdmin() {
+  const me = await getCurrentUser();
+  if (!me?.isAdmin) {
+    throw new Error("Forbidden");
+  }
+  return me;
+}
+
+async function getClubIdByHandle(handle: string) {
+  const [club] = await db
+    .select({ id: clubs.id })
+    .from(clubs)
+    .where(eq(clubs.handle, handle))
+    .limit(1);
+  return club?.id ?? null;
+}
+
+async function getCourseIdByHandle(handle: string) {
+  const [course] = await db
+    .select({ id: courses.id })
+    .from(courses)
+    .where(eq(courses.handle, handle))
+    .limit(1);
+  return course?.id ?? null;
+}
+
+async function isTeeForCourse(teeId: number, courseId: number) {
+  const [row] = await db
+    .select({ id: courseTees.id })
+    .from(courseTees)
+    .where(and(eq(courseTees.id, teeId), eq(courseTees.courseId, courseId)))
+    .limit(1);
+  return row != null;
+}
+
+function parseDateOnly(value: string): Date {
+  return new Date(`${value}T00:00:00.000Z`);
+}
+
+export async function createTournament(
+  values: TournamentCreateValues,
+): Promise<ActionResult> {
+  await requireAdmin();
+
+  const parsed = TournamentCreateSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { clubHandle } = parsed.data;
+  const date = parseDateOnly(parsed.data.date);
+  const season = parsed.data.season === "" ? null : parsed.data.season;
+  const startsAt = parsed.data.startsAt;
+  const courseHandle = parsed.data.courseHandle;
+  const clubId = await getClubIdByHandle(clubHandle);
+  const courseId = await getCourseIdByHandle(courseHandle);
+
+  if (!clubId || !courseId) {
+    return { ok: false, error: "Selected club or course does not exist." };
+  }
+
+  const teeId = parsed.data.teeId;
+  const teeBelongsToCourse = await isTeeForCourse(teeId, courseId);
+  if (!teeBelongsToCourse) {
+    return { ok: false, error: "Selected tee does not belong to this course." };
+  }
+
+  try {
+    await db.insert(tournaments).values({
+      clubId,
+      date,
+      season,
+      startsAt,
+      courseId,
+      teeId,
+    });
+  } catch (e: unknown) {
+    const code =
+      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
+      (e as { code?: string })?.code;
+    if (code === "23503") {
+      return { ok: false, error: "Selected club or course does not exist." };
+    }
+    throw e;
+  }
+
+  revalidatePath("/tournaments");
+  revalidatePath("/standings");
+  return { ok: true };
+}
+
+export async function updateTournament(
+  values: TournamentUpdateValues,
+): Promise<ActionResult> {
+  await requireAdmin();
+
+  const parsed = TournamentUpdateSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { id, clubHandle } = parsed.data;
+  const date = parseDateOnly(parsed.data.date);
+  const season = parsed.data.season === "" ? null : parsed.data.season;
+  const startsAt = parsed.data.startsAt;
+  const courseHandle = parsed.data.courseHandle;
+  const clubId = await getClubIdByHandle(clubHandle);
+  const courseId = await getCourseIdByHandle(courseHandle);
+
+  if (!clubId || !courseId) {
+    return { ok: false, error: "Selected club or course does not exist." };
+  }
+
+  const [current] = await db
+    .select({ id: tournaments.id })
+    .from(tournaments)
+    .where(eq(tournaments.id, id))
+    .limit(1);
+  if (!current) {
+    return { ok: false, error: "Tournament not found." };
+  }
+
+  const teeId = parsed.data.teeId;
+  const teeBelongsToCourse = await isTeeForCourse(teeId, courseId);
+  if (!teeBelongsToCourse) {
+    return { ok: false, error: "Selected tee does not belong to this course." };
+  }
+
+  try {
+    await db
+      .update(tournaments)
+      .set({ clubId, date, season, startsAt, courseId, teeId })
+      .where(eq(tournaments.id, id));
+  } catch (e: unknown) {
+    const code =
+      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
+      (e as { code?: string })?.code;
+    if (code === "23503") {
+      return { ok: false, error: "Selected club or course does not exist." };
+    }
+    throw e;
+  }
+
+  revalidatePath("/tournaments");
+  revalidatePath(`/tournaments/${id}`);
+  revalidatePath("/standings");
+  return { ok: true };
+}
+
+export async function deleteTournament(id: number): Promise<ActionResult> {
+  await requireAdmin();
+
+  const [{ value: roundCount }] = await db
+    .select({ value: count() })
+    .from(rounds)
+    .where(eq(rounds.tournamentId, id));
+
+  if (roundCount > 0) {
+    return {
+      ok: false,
+      error: `Cannot delete: tournament has ${roundCount} round(s).`,
+    };
+  }
+
+  await db.delete(tournaments).where(eq(tournaments.id, id));
+  revalidatePath("/tournaments");
+  revalidatePath("/standings");
+  return { ok: true };
+}
 
 const AddPlayersSchema = z.object({
   tournamentId: z.number().int().positive(),

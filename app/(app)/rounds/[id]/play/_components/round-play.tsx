@@ -16,7 +16,7 @@ type RoundPlayProps = {
   tableRound: RoundScoresTableRound;
   leaderboardRounds?: RoundScoresTableRound[];
   date: Date | string;
-  holes: { hole: number; par: number }[];
+  holes: { hole: number; par: number; yards: number | null }[];
 };
 
 export function RoundPlay({

@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { getAllClubs, getAllClubsFull } from "@/db/queries/clubs";
-import { getAllCourses } from "@/db/queries/courses";
-import { getAllTournaments } from "@/db/queries/tournaments";
+import { getAllClubsFull } from "@/db/queries/clubs";
 import { getAllUsers, getCurrentUser } from "@/db/queries/users";
 import { AdminTabs } from "./_components/admin-tabs";
 
@@ -15,24 +13,15 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const [users, tournaments, clubs, adminClubs, courses] = await Promise.all([
+  const [users, adminClubs] = await Promise.all([
     getAllUsers(),
-    getAllTournaments(),
-    getAllClubs(),
     getAllClubsFull(),
-    getAllCourses(),
   ]);
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
       <h1 className="text-2xl font-semibold">Admin Console</h1>
-      <AdminTabs
-        users={users}
-        tournaments={tournaments}
-        clubs={clubs}
-        adminClubs={adminClubs}
-        courses={courses}
-      />
+      <AdminTabs users={users} adminClubs={adminClubs} />
     </main>
   );
 }

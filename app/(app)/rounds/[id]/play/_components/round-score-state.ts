@@ -4,6 +4,7 @@ import { calculateNetStrokes } from "@/lib/scoring";
 export type ScoreEntry = {
   hole: number;
   par: number | null;
+  yards: number | null;
   strokes: number | null;
   putts: number | null;
 };
@@ -12,15 +13,17 @@ export const HOLE_NUMBERS = Array.from({ length: 18 }, (_, i) => i + 1);
 
 export function buildInitialScores(
   roundScores: RoundScoresTableRound["scores"],
-  holes: { hole: number; par: number }[],
+  holes: { hole: number; par: number; yards: number | null }[],
 ): ScoreEntry[] {
   const scoreByHole = new Map(roundScores.map((s) => [s.hole, s]));
   const parByHole = new Map(holes.map((h) => [h.hole, h.par]));
+  const yardsByHole = new Map(holes.map((h) => [h.hole, h.yards]));
   return HOLE_NUMBERS.map((hole) => {
     const existing = scoreByHole.get(hole);
     return {
       hole,
       par: existing?.par ?? parByHole.get(hole) ?? null,
+      yards: yardsByHole.get(hole) ?? null,
       strokes: existing?.strokes ?? null,
       putts: existing?.putts ?? null,
     };

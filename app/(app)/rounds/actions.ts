@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import {
   courseHoles,
+  courseTees,
   courses,
   greenies,
   roundScores,
@@ -14,7 +15,6 @@ import {
   tournaments,
   users,
 } from "@/db/schema";
-import { getPrimaryTeeIdByCourseId } from "@/db/queries/courses";
 import {
   RoundConfigSchema,
   RoundGreenieDeleteSchema,
@@ -41,7 +41,7 @@ export async function createRound(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  const { courseHandle, date, tournamentId } = parsed.data;
+  const { courseHandle, date, tournamentId, teeId: formTeeId } = parsed.data;
 
   const [course] = await db
     .select({ id: courses.id })
@@ -74,7 +74,23 @@ export async function createRound(
     }
     teeId = tournament.teeId;
   } else {
-    teeId = await getPrimaryTeeIdByCourseId(course.id);
+    if (formTeeId == null) {
+      return { ok: false, error: "Tees are required." };
+    }
+    const [tee] = await db
+      .select({ id: courseTees.id })
+      .from(courseTees)
+      .where(
+        and(eq(courseTees.id, formTeeId), eq(courseTees.courseId, course.id)),
+      )
+      .limit(1);
+    if (!tee) {
+      return {
+        ok: false,
+        error: "Selected tees do not belong to this course.",
+      };
+    }
+    teeId = formTeeId;
   }
 
   if (!teeId) {

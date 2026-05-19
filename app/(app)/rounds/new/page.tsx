@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import { getAllCourses } from "@/db/queries/courses";
+import { getAllCourses, getCoursesWithTees } from "@/db/queries/courses";
 import { getUpcomingTournamentsForUser } from "@/db/queries/tournaments";
 import { toIsoDate } from "@/lib/utils";
 import { RoundSetupForm } from "./_components/round-setup-form";
@@ -10,10 +10,15 @@ export default async function NewRoundPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/");
 
-  const [courses, tournaments] = await Promise.all([
+  const [courses, coursesWithTees, tournaments] = await Promise.all([
     getAllCourses(),
+    getCoursesWithTees(),
     getUpcomingTournamentsForUser(session.user.id),
   ]);
+
+  const teesByCourseHandle = new Map(
+    coursesWithTees.map((c) => [c.handle, c.tees]),
+  );
 
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
@@ -29,6 +34,7 @@ export default async function NewRoundPage() {
             rating: course.rating,
             slope: course.slope,
             imgUrl: course.imgUrl,
+            tees: teesByCourseHandle.get(course.handle) ?? [],
           }))}
           tournaments={tournaments.map((tournament) => ({
             id: tournament.id,

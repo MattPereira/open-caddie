@@ -9,6 +9,7 @@ import {
   roundScores,
   roundSummaries,
   rounds,
+  teeYardages,
   tournaments,
   users,
 } from "@/db/schema";
@@ -78,6 +79,7 @@ export const getRoundById = cache(async (roundId: number) => {
       courseHandle: courses.handle,
       courseName: courses.name,
       courseImgUrl: courses.imgUrl,
+      teeId: rounds.teeId,
       courseRating: roundSummaries.courseRating,
       courseSlope: roundSummaries.courseSlope,
       recordedStrokesCount: roundSummaries.recordedStrokesCount,
@@ -88,6 +90,7 @@ export const getRoundById = cache(async (roundId: number) => {
       scoreDifferential: roundSummaries.scoreDifferential,
     })
     .from(roundSummaries)
+    .innerJoin(rounds, eq(rounds.id, roundSummaries.roundId))
     .innerJoin(users, eq(roundSummaries.userId, users.id))
     .innerJoin(courses, eq(roundSummaries.courseId, courses.id))
     .leftJoin(tournaments, eq(roundSummaries.tournamentId, tournaments.id))
@@ -104,8 +107,16 @@ export const getRoundById = cache(async (roundId: number) => {
       .select({
         hole: courseHoles.hole,
         par: courseHoles.par,
+        yards: teeYardages.yards,
       })
       .from(courseHoles)
+      .leftJoin(
+        teeYardages,
+        and(
+          eq(teeYardages.teeId, round.teeId),
+          eq(teeYardages.hole, courseHoles.hole),
+        ),
+      )
       .where(eq(courseHoles.courseId, round.courseId))
       .orderBy(asc(courseHoles.hole)),
     db

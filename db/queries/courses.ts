@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, asc, eq, gte, inArray } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   courseHoles,
@@ -45,6 +45,53 @@ async function getPrimaryTeeByCourseId(): Promise<Map<number, PrimaryTee>> {
   }
   return byCourse;
 }
+
+export const getCoursesWithTees = cache(async () => {
+  const [rows, tees, yardageTotals] = await Promise.all([
+    db
+      .select({ id: courses.id, handle: courses.handle, name: courses.name })
+      .from(courses)
+      .orderBy(asc(courses.name)),
+    db
+      .select({
+        id: courseTees.id,
+        courseId: courseTees.courseId,
+        name: courseTees.name,
+      })
+      .from(courseTees)
+      .orderBy(asc(courseTees.courseId), asc(courseTees.sortOrder)),
+    db
+      .select({
+        teeId: teeYardages.teeId,
+        totalYards: sql<number>`sum(${teeYardages.yards})`.mapWith(Number),
+      })
+      .from(teeYardages)
+      .groupBy(teeYardages.teeId),
+  ]);
+
+  const totalYardsByTee = new Map<number, number>(
+    yardageTotals.map((y) => [y.teeId, y.totalYards]),
+  );
+  const teesByCourse = new Map<
+    number,
+    { id: number; name: string; totalYards: number | null }[]
+  >();
+  for (const tee of tees) {
+    const list = teesByCourse.get(tee.courseId) ?? [];
+    list.push({
+      id: tee.id,
+      name: tee.name,
+      totalYards: totalYardsByTee.get(tee.id) ?? null,
+    });
+    teesByCourse.set(tee.courseId, list);
+  }
+
+  return rows.map((course) => ({
+    handle: course.handle,
+    name: course.name,
+    tees: teesByCourse.get(course.id) ?? [],
+  }));
+});
 
 export const getAllCourses = cache(async () => {
   const rows = await db

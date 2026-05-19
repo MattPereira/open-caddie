@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { getAllClubs } from "@/db/queries/clubs";
+import { getCoursesWithTees } from "@/db/queries/courses";
 import {
   getAddablePlayersForTournament,
   getTournamentById,
@@ -9,6 +11,7 @@ import {
 import { getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/utils";
 import { AddPlayersSheet } from "./_components/add-players-sheet";
+import { EditTournamentButton } from "./_components/edit-tournament-button";
 import { GreeniesTabContent } from "./_components/greenies-tab-content";
 import { RoundsTabContent } from "./_components/rounds-tab-content";
 import { WinnersTabContent } from "./_components/winners-tab-content";
@@ -39,15 +42,37 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
 
   if (!tournament) notFound();
 
-  const addablePlayers = currentUser?.isAdmin
-    ? await getAddablePlayersForTournament(tournament.id)
-    : [];
+  const [addablePlayers, clubs, courses] = currentUser?.isAdmin
+    ? await Promise.all([
+        getAddablePlayersForTournament(tournament.id),
+        getAllClubs(),
+        getCoursesWithTees(),
+      ])
+    : [[], [], []];
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex flex-col gap-1">
-        <div className="flex flex-wrap items-end gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-normal">Tournament</h1>
+          {currentUser?.isAdmin ? (
+            <EditTournamentButton
+              tournament={{
+                id: tournament.id,
+                clubHandle: tournament.clubHandle,
+                clubName: tournament.clubName,
+                date: tournament.date,
+                startsAt: tournament.startsAt,
+                season: tournament.season,
+                courseHandle: tournament.courseHandle,
+                courseName: tournament.courseName,
+                courseImgUrl: tournament.courseImgUrl,
+                teeId: tournament.teeId,
+              }}
+              clubs={clubs}
+              courses={courses}
+            />
+          ) : null}
           {currentUser?.isAdmin ? (
             <div className="ml-auto">
               <AddPlayersSheet

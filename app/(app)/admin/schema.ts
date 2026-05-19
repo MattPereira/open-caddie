@@ -22,32 +22,6 @@ export type UserFormValues = z.infer<typeof UserFormSchema>;
 export type UserCreateValues = z.infer<typeof UserCreateSchema>;
 export type UserUpdateValues = z.infer<typeof UserUpdateSchema>;
 
-export const TournamentFormSchema = z.object({
-  clubHandle: z.string().trim().min(1, "Club is required"),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required"),
-  season: z.union([
-    z
-      .number({ message: "Season must be a number" })
-      .int("Season must be a whole number")
-      .nonnegative("Season cannot be negative"),
-    z.literal(""),
-  ]),
-  startsAt: z
-    .string()
-    .trim()
-    .regex(/^\d{2}:\d{2}$/, "Start time is required"),
-  courseHandle: z.string().trim().min(1, "Course is required"),
-});
-
-export const TournamentCreateSchema = TournamentFormSchema;
-export const TournamentUpdateSchema = TournamentFormSchema.extend({
-  id: z.number().int().positive(),
-});
-
-export type TournamentFormValues = z.infer<typeof TournamentFormSchema>;
-export type TournamentCreateValues = z.infer<typeof TournamentCreateSchema>;
-export type TournamentUpdateValues = z.infer<typeof TournamentUpdateSchema>;
-
 const intNonNeg = z
   .number({ message: "Must be a number" })
   .int("Must be a whole number")

@@ -55,6 +55,7 @@ export const getTournamentById = cache(async (tournamentId: number) => {
       courseHandle: courses.handle,
       courseName: courses.name,
       courseImgUrl: courses.imgUrl,
+      teeId: tournaments.teeId,
     })
     .from(tournaments)
     .innerJoin(clubs, eq(tournaments.clubId, clubs.id))

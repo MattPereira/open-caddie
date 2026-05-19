@@ -67,7 +67,7 @@ type RoundScoresFormProps = {
   round: RoundScoresTableRound;
   leaderboardRounds?: RoundScoresTableRound[];
   date: Date | string;
-  holes: { hole: number; par: number }[];
+  holes: { hole: number; par: number; yards: number | null }[];
   scores: ScoreEntry[];
   setScores: Dispatch<SetStateAction<ScoreEntry[]>>;
   onShowSummary: () => void;
@@ -210,6 +210,7 @@ export function RoundScoresForm({
 
   const currentHoleNumber = scores[current]?.hole;
   const currentHolePar = scores[current]?.par;
+  const currentHoleYards = scores[current]?.yards;
   const currentScore = scores[current];
   const hasCurrentHoleScore =
     currentScore?.strokes != null && currentScore.putts != null;
@@ -269,6 +270,9 @@ export function RoundScoresForm({
           </span>
           <span className="text-xs uppercase tracking-wider text-muted-foreground">
             Par {currentHolePar}
+            {currentHoleYards != null
+              ? ` · ${currentHoleYards.toLocaleString()} yds`
+              : ""}
           </span>
         </div>
         <Button

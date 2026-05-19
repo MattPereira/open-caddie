@@ -4,28 +4,16 @@ import { revalidatePath } from "next/cache";
 import { and, count, eq, ne, sql } from "drizzle-orm";
 import { signIn } from "@/auth";
 import { db } from "@/db";
-import {
-  clubs,
-  courses,
-  greenies,
-  rounds,
-  tournaments,
-  users,
-} from "@/db/schema";
+import { clubs, greenies, rounds, users } from "@/db/schema";
 import { getCurrentUser } from "@/db/queries/users";
-import { getPrimaryTeeIdByCourseId } from "@/db/queries/courses";
 import { safeDeleteBlob } from "@/lib/blob";
 import {
   ClubCreateSchema,
   ClubUpdateSchema,
-  TournamentCreateSchema,
-  TournamentUpdateSchema,
   UserCreateSchema,
   UserUpdateSchema,
   type ClubCreateValues,
   type ClubUpdateValues,
-  type TournamentCreateValues,
-  type TournamentUpdateValues,
   type UserCreateValues,
   type UserUpdateValues,
 } from "./schema";
@@ -48,25 +36,6 @@ function emptyToNull(s: string) {
 function buildName(firstName: string | null, lastName: string | null) {
   const full = [firstName, lastName].filter(Boolean).join(" ").trim();
   return full.length > 0 ? full : null;
-}
-
-async function getClubIdByHandle(handle: string) {
-  const [club] = await db
-    .select({ id: clubs.id })
-    .from(clubs)
-    .where(eq(clubs.handle, handle))
-    .limit(1);
-  return club?.id ?? null;
-}
-
-async function getCourseIdByHandle(handle: string | null) {
-  if (!handle) return null;
-  const [course] = await db
-    .select({ id: courses.id })
-    .from(courses)
-    .where(eq(courses.handle, handle))
-    .limit(1);
-  return course?.id ?? null;
 }
 
 export async function createUser(
@@ -264,117 +233,6 @@ export async function deleteUser(id: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-function parseDateOnly(value: string): Date {
-  return new Date(`${value}T00:00:00.000Z`);
-}
-
-export async function createTournament(
-  values: TournamentCreateValues,
-): Promise<ActionResult> {
-  await requireAdmin();
-
-  const parsed = TournamentCreateSchema.safeParse(values);
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0].message };
-  }
-
-  const { clubHandle } = parsed.data;
-  const date = parseDateOnly(parsed.data.date);
-  const season = parsed.data.season === "" ? null : parsed.data.season;
-  const startsAt = parsed.data.startsAt;
-  const courseHandle = parsed.data.courseHandle;
-  const clubId = await getClubIdByHandle(clubHandle);
-  const courseId = await getCourseIdByHandle(courseHandle);
-
-  if (!clubId || !courseId) {
-    return { ok: false, error: "Selected club or course does not exist." };
-  }
-
-  const teeId = await getPrimaryTeeIdByCourseId(courseId);
-  if (!teeId) {
-    return { ok: false, error: "Selected course has no tees configured." };
-  }
-
-  try {
-    await db.insert(tournaments).values({
-      clubId,
-      date,
-      season,
-      startsAt,
-      courseId,
-      teeId,
-    });
-  } catch (e: unknown) {
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23503") {
-      return { ok: false, error: "Selected club or course does not exist." };
-    }
-    throw e;
-  }
-
-  revalidatePath("/admin");
-  revalidatePath("/standings");
-  return { ok: true };
-}
-
-export async function updateTournament(
-  values: TournamentUpdateValues,
-): Promise<ActionResult> {
-  await requireAdmin();
-
-  const parsed = TournamentUpdateSchema.safeParse(values);
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0].message };
-  }
-
-  const { id, clubHandle } = parsed.data;
-  const date = parseDateOnly(parsed.data.date);
-  const season = parsed.data.season === "" ? null : parsed.data.season;
-  const startsAt = parsed.data.startsAt;
-  const courseHandle = parsed.data.courseHandle;
-  const clubId = await getClubIdByHandle(clubHandle);
-  const courseId = await getCourseIdByHandle(courseHandle);
-
-  if (!clubId || !courseId) {
-    return { ok: false, error: "Selected club or course does not exist." };
-  }
-
-  const [current] = await db
-    .select({ id: tournaments.id })
-    .from(tournaments)
-    .where(eq(tournaments.id, id))
-    .limit(1);
-  if (!current) {
-    return { ok: false, error: "Tournament not found." };
-  }
-
-  const teeId = await getPrimaryTeeIdByCourseId(courseId);
-  if (!teeId) {
-    return { ok: false, error: "Selected course has no tees configured." };
-  }
-
-  try {
-    await db
-      .update(tournaments)
-      .set({ clubId, date, season, startsAt, courseId, teeId })
-      .where(eq(tournaments.id, id));
-  } catch (e: unknown) {
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23503") {
-      return { ok: false, error: "Selected club or course does not exist." };
-    }
-    throw e;
-  }
-
-  revalidatePath("/admin");
-  revalidatePath("/standings");
-  return { ok: true };
-}
-
 export async function createClub(
   values: ClubCreateValues,
 ): Promise<ActionResult> {
@@ -437,23 +295,3 @@ export async function updateClub(
   return { ok: true };
 }
 
-export async function deleteTournament(id: number): Promise<ActionResult> {
-  await requireAdmin();
-
-  const [{ value: roundCount }] = await db
-    .select({ value: count() })
-    .from(rounds)
-    .where(eq(rounds.tournamentId, id));
-
-  if (roundCount > 0) {
-    return {
-      ok: false,
-      error: `Cannot delete: tournament has ${roundCount} round(s).`,
-    };
-  }
-
-  await db.delete(tournaments).where(eq(tournaments.id, id));
-  revalidatePath("/admin");
-  revalidatePath("/standings");
-  return { ok: true };
-}

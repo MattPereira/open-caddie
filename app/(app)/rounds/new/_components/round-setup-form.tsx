@@ -46,12 +46,19 @@ import { cn, formatDate, toIsoDate, fromIsoDate } from "@/lib/utils";
 import { createRound } from "../../actions";
 import { RoundConfigSchema, type RoundConfigValues } from "../../schema";
 
+export type TeeOption = {
+  id: number;
+  name: string;
+  totalYards: number | null;
+};
+
 export type CourseOption = {
   handle: string;
   name: string;
   rating: string;
   slope: number;
   imgUrl: string | null;
+  tees: TeeOption[];
 };
 
 export type TournamentOption = {
@@ -91,6 +98,7 @@ export function RoundSetupForm({
       courseHandle: "",
       date: defaultDateIso,
       tournamentId: null,
+      teeId: null,
     },
   });
 
@@ -103,6 +111,7 @@ export function RoundSetupForm({
     name: "courseHandle",
   });
   const dateValue = useWatch({ control: form.control, name: "date" });
+  const teeId = useWatch({ control: form.control, name: "teeId" });
 
   const selectedTournament = useMemo(
     () => tournaments.find((t) => t.id === tournamentId) ?? null,
@@ -138,6 +147,7 @@ export function RoundSetupForm({
       form.setValue("tournamentId", null, { shouldValidate: false });
       form.setValue("courseHandle", "", { shouldValidate: false });
       form.setValue("date", "", { shouldValidate: false });
+      form.setValue("teeId", null, { shouldValidate: false });
       return;
     }
 
@@ -146,6 +156,7 @@ export function RoundSetupForm({
     form.setValue("tournamentId", null, { shouldValidate: false });
     form.setValue("courseHandle", "", { shouldValidate: false });
     form.setValue("date", defaultDateIso, { shouldValidate: false });
+    form.setValue("teeId", null, { shouldValidate: false });
   };
 
   const onSubmit = (values: RoundConfigValues) => {
@@ -300,71 +311,6 @@ export function RoundSetupForm({
           <>
             <FormField
               control={form.control}
-              name="courseHandle"
-              render={() => (
-                <FormItem className="flex flex-col">
-                  <FormLabel className="text-base">Course</FormLabel>
-                  <Popover open={courseOpen} onOpenChange={setCourseOpen}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="xl"
-                          className={cn(
-                            "w-full justify-between font-normal",
-                            !selectedCourse && "text-muted-foreground",
-                          )}
-                        >
-                          <span className="truncate">
-                            {selectedCourse?.name ?? "Choose a course"}
-                          </span>
-                          <HugeiconsIcon
-                            icon={ArrowDown01Icon}
-                            data-icon="inline-end"
-                          />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      className="w-(--radix-popover-trigger-width) p-0"
-                      align="start"
-                    >
-                      <Command>
-                        <CommandInput placeholder="Search courses..." />
-                        <CommandList>
-                          <CommandEmpty>No courses found.</CommandEmpty>
-                          <CommandGroup>
-                            {courses.map((c) => (
-                              <CommandItem
-                                key={c.handle}
-                                value={c.name}
-                                data-checked={c.handle === courseHandle}
-                                onSelect={() => {
-                                  form.setValue("courseHandle", c.handle, {
-                                    shouldValidate: true,
-                                  });
-                                  setCourseOpen(false);
-                                }}
-                                className="w-full p-0 [&>svg:last-child]:hidden"
-                              >
-                                <div className="w-full">
-                                  <CourseCard course={c} />
-                                </div>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="date"
               render={() => (
                 <FormItem className="flex flex-col">
@@ -413,6 +359,124 @@ export function RoundSetupForm({
                 </FormItem>
               )}
             />
+
+            <FormField
+              control={form.control}
+              name="courseHandle"
+              render={() => (
+                <FormItem className="flex flex-col">
+                  <FormLabel className="text-base">Course</FormLabel>
+                  <Popover open={courseOpen} onOpenChange={setCourseOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="xl"
+                          className={cn(
+                            "w-full justify-between font-normal",
+                            !selectedCourse && "text-muted-foreground",
+                          )}
+                        >
+                          <span className="truncate">
+                            {selectedCourse?.name ?? "Choose a course"}
+                          </span>
+                          <HugeiconsIcon
+                            icon={ArrowDown01Icon}
+                            data-icon="inline-end"
+                          />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      className="w-(--radix-popover-trigger-width) p-0"
+                      align="start"
+                    >
+                      <Command>
+                        <CommandInput placeholder="Search courses..." />
+                        <CommandList>
+                          <CommandEmpty>No courses found.</CommandEmpty>
+                          <CommandGroup>
+                            {courses.map((c) => (
+                              <CommandItem
+                                key={c.handle}
+                                value={c.name}
+                                data-checked={c.handle === courseHandle}
+                                onSelect={() => {
+                                  form.setValue("courseHandle", c.handle, {
+                                    shouldValidate: true,
+                                  });
+                                  form.setValue("teeId", null, {
+                                    shouldValidate: false,
+                                  });
+                                  setCourseOpen(false);
+                                }}
+                                className="w-full p-0 [&>svg:last-child]:hidden"
+                              >
+                                <div className="w-full">
+                                  <CourseCard course={c} />
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="teeId"
+              render={({ field }) => {
+                const tees = selectedCourse?.tees ?? [];
+                const disabled = !selectedCourse || tees.length === 0;
+                return (
+                  <FormItem className="flex flex-col">
+                    <FormLabel className="text-base">Tees</FormLabel>
+                    <FormControl>
+                      <select
+                        className={cn(
+                          "flex h-12 w-full rounded-md border border-input bg-transparent px-3 text-base shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+                          field.value == null && "text-muted-foreground",
+                        )}
+                        disabled={disabled}
+                        value={field.value == null ? "" : String(field.value)}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
+                        name={field.name}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value === ""
+                              ? null
+                              : Number(e.target.value),
+                          )
+                        }
+                      >
+                        <option value="">
+                          {selectedCourse
+                            ? tees.length === 0
+                              ? "No tees configured for this course"
+                              : "Choose tees"
+                            : "Choose a course first"}
+                        </option>
+                        {tees.map((t) => (
+                          <option key={t.id} value={t.id}>
+                            {t.totalYards != null
+                              ? `${t.name} — ${t.totalYards.toLocaleString()} yds`
+                              : t.name}
+                          </option>
+                        ))}
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
+            />
           </>
         ) : null}
 
@@ -431,6 +495,7 @@ export function RoundSetupForm({
             disabled={
               isPending ||
               (roundMode === "tournament" && !selectedTournament) ||
+              (roundMode === "casual" && teeId == null) ||
               !courseHandle ||
               !dateValue
             }

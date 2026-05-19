@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import type { z } from "zod";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Calendar01Icon } from "@hugeicons/core-free-icons";
 
@@ -42,7 +43,9 @@ import {
   type TournamentFormValues,
 } from "../schema";
 
-export type AdminTournament = {
+type TournamentFormOutput = z.output<typeof TournamentFormSchema>;
+
+export type TournamentSheetTournament = {
   id: number;
   clubHandle: string;
   clubName: string;
@@ -52,16 +55,26 @@ export type AdminTournament = {
   courseHandle: string | null;
   courseName: string | null;
   courseImgUrl: string | null;
+  teeId: number | null;
 };
 
 export type ClubOption = { handle: string; name: string };
-export type CourseOption = { handle: string; name: string };
+export type TeeOption = {
+  id: number;
+  name: string;
+  totalYards: number | null;
+};
+export type CourseOption = {
+  handle: string;
+  name: string;
+  tees: TeeOption[];
+};
 
 type TournamentSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode: "create" | "edit";
-  tournament?: AdminTournament;
+  tournament?: TournamentSheetTournament;
   clubs: ClubOption[];
   courses: CourseOption[];
 };
@@ -72,6 +85,7 @@ const emptyDefaults: TournamentFormValues = {
   season: "",
   startsAt: "",
   courseHandle: "",
+  teeId: "",
 };
 
 function toIsoDate(date: Date): string {
@@ -127,7 +141,7 @@ function DatePickerField({
   );
 }
 
-function toFormValues(t?: AdminTournament): TournamentFormValues {
+function toFormValues(t?: TournamentSheetTournament): TournamentFormValues {
   if (!t) return emptyDefaults;
   return {
     clubHandle: t.clubHandle,
@@ -135,6 +149,7 @@ function toFormValues(t?: AdminTournament): TournamentFormValues {
     season: t.season ?? "",
     startsAt: t.startsAt?.slice(0, 5) ?? "",
     courseHandle: t.courseHandle ?? "",
+    teeId: t.teeId ?? "",
   };
 }
 
@@ -158,11 +173,15 @@ export function TournamentSheet({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
-  const form = useForm<TournamentFormValues>({
+  const form = useForm<TournamentFormValues, unknown, TournamentFormOutput>({
     resolver: zodResolver(TournamentFormSchema),
     defaultValues: toFormValues(tournament),
   });
   const serverError = form.formState.errors.root?.server?.message;
+  const selectedCourseHandle = useWatch({
+    control: form.control,
+    name: "courseHandle",
+  });
 
   useEffect(() => {
     if (open) {
@@ -194,7 +213,7 @@ export function TournamentSheet({
     });
   };
 
-  const onSubmit = (values: TournamentFormValues) => {
+  const onSubmit = (values: TournamentFormOutput) => {
     form.clearErrors("root.server");
     startTransition(async () => {
       const result =
@@ -332,7 +351,16 @@ export function TournamentSheet({
                     <FormItem>
                       <FormLabel>Course</FormLabel>
                       <FormControl>
-                        <select className={selectClass} {...field}>
+                        <select
+                          className={selectClass}
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            form.setValue("teeId", "", {
+                              shouldValidate: false,
+                            });
+                          }}
+                        >
                           <option value="">Select a course...</option>
                           {courses.map((c) => (
                             <option key={c.handle} value={c.handle}>
@@ -344,6 +372,56 @@ export function TournamentSheet({
                       <FormMessage />
                     </FormItem>
                   )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="teeId"
+                  render={({ field }) => {
+                    const selectedCourse = courses.find(
+                      (c) => c.handle === selectedCourseHandle,
+                    );
+                    const tees = selectedCourse?.tees ?? [];
+                    const disabled = !selectedCourseHandle || tees.length === 0;
+                    return (
+                      <FormItem>
+                        <FormLabel>Tees</FormLabel>
+                        <FormControl>
+                          <select
+                            className={selectClass}
+                            disabled={disabled}
+                            value={field.value === "" ? "" : String(field.value)}
+                            onBlur={field.onBlur}
+                            ref={field.ref}
+                            name={field.name}
+                            onChange={(e) => {
+                              field.onChange(
+                                e.target.value === ""
+                                  ? ""
+                                  : Number(e.target.value),
+                              );
+                            }}
+                          >
+                            <option value="">
+                              {selectedCourseHandle
+                                ? tees.length === 0
+                                  ? "No tees configured for this course"
+                                  : "Select a tee..."
+                                : "Select a course first"}
+                            </option>
+                            {tees.map((t) => (
+                              <option key={t.id} value={t.id}>
+                                {t.totalYards != null
+                                  ? `${t.name} — ${t.totalYards.toLocaleString()} yds`
+                                  : t.name}
+                              </option>
+                            ))}
+                          </select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
 
               </div>

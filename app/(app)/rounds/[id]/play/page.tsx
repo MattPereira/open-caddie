@@ -49,7 +49,11 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
       strokes: score.strokes,
       putts: score.putts,
     })),
-    holes: round.holes.map((hole) => ({ hole: hole.hole, par: hole.par })),
+    holes: round.holes.map((hole) => ({
+      hole: hole.hole,
+      par: hole.par,
+      yards: hole.yards,
+    })),
     greenies: round.greenies.map((greenie) => ({
       hole: greenie.hole,
       feet: greenie.feet,

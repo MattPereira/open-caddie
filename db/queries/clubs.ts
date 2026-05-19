@@ -1,8 +1,8 @@
 import { cache } from "react";
-import { asc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { clubs } from "@/db/schema";
-import type { PointRules } from "@/app/(app)/admin/schema";
+import type { PointRules } from "@/lib/point-rules-schema";
 
 export const getAllClubs = cache(async () => {
   return db
@@ -26,4 +26,25 @@ export const getAllClubsFull = cache(async () => {
     ...r,
     pointRules: r.pointRules as PointRules,
   }));
+});
+
+export const getClubByHandle = cache(async (handle: string) => {
+  const [row] = await db
+    .select({
+      id: clubs.id,
+      handle: clubs.handle,
+      name: clubs.name,
+      logo: clubs.logo,
+      pointRules: clubs.pointRules,
+    })
+    .from(clubs)
+    .where(eq(clubs.handle, handle))
+    .limit(1);
+
+  return row
+    ? {
+        ...row,
+        pointRules: row.pointRules as PointRules,
+      }
+    : null;
 });

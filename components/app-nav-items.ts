@@ -1,6 +1,7 @@
 import type { IconSvgElement } from "@hugeicons/react";
 import {
   ChampionIcon,
+  GolfBatIcon,
   GolfCartIcon,
   GolfHoleIcon,
   GolfBallIcon,
@@ -19,6 +20,7 @@ export const appPageIcons = {
   greenies: GolfHoleIcon,
   courses: GolfCartIcon,
   players: UserMultipleIcon,
+  clubs: GolfBatIcon,
 } satisfies Record<string, IconSvgElement>;
 
 export const appNavItems: AppNavItem[] = [
@@ -31,4 +33,5 @@ export const appNavItems: AppNavItem[] = [
   { title: "Greenies", href: "/greenies", icon: appPageIcons.greenies },
   { title: "Courses", href: "/courses", icon: appPageIcons.courses },
   { title: "Players", href: "/players", icon: appPageIcons.players },
+  { title: "Clubs", href: "/clubs", icon: appPageIcons.clubs },
 ];

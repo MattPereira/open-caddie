@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { UserAdd02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import { UserSheet } from "@/app/(app)/admin/_components/user-sheet";
 import { Button } from "@/components/ui/button";
+import { UserSheet } from "./user-sheet";
 
 export function AddPlayerButton() {
   const router = useRouter();

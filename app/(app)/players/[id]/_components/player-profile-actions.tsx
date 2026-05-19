@@ -5,11 +5,8 @@ import { useRouter } from "next/navigation";
 import { Edit03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import {
-  UserSheet,
-  type AdminUser,
-} from "@/app/(app)/admin/_components/user-sheet";
 import { Button } from "@/components/ui/button";
+import { UserSheet, type AdminUser } from "../../_components/user-sheet";
 
 export function PlayerProfileActions({
   player,

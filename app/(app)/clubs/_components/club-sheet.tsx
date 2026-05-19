@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
@@ -79,6 +80,7 @@ export function ClubSheet({
   mode,
   club,
 }: ClubSheetProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const form = useForm<ClubFormValues>({
@@ -109,6 +111,7 @@ export function ClubSheet({
         return;
       }
       onOpenChange(false);
+      router.refresh();
     });
   };
 

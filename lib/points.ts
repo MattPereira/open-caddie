@@ -1,4 +1,4 @@
-import type { PointRules } from "@/app/(app)/admin/schema";
+import type { PointRules } from "@/lib/point-rules-schema";
 
 export type PointCategory =
   | "participation"

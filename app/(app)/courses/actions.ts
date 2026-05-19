@@ -273,7 +273,6 @@ function pgCode(e: unknown): string | undefined {
 
 function revalidateCoursePaths(handles: string[]) {
   revalidatePath("/courses");
-  revalidatePath("/admin");
   revalidatePath("/standings");
   for (const handle of handles) {
     revalidatePath(`/courses/${handle}`);

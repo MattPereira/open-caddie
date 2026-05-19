@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "ccgc.vercel.app",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "matt-pereira.vercel.app",
         pathname: "/**",
       },

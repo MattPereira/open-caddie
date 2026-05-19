@@ -13,7 +13,7 @@ import {
   tournaments,
   users,
 } from "@/db/schema";
-import type { PointRules } from "@/app/(app)/admin/schema";
+import type { PointRules } from "@/lib/point-rules-schema";
 import {
   assignPositionPoints,
   buildPlayerStandings,

@@ -41,6 +41,28 @@ export const getAllTournaments = cache(async () => {
     .orderBy(desc(tournaments.date), desc(tournaments.startsAt));
 });
 
+export const getTournamentsByClubHandle = cache(async (clubHandle: string) => {
+  return db
+    .select({
+      id: tournaments.id,
+      clubId: tournaments.clubId,
+      clubHandle: clubs.handle,
+      clubName: clubs.name,
+      date: tournaments.date,
+      startsAt: tournaments.startsAt,
+      season: tournaments.season,
+      courseId: tournaments.courseId,
+      courseHandle: courses.handle,
+      courseName: courses.name,
+      courseImgUrl: courses.imgUrl,
+    })
+    .from(tournaments)
+    .innerJoin(clubs, eq(tournaments.clubId, clubs.id))
+    .leftJoin(courses, eq(tournaments.courseId, courses.id))
+    .where(eq(clubs.handle, clubHandle))
+    .orderBy(desc(tournaments.date), desc(tournaments.startsAt));
+});
+
 export const getTournamentById = cache(async (tournamentId: number) => {
   const [tournament] = await db
     .select({

@@ -10,7 +10,6 @@ import {
   Notification01Icon,
   Logout01Icon,
   Settings02Icon,
-  UserShield01Icon,
   Sun01Icon,
   Moon02Icon,
   ComputerIcon,
@@ -163,14 +162,6 @@ export function AppSidebar({ user }: { user: SidebarUser | null }) {
                       <HugeiconsIcon icon={Notification01Icon} />
                       Notifications
                     </DropdownMenuItem>
-                    {user.isAdmin ? (
-                      <DropdownMenuItem asChild>
-                        <Link href="/admin" onNavigate={closeMobileSidebar}>
-                          <HugeiconsIcon icon={UserShield01Icon} />
-                          Admin
-                        </Link>
-                      </DropdownMenuItem>
-                    ) : null}
                     <DropdownMenuItem disabled>
                       <HugeiconsIcon icon={Settings02Icon} />
                       Settings

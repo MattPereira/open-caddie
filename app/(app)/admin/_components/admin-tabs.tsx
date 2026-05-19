@@ -5,17 +5,16 @@ import { UsersPanel } from "./users-panel";
 import type { AdminUser } from "./user-sheet";
 import { TournamentsPanel } from "./tournaments-panel";
 import type { AdminTournament, ClubOption } from "./tournament-sheet";
+import type { CourseOption } from "./tournament-sheet";
 import { ClubsPanel } from "./clubs-panel";
 import type { AdminClub } from "./club-sheet";
-import { CoursesPanel } from "./courses-panel";
-import type { AdminCourse } from "./course-sheet";
 
 type AdminTabsProps = {
   users: AdminUser[];
   tournaments: AdminTournament[];
   clubs: ClubOption[];
   adminClubs: AdminClub[];
-  courses: AdminCourse[];
+  courses: CourseOption[];
 };
 
 export function AdminTabs({
@@ -31,7 +30,6 @@ export function AdminTabs({
         <TabsTrigger value="users">Users</TabsTrigger>
         <TabsTrigger value="clubs">Clubs</TabsTrigger>
         <TabsTrigger value="tournaments">Tournaments</TabsTrigger>
-        <TabsTrigger value="courses">Courses</TabsTrigger>
       </TabsList>
       <TabsContent value="users" className="mt-4">
         <UsersPanel users={users} />
@@ -45,10 +43,6 @@ export function AdminTabs({
           clubs={clubs}
           courses={courses}
         />
-      </TabsContent>
-
-      <TabsContent value="courses" className="mt-4">
-        <CoursesPanel courses={courses} />
       </TabsContent>
     </Tabs>
   );

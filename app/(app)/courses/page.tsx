@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { AddSquareIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { appPageIcons } from "@/components/app-nav-items";
 import { PageHeading } from "@/components/page-heading";
+import { Button } from "@/components/ui/button";
 import { getAllCourses } from "@/db/queries/courses";
+import { getCurrentUser } from "@/db/queries/users";
 import { CoursesBrowser } from "./_components/courses-browser";
 
 export const dynamic = "force-dynamic";
@@ -12,16 +17,35 @@ export const metadata: Metadata = {
 };
 
 export default async function CoursesPage() {
-  const courses = await getAllCourses();
+  const [courses, currentUser] = await Promise.all([
+    getAllCourses(),
+    getCurrentUser(),
+  ]);
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
-      <PageHeading
-        icon={appPageIcons.courses}
-        description="Select a course to see player records"
-      >
-        Courses
-      </PageHeading>
+      <div className="flex items-start gap-2">
+        <PageHeading
+          icon={appPageIcons.courses}
+          description="Select a course to see player records"
+        >
+          Courses
+        </PageHeading>
+        {currentUser?.isAdmin ? (
+          <div className="ml-auto">
+            <Button
+              asChild
+              variant="ghost"
+              size="icon-xl"
+              aria-label="Add course"
+            >
+              <Link href="/courses/new">
+                <HugeiconsIcon icon={AddSquareIcon} aria-hidden />
+              </Link>
+            </Button>
+          </div>
+        ) : null}
+      </div>
       <CoursesBrowser courses={courses} />
     </main>
   );

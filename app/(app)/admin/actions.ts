@@ -6,8 +6,6 @@ import { signIn } from "@/auth";
 import { db } from "@/db";
 import {
   clubs,
-  courseHoles,
-  courseTees,
   courses,
   greenies,
   rounds,
@@ -20,16 +18,12 @@ import { safeDeleteBlob } from "@/lib/blob";
 import {
   ClubCreateSchema,
   ClubUpdateSchema,
-  CourseCreateSchema,
-  CourseUpdateSchema,
   TournamentCreateSchema,
   TournamentUpdateSchema,
   UserCreateSchema,
   UserUpdateSchema,
   type ClubCreateValues,
   type ClubUpdateValues,
-  type CourseCreateValues,
-  type CourseUpdateValues,
   type TournamentCreateValues,
   type TournamentUpdateValues,
   type UserCreateValues,
@@ -459,177 +453,6 @@ export async function deleteTournament(id: number): Promise<ActionResult> {
   }
 
   await db.delete(tournaments).where(eq(tournaments.id, id));
-  revalidatePath("/admin");
-  revalidatePath("/standings");
-  return { ok: true };
-}
-
-export async function createCourse(
-  values: CourseCreateValues,
-): Promise<ActionResult> {
-  await requireAdmin();
-
-  const parsed = CourseCreateSchema.safeParse(values);
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0].message };
-  }
-
-  const { handle, name, rating, slope, holes } = parsed.data;
-  const imgUrl = parsed.data.imgUrl.length > 0 ? parsed.data.imgUrl : null;
-
-  try {
-    await db.transaction(async (tx) => {
-      const [course] = await tx
-        .insert(courses)
-        .values({ handle, name, imgUrl })
-        .returning({ id: courses.id });
-
-      await tx.insert(courseTees).values({
-        courseId: course.id,
-        name: "Default",
-        rating,
-        slope,
-        sortOrder: 0,
-      });
-
-      await tx.insert(courseHoles).values(
-        holes.map((hole) => ({
-          courseId: course.id,
-          hole: hole.hole,
-          par: hole.par,
-          handicap: hole.handicap,
-        })),
-      );
-    });
-  } catch (e: unknown) {
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23505") {
-      return { ok: false, error: "A course with that handle already exists." };
-    }
-    throw e;
-  }
-
-  revalidatePath("/admin");
-  revalidatePath("/standings");
-  return { ok: true };
-}
-
-export async function updateCourse(
-  values: CourseUpdateValues,
-): Promise<ActionResult> {
-  await requireAdmin();
-
-  const parsed = CourseUpdateSchema.safeParse(values);
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0].message };
-  }
-
-  const { id, handle, name, rating, slope, holes } = parsed.data;
-  const imgUrl = parsed.data.imgUrl.length > 0 ? parsed.data.imgUrl : null;
-
-  const [current] = await db
-    .select({ id: courses.id, imgUrl: courses.imgUrl })
-    .from(courses)
-    .where(eq(courses.id, id))
-    .limit(1);
-  if (!current) {
-    return { ok: false, error: "Course not found." };
-  }
-
-  const primaryTeeId = await getPrimaryTeeIdByCourseId(id);
-
-  try {
-    await db.transaction(async (tx) => {
-      await tx
-        .update(courses)
-        .set({ handle, name, imgUrl })
-        .where(eq(courses.id, id));
-
-      if (primaryTeeId) {
-        await tx
-          .update(courseTees)
-          .set({ rating, slope })
-          .where(eq(courseTees.id, primaryTeeId));
-      } else {
-        await tx.insert(courseTees).values({
-          courseId: id,
-          name: "Default",
-          rating,
-          slope,
-          sortOrder: 0,
-        });
-      }
-
-      await tx.delete(courseHoles).where(eq(courseHoles.courseId, id));
-      await tx.insert(courseHoles).values(
-        holes.map((hole) => ({
-          courseId: id,
-          hole: hole.hole,
-          par: hole.par,
-          handicap: hole.handicap,
-        })),
-      );
-    });
-  } catch (e: unknown) {
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23505") {
-      return { ok: false, error: "A course with that handle already exists." };
-    }
-    throw e;
-  }
-
-  if (current.imgUrl !== imgUrl) {
-    await safeDeleteBlob(current.imgUrl);
-  }
-
-  revalidatePath("/admin");
-  revalidatePath("/standings");
-  return { ok: true };
-}
-
-export async function deleteCourse(id: number): Promise<ActionResult> {
-  await requireAdmin();
-
-  const [{ value: tournamentCount }] = await db
-    .select({ value: count() })
-    .from(tournaments)
-    .where(eq(tournaments.courseId, id));
-
-  if (tournamentCount > 0) {
-    return {
-      ok: false,
-      error: `Cannot delete: course is assigned to ${tournamentCount} tournament(s).`,
-    };
-  }
-
-  const [{ value: roundCount }] = await db
-    .select({ value: count() })
-    .from(rounds)
-    .where(eq(rounds.courseId, id));
-
-  if (roundCount > 0) {
-    return {
-      ok: false,
-      error: `Cannot delete: course is assigned to ${roundCount} round(s).`,
-    };
-  }
-
-  const [current] = await db
-    .select({ imgUrl: courses.imgUrl })
-    .from(courses)
-    .where(eq(courses.id, id))
-    .limit(1);
-
-  await db.delete(courses).where(eq(courses.id, id));
-
-  if (current) {
-    await safeDeleteBlob(current.imgUrl);
-  }
-
   revalidatePath("/admin");
   revalidatePath("/standings");
   return { ok: true };

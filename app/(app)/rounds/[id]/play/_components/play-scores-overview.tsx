@@ -143,7 +143,7 @@ function Cell({
                 ? "font-semibold text-foreground"
                 : total
                   ? "font-semibold"
-                  : "font-medium",
+                  : "font-normal",
       )}
     >
       {children ?? "—"}

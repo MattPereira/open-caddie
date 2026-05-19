@@ -17,7 +17,7 @@ import { getCroppedBlob } from "@/lib/crop-image";
 
 type ImageCropperDialogProps = {
   file: File | null;
-  aspectRatio: number;
+  aspectRatio?: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCropped: (blob: Blob) => void;

@@ -15,12 +15,17 @@ type ImageUploadFieldProps = {
   value: string | null;
   onChange: (url: string | null) => void;
   pathPrefix: string;
+  /** Fixed crop aspect ratio. Omit for free-form cropping (e.g. scorecards). */
   aspectRatio?: number;
   fallback?: React.ReactNode;
   disabled?: boolean;
   onUploadingChange?: (uploading: boolean) => void;
   className?: string;
-  variant?: "avatar" | "wide";
+  variant?: "avatar" | "wide" | "freeform";
+  /** Optional title rendered inline with the upload buttons for non-avatar variants. */
+  title?: React.ReactNode;
+  /** Optional description rendered below the title. */
+  description?: React.ReactNode;
 };
 
 function formatBytes(bytes: number) {
@@ -40,13 +45,17 @@ export function ImageUploadField({
   value,
   onChange,
   pathPrefix,
-  aspectRatio = 1,
+  aspectRatio,
   fallback,
   disabled,
   onUploadingChange,
   className,
   variant = "avatar",
+  title,
+  description,
 }: ImageUploadFieldProps) {
+  const effectiveAspectRatio =
+    variant === "freeform" ? undefined : (aspectRatio ?? 1);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,14 +122,13 @@ export function ImageUploadField({
   const buttons = (
     <div
       className={cn(
-        "flex gap-2",
-        variant === "wide" ? "flex-col items-start" : "flex-wrap",
+        "flex flex-wrap gap-2",
+        variant === "avatar" ? null : "justify-end",
       )}
     >
       <Button
         type="button"
         variant="outline"
-        size="sm"
         onClick={handlePick}
         disabled={disabled || isUploading}
       >
@@ -131,7 +139,6 @@ export function ImageUploadField({
         <Button
           type="button"
           variant="ghost"
-          size="sm"
           onClick={() => onChange(null)}
           disabled={disabled || isUploading}
         >
@@ -147,11 +154,28 @@ export function ImageUploadField({
   ) : null;
 
   return (
-    <div className={cn("flex items-center gap-4", className)}>
+    <div
+      className={cn(
+        variant === "avatar"
+          ? "flex items-center gap-4"
+          : "flex flex-col gap-4",
+        className,
+      )}
+    >
+      {variant !== "avatar" && (title || description) ? (
+        <div className="flex flex-col gap-1">
+          {title ? (
+            <p className="text-sm leading-none font-medium">{title}</p>
+          ) : null}
+          {description ? (
+            <p className="text-sm text-muted-foreground">{description}</p>
+          ) : null}
+        </div>
+      ) : null}
       {variant === "wide" ? (
         <div
-          className="relative w-1/2 shrink-0 overflow-hidden rounded-lg border bg-muted"
-          style={{ aspectRatio: `${aspectRatio}` }}
+          className="relative w-full overflow-hidden rounded-lg border bg-muted"
+          style={{ aspectRatio: `${effectiveAspectRatio}` }}
         >
           {value ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -166,6 +190,41 @@ export function ImageUploadField({
             </div>
           )}
         </div>
+      ) : variant === "freeform" ? (
+        aspectRatio ? (
+          <div
+            className="relative w-full overflow-hidden rounded-lg border bg-muted"
+            style={{ aspectRatio: `${aspectRatio}` }}
+          >
+            {value ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={value}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
+                {fallback ?? "No image"}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex max-h-80 w-full overflow-hidden rounded-lg border bg-muted">
+            {value ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={value}
+                alt=""
+                className="max-h-80 w-full object-contain"
+              />
+            ) : (
+              <div className="flex h-32 w-full items-center justify-center text-sm text-muted-foreground">
+                {fallback ?? "No image"}
+              </div>
+            )}
+          </div>
+        )
       ) : (
         <Avatar size="lg" className="size-16 rounded-lg">
           {value ? <AvatarImage src={value} alt="" /> : null}
@@ -173,7 +232,12 @@ export function ImageUploadField({
         </Avatar>
       )}
 
-      <div className="flex flex-col gap-2">
+      <div
+        className={cn(
+          "flex flex-col gap-2",
+          variant === "avatar" ? null : "items-stretch",
+        )}
+      >
         {buttons}
         {helperText}
       </div>
@@ -188,7 +252,7 @@ export function ImageUploadField({
 
       <ImageCropperDialog
         file={pendingFile}
-        aspectRatio={aspectRatio}
+        aspectRatio={effectiveAspectRatio}
         open={cropperOpen}
         onOpenChange={handleCropperOpenChange}
         onCropped={handleCropped}

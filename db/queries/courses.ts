@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, asc, eq, gte } from "drizzle-orm";
+import { and, asc, eq, gte, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import {
   courseHoles,
@@ -8,6 +8,7 @@ import {
   greenies,
   roundSummaries,
   rounds,
+  teeYardages,
   users,
 } from "@/db/schema";
 
@@ -128,6 +129,105 @@ export const getCourseByHandle = cache(async (handle: string) => {
     holes,
   };
 });
+
+export type CourseForEditTee = {
+  id: number;
+  name: string;
+  color: string | null;
+  rating: string;
+  slope: number;
+  sortOrder: number;
+  yardages: (number | null)[];
+};
+
+export type CourseForEdit = {
+  id: number;
+  handle: string;
+  name: string;
+  imgUrl: string | null;
+  scorecardImgUrl: string | null;
+  tees: CourseForEditTee[];
+  holes: { hole: number; par: number; handicap: number }[];
+};
+
+export const getCourseForEdit = cache(
+  async (handle: string): Promise<CourseForEdit | undefined> => {
+    const [course] = await db
+      .select({
+        id: courses.id,
+        handle: courses.handle,
+        name: courses.name,
+        imgUrl: courses.imgUrl,
+        scorecardImgUrl: courses.scorecardImgUrl,
+      })
+      .from(courses)
+      .where(eq(courses.handle, handle))
+      .limit(1);
+
+    if (!course) return undefined;
+
+    const [tees, holes] = await Promise.all([
+      db
+        .select({
+          id: courseTees.id,
+          name: courseTees.name,
+          color: courseTees.color,
+          rating: courseTees.rating,
+          slope: courseTees.slope,
+          sortOrder: courseTees.sortOrder,
+        })
+        .from(courseTees)
+        .where(eq(courseTees.courseId, course.id))
+        .orderBy(asc(courseTees.sortOrder), asc(courseTees.id)),
+      db
+        .select({
+          hole: courseHoles.hole,
+          par: courseHoles.par,
+          handicap: courseHoles.handicap,
+        })
+        .from(courseHoles)
+        .where(eq(courseHoles.courseId, course.id))
+        .orderBy(asc(courseHoles.hole)),
+    ]);
+
+    const teeIds = tees.map((t) => t.id);
+    const yardageRows = teeIds.length
+      ? await db
+          .select({
+            teeId: teeYardages.teeId,
+            hole: teeYardages.hole,
+            yards: teeYardages.yards,
+          })
+          .from(teeYardages)
+          .where(inArray(teeYardages.teeId, teeIds))
+      : [];
+
+    const yardagesByTee = new Map<number, (number | null)[]>();
+    for (const tee of tees) {
+      yardagesByTee.set(tee.id, Array<number | null>(18).fill(null));
+    }
+    for (const row of yardageRows) {
+      const arr = yardagesByTee.get(row.teeId);
+      if (arr && row.hole >= 1 && row.hole <= 18) {
+        arr[row.hole - 1] = row.yards;
+      }
+    }
+
+    return {
+      ...course,
+      tees: tees.map((t) => ({
+        id: t.id,
+        name: t.name,
+        color: t.color,
+        rating: t.rating,
+        slope: t.slope,
+        sortOrder: t.sortOrder,
+        yardages: yardagesByTee.get(t.id) ?? Array<number | null>(18).fill(null),
+      })),
+      holes,
+    };
+  },
+);
 
 export const getLowestRoundsByCourseId = cache(
   async (courseId: number, limit = 3) => {

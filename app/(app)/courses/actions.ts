@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, count, eq, inArray } from "drizzle-orm";
+import { and, asc, count, eq, inArray } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "@/db";
 import {
   courseHoles,
@@ -49,8 +50,44 @@ export type FinalizedScorecardDraft = {
   holes: Array<{ hole: number; par: number; handicap: number }>;
 };
 
+type CourseTeeForForm = {
+  id: number;
+  name: string;
+  color: string | null;
+  rating: string;
+  slope: number;
+  sortOrder: number;
+  yardages: (number | null)[];
+};
+
 type UpdateResult =
   | { ok: true; handle: string; renamed: boolean }
+  | { ok: false; error: string };
+
+type ApplyScorecardImageResult =
+  | {
+      ok: true;
+      handle: string;
+      scorecardImgUrl: string;
+      tees: CourseTeeForForm[];
+      needsTeeMeta?: false;
+    }
+  | {
+      ok: true;
+      handle: string;
+      scorecardImgUrl: string;
+      tees: CourseTeeForForm[];
+      needsTeeMeta: true;
+      draft: FinalizedScorecardDraft;
+    }
+  | { ok: false; error: string };
+
+type ReplacePlaceholderTeeResult =
+  | { ok: true; tees: CourseTeeForForm[] }
+  | { ok: false; error: string };
+
+type ExistingCourseTeeMetaResult =
+  | { ok: true; tees: CourseTeeForForm[] }
   | { ok: false; error: string };
 
 type ActionResult = { ok: true } | { ok: false; error: string };
@@ -68,6 +105,15 @@ function normalizeColor(value: string): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function normalizeTeeName(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function isPlaceholderTeeName(value: string): boolean {
+  const normalized = normalizeTeeName(value);
+  return normalized === "unknown" || normalized === "unkown";
+}
+
 function normalizeImgUrl(value: string): string | null {
   return value.length > 0 ? value : null;
 }
@@ -80,6 +126,142 @@ function yardageRows(teeId: number, yardages: TeeFormValues["yardages"]) {
     }
   });
   return rows;
+}
+
+async function getCourseTeesForForm(
+  courseId: number,
+  tx: Pick<typeof db, "select"> = db,
+): Promise<CourseTeeForForm[]> {
+  const tees = await tx
+    .select({
+      id: courseTees.id,
+      name: courseTees.name,
+      color: courseTees.color,
+      rating: courseTees.rating,
+      slope: courseTees.slope,
+      sortOrder: courseTees.sortOrder,
+    })
+    .from(courseTees)
+    .where(eq(courseTees.courseId, courseId))
+    .orderBy(asc(courseTees.sortOrder), asc(courseTees.id));
+  const teeIds = tees.map((tee) => tee.id);
+  const yardageRows =
+    teeIds.length > 0
+      ? await tx
+          .select({
+            teeId: teeYardages.teeId,
+            hole: teeYardages.hole,
+            yards: teeYardages.yards,
+          })
+          .from(teeYardages)
+          .where(inArray(teeYardages.teeId, teeIds))
+      : [];
+
+  const yardagesByTee = new Map<number, (number | null)[]>();
+  for (const tee of tees) {
+    yardagesByTee.set(tee.id, Array<number | null>(18).fill(null));
+  }
+  for (const row of yardageRows) {
+    const yardages = yardagesByTee.get(row.teeId);
+    if (yardages && row.hole >= 1 && row.hole <= 18) {
+      yardages[row.hole - 1] = row.yards;
+    }
+  }
+
+  return tees.map((tee) => ({
+    ...tee,
+    yardages: yardagesByTee.get(tee.id) ?? Array<number | null>(18).fill(null),
+  }));
+}
+
+async function upsertParsedTeesByName({
+  courseId,
+  parsedTees,
+  tx,
+}: {
+  courseId: number;
+  parsedTees: FinalizedScorecardDraft["tees"];
+  tx: Pick<typeof db, "select" | "insert" | "update" | "delete">;
+}) {
+  const missingMetaTees: FinalizedScorecardDraft["tees"] = [];
+  const existingTees = await tx
+    .select({
+      id: courseTees.id,
+      name: courseTees.name,
+      rating: courseTees.rating,
+      slope: courseTees.slope,
+    })
+    .from(courseTees)
+    .where(eq(courseTees.courseId, courseId));
+  const existingTeeByName = new Map(
+    existingTees.map((tee) => [normalizeTeeName(tee.name), tee]),
+  );
+
+  for (const [parsedIndex, parsedTee] of parsedTees.entries()) {
+    if (isPlaceholderTeeName(parsedTee.name)) continue;
+
+    const normalizedName = normalizeTeeName(parsedTee.name);
+    const existingTee = existingTeeByName.get(normalizedName);
+    const rating =
+      parsedTee.rating ?? (existingTee ? Number(existingTee.rating) : undefined);
+    const slope = parsedTee.slope ?? existingTee?.slope;
+
+    if (rating == null || slope == null) {
+      missingMetaTees.push(parsedTee);
+      continue;
+    }
+
+    if (existingTee) {
+      await tx
+        .update(courseTees)
+        .set({
+          name: parsedTee.name,
+          color: parsedTee.color ?? null,
+          rating:
+            parsedTee.rating == null ? existingTee.rating : String(parsedTee.rating),
+          slope,
+          sortOrder: parsedIndex,
+        })
+        .where(
+          and(eq(courseTees.id, existingTee.id), eq(courseTees.courseId, courseId)),
+        );
+      await tx.delete(teeYardages).where(eq(teeYardages.teeId, existingTee.id));
+      await tx.insert(teeYardages).values(
+        parsedTee.yardages.map((yards, index) => ({
+          teeId: existingTee.id,
+          hole: index + 1,
+          yards,
+        })),
+      );
+    } else {
+      const [inserted] = await tx
+        .insert(courseTees)
+        .values({
+          courseId,
+          name: parsedTee.name,
+          color: parsedTee.color ?? null,
+          rating: String(rating),
+          slope,
+          sortOrder: parsedIndex,
+        })
+        .returning({ id: courseTees.id });
+      await tx.insert(teeYardages).values(
+        parsedTee.yardages.map((yards, index) => ({
+          teeId: inserted.id,
+          hole: index + 1,
+          yards,
+        })),
+      );
+      existingTeeByName.set(normalizedName, {
+        id: inserted.id,
+        name: parsedTee.name,
+        rating: String(rating),
+        slope,
+      });
+    }
+  }
+
+  return missingMetaTees;
 }
 
 function pgCode(e: unknown): string | undefined {
@@ -532,6 +714,336 @@ export async function updateCourse(
   const renamed = current.handle !== handle;
   revalidateCoursePaths(renamed ? [current.handle, handle] : [handle]);
   return { ok: true, handle, renamed };
+}
+
+// Existing-course scorecard uploads are tee inventory syncs, not full course
+// replacements. The parser may produce useful tee rows even when it cannot
+// safely identify which row should inherit existing round/tournament history.
+// For that reason this action:
+// - saves the scorecard image,
+// - adds or refreshes non-placeholder tees by normalized tee name,
+// - reuses existing tee metadata by name when parser output lacks rating/slope,
+// - returns a small metadata prompt for new tees still missing rating/slope,
+// - intentionally leaves "Unknown" / "Unkown" placeholder tee ids untouched,
+// - never updates course_holes par/handicap because those values are believed
+//   correct and are used when displaying historical rounds.
+// A separate explicit action below copies a chosen parsed tee onto the
+// placeholder tee id after the admin clicks "Replace Unknown".
+export async function applyScorecardImageToExistingCourse({
+  courseId,
+  scorecardImgUrl,
+}: {
+  courseId: number;
+  scorecardImgUrl: string;
+}): Promise<ApplyScorecardImageResult> {
+  await requireAdmin();
+
+  const parsedInput = z
+    .object({
+      courseId: z.number().int().positive(),
+      scorecardImgUrl: z.url().max(2048),
+    })
+    .safeParse({ courseId, scorecardImgUrl });
+  if (!parsedInput.success) {
+    return { ok: false, error: parsedInput.error.issues[0].message };
+  }
+
+  const [current] = await db
+    .select({
+      id: courses.id,
+      handle: courses.handle,
+      scorecardImgUrl: courses.scorecardImgUrl,
+    })
+    .from(courses)
+    .where(eq(courses.id, parsedInput.data.courseId))
+    .limit(1);
+  if (!current) {
+    return { ok: false, error: "Course not found." };
+  }
+
+  const image = await fetchImageBytes(parsedInput.data.scorecardImgUrl);
+  if (!image) {
+    return {
+      ok: false,
+      error: "Could not retrieve the scorecard image. Please try uploading again.",
+    };
+  }
+
+  let parsedScorecard;
+  try {
+    const result = await parseScorecardImage(image.buffer, image.mediaType);
+    parsedScorecard = result.parsed;
+  } catch (e) {
+    console.error("[applyScorecardImageToExistingCourse] parse failed", e);
+    return {
+      ok: false,
+      error:
+        "Could not parse the scorecard image. Make sure it's cropped to just the scorecard table and try again.",
+    };
+  }
+
+  let missingMetaTees: FinalizedScorecardDraft["tees"] = [];
+  const updatedTees = await db.transaction(async (tx) => {
+    await tx
+      .update(courses)
+      .set({ scorecardImgUrl: parsedInput.data.scorecardImgUrl })
+      .where(eq(courses.id, current.id));
+
+    missingMetaTees = await upsertParsedTeesByName({
+      courseId: current.id,
+      parsedTees: parsedScorecard.tees,
+      tx,
+    });
+
+    return getCourseTeesForForm(current.id, tx);
+  });
+
+  if (current.scorecardImgUrl !== parsedInput.data.scorecardImgUrl) {
+    await safeDeleteBlob(current.scorecardImgUrl);
+  }
+
+  revalidateCoursePaths([current.handle]);
+  if (missingMetaTees.length > 0) {
+    return {
+      ok: true,
+      handle: current.handle,
+      scorecardImgUrl: parsedInput.data.scorecardImgUrl,
+      tees: updatedTees,
+      needsTeeMeta: true,
+      draft: {
+        tees: missingMetaTees,
+        holes: parsedScorecard.holes,
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    handle: current.handle,
+    scorecardImgUrl: parsedInput.data.scorecardImgUrl,
+    tees: updatedTees,
+  };
+}
+
+// Completes the upload sync for scorecards whose visible table omits
+// rating/slope for new tee rows. Same-name tees were already handled by reusing
+// existing metadata; this action only receives new parsed tee rows the admin
+// supplied metadata for, then upserts them by name without touching holes or
+// placeholder tee ids.
+export async function finalizeExistingCourseScorecardTeeMeta({
+  courseId,
+  tees,
+}: {
+  courseId: number;
+  tees: Array<{
+    name: string;
+    color?: string;
+    rating: number;
+    slope: number;
+    yardages: number[];
+  }>;
+}): Promise<ExistingCourseTeeMetaResult> {
+  await requireAdmin();
+
+  const parsedInput = z
+    .object({
+      courseId: z.number().int().positive(),
+      tees: z
+        .array(
+          z.object({
+            name: z.string().trim().min(1).max(50),
+            color: z.string().trim().max(30).optional(),
+            rating: z.number().positive(),
+            slope: z.number().int().min(55).max(155),
+            yardages: z.array(z.number().int().positive()).length(18),
+          }),
+        )
+        .min(1),
+    })
+    .safeParse({ courseId, tees });
+  if (!parsedInput.success) {
+    return { ok: false, error: parsedInput.error.issues[0].message };
+  }
+
+  const [current] = await db
+    .select({ handle: courses.handle })
+    .from(courses)
+    .where(eq(courses.id, parsedInput.data.courseId))
+    .limit(1);
+  if (!current) {
+    return { ok: false, error: "Course not found." };
+  }
+
+  try {
+    const updatedTees = await db.transaction(async (tx) => {
+      await upsertParsedTeesByName({
+        courseId: parsedInput.data.courseId,
+        parsedTees: parsedInput.data.tees,
+        tx,
+      });
+
+      return getCourseTeesForForm(parsedInput.data.courseId, tx);
+    });
+
+    revalidateCoursePaths([current.handle]);
+    return { ok: true, tees: updatedTees };
+  } catch (e) {
+    if (pgCode(e) === "23505") {
+      return { ok: false, error: "A tee with that name already exists." };
+    }
+    throw e;
+  }
+}
+
+// Preserve the placeholder tee id because rounds and tournaments can already
+// reference it through restrictive foreign keys. The selected source tee is
+// expected to be one of the parsed tee rows created by the upload sync above.
+// It must be unused by rounds/tournaments, have all 18 yardages, and is deleted
+// after its data is copied onto the placeholder id to avoid duplicate tee rows.
+export async function replacePlaceholderTeeWithExistingTee({
+  courseId,
+  placeholderTeeId,
+  sourceTeeId,
+}: {
+  courseId: number;
+  placeholderTeeId: number;
+  sourceTeeId: number;
+}): Promise<ReplacePlaceholderTeeResult> {
+  await requireAdmin();
+
+  const parsedInput = z
+    .object({
+      courseId: z.number().int().positive(),
+      placeholderTeeId: z.number().int().positive(),
+      sourceTeeId: z.number().int().positive(),
+    })
+    .refine((value) => value.placeholderTeeId !== value.sourceTeeId, {
+      message: "Choose a different tee to replace the placeholder.",
+      path: ["sourceTeeId"],
+    })
+    .safeParse({ courseId, placeholderTeeId, sourceTeeId });
+  if (!parsedInput.success) {
+    return { ok: false, error: parsedInput.error.issues[0].message };
+  }
+
+  const [current] = await db
+    .select({ handle: courses.handle })
+    .from(courses)
+    .where(eq(courses.id, parsedInput.data.courseId))
+    .limit(1);
+  if (!current) {
+    return { ok: false, error: "Course not found." };
+  }
+
+  try {
+    const updatedTees = await db.transaction(async (tx) => {
+      const placeholder = await tx
+        .select({
+          id: courseTees.id,
+          name: courseTees.name,
+        })
+        .from(courseTees)
+        .where(
+          and(
+            eq(courseTees.id, parsedInput.data.placeholderTeeId),
+            eq(courseTees.courseId, parsedInput.data.courseId),
+          ),
+        )
+        .limit(1);
+      const source = await tx
+        .select({
+          id: courseTees.id,
+          name: courseTees.name,
+          color: courseTees.color,
+          rating: courseTees.rating,
+          slope: courseTees.slope,
+          sortOrder: courseTees.sortOrder,
+        })
+        .from(courseTees)
+        .where(
+          and(
+            eq(courseTees.id, parsedInput.data.sourceTeeId),
+            eq(courseTees.courseId, parsedInput.data.courseId),
+          ),
+        )
+        .limit(1);
+
+      const placeholderTee = placeholder[0];
+      const sourceTee = source[0];
+      if (!placeholderTee || !sourceTee) {
+        throw new Error("Tee not found.");
+      }
+      if (!isPlaceholderTeeName(placeholderTee.name)) {
+        throw new Error("Selected placeholder tee is no longer Unknown.");
+      }
+
+      const placeholderYardageCount = await tx
+        .select({ value: count() })
+        .from(teeYardages)
+        .where(eq(teeYardages.teeId, placeholderTee.id));
+      const tournamentReferences = await tx
+        .select({ value: count() })
+        .from(tournaments)
+        .where(eq(tournaments.teeId, sourceTee.id));
+      const roundReferences = await tx
+        .select({ value: count() })
+        .from(rounds)
+        .where(eq(rounds.teeId, sourceTee.id));
+      if ((placeholderYardageCount[0]?.value ?? 0) > 0) {
+        throw new Error("Selected placeholder tee already has yardages.");
+      }
+      const sourceReferenceCount =
+        (tournamentReferences[0]?.value ?? 0) +
+        (roundReferences[0]?.value ?? 0);
+      if (sourceReferenceCount > 0) {
+        throw new Error(
+          "Cannot replace Unknown with a tee already used by rounds or tournaments.",
+        );
+      }
+
+      const sourceYardages = await tx
+        .select({
+          hole: teeYardages.hole,
+          yards: teeYardages.yards,
+        })
+        .from(teeYardages)
+        .where(eq(teeYardages.teeId, sourceTee.id))
+        .orderBy(asc(teeYardages.hole));
+      if (sourceYardages.length !== 18) {
+        throw new Error("Selected tee must have all 18 yardages.");
+      }
+
+      await tx.delete(teeYardages).where(eq(teeYardages.teeId, sourceTee.id));
+      await tx.delete(courseTees).where(eq(courseTees.id, sourceTee.id));
+      await tx
+        .update(courseTees)
+        .set({
+          name: sourceTee.name,
+          color: sourceTee.color,
+          rating: sourceTee.rating,
+          slope: sourceTee.slope,
+          sortOrder: sourceTee.sortOrder,
+        })
+        .where(eq(courseTees.id, placeholderTee.id));
+      await tx.insert(teeYardages).values(
+        sourceYardages.map((yardage) => ({
+          teeId: placeholderTee.id,
+          hole: yardage.hole,
+          yards: yardage.yards,
+        })),
+      );
+
+      return getCourseTeesForForm(parsedInput.data.courseId, tx);
+    });
+
+    revalidateCoursePaths([current.handle]);
+    return { ok: true, tees: updatedTees };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Could not replace Unknown tee.",
+    };
+  }
 }
 
 export async function deleteCourse(id: number): Promise<ActionResult> {

@@ -13,10 +13,12 @@ import { cn } from "@/lib/utils";
 
 type ImageUploadFieldProps = {
   value: string | null;
-  onChange: (url: string | null) => void;
+  onChange: (url: string | null) => void | Promise<void>;
   pathPrefix: string;
   /** Fixed crop aspect ratio. Omit for free-form cropping (e.g. scorecards). */
   aspectRatio?: number;
+  /** Upload the selected image without opening the cropper. */
+  skipCrop?: boolean;
   fallback?: React.ReactNode;
   disabled?: boolean;
   onUploadingChange?: (uploading: boolean) => void;
@@ -46,6 +48,7 @@ export function ImageUploadField({
   onChange,
   pathPrefix,
   aspectRatio,
+  skipCrop = false,
   fallback,
   disabled,
   onUploadingChange,
@@ -72,11 +75,41 @@ export function ImageUploadField({
     inputRef.current?.click();
   };
 
-  const handleFile = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadImage = async (blob: Blob, sourceName: string, sourceSize: number) => {
+    setUploading(true);
+    try {
+      const file = new File([blob], sourceName, { type: blob.type });
+      const compressed = await imageCompression(file, COMPRESSION_OPTIONS);
+      console.log(
+        `[image-upload] ${sourceName}: ${formatBytes(sourceSize)} → ${formatBytes(compressed.size)} (${Math.round((compressed.size / sourceSize) * 100)}%)`,
+      );
+      const filename = `${pathPrefix.replace(/\/$/, "")}/image-${Date.now()}.webp`;
+
+      const result = await upload(filename, compressed, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+        contentType: "image/webp",
+      });
+
+      await onChange(result.url);
+    } catch (e) {
+      console.error(e);
+      setError(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setPendingFile(null);
+      setUploading(false);
+    }
+  };
+
+  const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
     setError(null);
+    if (skipCrop) {
+      await uploadImage(file, file.name, file.size);
+      return;
+    }
     setPendingFile(file);
     setCropperOpen(true);
   };
@@ -89,34 +122,7 @@ export function ImageUploadField({
   const handleCropped = async (croppedBlob: Blob) => {
     if (!pendingFile) return;
     setCropperOpen(false);
-    setUploading(true);
-    try {
-      const croppedFile = new File([croppedBlob], pendingFile.name, {
-        type: croppedBlob.type,
-      });
-      const compressed = await imageCompression(
-        croppedFile,
-        COMPRESSION_OPTIONS,
-      );
-      console.log(
-        `[image-upload] ${pendingFile.name}: ${formatBytes(pendingFile.size)} → ${formatBytes(compressed.size)} (${Math.round((compressed.size / pendingFile.size) * 100)}%)`,
-      );
-      const filename = `${pathPrefix.replace(/\/$/, "")}/image-${Date.now()}.webp`;
-
-      const result = await upload(filename, compressed, {
-        access: "public",
-        handleUploadUrl: "/api/upload",
-        contentType: "image/webp",
-      });
-
-      onChange(result.url);
-    } catch (e) {
-      console.error(e);
-      setError(e instanceof Error ? e.message : "Upload failed");
-    } finally {
-      setPendingFile(null);
-      setUploading(false);
-    }
+    await uploadImage(croppedBlob, pendingFile.name, pendingFile.size);
   };
 
   const buttons = (

@@ -12,7 +12,7 @@ export function CourseHero({
   subtitle?: string;
 }) {
   return (
-    <div className="relative aspect-21/9 w-full overflow-hidden rounded-xl bg-zinc-900 sm:aspect-3/1 lg:aspect-4/1 xl:aspect-5/1 2xl:aspect-7/1">
+    <div className="relative aspect-21/9 w-full overflow-hidden rounded-xl bg-zinc-900 sm:aspect-3/1">
       {courseImgUrl ? (
         <Image
           src={courseImgUrl}

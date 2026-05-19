@@ -323,8 +323,7 @@ function MobileNineGrid({
   const totalYards = sumValues(yardages);
 
   return (
-    <div className="grid min-w-0 grid-cols-[auto_repeat(9,minmax(0,1fr))_auto] overflow-hidden rounded-lg ring-1 ring-border text-sm">
-      <HeaderCell>Hole</HeaderCell>
+    <div className="grid min-w-0 grid-cols-[repeat(9,minmax(0,1fr))_auto] overflow-hidden rounded-lg ring-1 ring-border text-sm">
       {holes.map((h) => (
         <HeaderCell key={`${label}-h-${h.hole}`}>{h.hole}</HeaderCell>
       ))}
@@ -332,7 +331,6 @@ function MobileNineGrid({
 
       {tee ? (
         <>
-          <RowLabelCell>Yds</RowLabelCell>
           {yardages.map((yards, index) => (
             <ValueGridCell key={`${label}-yards-${index}`} value={yards} />
           ))}
@@ -340,13 +338,11 @@ function MobileNineGrid({
         </>
       ) : null}
 
-      <RowLabelCell>Hcp</RowLabelCell>
       {holes.map((h) => (
         <ValueGridCell key={`${label}-hcp-${h.hole}`} value={h.handicap} />
       ))}
       <ValueGridCell value={null} />
 
-      <RowLabelCell>Par</RowLabelCell>
       {holes.map((h) => (
         <ValueGridCell key={`${label}-par-${h.hole}`} value={h.par} />
       ))}
@@ -358,14 +354,6 @@ function MobileNineGrid({
 function HeaderCell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-w-0 bg-muted px-1 py-1 text-center text-xs font-medium text-muted-foreground">
-      {children}
-    </div>
-  );
-}
-
-function RowLabelCell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-w-0 bg-muted px-2 py-1.5 text-left text-xs font-medium text-muted-foreground">
       {children}
     </div>
   );

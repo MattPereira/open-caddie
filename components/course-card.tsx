@@ -23,10 +23,6 @@ export function CourseCard({
       header={course.name}
       href={href}
       onClick={onClick}
-      badges={[
-        { label: `Rating ${course.rating}` },
-        { label: `Slope ${course.slope}` },
-      ]}
     />
   );
 }

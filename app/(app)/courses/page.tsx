@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AddSquareIcon } from "@hugeicons/core-free-icons";
+import { Add01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { appPageIcons } from "@/components/app-nav-items";
@@ -40,7 +40,7 @@ export default async function CoursesPage() {
               aria-label="Add course"
             >
               <Link href="/courses/new">
-                <HugeiconsIcon icon={AddSquareIcon} aria-hidden />
+                <HugeiconsIcon icon={Add01Icon} aria-hidden />
               </Link>
             </Button>
           </div>

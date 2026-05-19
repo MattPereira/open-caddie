@@ -5,7 +5,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 export function CourseHero({
   courseName,
   courseImgUrl,
-  subtitle,
+  subtitle: _subtitle,
 }: {
   courseName: string | null;
   courseImgUrl: string | null;
@@ -32,17 +32,6 @@ export function CourseHero({
         aria-hidden
         className="pointer-events-none absolute inset-0 bg-linear-to-b from-black/50 via-black/15 to-black/30"
       />
-
-      <div className="absolute inset-x-0 top-0 flex flex-col gap-0.5 p-3 sm:p-4 lg:p-5">
-        <h2 className="text-xl font-semibold tracking-normal text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:text-3xl">
-          {courseName ?? "Course to be announced"}
-        </h2>
-        {subtitle ? (
-          <div className="text-sm font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-            {subtitle}
-          </div>
-        ) : null}
-      </div>
     </div>
   );
 }

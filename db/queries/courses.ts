@@ -104,7 +104,7 @@ export const getCourseByHandle = cache(async (handle: string) => {
     return undefined;
   }
 
-  const [holes, [primaryTee]] = await Promise.all([
+  const [holes, tees] = await Promise.all([
     db
       .select({
         hole: courseHoles.hole,
@@ -115,18 +115,59 @@ export const getCourseByHandle = cache(async (handle: string) => {
       .where(eq(courseHoles.courseId, course.id))
       .orderBy(asc(courseHoles.hole)),
     db
-      .select({ rating: courseTees.rating, slope: courseTees.slope })
+      .select({
+        id: courseTees.id,
+        name: courseTees.name,
+        color: courseTees.color,
+        rating: courseTees.rating,
+        slope: courseTees.slope,
+        sortOrder: courseTees.sortOrder,
+      })
       .from(courseTees)
       .where(eq(courseTees.courseId, course.id))
-      .orderBy(asc(courseTees.sortOrder))
-      .limit(1),
+      .orderBy(asc(courseTees.sortOrder), asc(courseTees.id)),
   ]);
+
+  const teeIds = tees.map((tee) => tee.id);
+  const yardageRows = teeIds.length
+    ? await db
+        .select({
+          teeId: teeYardages.teeId,
+          hole: teeYardages.hole,
+          yards: teeYardages.yards,
+        })
+        .from(teeYardages)
+        .where(inArray(teeYardages.teeId, teeIds))
+    : [];
+
+  const yardagesByTee = new Map<number, (number | null)[]>();
+  for (const tee of tees) {
+    yardagesByTee.set(tee.id, Array<number | null>(18).fill(null));
+  }
+  for (const row of yardageRows) {
+    const yardages = yardagesByTee.get(row.teeId);
+    if (yardages && row.hole >= 1 && row.hole <= 18) {
+      yardages[row.hole - 1] = row.yards;
+    }
+  }
+
+  const primaryTee = tees[0];
 
   return {
     ...course,
     rating: primaryTee?.rating ?? "0",
     slope: primaryTee?.slope ?? 0,
     holes,
+    tees: tees.map((tee) => ({
+      id: tee.id,
+      name: tee.name,
+      color: tee.color,
+      rating: tee.rating,
+      slope: tee.slope,
+      sortOrder: tee.sortOrder,
+      yardages:
+        yardagesByTee.get(tee.id) ?? Array<number | null>(18).fill(null),
+    })),
   };
 });
 

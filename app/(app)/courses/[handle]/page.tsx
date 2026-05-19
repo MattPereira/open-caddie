@@ -6,7 +6,6 @@ import { CourseHolesTable } from "@/components/course-holes-table";
 import { GreenieCard } from "@/components/greenie-card";
 import { displayName, getInitials } from "@/components/player-card";
 import { StatTile } from "@/components/stat-tile";
-import { Badge } from "@/components/ui/badge";
 import { WinnerCard } from "@/components/winner-card";
 import { formatDate } from "@/lib/utils";
 import {
@@ -57,15 +56,9 @@ export default async function CoursePage({ params }: CoursePageProps) {
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-end gap-3">
-          <h1 className="text-2xl font-semibold tracking-normal">Course</h1>
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="">
-              Rating: {course.rating}
-            </Badge>
-            <Badge variant="outline" className="">
-              Slope: {course.slope}
-            </Badge>
-          </div>
+          <h1 className="text-2xl font-semibold tracking-normal">
+            {course.name}
+          </h1>
           {currentUser?.isAdmin ? <EditCourseButton course={course} /> : null}
         </div>
 
@@ -73,8 +66,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
       </div>
 
       <div className="flex flex-col gap-3">
-        <h3 className="text-lg font-semibold">Scorecard</h3>
-        <CourseHolesTable holes={course.holes} />
+        <CourseHolesTable holes={course.holes} tees={course.tees} />
       </div>
 
       <div className="flex flex-col gap-3">

@@ -12,9 +12,9 @@ import {
 
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  ArrowLeft02Icon,
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
   ChartBarLineIcon,
-  ArrowRight02Icon,
 } from "@hugeicons/core-free-icons";
 
 import { Button } from "@/components/ui/button";
@@ -220,7 +220,7 @@ export function RoundScoresForm({
       : null;
 
   return (
-    <div className="flex w-full min-w-0 flex-1 flex-col gap-6 p-0 sm:flex-none">
+    <div className="flex w-full min-w-0 flex-1 flex-col gap-5 p-0 sm:flex-none">
       <div className="flex flex-col gap-3">
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between gap-2">
@@ -248,28 +248,24 @@ export function RoundScoresForm({
         />
       </div>
 
-      <div className="flex items-center justify-between gap-2 px-">
+      <div className="flex items-center gap-4">
         <Button
           type="button"
-          variant="ghost"
-          size="icon-xl"
-          className="rounded-full"
+          variant="secondary"
+          size="xl"
+          className="shrink-0"
           disabled={!canScrollPrev}
           onClick={() => api?.scrollPrev()}
           aria-label="Previous hole"
         >
-          <HugeiconsIcon
-            icon={ArrowLeft02Icon}
-            strokeWidth={2}
-            className="size-6"
-          />
+          <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
         </Button>
-        <div className="flex flex-col items-center leading-tight">
-          <span className="text-lg font-medium tracking-tight">
+        <div className="flex min-w-0 flex-1 flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center leading-tight">
+          <span className="text-xl font-medium tracking-tight">
             Hole {currentHoleNumber}
           </span>
-          <span className="text-xs uppercase tracking-wider text-muted-foreground">
-            Par {currentHolePar}
+          <span className="text-sm uppercase tracking-wider text-muted-foreground">
+            · Par {currentHolePar}
             {currentHoleYards != null
               ? ` · ${currentHoleYards.toLocaleString()} yds`
               : ""}
@@ -277,18 +273,14 @@ export function RoundScoresForm({
         </div>
         <Button
           type="button"
-          variant="ghost"
-          size="icon-xl"
-          className="rounded-full"
+          variant="secondary"
+          size="xl"
+          className="shrink-0"
           disabled={!canScrollNext}
           onClick={() => api?.scrollNext()}
           aria-label="Next hole"
         >
-          <HugeiconsIcon
-            icon={ArrowRight02Icon}
-            strokeWidth={2}
-            className="size-6"
-          />
+          <HugeiconsIcon icon={ArrowRight01Icon} strokeWidth={2} />
         </Button>
       </div>
 

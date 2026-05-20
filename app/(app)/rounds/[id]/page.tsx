@@ -57,7 +57,9 @@ export default async function RoundPage({ params }: RoundPageProps) {
     <main className="flex min-w-0 flex-1 flex-col gap-6 p-4 sm:p-8">
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-end gap-2">
-          <h1 className="text-2xl font-semibold tracking-normal">Round</h1>
+          <h1 className="text-2xl font-semibold tracking-normal">
+            {round.courseName}
+          </h1>
           {round.clubName ? (
             <Badge variant="outline" className="font-light">
               {round.clubName}

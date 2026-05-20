@@ -46,9 +46,9 @@
 
 ### 6. Vertical slice: course scorecard image upload (AI #1)
 
-- [ ] Vercel AI SDK `generateObject` with vision + Zod schema for scorecard structure.
-- [ ] UI for uploading scorecard images and allowing user to confirm tee yardages and hole pars / handicaps
+- [x] Vercel AI SDK `generateObject` with vision + Zod schema for scorecard structure.
+- [x] UI for uploading scorecard images and allowing user to confirm tee yardages and hole pars / handicaps
 
-### 6. Vertical slice: player scorecard image upload (AI #1)
+### 7. Vertical slice: player scorecard image upload (AI #1)
 - [ ] Vercel AI SDK `generateObject` with vision + Zod schema for scorecard structure.
 - [ ] UI for uploading handwritten scorecards images and confirmation of parsed results flow

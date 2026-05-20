@@ -261,7 +261,7 @@ export function RoundScoresForm({
           <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
         </Button>
         <div className="flex min-w-0 flex-1 flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center leading-tight">
-          <span className="text-xl font-medium tracking-tight">
+          <span className="text-lg font-medium tracking-tight">
             Hole {currentHoleNumber}
           </span>
           <span className="text-sm uppercase tracking-wider text-muted-foreground">

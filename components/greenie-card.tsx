@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
-import { StatTile } from "@/components/stat-tile";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { CardDescription } from "@/components/ui/card";
+import { MediaCard } from "@/components/media-card";
 
 export type GreenieCardGreenie = {
   hole: number;
@@ -14,50 +15,57 @@ export type GreenieCardGreenie = {
 
 type GreenieCardProps = {
   greenie: GreenieCardGreenie;
+  courseName?: string | null;
   details?: string;
 };
 
-export function GreenieCard({ greenie, details }: GreenieCardProps) {
+export function GreenieCard({
+  greenie,
+  courseName,
+  details,
+}: GreenieCardProps) {
   const playerName = formatGreeniePlayerName(greenie);
+  const subtext = [
+    courseName ? clipCourseName(courseName) : null,
+    details,
+    `Hole ${greenie.hole}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <Card size="sm" className="gap-0 py-1.5!">
-      <CardContent className="flex gap-2 px-1.5!">
-        <Avatar className="size-16 rounded-lg">
-          {greenie.image ? (
-            <AvatarImage src={greenie.image} alt={playerName} />
-          ) : null}
-          <AvatarFallback className="rounded-lg">
-            {getInitials(greenie)}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex flex-1 min-w-0 self-stretch items-start justify-between gap-4">
-          <div className="flex min-w-0 flex-1 flex-col">
-            <div className="truncate text-base">{playerName}</div>
-            {details ? (
-              <span className="truncate text-xs text-muted-foreground">
-                {details}
-              </span>
-            ) : null}
-          </div>
-
-          <div className="flex flex-col justify-end h-full">
-            <div className="flex flex-row items-end gap-2 h-full">
-              <StatTile
-                className="w-16"
-                label="Hole"
-                value={greenie.hole.toString()}
-              />
-              <StatTile
-                className="w-16"
-                label="Dist"
-                value={formatGreenieDistance(greenie)}
-              />
-            </div>
-          </div>
+    <MediaCard
+      media={
+        <div className="w-1/5 shrink-0">
+          <AspectRatio
+            ratio={1}
+            className="overflow-hidden rounded-xl bg-muted"
+          >
+            <Avatar className="size-full rounded-none">
+              {greenie.image ? (
+                <AvatarImage src={greenie.image} alt={playerName} />
+              ) : null}
+              <AvatarFallback className="rounded-none text-lg">
+                {getInitials(greenie)}
+              </AvatarFallback>
+            </Avatar>
+          </AspectRatio>
         </div>
-      </CardContent>
-    </Card>
+      }
+      header={playerName}
+      endSlot={
+        <div className="flex flex-col items-end leading-none">
+          <span className="text-lg font-medium tabular-nums">
+            {formatGreenieDistance(greenie)}
+          </span>
+          <span className="mt-1 text-sm text-muted-foreground">Dist</span>
+        </div>
+      }
+    >
+      <CardDescription className="truncate text-sm leading-snug">
+        {subtext}
+      </CardDescription>
+    </MediaCard>
   );
 }
 
@@ -77,6 +85,10 @@ function getInitials(greenie: GreenieCardGreenie) {
   if (initials) return initials;
   const fallback = (greenie.username ?? "?").trim();
   return fallback.slice(0, 2).toUpperCase();
+}
+
+function clipCourseName(name: string) {
+  return name.trim().split(/\s+/).slice(0, 2).join(" ");
 }
 
 export function formatGreenieDistance(

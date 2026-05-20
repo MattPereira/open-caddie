@@ -1,9 +1,10 @@
 import Link from "next/link";
 
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { StatTile } from "@/components/stat-tile";
+import { Card, CardContent, CardDescription } from "@/components/ui/card";
+import { MediaCard } from "@/components/media-card";
 
 export type PlayerCardPlayer = {
   email: string | null;
@@ -44,51 +45,76 @@ export function PlayerCard({
   onClick?: () => void;
   size?: "default" | "sm";
 }) {
+  if (size === "sm") {
+    return <CompactPlayerCard player={player} href={href} onClick={onClick} />;
+  }
+
   const name = displayName(player);
-  const showStats =
-    player.roundsCount !== undefined || player.greeniesCount !== undefined;
-  const compact = size === "sm";
-  const body = (
-    <div
-      className={
-        compact
-          ? "flex w-full items-center gap-2.5 p-1.5 text-left"
-          : "flex w-full items-center gap-3 p-2 text-left"
+  const stats: string[] = [];
+  if (player.isAdmin) stats.push("Admin");
+  if (player.roundsCount != null) {
+    stats.push(
+      `${player.roundsCount} ${player.roundsCount === 1 ? "round" : "rounds"}`,
+    );
+  }
+  if (player.greeniesCount != null) {
+    stats.push(
+      `${player.greeniesCount} ${player.greeniesCount === 1 ? "greenie" : "greenies"}`,
+    );
+  }
+
+  return (
+    <MediaCard
+      media={
+        <div className="w-1/5 shrink-0">
+          <AspectRatio
+            ratio={1}
+            className="overflow-hidden rounded-xl bg-muted"
+          >
+            <Avatar className="size-full rounded-none">
+              {player.image ? (
+                <AvatarImage src={player.image} alt={name} />
+              ) : null}
+              <AvatarFallback className="rounded-none text-lg">
+                {getInitials(player)}
+              </AvatarFallback>
+            </Avatar>
+          </AspectRatio>
+        </div>
       }
+      header={name}
+      href={href}
+      onClick={onClick}
     >
-      <Avatar className={compact ? "size-9" : "size-16"}>
+      {stats.length > 0 ? (
+        <CardDescription className="truncate text-sm leading-snug">
+          {stats.join(" · ")}
+        </CardDescription>
+      ) : null}
+    </MediaCard>
+  );
+}
+
+function CompactPlayerCard({
+  player,
+  href,
+  onClick,
+}: {
+  player: PlayerCardPlayer;
+  href?: string;
+  onClick?: () => void;
+}) {
+  const name = displayName(player);
+  const body = (
+    <div className="flex w-full items-center gap-2.5 p-1.5 text-left">
+      <Avatar className="size-9">
         {player.image ? <AvatarImage src={player.image} alt={name} /> : null}
         <AvatarFallback>{getInitials(player)}</AvatarFallback>
       </Avatar>
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-2">
-          <span
-            className={
-              compact ? "truncate text-sm font-medium" : "truncate font-medium"
-            }
-          >
-            {name}
-          </span>
-          {player.isAdmin ? <Badge variant="outline">Admin</Badge> : null}
-        </div>
-        <span
-          className={
-            compact
-              ? "truncate text-[11px] text-muted-foreground"
-              : "truncate text-xs text-muted-foreground"
-          }
-        >
-          {player.email ?? "—"}
-        </span>
+      <div className="flex min-w-0 flex-1 items-center gap-2">
+        <span className="truncate text-sm font-medium">{name}</span>
+        {player.isAdmin ? <Badge variant="outline">Admin</Badge> : null}
       </div>
-      {showStats ? (
-        <div className="flex flex-col h-full justify-end">
-          <div className="flex flex-row shrink-0 items-center gap-1.5">
-            <StatTile label="Rounds" value={player.roundsCount ?? 0} />
-            <StatTile label="Greenies" value={player.greeniesCount ?? 0} />
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 

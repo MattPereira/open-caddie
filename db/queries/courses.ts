@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, asc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, asc, count, eq, gte, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   courseHoles,
@@ -104,18 +104,34 @@ export const getAllCourses = cache(async () => {
     .from(courses)
     .orderBy(asc(courses.name));
 
-  const [holes, primaryTeeByCourse] = await Promise.all([
-    db
-      .select({
-        courseId: courseHoles.courseId,
-        hole: courseHoles.hole,
-        par: courseHoles.par,
-        handicap: courseHoles.handicap,
-      })
-      .from(courseHoles)
-      .orderBy(asc(courseHoles.courseId), asc(courseHoles.hole)),
-    getPrimaryTeeByCourseId(),
-  ]);
+  const [holes, primaryTeeByCourse, roundCounts, greenieCounts] =
+    await Promise.all([
+      db
+        .select({
+          courseId: courseHoles.courseId,
+          hole: courseHoles.hole,
+          par: courseHoles.par,
+          handicap: courseHoles.handicap,
+        })
+        .from(courseHoles)
+        .orderBy(asc(courseHoles.courseId), asc(courseHoles.hole)),
+      getPrimaryTeeByCourseId(),
+      db
+        .select({
+          courseId: rounds.courseId,
+          value: count().mapWith(Number),
+        })
+        .from(rounds)
+        .groupBy(rounds.courseId),
+      db
+        .select({
+          courseId: rounds.courseId,
+          value: count().mapWith(Number),
+        })
+        .from(greenies)
+        .innerJoin(rounds, eq(greenies.roundId, rounds.id))
+        .groupBy(rounds.courseId),
+    ]);
 
   const holesByCourse = new Map<number, typeof holes>();
   for (const hole of holes) {
@@ -123,6 +139,12 @@ export const getAllCourses = cache(async () => {
     courseHoles.push(hole);
     holesByCourse.set(hole.courseId, courseHoles);
   }
+  const roundCountByCourse = new Map(
+    roundCounts.map((r) => [r.courseId, r.value]),
+  );
+  const greenieCountByCourse = new Map(
+    greenieCounts.map((g) => [g.courseId, g.value]),
+  );
 
   return rows.map((course) => {
     const tee = primaryTeeByCourse.get(course.id);
@@ -131,6 +153,8 @@ export const getAllCourses = cache(async () => {
       rating: tee?.rating ?? "0",
       slope: tee?.slope ?? 0,
       holes: holesByCourse.get(course.id) ?? [],
+      roundCount: roundCountByCourse.get(course.id) ?? 0,
+      greenieCount: greenieCountByCourse.get(course.id) ?? 0,
     };
   });
 });

@@ -1,10 +1,8 @@
 import { displayName, getInitials } from "@/components/player-card";
 import { GreenieCard } from "@/components/greenie-card";
-import { StatTile } from "@/components/stat-tile";
 import { WinnerCard } from "@/components/winner-card";
 import { TabsContent } from "@/components/ui/tabs";
 import type { getTournamentById } from "@/db/queries/tournaments";
-import { cn } from "@/lib/utils";
 
 type Tournament = NonNullable<Awaited<ReturnType<typeof getTournamentById>>>;
 type TournamentRound = Tournament["rounds"][number];
@@ -67,33 +65,33 @@ export function WinnersTabContent({
   return (
     <TabsContent value="winners">
       <div className="flex flex-col gap-6 max-w-6xl">
-        <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
-          <WinnersSection
-            title="Strokes"
-            description="Lowest net strokes"
-            empty="No eligible rounds in this category yet."
-          >
-            {strokesWinners.map((winner) => (
-              <SimpleWinnerCard key={winner.key} winner={winner} />
-            ))}
-          </WinnersSection>
+        <WinnersSection
+          title="Strokes"
+          description="Lowest net strokes"
+          empty="No eligible rounds in this category yet."
+          gridClassName="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
+        >
+          {strokesWinners.map((winner) => (
+            <SimpleWinnerCard key={winner.key} winner={winner} />
+          ))}
+        </WinnersSection>
 
-          <WinnersSection
-            title="Putts"
-            description="Fewest total putts"
-            empty="No eligible rounds in this category yet."
-          >
-            {puttsWinners.map((winner) => (
-              <SimpleWinnerCard key={winner.key} winner={winner} />
-            ))}
-          </WinnersSection>
-        </div>
+        <WinnersSection
+          title="Putts"
+          description="Fewest total putts"
+          empty="No eligible rounds in this category yet."
+          gridClassName="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
+        >
+          {puttsWinners.map((winner) => (
+            <SimpleWinnerCard key={winner.key} winner={winner} />
+          ))}
+        </WinnersSection>
 
         <WinnersSection
           title="Greenies"
           description="Closest to the pin on each par 3"
           empty="No greenies recorded yet."
-          gridClassName="grid grid-cols-1 lg:grid-cols-2 gap-3"
+          gridClassName="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
         >
           {greenieWinners.map((greenie) => (
             <GreenieCard
@@ -107,7 +105,7 @@ export function WinnersTabContent({
           title="Skins"
           description="Unique lowest hole score with handicaps"
           empty="No skins won yet."
-          gridClassName="grid grid-cols-1 lg:grid-cols-2 gap-3"
+          gridClassName="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
         >
           {skinWinners.map((winner) => (
             <SkinWinnerCard key={winner.key} winner={winner} />
@@ -170,24 +168,15 @@ function SimpleWinnerCard({ winner }: { winner: WinnerRow }) {
       playerName={winner.playerName}
       initials={winner.initials}
       image={winner.image}
-      nameAlign="top"
-    >
-      {winner.secondaryLabel != null && winner.secondaryValue != null ? (
-        <StatTile
-          className="w-16"
-          label={winner.secondaryLabel}
-          value={winner.secondaryValue}
-        />
-      ) : null}
-      <StatTile
-        className={cn(
-          "w-16",
-          winner.primaryValueAdjusted && "text-red-600 dark:text-red-500",
-        )}
-        label={winner.primaryLabel}
-        value={winner.primaryValue}
-      />
-    </WinnerCard>
+      secondary={
+        winner.secondaryLabel != null && winner.secondaryValue != null
+          ? `${winner.secondaryLabel} ${winner.secondaryValue}`
+          : undefined
+      }
+      primaryLabel={winner.primaryLabel}
+      primaryValue={winner.primaryValue}
+      primaryValueAdjusted={winner.primaryValueAdjusted}
+    />
   );
 }
 
@@ -197,18 +186,11 @@ function SkinWinnerCard({ winner }: { winner: SkinWinnerRow }) {
       playerName={winner.playerName}
       initials={winner.initials}
       image={winner.image}
-      nameAlign="top"
-    >
-      <StatTile className="w-16" label="Hole" value={winner.hole.toString()} />
-      <StatTile
-        className={cn(
-          "w-16",
-          winner.primaryValueAdjusted && "text-red-600 dark:text-red-500",
-        )}
-        label="Score"
-        value={winner.primaryValue}
-      />
-    </WinnerCard>
+      secondary={`Hole ${winner.hole}`}
+      primaryLabel="Strokes"
+      primaryValue={winner.primaryValue}
+      primaryValueAdjusted={winner.primaryValueAdjusted}
+    />
   );
 }
 

@@ -16,6 +16,8 @@ type Course = {
   rating: string;
   slope: number;
   imgUrl: string | null;
+  roundCount: number;
+  greenieCount: number;
 };
 
 export function CoursesBrowser({ courses }: { courses: Course[] }) {

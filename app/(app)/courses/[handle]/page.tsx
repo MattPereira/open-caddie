@@ -5,7 +5,6 @@ import { CourseHero } from "@/components/course-hero";
 import { CourseHolesTable } from "@/components/course-holes-table";
 import { GreenieCard } from "@/components/greenie-card";
 import { displayName, getInitials } from "@/components/player-card";
-import { StatTile } from "@/components/stat-tile";
 import { WinnerCard } from "@/components/winner-card";
 import { formatDate } from "@/lib/utils";
 import {
@@ -79,15 +78,10 @@ export default async function CoursePage({ params }: CoursePageProps) {
                 playerName={displayName(round)}
                 initials={getInitials(round)}
                 image={round.image}
-                nameAlign="top"
-                details={formatDate(round.date, "short")}
-              >
-                <StatTile
-                  className="w-16"
-                  label="Strokes"
-                  value={round.totalStrokes}
-                />
-              </WinnerCard>
+                secondary={formatDate(round.date, "short")}
+                primaryLabel="Strokes"
+                primaryValue={round.totalStrokes}
+              />
             ))}
           </div>
         ) : (
@@ -107,15 +101,10 @@ export default async function CoursePage({ params }: CoursePageProps) {
                 playerName={displayName(round)}
                 initials={getInitials(round)}
                 image={round.image}
-                nameAlign="top"
-                details={formatDate(round.date, "short")}
-              >
-                <StatTile
-                  className="w-16"
-                  label="Putts"
-                  value={round.totalPutts}
-                />
-              </WinnerCard>
+                secondary={formatDate(round.date, "short")}
+                primaryLabel="Putts"
+                primaryValue={round.totalPutts}
+              />
             ))}
           </div>
         ) : (

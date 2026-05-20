@@ -22,6 +22,7 @@ type Tournament = {
   courseHandle: string | null;
   courseName: string | null;
   courseImgUrl: string | null;
+  playerCount: number;
 };
 
 type TournamentStatus = "live" | "upcoming" | "past";

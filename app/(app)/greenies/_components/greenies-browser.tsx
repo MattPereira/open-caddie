@@ -111,7 +111,7 @@ function GreeniesGrid({ greenies }: { greenies: Greenie[] }) {
         <GreenieCard
           key={`${greenie.roundId}-${greenie.hole}`}
           greenie={greenie}
-          details={greenie.courseName}
+          courseName={greenie.courseName}
         />
       ))}
     </div>

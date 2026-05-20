@@ -1,3 +1,4 @@
+import { CardDescription } from "@/components/ui/card";
 import { MediaCard } from "@/components/media-card";
 
 export type CourseCardCourse = {
@@ -5,6 +6,8 @@ export type CourseCardCourse = {
   rating: string;
   slope: number;
   imgUrl: string | null;
+  roundCount?: number;
+  greenieCount?: number;
 };
 
 export function CourseCard({
@@ -16,6 +19,14 @@ export function CourseCard({
   href?: string;
   onClick?: () => void;
 }) {
+  const stats: string[] = [];
+  if (course.roundCount != null) {
+    stats.push(`${course.roundCount} ${course.roundCount === 1 ? "round" : "rounds"}`);
+  }
+  if (course.greenieCount != null) {
+    stats.push(`${course.greenieCount} ${course.greenieCount === 1 ? "greenie" : "greenies"}`);
+  }
+
   return (
     <MediaCard
       imageUrl={course.imgUrl}
@@ -23,6 +34,12 @@ export function CourseCard({
       header={course.name}
       href={href}
       onClick={onClick}
-    />
+    >
+      {stats.length > 0 ? (
+        <CardDescription className="text-sm leading-snug">
+          {stats.join(" · ")}
+        </CardDescription>
+      ) : null}
+    </MediaCard>
   );
 }

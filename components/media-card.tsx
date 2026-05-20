@@ -7,51 +7,58 @@ import type { VariantProps } from "class-variance-authority";
 
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge, badgeVariants } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardTitle } from "@/components/ui/card";
 
 type MediaCardBadge = {
   label: ReactNode;
   variant?: VariantProps<typeof badgeVariants>["variant"];
 };
 
-type MediaCardVariant = "wide" | "square";
-
 type MediaCardProps = {
-  imageUrl: string | null;
-  imageAlt: string;
+  imageUrl?: string | null;
+  imageAlt?: string;
+  media?: ReactNode;
   header?: ReactNode;
   children?: ReactNode;
   badges?: MediaCardBadge[];
+  endSlot?: ReactNode;
   href?: string;
   onClick?: () => void;
-  variant?: MediaCardVariant;
 };
 
 export function MediaCard({
   imageUrl,
-  imageAlt,
+  imageAlt = "",
+  media,
   header,
   children,
   badges = [],
+  endSlot,
   href,
   onClick,
 }: MediaCardProps) {
+  const hasCustomMedia = media !== undefined;
+
+  const mediaSlot = hasCustomMedia ? (
+    media
+  ) : (
+    <MediaCardImage src={imageUrl ?? null} alt={imageAlt} />
+  );
+
   const content = (
     <>
-      <MediaCardImage src={imageUrl} alt={imageAlt} />
-      <div className="flex min-w-0 flex-1 flex-col self-stretch justify-between p-1 lg:p-2">
-        <CardHeader className="px-0!">
-          {header ? (
-            <CardTitle className="truncate text-sm sm:text-base">
-              {header}
-            </CardTitle>
-          ) : null}
-        </CardHeader>
+      {mediaSlot}
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        {header ? (
+          <CardTitle className="truncate text-base sm:text-lg">
+            {header}
+          </CardTitle>
+        ) : null}
 
         {children ? <div className="min-w-0">{children}</div> : null}
 
         {badges.length > 0 ? (
-          <div className="flex min-w-0 flex-wrap items-center justify-end gap-1">
+          <div className="flex min-w-0 flex-wrap items-center gap-1">
             {badges.map((badge, index) => (
               <Badge
                 key={index}
@@ -64,29 +71,34 @@ export function MediaCard({
           </div>
         ) : null}
       </div>
+      {endSlot ? (
+        <div className="shrink-0 pr-3">{endSlot}</div>
+      ) : (
+        <div className="pr-2" />
+      )}
     </>
   );
 
+  const interactiveClasses =
+    "flex w-full items-center gap-3 rounded-lg text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50";
+
   return (
-    <Card className="py-1.5">
-      <CardContent className="px-1.5">
+    <Card className="py-0">
+      <CardContent className="px-0">
         {href ? (
-          <Link
-            href={href}
-            className="gap-4 rounded-lg flex w-full items-center text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-          >
+          <Link href={href} className={interactiveClasses}>
             {content}
           </Link>
         ) : onClick ? (
           <button
             type="button"
             onClick={onClick}
-            className="gap-2 lg:gap-4 rounded-lg flex w-full items-center text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            className={interactiveClasses}
           >
             {content}
           </button>
         ) : (
-          <div className="flex items-center">{content}</div>
+          <div className="flex items-center gap-3">{content}</div>
         )}
       </CardContent>
     </Card>
@@ -101,7 +113,7 @@ export function MediaCardImage({
   alt: string;
 }) {
   return (
-    <div className={"w-1/3 shrink-0"}>
+    <div className={"w-2/5 shrink-0"}>
       <AspectRatio
         ratio={16 / 9}
         className="overflow-hidden rounded-xl bg-muted"

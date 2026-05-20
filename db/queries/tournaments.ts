@@ -34,10 +34,13 @@ export const getAllTournaments = cache(async () => {
       courseHandle: courses.handle,
       courseName: courses.name,
       courseImgUrl: courses.imgUrl,
+      playerCount: count(rounds.id).mapWith(Number),
     })
     .from(tournaments)
     .innerJoin(clubs, eq(tournaments.clubId, clubs.id))
     .leftJoin(courses, eq(tournaments.courseId, courses.id))
+    .leftJoin(rounds, eq(rounds.tournamentId, tournaments.id))
+    .groupBy(tournaments.id, clubs.handle, clubs.name, courses.handle, courses.name, courses.imgUrl)
     .orderBy(desc(tournaments.date), desc(tournaments.startsAt));
 });
 
@@ -55,11 +58,14 @@ export const getTournamentsByClubHandle = cache(async (clubHandle: string) => {
       courseHandle: courses.handle,
       courseName: courses.name,
       courseImgUrl: courses.imgUrl,
+      playerCount: count(rounds.id).mapWith(Number),
     })
     .from(tournaments)
     .innerJoin(clubs, eq(tournaments.clubId, clubs.id))
     .leftJoin(courses, eq(tournaments.courseId, courses.id))
+    .leftJoin(rounds, eq(rounds.tournamentId, tournaments.id))
     .where(eq(clubs.handle, clubHandle))
+    .groupBy(tournaments.id, clubs.handle, clubs.name, courses.handle, courses.name, courses.imgUrl)
     .orderBy(desc(tournaments.date), desc(tournaments.startsAt));
 });
 

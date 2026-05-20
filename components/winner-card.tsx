@@ -1,48 +1,67 @@
+import type { ReactNode } from "react";
+
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
+import { CardDescription } from "@/components/ui/card";
+import { MediaCard } from "@/components/media-card";
 import { cn } from "@/lib/utils";
 
 export function WinnerCard({
   playerName,
   initials,
   image,
-  nameAlign = "center",
-  details,
-  children,
+  secondary,
+  primaryLabel,
+  primaryValue,
+  primaryValueAdjusted,
 }: {
   playerName: string;
   initials: string;
   image: string | null;
-  nameAlign?: "top" | "center";
-  details?: React.ReactNode;
-  children: React.ReactNode;
+  secondary?: ReactNode;
+  primaryLabel: string;
+  primaryValue: ReactNode;
+  primaryValueAdjusted?: boolean;
 }) {
   return (
-    <Card size="sm" className="gap-0 py-1.5!">
-      <CardContent className="flex items-start gap-2 px-1.5!">
-        <Avatar className="size-16 rounded-lg">
-          {image ? <AvatarImage src={image} alt={playerName} /> : null}
-          <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
-        </Avatar>
-        <div
-          className={cn(
-            "flex h-full w-full justify-between gap-3",
-            nameAlign === "top" ? "items-start" : "items-center",
-          )}
-        >
-          <div className="min-w-0 flex-1 flex flex-col">
-            <div className="truncate text-base">{playerName}</div>
-            {details ? (
-              <div className="truncate text-xs text-muted-foreground">
-                {details}
-              </div>
-            ) : null}
-          </div>
-          <div className="flex flex-col h-full justify-end">
-            <div className="flex flex-row items-end gap-2">{children}</div>
-          </div>
+    <MediaCard
+      media={
+        <div className="w-1/5 shrink-0">
+          <AspectRatio
+            ratio={1}
+            className="overflow-hidden rounded-xl bg-muted"
+          >
+            <Avatar className="size-full rounded-none">
+              {image ? <AvatarImage src={image} alt={playerName} /> : null}
+              <AvatarFallback className="rounded-none text-lg">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+          </AspectRatio>
         </div>
-      </CardContent>
-    </Card>
+      }
+      header={playerName}
+      endSlot={
+        <div className="flex flex-col items-end leading-none">
+          <span
+            className={cn(
+              "text-lg font-medium tabular-nums",
+              primaryValueAdjusted && "text-red-600 dark:text-red-500",
+            )}
+          >
+            {primaryValue}
+          </span>
+          <span className="mt-1 text-sm text-muted-foreground">
+            {primaryLabel}
+          </span>
+        </div>
+      }
+    >
+      {secondary ? (
+        <CardDescription className="truncate text-sm leading-snug">
+          {secondary}
+        </CardDescription>
+      ) : null}
+    </MediaCard>
   );
 }

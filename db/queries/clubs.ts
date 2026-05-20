@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { clubs } from "@/db/schema";
+import { clubMembers, clubs, users } from "@/db/schema";
 import type { PointRules } from "@/lib/point-rules-schema";
 
 export const getAllClubs = cache(async () => {
@@ -47,4 +47,22 @@ export const getClubByHandle = cache(async (handle: string) => {
         pointRules: row.pointRules as PointRules,
       }
     : null;
+});
+
+export const getClubMembersByHandle = cache(async (handle: string) => {
+  return db
+    .select({
+      id: users.id,
+      email: users.email,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      username: users.username,
+      image: users.image,
+      isAdmin: users.isAdmin,
+    })
+    .from(clubMembers)
+    .innerJoin(clubs, eq(clubMembers.clubId, clubs.id))
+    .innerJoin(users, eq(clubMembers.userId, users.id))
+    .where(eq(clubs.handle, handle))
+    .orderBy(asc(users.firstName), asc(users.lastName), asc(users.email));
 });

@@ -48,17 +48,7 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold tracking-normal">Player</h1>
-          {canEdit ? (
-            <PlayerProfileActions
-              player={player}
-              canManageUsers={canManageUsers}
-            />
-          ) : null}
-        </div>
-
+      <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-muted">
             {player.image ? (
@@ -85,6 +75,13 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
             </p>
           </div>
         </div>
+
+        {canEdit ? (
+          <PlayerProfileActions
+            player={player}
+            canManageUsers={canManageUsers}
+          />
+        ) : null}
       </div>
 
       <Card className="py-3 lg:max-w-1/2">

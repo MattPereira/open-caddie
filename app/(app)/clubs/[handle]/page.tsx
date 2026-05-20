@@ -1,20 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  ArrowLeft02Icon,
-  ChampionIcon,
-  GolfBatIcon,
-} from "@hugeicons/core-free-icons";
+import { GolfBatIcon, UserMultipleIcon } from "@hugeicons/core-free-icons";
 
-import { TournamentsBrowser } from "@/app/(app)/tournaments/_components/tournaments-browser";
-import { PageHeading } from "@/components/page-heading";
-import { Button } from "@/components/ui/button";
+import { ClubMembersBrowser } from "@/app/(app)/clubs/[handle]/_components/club-members-browser";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getClubByHandle } from "@/db/queries/clubs";
-import { getTournamentsByClubHandle } from "@/db/queries/tournaments";
+import { getClubByHandle, getClubMembersByHandle } from "@/db/queries/clubs";
 import { getCurrentUser } from "@/db/queries/users";
 import type { PointRules } from "@/lib/point-rules-schema";
 import { EditClubButton } from "../_components/edit-club-button";
@@ -42,59 +35,36 @@ export default async function ClubPage({ params }: ClubPageProps) {
 
   if (!club) notFound();
 
-  const [currentUser, tournaments] = await Promise.all([
+  const [currentUser, members] = await Promise.all([
     getCurrentUser(),
-    getTournamentsByClubHandle(club.handle),
+    getClubMembersByHandle(club.handle),
   ]);
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
-      <Button asChild variant="ghost" className="w-fit px-0">
-        <Link href="/clubs">
-          <HugeiconsIcon icon={ArrowLeft02Icon} data-icon="inline-start" />
-          Clubs
-        </Link>
-      </Button>
-
       <div className="flex flex-col gap-4">
         <div className="flex items-start justify-between gap-3">
-          <PageHeading icon={GolfBatIcon} description={club.handle}>
+          <h1 className="text-2xl font-semibold tracking-normal">
             {club.name}
-          </PageHeading>
+          </h1>
           {currentUser?.isAdmin ? <EditClubButton club={club} /> : null}
         </div>
 
-        <div className="relative size-24 overflow-hidden rounded-lg bg-muted">
-          {club.logo ? (
-            <Image
-              src={club.logo}
-              alt={club.name}
-              fill
-              sizes="96px"
-              className="object-cover"
-              priority
-            />
-          ) : (
-            <div className="flex size-full items-center justify-center text-muted-foreground">
-              <HugeiconsIcon icon={GolfBatIcon} size={32} aria-hidden />
-            </div>
-          )}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <ClubLogo src={club.logo} alt={club.name} />
+          <PointRulesSummary pointRules={club.pointRules} />
         </div>
       </div>
 
-      <PointRulesSummary pointRules={club.pointRules} />
-
       <section className="flex flex-col gap-3">
-        <h2 className="flex items-center gap-2 text-lg font-semibold tracking-normal">
-          <HugeiconsIcon icon={ChampionIcon} size={20} aria-hidden />
-          Tournaments
-        </h2>
-        <TournamentsBrowser
-          tournaments={tournaments.map((tournament) => ({
-            ...tournament,
-            date: tournament.date.toISOString().slice(0, 10),
-          }))}
-        />
+        <div className="flex items-center gap-2">
+          <h2 className="flex items-center gap-2 text-lg font-semibold tracking-normal">
+            <HugeiconsIcon icon={UserMultipleIcon} size={20} aria-hidden />
+            Members
+          </h2>
+          <Badge variant="secondary">{members.length}</Badge>
+        </div>
+        <ClubMembersBrowser members={members} />
       </section>
     </main>
   );
@@ -106,9 +76,30 @@ async function getClubFromParams(params: ClubPageProps["params"]) {
   return getClubByHandle(decodeURIComponent(handle));
 }
 
+function ClubLogo({ src, alt }: { src: string | null; alt: string }) {
+  return (
+    <div className="relative aspect-video w-full overflow-hidden rounded-lg border bg-background">
+      {src ? (
+        <Image
+          src={src}
+          alt={alt}
+          fill
+          sizes="(min-width: 1024px) 50vw, 100vw"
+          className="object-contain p-6"
+          priority
+        />
+      ) : (
+        <div className="flex size-full items-center justify-center text-muted-foreground">
+          <HugeiconsIcon icon={GolfBatIcon} size={40} aria-hidden />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PointRulesSummary({ pointRules }: { pointRules: PointRules }) {
   return (
-    <Card className="lg:max-w-3xl">
+    <Card className="h-full">
       <CardHeader>
         <CardTitle>Point Rules</CardTitle>
       </CardHeader>

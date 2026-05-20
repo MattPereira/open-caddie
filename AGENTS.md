@@ -40,6 +40,14 @@
 - Tournaments enable grouping rounds
 - Rounds have the option to be created with or without a tournament and carry their own course/date context
 
+### Database Migration Rules
+
+- Drizzle migrations are the source of truth for schema changes.
+- For schema changes, update `db/schema.ts`, run `pnpm run db:generate`, inspect the generated SQL in `drizzle/`, then run `pnpm run db:migrate` only after confirming the SQL is intentional.
+- Commit `db/schema.ts` changes and generated `drizzle/` migration files together.
+- Do not use `drizzle-kit push` or add `db:push` scripts for normal schema changes; it bypasses migration history. If a direct push is ever used for an emergency or disposable prototype, call it out explicitly.
+- The current migration history was baselined from an existing Neon database. Existing databases matching `drizzle/0000_magenta_argent.sql` need the matching row in `drizzle.__drizzle_migrations`; new empty databases can run migrations from scratch.
+
 ## CLI Commands
 
 - `pnpm run dev`: start the local Next development server.
@@ -48,7 +56,7 @@
 - `pnpm run lint`: run ESLint with Next core-web-vitals and TypeScript rules.
 - `pnpm run typecheck`: generate Next types, then run `tsc --noEmit`.
 - `pnpm run check`: run linting and typechecking together.
-- `pnpm run db:generate`, `pnpm run db:migrate`, `pnpm run db:push`, `pnpm run db:studio`: manage Drizzle migrations.
+- `pnpm run db:generate`, `pnpm run db:migrate`, `pnpm run db:studio`: manage Drizzle migrations and inspect the database.
 
 ## Git Guidelines
 

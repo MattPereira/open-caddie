@@ -1,5 +1,5 @@
 {
-  "id": "b27abfd6-f3d6-4271-b8dd-7436ebf1c4c1",
+  "id": "bb100ee0-c31d-4fe3-9cc6-4e8e6d040a95",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -522,6 +522,89 @@
       },
       "isRLSEnabled": false
     },
+    "public.matches": {
+      "name": "matches",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "course_id": {
+          "name": "course_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "starts_at": {
+          "name": "starts_at",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "matches_created_by_user_id_user_id_fk": {
+          "name": "matches_created_by_user_id_user_id_fk",
+          "tableFrom": "matches",
+          "tableTo": "user",
+          "columnsFrom": [
+            "created_by_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "matches_course_id_courses_id_fk": {
+          "name": "matches_course_id_courses_id_fk",
+          "tableFrom": "matches",
+          "tableTo": "courses",
+          "columnsFrom": [
+            "course_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.round_scores": {
       "name": "round_scores",
       "schema": "",
@@ -610,6 +693,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "match_id": {
+          "name": "match_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "user_id": {
           "name": "user_id",
           "type": "text",
@@ -633,6 +722,12 @@
           "type": "date",
           "primaryKey": false,
           "notNull": true
+        },
+        "handicap_index_override": {
+          "name": "handicap_index_override",
+          "type": "numeric(4, 1)",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -657,6 +752,28 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "rounds_match_user_unique": {
+          "name": "rounds_match_user_unique",
+          "columns": [
+            {
+              "expression": "match_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"rounds\".\"match_id\" IS NOT NULL",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -666,6 +783,19 @@
           "tableTo": "tournaments",
           "columnsFrom": [
             "tournament_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "rounds_match_id_matches_id_fk": {
+          "name": "rounds_match_id_matches_id_fk",
+          "tableFrom": "rounds",
+          "tableTo": "matches",
+          "columnsFrom": [
+            "match_id"
           ],
           "columnsTo": [
             "id"
@@ -716,7 +846,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "rounds_single_event_check": {
+          "name": "rounds_single_event_check",
+          "value": "not (\"rounds\".\"tournament_id\" is not null and \"rounds\".\"match_id\" is not null)"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.session": {
@@ -1064,6 +1199,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "match_id": {
+          "name": "match_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "club_id": {
           "name": "club_id",
           "type": "integer",
@@ -1088,6 +1229,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "handicap_index_override": {
+          "name": "handicap_index_override",
+          "type": "numeric(4, 1)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "rating": {
           "name": "rating",
           "type": "numeric",
@@ -1101,7 +1248,7 @@
           "notNull": true
         }
       },
-      "definition": "select \"rounds\".\"id\", \"rounds\".\"tournament_id\", \"tournaments\".\"club_id\", \"rounds\".\"user_id\", \"rounds\".\"course_id\", \"rounds\".\"date\", \"course_tees\".\"rating\", \"course_tees\".\"slope\", count(\"round_scores\".\"strokes\") as \"recorded_strokes_count\", count(\"round_scores\".\"putts\") as \"recorded_putts_count\", coalesce(sum(\"round_scores\".\"strokes\"), 0)::int as \"total_strokes\", coalesce(sum(\"round_scores\".\"putts\"), 0)::int as \"total_putts\", count(\"round_scores\".\"strokes\") = 18 as \"is_complete\", case when count(\"round_scores\".\"strokes\") = 18 then ((113.0 / \"course_tees\".\"slope\") * (sum(\"round_scores\".\"strokes\") - \"course_tees\".\"rating\"))::double precision else null end as \"score_differential\" from \"rounds\" inner join \"course_tees\" on \"rounds\".\"tee_id\" = \"course_tees\".\"id\" left join \"tournaments\" on \"rounds\".\"tournament_id\" = \"tournaments\".\"id\" left join \"round_scores\" on \"rounds\".\"id\" = \"round_scores\".\"round_id\" group by \"rounds\".\"id\", \"rounds\".\"tournament_id\", \"tournaments\".\"club_id\", \"rounds\".\"user_id\", \"rounds\".\"course_id\", \"rounds\".\"date\", \"course_tees\".\"rating\", \"course_tees\".\"slope\"",
+      "definition": "select \"rounds\".\"id\", \"rounds\".\"tournament_id\", \"rounds\".\"match_id\", \"tournaments\".\"club_id\", \"rounds\".\"user_id\", \"rounds\".\"course_id\", \"rounds\".\"date\", \"rounds\".\"handicap_index_override\", \"course_tees\".\"rating\", \"course_tees\".\"slope\", count(\"round_scores\".\"strokes\") as \"recorded_strokes_count\", count(\"round_scores\".\"putts\") as \"recorded_putts_count\", coalesce(sum(\"round_scores\".\"strokes\"), 0)::int as \"total_strokes\", coalesce(sum(\"round_scores\".\"putts\"), 0)::int as \"total_putts\", count(\"round_scores\".\"strokes\") = 18 as \"is_complete\", case when count(\"round_scores\".\"strokes\") = 18 then ((113.0 / \"course_tees\".\"slope\") * (sum(\"round_scores\".\"strokes\") - \"course_tees\".\"rating\"))::double precision else null end as \"score_differential\" from \"rounds\" inner join \"course_tees\" on \"rounds\".\"tee_id\" = \"course_tees\".\"id\" left join \"tournaments\" on \"rounds\".\"tournament_id\" = \"tournaments\".\"id\" left join \"round_scores\" on \"rounds\".\"id\" = \"round_scores\".\"round_id\" group by \"rounds\".\"id\", \"rounds\".\"tournament_id\", \"rounds\".\"match_id\", \"tournaments\".\"club_id\", \"rounds\".\"user_id\", \"rounds\".\"course_id\", \"rounds\".\"date\", \"rounds\".\"handicap_index_override\", \"course_tees\".\"rating\", \"course_tees\".\"slope\"",
       "name": "round_summaries",
       "schema": "public",
       "isExisting": false,

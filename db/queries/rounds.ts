@@ -88,6 +88,7 @@ export const getRoundById = cache(async (roundId: number) => {
       totalPutts: roundSummaries.totalPutts,
       isComplete: roundSummaries.isComplete,
       scoreDifferential: roundSummaries.scoreDifferential,
+      handicapIndexOverride: roundSummaries.handicapIndexOverride,
     })
     .from(roundSummaries)
     .innerJoin(rounds, eq(rounds.id, roundSummaries.roundId))
@@ -195,7 +196,7 @@ export const getRoundById = cache(async (roundId: number) => {
     scores,
     holes,
     greenies: roundGreenies,
-    handicap:
+    tournamentHandicapDetails:
       round.tournamentId == null || round.clubId == null
         ? null
         : {

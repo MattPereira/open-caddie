@@ -72,6 +72,16 @@ CREATE TABLE "greenies" (
 	CONSTRAINT "greenies_inches_check" CHECK ("greenies"."inches" between 0 and 11)
 );
 --> statement-breakpoint
+CREATE TABLE "matches" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"created_by_user_id" text NOT NULL,
+	"course_id" integer NOT NULL,
+	"date" date NOT NULL,
+	"starts_at" time NOT NULL,
+	"name" text,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "round_scores" (
 	"round_id" integer NOT NULL,
 	"hole" integer NOT NULL,
@@ -86,10 +96,13 @@ CREATE TABLE "round_scores" (
 CREATE TABLE "rounds" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"tournament_id" integer,
+	"match_id" integer,
 	"user_id" text NOT NULL,
 	"course_id" integer NOT NULL,
 	"tee_id" integer NOT NULL,
-	"date" date NOT NULL
+	"date" date NOT NULL,
+	"handicap_index_override" numeric(4, 1),
+	CONSTRAINT "rounds_single_event_check" CHECK (not ("rounds"."tournament_id" is not null and "rounds"."match_id" is not null))
 );
 --> statement-breakpoint
 CREATE TABLE "session" (
@@ -144,8 +157,11 @@ ALTER TABLE "club_members" ADD CONSTRAINT "club_members_user_id_user_id_fk" FORE
 ALTER TABLE "course_holes" ADD CONSTRAINT "course_holes_course_id_courses_id_fk" FOREIGN KEY ("course_id") REFERENCES "public"."courses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "course_tees" ADD CONSTRAINT "course_tees_course_id_courses_id_fk" FOREIGN KEY ("course_id") REFERENCES "public"."courses"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "greenies" ADD CONSTRAINT "greenies_round_score_fk" FOREIGN KEY ("round_id","hole") REFERENCES "public"."round_scores"("round_id","hole") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "matches" ADD CONSTRAINT "matches_created_by_user_id_user_id_fk" FOREIGN KEY ("created_by_user_id") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "matches" ADD CONSTRAINT "matches_course_id_courses_id_fk" FOREIGN KEY ("course_id") REFERENCES "public"."courses"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "round_scores" ADD CONSTRAINT "round_scores_round_id_rounds_id_fk" FOREIGN KEY ("round_id") REFERENCES "public"."rounds"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "rounds" ADD CONSTRAINT "rounds_tournament_id_tournaments_id_fk" FOREIGN KEY ("tournament_id") REFERENCES "public"."tournaments"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "rounds" ADD CONSTRAINT "rounds_match_id_matches_id_fk" FOREIGN KEY ("match_id") REFERENCES "public"."matches"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "rounds" ADD CONSTRAINT "rounds_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "rounds" ADD CONSTRAINT "rounds_course_id_courses_id_fk" FOREIGN KEY ("course_id") REFERENCES "public"."courses"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "rounds" ADD CONSTRAINT "rounds_tee_id_course_tees_id_fk" FOREIGN KEY ("tee_id") REFERENCES "public"."course_tees"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
@@ -156,4 +172,5 @@ ALTER TABLE "tournaments" ADD CONSTRAINT "tournaments_course_id_courses_id_fk" F
 ALTER TABLE "tournaments" ADD CONSTRAINT "tournaments_tee_id_course_tees_id_fk" FOREIGN KEY ("tee_id") REFERENCES "public"."course_tees"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "course_tees_course_name_unique" ON "course_tees" USING btree ("course_id","name");--> statement-breakpoint
 CREATE UNIQUE INDEX "rounds_tournament_user_unique" ON "rounds" USING btree ("tournament_id","user_id") WHERE "rounds"."tournament_id" IS NOT NULL;--> statement-breakpoint
-CREATE VIEW "public"."round_summaries" AS (select "rounds"."id", "rounds"."tournament_id", "tournaments"."club_id", "rounds"."user_id", "rounds"."course_id", "rounds"."date", "course_tees"."rating", "course_tees"."slope", count("round_scores"."strokes") as "recorded_strokes_count", count("round_scores"."putts") as "recorded_putts_count", coalesce(sum("round_scores"."strokes"), 0)::int as "total_strokes", coalesce(sum("round_scores"."putts"), 0)::int as "total_putts", count("round_scores"."strokes") = 18 as "is_complete", case when count("round_scores"."strokes") = 18 then ((113.0 / "course_tees"."slope") * (sum("round_scores"."strokes") - "course_tees"."rating"))::double precision else null end as "score_differential" from "rounds" inner join "course_tees" on "rounds"."tee_id" = "course_tees"."id" left join "tournaments" on "rounds"."tournament_id" = "tournaments"."id" left join "round_scores" on "rounds"."id" = "round_scores"."round_id" group by "rounds"."id", "rounds"."tournament_id", "tournaments"."club_id", "rounds"."user_id", "rounds"."course_id", "rounds"."date", "course_tees"."rating", "course_tees"."slope");
+CREATE UNIQUE INDEX "rounds_match_user_unique" ON "rounds" USING btree ("match_id","user_id") WHERE "rounds"."match_id" IS NOT NULL;--> statement-breakpoint
+CREATE VIEW "public"."round_summaries" AS (select "rounds"."id", "rounds"."tournament_id", "rounds"."match_id", "tournaments"."club_id", "rounds"."user_id", "rounds"."course_id", "rounds"."date", "rounds"."handicap_index_override", "course_tees"."rating", "course_tees"."slope", count("round_scores"."strokes") as "recorded_strokes_count", count("round_scores"."putts") as "recorded_putts_count", coalesce(sum("round_scores"."strokes"), 0)::int as "total_strokes", coalesce(sum("round_scores"."putts"), 0)::int as "total_putts", count("round_scores"."strokes") = 18 as "is_complete", case when count("round_scores"."strokes") = 18 then ((113.0 / "course_tees"."slope") * (sum("round_scores"."strokes") - "course_tees"."rating"))::double precision else null end as "score_differential" from "rounds" inner join "course_tees" on "rounds"."tee_id" = "course_tees"."id" left join "tournaments" on "rounds"."tournament_id" = "tournaments"."id" left join "round_scores" on "rounds"."id" = "round_scores"."round_id" group by "rounds"."id", "rounds"."tournament_id", "rounds"."match_id", "tournaments"."club_id", "rounds"."user_id", "rounds"."course_id", "rounds"."date", "rounds"."handicap_index_override", "course_tees"."rating", "course_tees"."slope");

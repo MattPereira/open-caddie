@@ -118,6 +118,20 @@ export const courses = pgTable("courses", {
   scorecardImgUrl: text("scorecard_img_url"),
 });
 
+export const matches = pgTable("matches", {
+  id: serial("id").primaryKey(),
+  createdByUserId: text("created_by_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "restrict" }),
+  courseId: integer("course_id")
+    .notNull()
+    .references(() => courses.id, { onDelete: "restrict" }),
+  date: date("date", { mode: "date" }).notNull(),
+  startsAt: time("starts_at").notNull(),
+  name: text("name"),
+  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+});
+
 export const courseTees = pgTable(
   "course_tees",
   {
@@ -179,6 +193,9 @@ export const rounds = pgTable(
     tournamentId: integer("tournament_id").references(() => tournaments.id, {
       onDelete: "restrict",
     }),
+    matchId: integer("match_id").references(() => matches.id, {
+      onDelete: "restrict",
+    }),
     userId: text("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
@@ -189,11 +206,22 @@ export const rounds = pgTable(
       .notNull()
       .references(() => courseTees.id, { onDelete: "restrict" }),
     date: date("date", { mode: "date" }).notNull(),
+    handicapIndexOverride: decimal("handicap_index_override", {
+      precision: 4,
+      scale: 1,
+    }),
   },
   (r) => [
     uniqueIndex("rounds_tournament_user_unique")
       .on(r.tournamentId, r.userId)
       .where(sql`${r.tournamentId} IS NOT NULL`),
+    uniqueIndex("rounds_match_user_unique")
+      .on(r.matchId, r.userId)
+      .where(sql`${r.matchId} IS NOT NULL`),
+    check(
+      "rounds_single_event_check",
+      sql`not (${r.tournamentId} is not null and ${r.matchId} is not null)`,
+    ),
   ],
 );
 
@@ -241,10 +269,12 @@ export const roundSummaries = pgView("round_summaries").as((qb) =>
     .select({
       roundId: rounds.id,
       tournamentId: rounds.tournamentId,
+      matchId: rounds.matchId,
       clubId: tournaments.clubId,
       userId: rounds.userId,
       courseId: rounds.courseId,
       date: rounds.date,
+      handicapIndexOverride: rounds.handicapIndexOverride,
       courseRating: courseTees.rating,
       courseSlope: courseTees.slope,
       recordedStrokesCount:
@@ -278,10 +308,12 @@ export const roundSummaries = pgView("round_summaries").as((qb) =>
     .groupBy(
       rounds.id,
       rounds.tournamentId,
+      rounds.matchId,
       tournaments.clubId,
       rounds.userId,
       rounds.courseId,
       rounds.date,
+      rounds.handicapIndexOverride,
       courseTees.rating,
       courseTees.slope,
     ),

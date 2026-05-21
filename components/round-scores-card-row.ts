@@ -4,17 +4,21 @@ const holes = Array.from({ length: 18 }, (_, index) => index + 1);
 
 export type RoundScoresTableRound = {
   id: number;
+  matchId?: number | null;
   tournamentId?: number | null;
+  teeId?: number;
   userId?: string;
   courseName?: string | null;
   firstName: string | null;
   lastName: string | null;
   username: string | null;
   image: string | null;
+  courseSlope?: number;
   recordedStrokesCount: number;
   recordedPuttsCount: number;
   totalStrokes: number;
   totalPutts: number;
+  handicapIndexOverride?: string | number | null;
   playingHandicap: number | null;
   netStrokes: number | null;
   scores: {
@@ -26,6 +30,14 @@ export type RoundScoresTableRound = {
   holes?: {
     hole: number;
     par: number;
+  }[];
+  tees?: {
+    id: number;
+    name: string;
+    color: string | null;
+    rating: string | number;
+    slope: number;
+    totalYards?: number | null;
   }[];
   greenies?: {
     hole: number;

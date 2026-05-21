@@ -1,15 +1,17 @@
 import { cache } from "react";
-import { and, asc, count, desc, eq, gte, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   clubMembers,
   clubs,
   courseHoles,
+  courseTees,
   courses,
   greenies,
   roundScores,
   roundSummaries,
   rounds,
+  teeYardages,
   tournaments,
   users,
 } from "@/db/schema";
@@ -100,12 +102,14 @@ export const getTournamentById = cache(async (tournamentId: number) => {
     tournamentRoundScores,
     tournamentGreenies,
     tournamentHoles,
+    tournamentTees,
   ] =
     await Promise.all([
       db
         .select({
           id: roundSummaries.roundId,
           tournamentId: roundSummaries.tournamentId,
+          teeId: rounds.teeId,
           userId: roundSummaries.userId,
           date: roundSummaries.date,
           firstName: users.firstName,
@@ -126,6 +130,7 @@ export const getTournamentById = cache(async (tournamentId: number) => {
           scoreDifferential: roundSummaries.scoreDifferential,
         })
         .from(roundSummaries)
+        .innerJoin(rounds, eq(rounds.id, roundSummaries.roundId))
         .innerJoin(users, eq(roundSummaries.userId, users.id))
         .innerJoin(courses, eq(roundSummaries.courseId, courses.id))
         .where(eq(roundSummaries.tournamentId, tournamentId))
@@ -181,6 +186,30 @@ export const getTournamentById = cache(async (tournamentId: number) => {
         .from(courseHoles)
         .where(eq(courseHoles.courseId, tournament.courseId))
         .orderBy(asc(courseHoles.hole)),
+      db
+        .select({
+          id: courseTees.id,
+          name: courseTees.name,
+          color: courseTees.color,
+          rating: courseTees.rating,
+          slope: courseTees.slope,
+          totalYards:
+            sql<number | null>`sum(${teeYardages.yards})::int`.mapWith(
+              (value) => (value == null ? null : Number(value)),
+            ),
+        })
+        .from(courseTees)
+        .leftJoin(teeYardages, eq(teeYardages.teeId, courseTees.id))
+        .where(eq(courseTees.courseId, tournament.courseId))
+        .groupBy(
+          courseTees.id,
+          courseTees.name,
+          courseTees.color,
+          courseTees.rating,
+          courseTees.slope,
+          courseTees.sortOrder,
+        )
+        .orderBy(asc(courseTees.sortOrder), asc(courseTees.id)),
     ]);
 
   const scoresByRoundId = new Map<number, typeof tournamentRoundScores>();
@@ -221,6 +250,7 @@ export const getTournamentById = cache(async (tournamentId: number) => {
           netStrokes,
           scores: scoresByRoundId.get(round.id) ?? [],
           holes: tournamentHoles,
+          tees: tournamentTees,
           greenies: greeniesByRoundId.get(round.id) ?? [],
         };
       }),

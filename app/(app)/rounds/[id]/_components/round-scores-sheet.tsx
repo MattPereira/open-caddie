@@ -12,8 +12,17 @@ import {
   RoundScoresUpdateSchema,
   type RoundScoresUpdateValues,
 } from "@/app/(app)/rounds/schema";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { HoldToConfirmButton } from "@/components/hold-to-confirm-button";
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldLabel,
+  FieldSet,
+  FieldTitle,
+} from "@/components/ui/field";
 import {
   Form,
   FormControl,
@@ -23,6 +32,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Sheet,
   SheetClose,
@@ -33,11 +43,24 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { calculateCourseHandicap } from "@/lib/scoring";
 
 export type EditableRound = {
   id: number;
+  matchId: number | null;
+  teeId: number;
   userId: string;
   firstName: string | null;
+  courseSlope: number;
+  handicapIndexOverride: string | number | null;
+  tees: {
+    id: number;
+    name: string;
+    color: string | null;
+    rating: string | number;
+    slope: number;
+    totalYards?: number | null;
+  }[];
   holes: {
     hole: number;
     par: number;
@@ -56,9 +79,10 @@ export type EditableRound = {
 };
 
 const holeNumbers = Array.from({ length: 18 }, (_, index) => index + 1);
-export type RoundScoresTab = "front" | "back" | "greenies";
+export type RoundScoresTab = "tees" | "scores" | "greenies";
+type ScoreTab = "front" | "back";
 const scoreTabs: {
-  value: Exclude<RoundScoresTab, "greenies">;
+  value: ScoreTab;
   label: string;
   holes: number[];
 }[] = [
@@ -76,6 +100,11 @@ function toFormValues(round: EditableRound): RoundScoresUpdateValues {
 
   return {
     roundId: round.id,
+    teeId: round.teeId,
+    handicapIndexOverride:
+      round.handicapIndexOverride == null
+        ? ""
+        : Number(round.handicapIndexOverride),
     scores: holeNumbers.map((hole) => {
       const score = scoresByHole.get(hole);
       return {
@@ -103,7 +132,7 @@ function toNumberInputValue(value: number | "") {
 }
 
 export function RoundScoresSheet({
-  initialTab = "front",
+  initialTab = "tees",
   onSaved,
   onDeleted,
   open,
@@ -124,6 +153,7 @@ export function RoundScoresSheet({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const [activeTab, setActiveTab] = useState<RoundScoresTab>(initialTab);
+  const [scoreTab, setScoreTab] = useState<ScoreTab>("front");
 
   const form = useForm<RoundScoresUpdateValues>({
     resolver: zodResolver(RoundScoresUpdateSchema),
@@ -132,10 +162,24 @@ export function RoundScoresSheet({
   const serverError = form.formState.errors.root?.server?.message;
   const greenieRows =
     useWatch({ control: form.control, name: "greenies" }) ?? [];
+  const teeId = useWatch({ control: form.control, name: "teeId" });
+  const handicapIndexOverride = useWatch({
+    control: form.control,
+    name: "handicapIndexOverride",
+  });
   const existingGreenieHoles = new Set(
     round.greenies.map((greenie) => greenie.hole),
   );
   const isDirty = form.formState.isDirty;
+  const canEditHandicapIndexOverride = round.matchId != null;
+  const selectedTee = round.tees.find((tee) => tee.id === teeId);
+  const selectedSlope = selectedTee?.slope ?? round.courseSlope;
+  const handicapIndex =
+    typeof handicapIndexOverride === "number" &&
+    Number.isFinite(handicapIndexOverride)
+      ? handicapIndexOverride
+      : 0;
+  const courseHandicap = calculateCourseHandicap(handicapIndex, selectedSlope);
 
   useEffect(() => {
     if (open) {
@@ -232,42 +276,161 @@ export function RoundScoresSheet({
                   className="gap-3"
                 >
                   <TabsList className="w-full">
-                    {scoreTabs.map((tab) => (
-                      <TabsTrigger
-                        key={tab.value}
-                        value={tab.value}
-                        className="text-base"
-                      >
-                        {tab.label}
-                      </TabsTrigger>
-                    ))}
+                    <TabsTrigger value="tees" className="text-base">
+                      Tees
+                    </TabsTrigger>
+                    <TabsTrigger value="scores" className="text-base">
+                      Scores
+                    </TabsTrigger>
                     <TabsTrigger value="greenies" className="text-base">
                       Greenies
                     </TabsTrigger>
                   </TabsList>
 
-                  {scoreTabs.map((tab) => (
-                    <TabsContent
-                      key={tab.value}
-                      value={tab.value}
-                      className="flex flex-col gap-4"
-                    >
-                      <div className="grid grid-cols-[4rem_1fr_1fr] gap-2 text-xs font-medium text-muted-foreground">
-                        <span />
-                        <span>Strokes</span>
-                        <span>Putts</span>
-                      </div>
+                  <TabsContent value="tees" className="flex flex-col gap-5">
+                    <FormField
+                      control={form.control}
+                      name="teeId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FieldSet>
+                            <FormLabel className="sr-only">Tees</FormLabel>
+                            <FormControl>
+                              <RadioGroup
+                                value={String(field.value)}
+                                onValueChange={(value) =>
+                                  field.onChange(Number(value))
+                                }
+                                className="flex flex-col gap-2"
+                              >
+                                {round.tees.map((tee) => (
+                                  <FieldLabel
+                                    key={tee.id}
+                                    htmlFor={`round-tee-${tee.id}`}
+                                  >
+                                    <Field orientation="horizontal">
+                                      <FieldContent>
+                                        <FieldTitle className="flex items-center gap-2 text-base">
+                                          {tee.color ? (
+                                            <span
+                                              className="size-3 rounded-full border"
+                                              style={{
+                                                backgroundColor: tee.color,
+                                              }}
+                                            />
+                                          ) : null}
+                                          {tee.name}
+                                        </FieldTitle>
+                                        <FieldDescription>
+                                          {Number(tee.rating).toFixed(1)} /{" "}
+                                          {tee.slope}
+                                          {tee.totalYards != null
+                                            ? ` - ${tee.totalYards.toLocaleString()} yds`
+                                            : ""}
+                                        </FieldDescription>
+                                      </FieldContent>
+                                      <RadioGroupItem
+                                        id={`round-tee-${tee.id}`}
+                                        value={String(tee.id)}
+                                        className="size-5"
+                                      />
+                                    </Field>
+                                  </FieldLabel>
+                                ))}
+                              </RadioGroup>
+                            </FormControl>
+                          </FieldSet>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      {tab.holes.map((hole) => (
-                        <ScoreInputRow
-                          key={hole}
+                    {canEditHandicapIndexOverride ? (
+                      <div className="flex flex-col gap-3">
+                        <Alert variant="info">
+                          <AlertTitle>Course Handicap</AlertTitle>
+                          <AlertDescription className="tabular-nums">
+                            {handicapIndex.toFixed(1)} x {selectedSlope} / 113 ={" "}
+                            {courseHandicap.toFixed(1)}
+                          </AlertDescription>
+                        </Alert>
+
+                        <FormField
                           control={form.control}
-                          hole={hole}
-                          index={hole - 1}
+                          name="handicapIndexOverride"
+                          render={({ field }) => (
+                            <FormItem className="grid grid-cols-[1fr_8rem] items-center gap-x-3 gap-y-1">
+                              <FormLabel>Handicap Index</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={-10}
+                                  max={54}
+                                  step={0.1}
+                                  inputMode="decimal"
+                                  placeholder="Auto"
+                                  className="h-10 text-right"
+                                  {...field}
+                                  value={toNumberInputValue(field.value)}
+                                  onChange={(e) =>
+                                    field.onChange(
+                                      e.target.value === ""
+                                        ? ""
+                                        : Number(e.target.value),
+                                    )
+                                  }
+                                />
+                              </FormControl>
+                              <FormMessage className="col-span-2" />
+                            </FormItem>
+                          )}
                         />
+                      </div>
+                    ) : null}
+                  </TabsContent>
+
+                  <TabsContent value="scores">
+                    <Tabs
+                      value={scoreTab}
+                      onValueChange={(value) => setScoreTab(value as ScoreTab)}
+                      className="gap-4"
+                    >
+                      <TabsList className="w-full">
+                        {scoreTabs.map((tab) => (
+                          <TabsTrigger
+                            key={tab.value}
+                            value={tab.value}
+                            className="text-base"
+                          >
+                            {tab.label}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+
+                      {scoreTabs.map((tab) => (
+                        <TabsContent
+                          key={tab.value}
+                          value={tab.value}
+                          className="flex flex-col gap-4"
+                        >
+                          <div className="grid grid-cols-[4rem_1fr_1fr] gap-2 text-sm font-medium text-muted-foreground">
+                            <span />
+                            <span>Strokes</span>
+                            <span>Putts</span>
+                          </div>
+
+                          {tab.holes.map((hole) => (
+                            <ScoreInputRow
+                              key={hole}
+                              control={form.control}
+                              hole={hole}
+                              index={hole - 1}
+                            />
+                          ))}
+                        </TabsContent>
                       ))}
-                    </TabsContent>
-                  ))}
+                    </Tabs>
+                  </TabsContent>
 
                   <TabsContent value="greenies" className="flex flex-col gap-6">
                     {greenieRows.length === 0 ? (

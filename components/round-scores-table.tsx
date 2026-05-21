@@ -262,15 +262,27 @@ function DerivedScoreCell({
 }
 
 function toEditableRound(round: RoundScoresTableRound): EditableRound | null {
-  if (!round.userId || !round.holes || !round.greenies) {
+  if (
+    !round.userId ||
+    !round.teeId ||
+    !round.holes ||
+    !round.tees ||
+    !round.greenies ||
+    !round.courseSlope
+  ) {
     return null;
   }
 
   return {
     id: round.id,
+    matchId: round.matchId ?? null,
+    teeId: round.teeId,
     userId: round.userId,
     firstName: round.firstName,
+    courseSlope: round.courseSlope,
+    handicapIndexOverride: round.handicapIndexOverride ?? null,
     holes: round.holes,
+    tees: round.tees,
     scores: round.scores,
     greenies: round.greenies,
   };

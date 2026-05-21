@@ -13,7 +13,7 @@ import {
 } from "./round-scores-sheet";
 
 export function RoundActions({
-  initialTab = "front",
+  initialTab = "tees",
   round,
 }: {
   initialTab?: RoundScoresTab;

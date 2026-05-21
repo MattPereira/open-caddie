@@ -380,7 +380,7 @@ export async function updateRoundScores(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  const { roundId, scores } = parsed.data;
+  const { handicapIndexOverride, roundId, scores, teeId } = parsed.data;
 
   const [currentUser] = await db
     .select({ isAdmin: users.isAdmin })
@@ -406,6 +406,15 @@ export async function updateRoundScores(
     return { ok: false, error: "Round not found." };
   }
 
+  const [tee] = await db
+    .select({ id: courseTees.id })
+    .from(courseTees)
+    .where(and(eq(courseTees.id, teeId), eq(courseTees.courseId, owned.courseId)))
+    .limit(1);
+  if (!tee) {
+    return { ok: false, error: "Selected tees do not belong to this course." };
+  }
+
   const parThreeHoles = await db
     .select({ hole: courseHoles.hole })
     .from(courseHoles)
@@ -425,6 +434,20 @@ export async function updateRoundScores(
 
   try {
     await db.transaction(async (tx) => {
+      await tx.update(rounds).set({ teeId }).where(eq(rounds.id, roundId));
+
+      if (owned.matchId != null) {
+        await tx
+          .update(rounds)
+          .set({
+            handicapIndexOverride:
+              handicapIndexOverride === ""
+                ? null
+                : handicapIndexOverride.toFixed(1),
+          })
+          .where(eq(rounds.id, roundId));
+      }
+
       await tx
         .insert(roundScores)
         .values(
@@ -488,7 +511,7 @@ export async function updateRoundScores(
             },
           });
       }
-      });
+    });
   } catch (e: unknown) {
     const code =
       (e as { cause?: { code?: string }; code?: string })?.cause?.code ??

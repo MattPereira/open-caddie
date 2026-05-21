@@ -1,15 +1,17 @@
 import { cache } from "react";
-import { and, asc, count, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
   courseHoles,
+  courseTees,
   courses,
   greenies,
   matches,
   roundScores,
   roundSummaries,
   rounds,
+  teeYardages,
   users,
 } from "@/db/schema";
 import {
@@ -74,12 +76,13 @@ export const getMatchById = cache(async (matchId: number) => {
 
   if (!match) return match;
 
-  const [matchRounds, matchRoundScores, matchGreenies, matchHoles] =
+  const [matchRounds, matchRoundScores, matchGreenies, matchHoles, matchTees] =
     await Promise.all([
       db
         .select({
           id: roundSummaries.roundId,
           matchId: roundSummaries.matchId,
+          teeId: rounds.teeId,
           userId: roundSummaries.userId,
           date: roundSummaries.date,
           firstName: users.firstName,
@@ -101,6 +104,7 @@ export const getMatchById = cache(async (matchId: number) => {
           scoreDifferential: roundSummaries.scoreDifferential,
         })
         .from(roundSummaries)
+        .innerJoin(rounds, eq(rounds.id, roundSummaries.roundId))
         .innerJoin(users, eq(roundSummaries.userId, users.id))
         .innerJoin(courses, eq(roundSummaries.courseId, courses.id))
         .where(eq(roundSummaries.matchId, matchId))
@@ -156,6 +160,30 @@ export const getMatchById = cache(async (matchId: number) => {
         .from(courseHoles)
         .where(eq(courseHoles.courseId, match.courseId))
         .orderBy(asc(courseHoles.hole)),
+      db
+        .select({
+          id: courseTees.id,
+          name: courseTees.name,
+          color: courseTees.color,
+          rating: courseTees.rating,
+          slope: courseTees.slope,
+          totalYards:
+            sql<number | null>`sum(${teeYardages.yards})::int`.mapWith(
+              (value) => (value == null ? null : Number(value)),
+            ),
+        })
+        .from(courseTees)
+        .leftJoin(teeYardages, eq(teeYardages.teeId, courseTees.id))
+        .where(eq(courseTees.courseId, match.courseId))
+        .groupBy(
+          courseTees.id,
+          courseTees.name,
+          courseTees.color,
+          courseTees.rating,
+          courseTees.slope,
+          courseTees.sortOrder,
+        )
+        .orderBy(asc(courseTees.sortOrder), asc(courseTees.id)),
     ]);
 
   const scoresByRoundId = new Map<number, typeof matchRoundScores>();
@@ -192,6 +220,7 @@ export const getMatchById = cache(async (matchId: number) => {
         ),
         scores: scoresByRoundId.get(round.id) ?? [],
         holes: matchHoles,
+        tees: matchTees,
         greenies: greeniesByRoundId.get(round.id) ?? [],
       };
     })

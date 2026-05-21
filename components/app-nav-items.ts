@@ -6,6 +6,7 @@ import {
   GolfHoleIcon,
   GolfBallIcon,
   UserMultipleIcon,
+  Crown03Icon,
 } from "@hugeicons/core-free-icons";
 
 type AppNavItem = {
@@ -16,7 +17,7 @@ type AppNavItem = {
 
 export const appPageIcons = {
   tournaments: GolfBallIcon,
-  matches: GolfBatIcon,
+  matches: Crown03Icon,
   standings: ChampionIcon,
   greenies: GolfHoleIcon,
   courses: GolfCartIcon,
@@ -30,13 +31,9 @@ export const appNavItems: AppNavItem[] = [
     href: "/tournaments",
     icon: appPageIcons.tournaments,
   },
-  {
-    title: "Matches",
-    href: "/matches",
-    icon: appPageIcons.matches,
-  },
   { title: "Standings", href: "/standings", icon: appPageIcons.standings },
   { title: "Greenies", href: "/greenies", icon: appPageIcons.greenies },
+  { title: "Matches", href: "/matches", icon: appPageIcons.matches },
   { title: "Courses", href: "/courses", icon: appPageIcons.courses },
   { title: "Players", href: "/players", icon: appPageIcons.players },
   { title: "Clubs", href: "/clubs", icon: appPageIcons.clubs },

@@ -1,9 +1,10 @@
 import { cache } from "react";
-import { and, asc, count, desc, eq, isNotNull, lt } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNotNull, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   clubs,
   courseHoles,
+  courseTees,
   courses,
   greenies,
   roundScores,
@@ -66,6 +67,7 @@ export const getRoundById = cache(async (roundId: number) => {
     .select({
       id: roundSummaries.roundId,
       tournamentId: roundSummaries.tournamentId,
+      matchId: roundSummaries.matchId,
       clubId: roundSummaries.clubId,
       clubName: clubs.name,
       tournamentSeason: tournaments.season,
@@ -103,7 +105,7 @@ export const getRoundById = cache(async (roundId: number) => {
     return round;
   }
 
-  const [holes, scores, roundGreenies] = await Promise.all([
+  const [holes, scores, roundGreenies, tees] = await Promise.all([
     db
       .select({
         hole: courseHoles.hole,
@@ -156,6 +158,29 @@ export const getRoundById = cache(async (roundId: number) => {
       .innerJoin(courses, eq(rounds.courseId, courses.id))
       .where(eq(greenies.roundId, roundId))
       .orderBy(asc(greenies.hole)),
+    db
+      .select({
+        id: courseTees.id,
+        name: courseTees.name,
+        color: courseTees.color,
+        rating: courseTees.rating,
+        slope: courseTees.slope,
+        totalYards: sql<number | null>`sum(${teeYardages.yards})::int`.mapWith(
+          (value) => (value == null ? null : Number(value)),
+        ),
+      })
+      .from(courseTees)
+      .leftJoin(teeYardages, eq(teeYardages.teeId, courseTees.id))
+      .where(eq(courseTees.courseId, round.courseId))
+      .groupBy(
+        courseTees.id,
+        courseTees.name,
+        courseTees.color,
+        courseTees.rating,
+        courseTees.slope,
+        courseTees.sortOrder,
+      )
+      .orderBy(asc(courseTees.sortOrder), asc(courseTees.id)),
   ]);
 
   const priorHandicapRounds =
@@ -174,7 +199,16 @@ export const getRoundById = cache(async (roundId: number) => {
     round.clubId == null
       ? null
       : calculateCourseHandicap(playerIndex, round.courseSlope);
-  const playingHandicap = tournamentHandicap;
+  const matchHandicap =
+    round.matchId == null
+      ? null
+      : calculateCourseHandicap(
+          round.handicapIndexOverride == null
+            ? 0
+            : Number(round.handicapIndexOverride),
+          round.courseSlope,
+        );
+  const playingHandicap = matchHandicap ?? tournamentHandicap;
   const usedPriorRoundIds = new Set(
     playerIndex == null
       ? []
@@ -197,6 +231,7 @@ export const getRoundById = cache(async (roundId: number) => {
           ),
     scores,
     holes,
+    tees,
     greenies: roundGreenies,
     tournamentHandicapDetails:
       round.tournamentId == null || round.clubId == null

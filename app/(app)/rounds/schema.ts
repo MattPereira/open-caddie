@@ -50,6 +50,25 @@ function optionalInt(label: string, min: number, max?: number) {
   ]);
 }
 
+const optionalHandicapIndex = z
+  .union([
+    z
+      .number({ message: "Handicap index must be a number" })
+      .min(-10, "Handicap index must be at least -10.0")
+      .max(54, "Handicap index must be 54.0 or less"),
+    z.literal(""),
+  ])
+  .superRefine((value, ctx) => {
+    if (value === "") return;
+
+    if (!Number.isInteger(value * 10)) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Handicap index must use one decimal place or less",
+      });
+    }
+  });
+
 const roundScoreFormEntrySchema = z.object({
   hole: z.number().int().min(1).max(18),
   strokes: optionalInt("Strokes", 1),
@@ -85,6 +104,8 @@ const roundGreenieFormEntrySchema = z
 
 export const RoundScoresUpdateSchema = z.object({
   roundId: z.number().int().positive(),
+  teeId: z.number().int().positive("Tees are required"),
+  handicapIndexOverride: optionalHandicapIndex,
   scores: z
     .array(roundScoreFormEntrySchema)
     .length(18, "Rounds must have 18 holes")

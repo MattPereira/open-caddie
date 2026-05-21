@@ -4,10 +4,9 @@ import { notFound } from "next/navigation";
 import { RoundsTabContent } from "@/components/rounds-tab-content";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCoursesWithTees } from "@/db/queries/courses";
-import { getAddablePlayersForMatch, getMatchById } from "@/db/queries/matches";
+import { getMatchById } from "@/db/queries/matches";
 import { getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/utils";
-import { AddPlayersSheet } from "./_components/add-players-sheet";
 import { EditMatchButton } from "./_components/edit-match-button";
 import { MatchPlayTabContent } from "./_components/match-play-tab-content";
 import { SkinsTabContent } from "./_components/skins-tab-content";
@@ -42,15 +41,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
     currentUser != null &&
     (currentUser.isAdmin || currentUser.id === match.createdByUserId);
 
-  const [addablePlayers, courses] = canManage
-    ? await Promise.all([
-        getAddablePlayersForMatch(match.id),
-        getCoursesWithTees(),
-      ])
-    : [[], []];
-  const selectedCourse = courses.find(
-    (course) => course.handle === match.courseHandle,
-  );
+  const courses = canManage ? await getCoursesWithTees() : [];
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
@@ -69,18 +60,24 @@ export default async function MatchPage({ params }: MatchPageProps) {
                 courseHandle: match.courseHandle,
                 courseName: match.courseName,
                 courseImgUrl: match.courseImgUrl,
+                format: match.format,
+                roundCount: match.rounds.length,
+                rounds: match.rounds.map((round) => ({
+                  id: round.id,
+                  email: null,
+                  firstName: round.firstName,
+                  lastName: round.lastName,
+                  username: round.username,
+                  image: round.image,
+                })),
+                teams: match.teams.map((team) => ({
+                  id: team.id,
+                  name: team.name,
+                  rounds: team.rounds.map((round) => ({ id: round.id })),
+                })),
               }}
               courses={courses}
             />
-          ) : null}
-          {canManage ? (
-            <div className="ml-auto">
-              <AddPlayersSheet
-                matchId={match.id}
-                players={addablePlayers}
-                tees={selectedCourse?.tees ?? []}
-              />
-            </div>
           ) : null}
         </div>
         <p className="text-sm text-muted-foreground">
@@ -90,10 +87,10 @@ export default async function MatchPage({ params }: MatchPageProps) {
         </p>
       </div>
 
-      <Tabs defaultValue="match" className="w-full">
+      <Tabs defaultValue="match-play" className="w-full">
         <TabsList className="mb-3 h-10! w-full p-1 sm:w-fit">
           <TabsTrigger
-            value="match"
+            value="match-play"
             className="flex-1 px-5 py-2 text-base sm:flex-none"
           >
             Match
@@ -117,7 +114,11 @@ export default async function MatchPage({ params }: MatchPageProps) {
           emptyMessage="No rounds have been recorded for this match."
           rounds={match.rounds}
         />
-        <MatchPlayTabContent rounds={match.rounds} />
+        <MatchPlayTabContent
+          format={match.format}
+          rounds={match.rounds}
+          teams={match.teams}
+        />
         <SkinsTabContent rounds={match.rounds} />
       </Tabs>
     </main>

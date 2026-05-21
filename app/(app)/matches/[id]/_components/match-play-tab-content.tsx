@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table";
 import { evaluateMatchPlay, type MatchPlayStatus } from "@/lib/match-play";
 import { cn } from "@/lib/utils";
+import type { MatchFormat } from "../../schema";
 
 type MatchPlayRound = RoundScoresTableRound & {
   userId: string;
@@ -29,31 +30,45 @@ type MatchPlayRound = RoundScoresTableRound & {
 type MatchPlayTeamView = {
   id: string;
   name: string;
-  firstName: string;
+  label: string;
   initials: string;
   image: string | null;
-  round: MatchPlayRound;
-  playingHandicap: number | null;
+  rounds: MatchPlayRound[];
   receivedStrokes: number;
+};
+
+type StoredMatchPlayTeam = {
+  id: number;
+  name: string;
+  rounds: RoundScoresTableRound[];
 };
 
 type MatchPlayHoleView = ReturnType<typeof toMatchPlayView>["holes"][number];
 
 export function MatchPlayTabContent({
+  format,
   rounds,
+  teams = [],
 }: {
+  format: MatchFormat;
   rounds: RoundScoresTableRound[];
+  teams?: StoredMatchPlayTeam[];
 }) {
   const matchPlayRounds = rounds.filter(isMatchPlayRound);
+  const matchPlayTeams = getMatchPlayTeams({
+    format,
+    rounds: matchPlayRounds,
+    teams,
+  });
 
-  if (matchPlayRounds.length !== 2) {
+  if (!matchPlayTeams) {
     return (
-      <TabsContent value="match">
+      <TabsContent value="match-play">
         <Card className="border-dashed">
           <CardContent className="py-10 text-center">
             <p className="text-sm text-muted-foreground">
-              Match Play scoring is available for 1v1 matches with exactly two
-              player rounds.
+              Match play scoring is available for singles matches with 2 rounds
+              or four-ball matches with 2 teams of 2.
             </p>
           </CardContent>
         </Card>
@@ -61,15 +76,13 @@ export function MatchPlayTabContent({
     );
   }
 
-  const matchPlay = toMatchPlayView(matchPlayRounds);
+  const matchPlay = toMatchPlayView(matchPlayTeams, format);
 
   return (
     <TabsContent value="match-play" className="flex flex-col gap-5">
       <Alert variant="info">
         <AlertDescription className="text-base">
-          Match play compares net scores hole by hole. The lowest-handicap
-          player gets no strokes. Other players get their handicap difference,
-          applied one stroke at a time on the hardest handicap holes.
+          {getMatchPlayExplanation(format)}
         </AlertDescription>
       </Alert>
 
@@ -82,7 +95,7 @@ export function MatchPlayTabContent({
               playerName={team.name}
               initials={team.initials}
               image={team.image}
-              secondary={`Hcp ${formatDecimalScore(team.playingHandicap)} · Gets ${team.receivedStrokes}`}
+              secondary={`${formatTeamSecondary(team)} · Gets ${team.receivedStrokes}`}
               primaryLabel="Holes"
               primaryValue={formatTeamMatchStatus(team, matchPlay.finalStatus)}
               primaryValueAdjusted={isTeamBehind(team, matchPlay.finalStatus)}
@@ -146,7 +159,7 @@ function MatchPlayNineTable({
               <TableHead className="w-10 px-2 text-center">Hcp</TableHead>
               {teams.map((team) => (
                 <TableHead key={team.id} className="w-16 px-2 text-center">
-                  {team.firstName}
+                  {team.label}
                 </TableHead>
               ))}
               <TableHead className="w-28 px-2">Score</TableHead>
@@ -226,33 +239,19 @@ function NetScore({
   );
 }
 
-function toMatchPlayView(rounds: MatchPlayRound[]) {
-  const teams = rounds.map((round) => {
-    const name = displayName({ ...round, email: null });
-    const firstName = round.firstName || name.split(" ")[0] || name;
-
-    return {
-      id: round.userId,
-      name,
-      firstName,
-      initials: getInitials({ ...round, email: null }),
-      image: round.image,
-      round,
-      playingHandicap: round.playingHandicap,
-      receivedStrokes: 0,
-    };
-  });
+function toMatchPlayView(teams: MatchPlayTeamView[], format: MatchFormat) {
   const result = evaluateMatchPlay(
     teams.map((team) => ({
       id: team.id,
-      players: [
-        {
-          id: team.round.id,
-          playingHandicap: team.playingHandicap,
-          scores: toMatchPlayScores(team.round),
-        },
-      ],
+      players: team.rounds.map((round) => ({
+        id: round.id,
+        playingHandicap: round.playingHandicap,
+        scores: toMatchPlayScores(round),
+      })),
     })),
+    {
+      allowance: format === "four_ball_match_play" ? 0.9 : 1,
+    },
   );
   const teamsWithStrokes = teams.map((team) => {
     const firstHole = result.holes[0];
@@ -279,6 +278,14 @@ function toMatchPlayView(rounds: MatchPlayRound[]) {
   };
 }
 
+function getMatchPlayExplanation(format: MatchFormat) {
+  if (format === "singles_match_play") {
+    return "Singles match play compares net scores hole by hole. The lowest-handicap player gets no strokes. Other players get their handicap difference, applied one stroke at a time on the hardest handicap holes.";
+  }
+
+  return "Four-ball match play compares each team's best net score hole by hole. The lowest-handicap player gets no strokes. Other players get 90% of their handicap difference, applied one stroke at a time on the hardest handicap holes.";
+}
+
 function formatMatchPlayStatus(
   status: MatchPlayStatus | null,
   teams: MatchPlayTeamView[],
@@ -287,7 +294,7 @@ function formatMatchPlayStatus(
   if (status.leadingTeamId == null || status.holesUp === 0) return "Tied";
 
   const leadingTeam = teams.find((team) => team.id === status.leadingTeamId);
-  return `${leadingTeam?.firstName ?? "Player"} +${status.holesUp}`;
+  return `${leadingTeam?.label ?? "Team"} +${status.holesUp}`;
 }
 
 function formatTeamMatchStatus(
@@ -330,6 +337,81 @@ function toMatchPlayScores(round: MatchPlayRound) {
       strokes: score?.strokes ?? null,
     };
   });
+}
+
+function getMatchPlayTeams({
+  format,
+  rounds,
+  teams,
+}: {
+  format: MatchFormat;
+  rounds: MatchPlayRound[];
+  teams: StoredMatchPlayTeam[];
+}) {
+  if (format === "singles_match_play") {
+    if (rounds.length !== 2) return null;
+    return rounds.map((round) => {
+      const name = displayName({ ...round, email: null });
+      const label = round.firstName || name.split(" ")[0] || name;
+
+      return {
+        id: round.userId,
+        name,
+        label,
+        initials: getInitials({ ...round, email: null }),
+        image: round.image,
+        rounds: [round],
+        receivedStrokes: 0,
+      };
+    });
+  }
+
+  const matchTeams = teams.map((team) => ({
+    ...team,
+    rounds: team.rounds.filter(isMatchPlayRound),
+  }));
+
+  if (
+    matchTeams.length !== 2 ||
+    matchTeams.some((team) => team.rounds.length !== 2)
+  ) {
+    return null;
+  }
+
+  return matchTeams.map((team) => ({
+    id: String(team.id),
+    name: formatStoredTeamName(team.name),
+    label: formatStoredTeamName(team.name),
+    initials: getTeamInitials(formatStoredTeamName(team.name)),
+    image: null,
+    rounds: team.rounds,
+    receivedStrokes: 0,
+  }));
+}
+
+function formatTeamSecondary(team: MatchPlayTeamView) {
+  if (team.rounds.length === 1) {
+    return `Hcp ${formatDecimalScore(team.rounds[0].playingHandicap)}`;
+  }
+
+  return team.rounds
+    .map((round) => displayName({ ...round, email: null }))
+    .join(" / ");
+}
+
+function getTeamInitials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  return parts
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
+}
+
+function formatStoredTeamName(name: string) {
+  if (name === "Team 1") return "Team A";
+  if (name === "Team 2") return "Team B";
+  return name;
 }
 
 function formatScore(score: number | null) {

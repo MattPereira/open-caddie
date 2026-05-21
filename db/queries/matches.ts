@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, asc, count, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -8,6 +8,8 @@ import {
   courses,
   greenies,
   matches,
+  matchTeamMembers,
+  matchTeams,
   roundScores,
   roundSummaries,
   rounds,
@@ -30,6 +32,7 @@ export const getAllMatches = cache(async () => {
       date: matches.date,
       startsAt: matches.startsAt,
       name: matches.name,
+      format: matches.format,
       courseId: matches.courseId,
       courseHandle: courses.handle,
       courseName: courses.name,
@@ -63,6 +66,7 @@ export const getMatchById = cache(async (matchId: number) => {
       date: matches.date,
       startsAt: matches.startsAt,
       name: matches.name,
+      format: matches.format,
       courseId: matches.courseId,
       courseHandle: courses.handle,
       courseName: courses.name,
@@ -76,8 +80,14 @@ export const getMatchById = cache(async (matchId: number) => {
 
   if (!match) return match;
 
-  const [matchRounds, matchRoundScores, matchGreenies, matchHoles, matchTees] =
-    await Promise.all([
+  const [
+    matchRounds,
+    matchRoundScores,
+    matchGreenies,
+    matchHoles,
+    matchTees,
+    matchTeamRows,
+  ] = await Promise.all([
       db
         .select({
           id: roundSummaries.roundId,
@@ -185,6 +195,21 @@ export const getMatchById = cache(async (matchId: number) => {
           courseTees.sortOrder,
         )
         .orderBy(asc(courseTees.sortOrder), asc(courseTees.id)),
+      db
+        .select({
+          id: matchTeams.id,
+          matchId: matchTeams.matchId,
+          name: matchTeams.name,
+          sortOrder: matchTeams.sortOrder,
+          roundId: matchTeamMembers.roundId,
+        })
+        .from(matchTeams)
+        .leftJoin(
+          matchTeamMembers,
+          eq(matchTeamMembers.matchTeamId, matchTeams.id),
+        )
+        .where(eq(matchTeams.matchId, matchId))
+        .orderBy(asc(matchTeams.sortOrder), asc(matchTeams.id)),
     ]);
 
   const scoresByRoundId = new Map<number, typeof matchRoundScores>();
@@ -226,33 +251,41 @@ export const getMatchById = cache(async (matchId: number) => {
       };
     })
     .sort(compareMatchRoundStandings);
+  const roundsById = new Map(roundsWithScores.map((round) => [round.id, round]));
+  const teams = matchTeamRows.reduce<
+    {
+      id: number;
+      matchId: number;
+      name: string;
+      sortOrder: number;
+      rounds: typeof roundsWithScores;
+    }[]
+  >((acc, row) => {
+    let team = acc.find((candidate) => candidate.id === row.id);
+
+    if (!team) {
+      team = {
+        id: row.id,
+        matchId: row.matchId,
+        name: row.name,
+        sortOrder: row.sortOrder,
+        rounds: [],
+      };
+      acc.push(team);
+    }
+
+    const round = row.roundId == null ? null : roundsById.get(row.roundId);
+    if (round) team.rounds.push(round);
+
+    return acc;
+  }, []);
 
   return {
     ...match,
     rounds: roundsWithScores,
+    teams,
     greenies: matchGreenies,
   };
-});
-
-export const getAddablePlayersForMatch = cache(async (matchId: number) => {
-  return db
-    .select({
-      id: users.id,
-      email: users.email,
-      firstName: users.firstName,
-      lastName: users.lastName,
-      username: users.username,
-      image: users.image,
-      isAdmin: users.isAdmin,
-    })
-    .from(users)
-    .innerJoin(matches, eq(matches.id, matchId))
-    .leftJoin(
-      rounds,
-      and(eq(rounds.userId, users.id), eq(rounds.matchId, matchId)),
-    )
-    .where(isNull(rounds.id))
-    .orderBy(asc(users.firstName), asc(users.lastName), asc(users.username));
 });
 
 function compareMatchRoundStandings<

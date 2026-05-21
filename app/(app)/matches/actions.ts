@@ -1,12 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, count, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
-import { auth } from "@/auth";
 import { db } from "@/db";
-import { courseTees, courses, matches, rounds, users } from "@/db/schema";
+import {
+  courseTees,
+  courses,
+  matches,
+  matchTeamMembers,
+  matchTeams,
+  rounds,
+  users,
+} from "@/db/schema";
 import { getCurrentUser } from "@/db/queries/users";
 import {
   MatchCreateSchema,
@@ -75,18 +82,88 @@ export async function createMatch(
   const startsAt = parsed.data.startsAt;
   const name = parsed.data.name === "" ? null : parsed.data.name;
   const courseId = await getCourseIdByHandle(parsed.data.courseHandle);
+  const { format, teeId, playerUserIds, teamOneUserIds, teamTwoUserIds } =
+    parsed.data;
 
   if (!courseId) {
     return { ok: false, error: "Selected course does not exist." };
   }
 
+  const teeBelongsToCourse = await isTeeForCourse(teeId, courseId);
+  if (!teeBelongsToCourse) {
+    return { ok: false, error: "Selected tee does not belong to this course." };
+  }
+
+  const existingUsers = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(inArray(users.id, playerUserIds));
+  if (existingUsers.length !== new Set(playerUserIds).size) {
+    return { ok: false, error: "One or more selected players no longer exist." };
+  }
+
   try {
-    await db.insert(matches).values({
-      createdByUserId: me.id,
-      courseId,
-      date,
-      startsAt,
-      name,
+    await db.transaction(async (tx) => {
+      const [match] = await tx
+        .insert(matches)
+        .values({
+          createdByUserId: me.id,
+          courseId,
+          date,
+          startsAt,
+          name,
+          format,
+        })
+        .returning({ id: matches.id });
+
+      const insertedRounds = await tx
+        .insert(rounds)
+        .values(
+          playerUserIds.map((userId) => ({
+            matchId: match.id,
+            userId,
+            courseId,
+            teeId,
+            date,
+          })),
+        )
+        .returning({ id: rounds.id, userId: rounds.userId });
+
+      if (format !== "four_ball_match_play") return;
+
+      const roundIdByUserId = new Map(
+        insertedRounds.map((round) => [round.userId, round.id]),
+      );
+      const insertedTeams = await tx
+        .insert(matchTeams)
+        .values([
+          { matchId: match.id, name: "Team A", sortOrder: 0 },
+          { matchId: match.id, name: "Team B", sortOrder: 1 },
+        ])
+        .returning({ id: matchTeams.id, sortOrder: matchTeams.sortOrder });
+      const teamIdBySortOrder = new Map(
+        insertedTeams.map((team) => [team.sortOrder, team.id]),
+      );
+      const teamRoundIds = [teamOneUserIds, teamTwoUserIds].map((userIds) =>
+        userIds.map((userId) => roundIdByUserId.get(userId)),
+      );
+
+      await tx.insert(matchTeamMembers).values(
+        teamRoundIds.flatMap((roundIds, teamIndex) => {
+          const matchTeamId = teamIdBySortOrder.get(teamIndex);
+          if (
+            matchTeamId == null ||
+            !roundIds.every((roundId): roundId is number => roundId != null)
+          ) {
+            throw new Error("Failed to create match teams.");
+          }
+
+          return roundIds.map((roundId) => ({
+            matchTeamId,
+            roundId,
+          }));
+        }),
+      );
     });
   } catch (e: unknown) {
     const code =
@@ -118,17 +195,80 @@ export async function updateMatch(
   const date = parseDateOnly(parsed.data.date);
   const startsAt = parsed.data.startsAt;
   const name = parsed.data.name === "" ? null : parsed.data.name;
+  const format = parsed.data.format;
+  const { teamOneRoundIds, teamTwoRoundIds } = parsed.data;
   const courseId = await getCourseIdByHandle(parsed.data.courseHandle);
 
   if (!courseId) {
     return { ok: false, error: "Selected course does not exist." };
   }
 
+  const matchRounds = await db
+    .select({ id: rounds.id })
+    .from(rounds)
+    .where(eq(rounds.matchId, parsed.data.id));
+  const matchRoundIds = new Set(matchRounds.map((round) => round.id));
+  const roundCount = matchRoundIds.size;
+
+  if (format === "singles_match_play" && roundCount > 2) {
+    return {
+      ok: false,
+      error: "Singles match play requires 2 or fewer player rounds.",
+    };
+  }
+
+  if (format === "four_ball_match_play") {
+    const selectedRoundIds = [...teamOneRoundIds, ...teamTwoRoundIds];
+    if (
+      roundCount !== 4 ||
+      teamOneRoundIds.length !== 2 ||
+      teamTwoRoundIds.length !== 2 ||
+      new Set(selectedRoundIds).size !== 4 ||
+      selectedRoundIds.some((roundId) => !matchRoundIds.has(roundId))
+    ) {
+      return {
+        ok: false,
+        error: "Four-ball match play requires 4 rounds split into 2 teams.",
+      };
+    }
+  }
+
   try {
-    await db
+    await db.transaction(async (tx) => {
+      await tx
       .update(matches)
-      .set({ courseId, date, startsAt, name })
+      .set({ courseId, date, startsAt, name, format })
       .where(eq(matches.id, parsed.data.id));
+      await tx.delete(matchTeams).where(eq(matchTeams.matchId, parsed.data.id));
+
+      if (format !== "four_ball_match_play") return;
+
+      const insertedTeams = await tx
+        .insert(matchTeams)
+        .values([
+          { matchId: parsed.data.id, name: "Team A", sortOrder: 0 },
+          { matchId: parsed.data.id, name: "Team B", sortOrder: 1 },
+        ])
+        .returning({ id: matchTeams.id, sortOrder: matchTeams.sortOrder });
+      const teamIdBySortOrder = new Map(
+        insertedTeams.map((team) => [team.sortOrder, team.id]),
+      );
+      const memberValues = [teamOneRoundIds, teamTwoRoundIds].flatMap(
+        (roundIds, index) => {
+          const matchTeamId = teamIdBySortOrder.get(index);
+          if (matchTeamId == null) {
+            throw new Error("Failed to create match teams.");
+          }
+
+          return roundIds.map((roundId) => ({
+            matchTeamId,
+            roundId,
+          }));
+        },
+      );
+
+      await tx.insert(matchTeamMembers).values(memberValues);
+    });
   } catch (e: unknown) {
     const code =
       (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
@@ -149,102 +289,111 @@ export async function deleteMatch(id: number): Promise<ActionResult> {
   const manage = await canManageMatch(id, me.id, me.isAdmin);
   if (!manage.ok) return manage;
 
-  const [{ value: roundCount }] = await db
-    .select({ value: count() })
-    .from(rounds)
-    .where(eq(rounds.matchId, id));
-
-  if (roundCount > 0) {
-    return {
-      ok: false,
-      error: `Cannot delete: match has ${roundCount} round(s).`,
-    };
-  }
-
-  await db.delete(matches).where(eq(matches.id, id));
+  await db.transaction(async (tx) => {
+    await tx.delete(rounds).where(eq(rounds.matchId, id));
+    await tx.delete(matches).where(eq(matches.id, id));
+  });
   revalidatePath("/matches");
   return { ok: true };
 }
 
-const AddPlayersSchema = z.object({
-  matchId: z.number().int().positive(),
-  teeId: z.number().int().positive(),
-  userIds: z.array(z.string().min(1)).min(1),
+const FourBallTeamSchema = z.object({
+  name: z.string().trim().min(1, "Team name is required").max(40),
+  roundIds: z.tuple([
+    z.number().int().positive(),
+    z.number().int().positive(),
+  ]),
 });
 
-export type AddPlayersValues = z.infer<typeof AddPlayersSchema>;
+const SaveFourBallTeamsSchema = z
+  .object({
+    matchId: z.number().int().positive(),
+    teams: z.tuple([FourBallTeamSchema, FourBallTeamSchema]),
+  })
+  .superRefine((value, ctx) => {
+    const roundIds = value.teams.flatMap((team) => team.roundIds);
+    if (new Set(roundIds).size !== roundIds.length) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Each player round can only belong to one team.",
+        path: ["teams"],
+      });
+    }
+  });
 
-export async function addPlayersToMatch(
-  values: AddPlayersValues,
-): Promise<{ ok: true; added: number } | { ok: false; error: string }> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { ok: false, error: "You must be signed in." };
-  }
+export type SaveFourBallTeamsValues = z.infer<typeof SaveFourBallTeamsSchema>;
 
-  const parsed = AddPlayersSchema.safeParse(values);
+export async function saveFourBallTeams(
+  values: SaveFourBallTeamsValues,
+): Promise<ActionResult> {
+  const me = await requireCurrentUser();
+
+  const parsed = SaveFourBallTeamsSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  const [currentUser] = await db
-    .select({ isAdmin: users.isAdmin })
-    .from(users)
-    .where(eq(users.id, session.user.id))
-    .limit(1);
-  if (!currentUser) {
-    return { ok: false, error: "You must be signed in." };
-  }
-
-  const { matchId, teeId, userIds } = parsed.data;
-  const manage = await canManageMatch(
-    matchId,
-    session.user.id,
-    currentUser.isAdmin,
-  );
+  const { matchId, teams } = parsed.data;
+  const manage = await canManageMatch(matchId, me.id, me.isAdmin);
   if (!manage.ok) return manage;
 
-  const [match] = await db
-    .select({
-      id: matches.id,
-      courseId: matches.courseId,
-      date: matches.date,
-    })
-    .from(matches)
-    .where(eq(matches.id, matchId))
-    .limit(1);
-  if (!match) {
-    return { ok: false, error: "Match not found." };
+  const matchRounds = await db
+    .select({ id: rounds.id })
+    .from(rounds)
+    .where(eq(rounds.matchId, matchId));
+  const matchRoundIds = new Set(matchRounds.map((round) => round.id));
+  const selectedRoundIds = teams.flatMap((team) => team.roundIds);
+
+  if (matchRoundIds.size !== 4) {
+    return { ok: false, error: "Four-ball match play requires exactly 4 rounds." };
   }
 
-  const teeBelongsToCourse = await isTeeForCourse(teeId, match.courseId);
-  if (!teeBelongsToCourse) {
-    return { ok: false, error: "Selected tee does not belong to this course." };
+  if (
+    selectedRoundIds.length !== matchRoundIds.size ||
+    selectedRoundIds.some((roundId) => !matchRoundIds.has(roundId))
+  ) {
+    return {
+      ok: false,
+      error: "Teams must include every round in this match exactly once.",
+    };
   }
 
-  const existingUsers = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(inArray(users.id, userIds));
-  if (existingUsers.length !== new Set(userIds).size) {
-    return { ok: false, error: "One or more selected players no longer exist." };
-  }
+  await db.transaction(async (tx) => {
+    await tx.delete(matchTeams).where(eq(matchTeams.matchId, matchId));
+    await tx
+      .update(matches)
+      .set({ format: "four_ball_match_play" })
+      .where(eq(matches.id, matchId));
 
-  const inserted = await db
-    .insert(rounds)
-    .values(
-      userIds.map((userId) => ({
-        matchId,
-        userId,
-        courseId: match.courseId,
-        teeId,
-        date: match.date,
-      })),
-    )
-    .onConflictDoNothing()
-    .returning({ id: rounds.id });
+    const insertedTeams = await tx
+      .insert(matchTeams)
+      .values(
+        teams.map((team, index) => ({
+          matchId,
+          name: team.name,
+          sortOrder: index,
+        })),
+      )
+      .returning({ id: matchTeams.id, sortOrder: matchTeams.sortOrder });
+    const teamIdBySortOrder = new Map(
+      insertedTeams.map((team) => [team.sortOrder, team.id]),
+    );
+    const memberValues = teams.flatMap((team, index) => {
+      const matchTeamId = teamIdBySortOrder.get(index);
+      if (matchTeamId == null) {
+        throw new Error("Failed to create match teams.");
+      }
 
-  revalidatePath("/");
+      return team.roundIds.map((roundId) => ({
+        matchTeamId,
+        roundId,
+      }));
+    });
+
+    await tx.insert(matchTeamMembers).values(memberValues);
+  });
+
+  revalidatePath("/matches");
   revalidatePath(`/matches/${matchId}`);
-  return { ok: true, added: inserted.length };
+  return { ok: true };
 }

@@ -18,6 +18,9 @@ import {
 } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "next-auth/adapters";
 
+export const matchFormats = ["singles_match_play", "four_ball_match_play"] as const;
+export type MatchFormat = (typeof matchFormats)[number];
+
 export const users = pgTable("user", {
   id: text("id")
     .primaryKey()
@@ -118,18 +121,40 @@ export const courses = pgTable("courses", {
   scorecardImgUrl: text("scorecard_img_url"),
 });
 
-export const matches = pgTable("matches", {
+export const matches = pgTable(
+  "matches",
+  {
+    id: serial("id").primaryKey(),
+    createdByUserId: text("created_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    courseId: integer("course_id")
+      .notNull()
+      .references(() => courses.id, { onDelete: "restrict" }),
+    date: date("date", { mode: "date" }).notNull(),
+    startsAt: time("starts_at").notNull(),
+    name: text("name"),
+    format: text("format")
+      .$type<MatchFormat>()
+      .notNull()
+      .default("singles_match_play"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (m) => [
+    check(
+      "matches_format_check",
+      sql`${m.format} in ('singles_match_play', 'four_ball_match_play')`,
+    ),
+  ],
+);
+
+export const matchTeams = pgTable("match_teams", {
   id: serial("id").primaryKey(),
-  createdByUserId: text("created_by_user_id")
+  matchId: integer("match_id")
     .notNull()
-    .references(() => users.id, { onDelete: "restrict" }),
-  courseId: integer("course_id")
-    .notNull()
-    .references(() => courses.id, { onDelete: "restrict" }),
-  date: date("date", { mode: "date" }).notNull(),
-  startsAt: time("starts_at").notNull(),
-  name: text("name"),
-  createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    .references(() => matches.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
 });
 
 export const courseTees = pgTable(
@@ -222,6 +247,22 @@ export const rounds = pgTable(
       "rounds_single_event_check",
       sql`not (${r.tournamentId} is not null and ${r.matchId} is not null)`,
     ),
+  ],
+);
+
+export const matchTeamMembers = pgTable(
+  "match_team_members",
+  {
+    matchTeamId: integer("match_team_id")
+      .notNull()
+      .references(() => matchTeams.id, { onDelete: "cascade" }),
+    roundId: integer("round_id")
+      .notNull()
+      .references(() => rounds.id, { onDelete: "cascade" }),
+  },
+  (mtm) => [
+    primaryKey({ columns: [mtm.matchTeamId, mtm.roundId] }),
+    uniqueIndex("match_team_members_round_unique").on(mtm.roundId),
   ],
 );
 

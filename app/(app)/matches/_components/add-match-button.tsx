@@ -5,13 +5,14 @@ import { Add01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/components/ui/button";
-import { MatchSheet, type CourseOption } from "./match-sheet";
+import { MatchSheet, type CourseOption, type MatchPlayerOption } from "./match-sheet";
 
 type AddMatchButtonProps = {
   courses: CourseOption[];
+  players: MatchPlayerOption[];
 };
 
-export function AddMatchButton({ courses }: AddMatchButtonProps) {
+export function AddMatchButton({ courses, players }: AddMatchButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -31,6 +32,7 @@ export function AddMatchButton({ courses }: AddMatchButtonProps) {
         onOpenChange={setOpen}
         mode="create"
         courses={courses}
+        players={players}
       />
     </>
   );

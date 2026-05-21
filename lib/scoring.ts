@@ -30,7 +30,7 @@ export function calculatePlayerIndex(
   );
 }
 
-export function calculateTournamentHandicap(
+export function calculateCourseHandicap(
   playerIndex: number | null,
   courseSlope: number,
 ) {
@@ -40,8 +40,8 @@ export function calculateTournamentHandicap(
 
 export function calculateNetStrokes(
   totalStrokes: number | null,
-  tournamentHandicap: number,
+  playingHandicap: number,
 ) {
   if (totalStrokes == null) return null;
-  return totalStrokes - tournamentHandicap;
+  return totalStrokes - playingHandicap;
 }

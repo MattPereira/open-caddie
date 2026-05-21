@@ -16,7 +16,7 @@ import {
 import {
   calculateNetStrokes,
   calculatePlayerIndex,
-  calculateTournamentHandicap,
+  calculateCourseHandicap,
 } from "@/lib/scoring";
 
 type PriorClubScoreDifferentialsParams = {
@@ -173,7 +173,8 @@ export const getRoundById = cache(async (roundId: number) => {
   const tournamentHandicap =
     round.clubId == null
       ? null
-      : calculateTournamentHandicap(playerIndex, round.courseSlope);
+      : calculateCourseHandicap(playerIndex, round.courseSlope);
+  const playingHandicap = tournamentHandicap;
   const usedPriorRoundIds = new Set(
     playerIndex == null
       ? []
@@ -186,12 +187,13 @@ export const getRoundById = cache(async (roundId: number) => {
   return {
     ...round,
     tournamentHandicap,
+    playingHandicap,
     netStrokes:
-      tournamentHandicap == null
+      playingHandicap == null
         ? null
         : calculateNetStrokes(
             round.isComplete ? round.totalStrokes : null,
-            tournamentHandicap,
+            playingHandicap,
           ),
     scores,
     holes,

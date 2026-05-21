@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { GreeniesTabContent } from "@/components/greenies-tab-content";
+import { RoundsTabContent } from "@/components/rounds-tab-content";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getAllClubs } from "@/db/queries/clubs";
 import { getCoursesWithTees } from "@/db/queries/courses";
@@ -12,8 +14,6 @@ import { getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/utils";
 import { AddPlayersSheet } from "./_components/add-players-sheet";
 import { EditTournamentButton } from "./_components/edit-tournament-button";
-import { GreeniesTabContent } from "./_components/greenies-tab-content";
-import { RoundsTabContent } from "./_components/rounds-tab-content";
 import { WinnersTabContent } from "./_components/winners-tab-content";
 
 type TournamentPageProps = {
@@ -117,9 +117,13 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
         />
         <RoundsTabContent
           currentUser={currentUser}
+          emptyMessage="No rounds have been recorded for this tournament."
           rounds={tournament.rounds}
         />
-        <GreeniesTabContent greenies={tournament.greenies} />
+        <GreeniesTabContent
+          emptyMessage="No greenies have been recorded for this tournament."
+          greenies={tournament.greenies}
+        />
       </Tabs>
     </main>
   );

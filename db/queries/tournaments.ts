@@ -16,7 +16,7 @@ import {
 import {
   calculateNetStrokes,
   calculatePlayerIndex,
-  calculateTournamentHandicap,
+  calculateCourseHandicap,
 } from "@/lib/scoring";
 import { getPriorClubScoreDifferentials } from "./rounds";
 
@@ -205,7 +205,7 @@ export const getTournamentById = cache(async (tournamentId: number) => {
           beforeDate: tournament.date,
         });
         const playerIndex = calculatePlayerIndex(priorScoreDifferentials);
-        const tournamentHandicap = calculateTournamentHandicap(
+        const tournamentHandicap = calculateCourseHandicap(
           playerIndex,
           round.courseSlope,
         );
@@ -217,6 +217,7 @@ export const getTournamentById = cache(async (tournamentId: number) => {
         return {
           ...round,
           tournamentHandicap,
+          playingHandicap: tournamentHandicap,
           netStrokes,
           scores: scoresByRoundId.get(round.id) ?? [],
           holes: tournamentHoles,

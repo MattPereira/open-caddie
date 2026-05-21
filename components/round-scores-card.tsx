@@ -72,7 +72,7 @@ export function RoundScoresCard({
             <StatTile label="Strokes" value={row.metrics.strokes.total} />
             <StatTile
               label="Hcp"
-              value={formatDecimalScore(row.round.tournamentHandicap)}
+              value={formatDecimalScore(row.round.playingHandicap)}
             />
             <StatTile
               label="Net"

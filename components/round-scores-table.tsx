@@ -17,6 +17,7 @@ import {
   type ScoreMetric,
 } from "@/components/round-scores-card";
 import { toRoundScoreRow } from "@/components/round-scores-card-row";
+import { ResponsiveTable, TableFrame } from "@/components/responsive-table";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -32,12 +33,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { ResponsiveTable, TableFrame } from "@/components/responsive-table";
 import { cn } from "@/lib/utils";
 import {
   RoundScoresSheet,
   type EditableRound,
-} from "../../../rounds/[id]/_components/round-scores-sheet";
+} from "@/app/(app)/rounds/[id]/_components/round-scores-sheet";
 
 export type { RoundScoresTableRound } from "@/components/round-scores-card";
 
@@ -142,7 +142,7 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
                   <ScoreTotalCell value={values.out} />
                   <ScoreTotalCell value={values.in} />
                   <ScoreTotalCell value={values.total} strong />
-                  <DerivedScoreCell value={row.round.tournamentHandicap} />
+                  <DerivedScoreCell value={row.round.playingHandicap} />
                   <DerivedScoreCell value={row.round.netStrokes} strong />
                 </TableRow>
               );

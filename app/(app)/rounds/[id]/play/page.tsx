@@ -41,7 +41,7 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
     recordedPuttsCount: round.recordedPuttsCount,
     totalStrokes: round.totalStrokes,
     totalPutts: round.totalPutts,
-    tournamentHandicap: round.tournamentHandicap,
+    playingHandicap: round.playingHandicap,
     netStrokes: round.netStrokes,
     scores: round.scores.map((score) => ({
       hole: score.hole,

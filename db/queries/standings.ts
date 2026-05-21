@@ -24,7 +24,7 @@ import {
 import {
   calculateNetStrokes,
   calculatePlayerIndex,
-  calculateTournamentHandicap,
+  calculateCourseHandicap,
 } from "@/lib/scoring";
 
 type SeasonStandingsParams = {
@@ -297,7 +297,7 @@ export const getSeasonStandings = cache(
         .slice(0, 4)
         .map((priorRound) => priorRound.scoreDifferential);
       const playerIndex = calculatePlayerIndex(priorScoreDifferentials);
-      const tournamentHandicap = calculateTournamentHandicap(
+      const tournamentHandicap = calculateCourseHandicap(
         playerIndex,
         round.courseSlope,
       );

@@ -14,7 +14,7 @@ import {
 } from "@/db/schema";
 import {
   calculateNetStrokes,
-  calculateTournamentHandicap,
+  calculateCourseHandicap,
 } from "@/lib/scoring";
 
 export const getAllMatches = cache(async () => {
@@ -178,17 +178,17 @@ export const getMatchById = cache(async (matchId: number) => {
         round.handicapIndexOverride == null
           ? 0
           : Number(round.handicapIndexOverride);
-      const tournamentHandicap = calculateTournamentHandicap(
+      const playingHandicap = calculateCourseHandicap(
         handicapIndex,
         round.courseSlope,
       );
 
       return {
         ...round,
-        tournamentHandicap,
+        playingHandicap,
         netStrokes: calculateNetStrokes(
           round.isComplete ? round.totalStrokes : null,
-          tournamentHandicap,
+          playingHandicap,
         ),
         scores: scoresByRoundId.get(round.id) ?? [],
         holes: matchHoles,

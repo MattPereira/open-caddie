@@ -48,9 +48,9 @@ export function buildLiveRound(
     recordedStrokesCount,
     recordedPuttsCount,
     netStrokes:
-      round.tournamentHandicap == null
+      round.playingHandicap == null
         ? null
-        : calculateNetStrokes(completeTotalStrokes, round.tournamentHandicap),
+        : calculateNetStrokes(completeTotalStrokes, round.playingHandicap),
     scores: scores.map(({ hole, par, strokes, putts }) => ({
       hole,
       par,

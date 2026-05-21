@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { GreenieCard } from "@/components/greenie-card";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { GreeniesTabContent } from "@/components/greenies-tab-content";
+import { RoundsTabContent } from "@/components/rounds-tab-content";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCoursesWithTees } from "@/db/queries/courses";
 import {
   getAddablePlayersForMatch,
@@ -11,7 +11,6 @@ import {
 } from "@/db/queries/matches";
 import { getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/utils";
-import { RoundScoresTable } from "../../tournaments/[id]/_components/round-scores-table";
 import { AddPlayersSheet } from "./_components/add-players-sheet";
 import { EditMatchButton } from "./_components/edit-match-button";
 
@@ -106,36 +105,15 @@ export default async function MatchPage({ params }: MatchPageProps) {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="rounds" className="flex flex-col gap-3">
-          {match.rounds.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="py-10 text-center">
-                <p className="text-sm text-muted-foreground">
-                  No rounds have been recorded for this match.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <RoundScoresTable currentUser={currentUser} rounds={match.rounds} />
-          )}
-        </TabsContent>
-
-        <TabsContent value="greenies">
-          {match.greenies.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No greenies have been recorded for this match.
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
-              {match.greenies.map((greenie) => (
-                <GreenieCard
-                  key={`${greenie.roundId}-${greenie.hole}`}
-                  greenie={greenie}
-                />
-              ))}
-            </div>
-          )}
-        </TabsContent>
+        <RoundsTabContent
+          currentUser={currentUser}
+          emptyMessage="No rounds have been recorded for this match."
+          rounds={match.rounds}
+        />
+        <GreeniesTabContent
+          emptyMessage="No greenies have been recorded for this match."
+          greenies={match.greenies}
+        />
       </Tabs>
     </main>
   );

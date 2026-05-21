@@ -15,7 +15,7 @@ export type RoundScoresTableRound = {
   recordedPuttsCount: number;
   totalStrokes: number;
   totalPutts: number;
-  tournamentHandicap: number | null;
+  playingHandicap: number | null;
   netStrokes: number | null;
   scores: {
     hole: number;

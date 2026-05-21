@@ -11,10 +11,10 @@
 
 ## 2. Shared Event UI Cleanup
 
-- [ ] Extract event-neutral score table and tab components from tournament detail.
-- [ ] Rename shared score concepts from tournament-specific terms to event-neutral terms, such as `playingHandicap` or `courseHandicap`.
-- [ ] Keep tournament-specific copy in tournament routes.
-- [ ] Keep match-specific copy in match routes.
+- [x] Extract event-neutral score table and tab components from tournament detail.
+- [x] Rename shared score concepts from tournament-specific terms to event-neutral terms, such as `playingHandicap` or `courseHandicap`.
+- [x] Keep tournament-specific copy in tournament routes.
+- [x] Keep match-specific copy in match routes.
 
 ## 3. Match Scoring
 

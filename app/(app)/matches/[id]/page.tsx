@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { GreeniesTabContent } from "@/components/greenies-tab-content";
 import { RoundsTabContent } from "@/components/rounds-tab-content";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCoursesWithTees } from "@/db/queries/courses";
@@ -11,6 +10,7 @@ import { formatDate } from "@/lib/utils";
 import { AddPlayersSheet } from "./_components/add-players-sheet";
 import { EditMatchButton } from "./_components/edit-match-button";
 import { MatchPlayTabContent } from "./_components/match-play-tab-content";
+import { SkinsTabContent } from "./_components/skins-tab-content";
 
 type MatchPageProps = {
   params: Promise<{
@@ -99,16 +99,16 @@ export default async function MatchPage({ params }: MatchPageProps) {
             Match
           </TabsTrigger>
           <TabsTrigger
+            value="skins"
+            className="flex-1 px-5 py-2 text-base sm:flex-none"
+          >
+            Skins
+          </TabsTrigger>
+          <TabsTrigger
             value="rounds"
             className="flex-1 px-5 py-2 text-base sm:flex-none"
           >
             Rounds
-          </TabsTrigger>
-          <TabsTrigger
-            value="greenies"
-            className="flex-1 px-5 py-2 text-base sm:flex-none"
-          >
-            Greenies
           </TabsTrigger>
         </TabsList>
 
@@ -118,10 +118,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
           rounds={match.rounds}
         />
         <MatchPlayTabContent rounds={match.rounds} />
-        <GreeniesTabContent
-          emptyMessage="No greenies have been recorded for this match."
-          greenies={match.greenies}
-        />
+        <SkinsTabContent rounds={match.rounds} />
       </Tabs>
     </main>
   );

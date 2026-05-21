@@ -33,17 +33,17 @@
 
 ## 4. Skins Scoring
 
-- [ ] Add a Skins tab or section for matches using match handicap values.
-- [ ] Support individual skins for any number of match players; skins are not limited to 1v1.
-- [ ] Use net skins by default.
-- [ ] Use relative handicap allocation: the lowest playing handicap plays off zero, and higher-handicap players receive the difference.
-- [ ] Allocate received strokes on the hardest handicap holes first, using each hole's course handicap value.
-- [ ] Award a skin only when exactly one player has the lowest adjusted/net score on a hole.
-- [ ] Treat tied low scores as no skin awarded for that hole.
-- [ ] Leave room for carryover skins later, but the first pass can simply show tied/no-skin holes.
-- [ ] Leave room for a future gross/net skins toggle.
-- [ ] Leave room for future skins handicap allowances such as 100%, 75%, or 50%.
-- [ ] Include a concise explanation paragraph on the Skins tab explaining that the lowest-handicap player plays off zero, other players receive the difference, and skins require a unique low net score.
+- [x] Add a Skins tab or section for matches using match handicap values.
+- [x] Support individual skins for any number of match players; skins are not limited to 1v1.
+- [x] Use net skins by default.
+- [x] Use relative handicap allocation: the lowest playing handicap plays off zero, and higher-handicap players receive the difference.
+- [x] Allocate received strokes on the hardest handicap holes first, using each hole's course handicap value.
+- [x] Award a skin only when exactly one player has the lowest adjusted/net score on a hole.
+- [x] Treat tied low scores as no skin awarded for that hole.
+- [x] Leave room for carryover skins later, but the first pass can simply show tied/no-skin holes.
+- [x] Leave room for a future gross/net skins toggle.
+- [x] Leave room for future skins handicap allowances such as 100%, 75%, or 50%.
+- [x] Include a concise explanation paragraph on the Skins tab explaining that the lowest-handicap player plays off zero, other players receive the difference, and skins require a unique low net score.
 
 ## 5. 2v2 Schema
 

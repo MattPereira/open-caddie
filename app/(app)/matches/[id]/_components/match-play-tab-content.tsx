@@ -64,7 +64,7 @@ export function MatchPlayTabContent({
   const matchPlay = toMatchPlayView(matchPlayRounds);
 
   return (
-    <TabsContent value="match-play" className="flex flex-col gap-4">
+    <TabsContent value="match-play" className="flex flex-col gap-5">
       <Alert variant="info">
         <AlertDescription className="text-base">
           Match play compares net scores hole by hole. The lowest-handicap
@@ -73,7 +73,7 @@ export function MatchPlayTabContent({
         </AlertDescription>
       </Alert>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-3">
         <h3 className="text-lg font-medium">Summary</h3>
         <div className="grid gap-3 md:grid-cols-2 max-w-2xl">
           {matchPlay.teams.map((team) => (
@@ -82,8 +82,8 @@ export function MatchPlayTabContent({
               playerName={team.name}
               initials={team.initials}
               image={team.image}
-              secondary={`Handicap ${formatDecimalScore(team.playingHandicap)}`}
-              primaryLabel={`Gets ${team.receivedStrokes}`}
+              secondary={`Hcp ${formatDecimalScore(team.playingHandicap)} · Gets ${team.receivedStrokes}`}
+              primaryLabel="Holes"
               primaryValue={formatTeamMatchStatus(team, matchPlay.finalStatus)}
               primaryValueAdjusted={isTeamBehind(team, matchPlay.finalStatus)}
             />
@@ -136,7 +136,7 @@ function MatchPlayNineTable({
   teams: MatchPlayTeamView[];
 }) {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-3">
       <h3 className="text-lg font-medium">{title}</h3>
       <TableFrame className="w-full sm:w-fit">
         <Table className="w-full sm:w-max">
@@ -155,10 +155,10 @@ function MatchPlayNineTable({
           <TableBody>
             {holes.map((hole) => (
               <TableRow key={hole.hole}>
-                <TableCell className="px-2 text-center font-medium tabular-nums">
+                <TableCell className="px-2 text-center text-base font-medium tabular-nums">
                   {hole.hole}
                 </TableCell>
-                <TableCell className="px-2 text-center tabular-nums">
+                <TableCell className="px-2 text-center text-base font-medium tabular-nums">
                   {formatScore(hole.holeHandicap)}
                 </TableCell>
                 {teams.map((team) => {
@@ -169,7 +169,7 @@ function MatchPlayNineTable({
                   return (
                     <TableCell
                       key={team.id}
-                      className="px-2 text-center text-base font-medium tabular-nums"
+                      className="px-2 text-center text-base tabular-nums"
                     >
                       <NetScore
                         score={result?.netScore ?? null}
@@ -179,7 +179,7 @@ function MatchPlayNineTable({
                     </TableCell>
                   );
                 })}
-                <TableCell className="px-2">
+                <TableCell className="px-2 text-base">
                   {formatMatchPlayStatus(hole.status, teams)}
                 </TableCell>
               </TableRow>
@@ -189,11 +189,11 @@ function MatchPlayNineTable({
             <TableRow>
               <TableCell
                 colSpan={2 + teams.length}
-                className="px-2 font-medium"
+                className="px-2 text-base font-medium"
               >
                 {label}
               </TableCell>
-              <TableCell className="px-2">
+              <TableCell className="px-2 text-base">
                 {formatMatchPlayStatus(getLastStatus(holes), teams)}
               </TableCell>
             </TableRow>

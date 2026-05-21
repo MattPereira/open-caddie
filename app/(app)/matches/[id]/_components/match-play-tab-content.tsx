@@ -48,7 +48,7 @@ export function MatchPlayTabContent({
 
   if (matchPlayRounds.length !== 2) {
     return (
-      <TabsContent value="match-play">
+      <TabsContent value="match">
         <Card className="border-dashed">
           <CardContent className="py-10 text-center">
             <p className="text-sm text-muted-foreground">

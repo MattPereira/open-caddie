@@ -59,8 +59,8 @@ export function SkinsTabContent({
         <Card className="border-dashed">
           <CardContent className="py-10 text-center">
             <p className="text-sm text-muted-foreground">
-              Skins scoring is available once at least two complete player
-              rounds have been recorded.
+              Skins scoring is available once at least two players have recorded
+              a score.
             </p>
           </CardContent>
         </Card>
@@ -74,9 +74,10 @@ export function SkinsTabContent({
     <TabsContent value="skins" className="flex flex-col gap-5">
       <Alert variant="info">
         <AlertDescription className="text-base">
-          Skins game uses relative handicaps. The lowest-handicap player is the
-          baseline and other players receive the difference on the hardest
-          handicap holes. A skin is only awarded for a unique low hole score.
+          The skins game uses relative handicaps. The lowest handicap player
+          serves as the baseline and other players receive the diff on the
+          hardest handicap holes. A skin is only awarded for a unique low hole
+          score.
         </AlertDescription>
       </Alert>
 
@@ -290,7 +291,6 @@ function toSkinsView(rounds: SkinsRound[]) {
     if (winningPlayer) {
       winningPlayer.skinsWon += 1;
     }
-
   }
 
   return {
@@ -303,7 +303,7 @@ function isEligibleSkinsRound(
   round: RoundScoresTableRound,
 ): round is SkinsRound {
   return (
-    round.recordedStrokesCount >= 18 &&
+    round.recordedStrokesCount > 0 &&
     Array.isArray(round.holes) &&
     round.holes.every((hole) => "handicap" in hole)
   );

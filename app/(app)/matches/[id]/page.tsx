@@ -90,10 +90,10 @@ export default async function MatchPage({ params }: MatchPageProps) {
         </p>
       </div>
 
-      <Tabs defaultValue="rounds" className="w-full">
+      <Tabs defaultValue="match" className="w-full">
         <TabsList className="mb-3 h-10! w-full p-1 sm:w-fit">
           <TabsTrigger
-            value="match-play"
+            value="match"
             className="flex-1 px-5 py-2 text-base sm:flex-none"
           >
             Match

@@ -5,7 +5,6 @@ import { HugeiconsIcon } from "@hugeicons/react";
 export function CourseHero({
   courseName,
   courseImgUrl,
-  subtitle: _subtitle,
 }: {
   courseName: string | null;
   courseImgUrl: string | null;

@@ -153,6 +153,7 @@ export async function deleteRound(
     .returning({
       id: rounds.id,
       tournamentId: rounds.tournamentId,
+      matchId: rounds.matchId,
       userId: rounds.userId,
     });
 
@@ -167,6 +168,9 @@ export async function deleteRound(
   revalidatePath(`/rounds/${roundId}`);
   if (result[0].tournamentId != null) {
     revalidatePath(`/tournaments/${result[0].tournamentId}`);
+  }
+  if (result[0].matchId != null) {
+    revalidatePath(`/matches/${result[0].matchId}`);
   }
   return { ok: true };
 }
@@ -191,6 +195,7 @@ export async function upsertRoundScore(
       id: rounds.id,
       userId: rounds.userId,
       tournamentId: rounds.tournamentId,
+      matchId: rounds.matchId,
     })
     .from(rounds)
     .where(and(eq(rounds.id, roundId), eq(rounds.userId, session.user.id)))
@@ -213,6 +218,9 @@ export async function upsertRoundScore(
     revalidatePath(`/rounds/${roundId}`);
     if (owned.tournamentId != null) {
       revalidatePath(`/tournaments/${owned.tournamentId}`);
+    }
+    if (owned.matchId != null) {
+      revalidatePath(`/matches/${owned.matchId}`);
     }
     return { ok: true };
   } catch (e: unknown) {
@@ -247,6 +255,7 @@ export async function upsertRoundGreenie(
       userId: rounds.userId,
       courseId: rounds.courseId,
       tournamentId: rounds.tournamentId,
+      matchId: rounds.matchId,
     })
     .from(rounds)
     .where(and(eq(rounds.id, roundId), eq(rounds.userId, session.user.id)))
@@ -305,6 +314,9 @@ export async function upsertRoundGreenie(
   if (owned.tournamentId != null) {
     revalidatePath(`/tournaments/${owned.tournamentId}`);
   }
+  if (owned.matchId != null) {
+    revalidatePath(`/matches/${owned.matchId}`);
+  }
   return { ok: true };
 }
 
@@ -328,6 +340,7 @@ export async function deleteRoundGreenie(
       id: rounds.id,
       userId: rounds.userId,
       tournamentId: rounds.tournamentId,
+      matchId: rounds.matchId,
     })
     .from(rounds)
     .where(and(eq(rounds.id, roundId), eq(rounds.userId, session.user.id)))
@@ -347,6 +360,9 @@ export async function deleteRoundGreenie(
   revalidatePath(`/rounds/${roundId}`);
   if (owned.tournamentId != null) {
     revalidatePath(`/tournaments/${owned.tournamentId}`);
+  }
+  if (owned.matchId != null) {
+    revalidatePath(`/matches/${owned.matchId}`);
   }
   return { ok: true };
 }
@@ -381,6 +397,7 @@ export async function updateRoundScores(
       userId: rounds.userId,
       courseId: rounds.courseId,
       tournamentId: rounds.tournamentId,
+      matchId: rounds.matchId,
     })
     .from(rounds)
     .where(eq(rounds.id, roundId))
@@ -489,6 +506,9 @@ export async function updateRoundScores(
   revalidatePath(`/rounds/${roundId}`);
   if (owned.tournamentId != null) {
     revalidatePath(`/tournaments/${owned.tournamentId}`);
+  }
+  if (owned.matchId != null) {
+    revalidatePath(`/matches/${owned.matchId}`);
   }
   return { ok: true };
 }

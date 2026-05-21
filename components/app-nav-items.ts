@@ -16,6 +16,7 @@ type AppNavItem = {
 
 export const appPageIcons = {
   tournaments: GolfBallIcon,
+  matches: GolfBatIcon,
   standings: ChampionIcon,
   greenies: GolfHoleIcon,
   courses: GolfCartIcon,
@@ -28,6 +29,11 @@ export const appNavItems: AppNavItem[] = [
     title: "Tournaments",
     href: "/tournaments",
     icon: appPageIcons.tournaments,
+  },
+  {
+    title: "Matches",
+    href: "/matches",
+    icon: appPageIcons.matches,
   },
   { title: "Standings", href: "/standings", icon: appPageIcons.standings },
   { title: "Greenies", href: "/greenies", icon: appPageIcons.greenies },

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type { RoundScoresTableRound } from "@/components/round-scores-card";
-import { RoundScoresForm } from "./round-scores-form";
+import { RoundScoresForm, type SettingsTee } from "./round-scores-form";
 import {
   buildInitialScores,
   buildLiveRound,
@@ -17,6 +17,7 @@ type RoundPlayProps = {
   leaderboardRounds?: RoundScoresTableRound[];
   date: Date | string;
   holes: { hole: number; par: number; yards: number | null }[];
+  tees: SettingsTee[];
 };
 
 export function RoundPlay({
@@ -25,6 +26,7 @@ export function RoundPlay({
   leaderboardRounds,
   date,
   holes,
+  tees,
 }: RoundPlayProps) {
   const router = useRouter();
   const initialScores = useMemo(
@@ -46,6 +48,7 @@ export function RoundPlay({
       holes={holes}
       scores={scores}
       setScores={setScores}
+      tees={tees}
       onShowSummary={() => router.push(`/rounds/${roundId}`)}
       onAbandoned={() => router.push("/")}
     />

@@ -30,7 +30,9 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
 
   const tableRound = {
     id: round.id,
+    matchId: round.matchId,
     tournamentId: round.tournamentId,
+    teeId: round.teeId,
     userId: round.userId,
     courseName: round.courseName,
     firstName: round.firstName,
@@ -70,6 +72,7 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
           leaderboardRounds={tournament?.rounds}
           date={round.date}
           holes={tableRound.holes}
+          tees={round.tees}
         />
       </section>
     </main>

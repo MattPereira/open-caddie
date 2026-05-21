@@ -95,7 +95,7 @@ export function MatchPlayTabContent({
               playerName={team.name}
               initials={team.initials}
               image={team.image}
-              secondary={`${formatTeamSecondary(team)} · Gets ${team.receivedStrokes}`}
+              secondary={formatTeamSecondary(team, format)}
               primaryLabel="Holes"
               primaryValue={formatTeamMatchStatus(team, matchPlay.finalStatus)}
               primaryValueAdjusted={isTeamBehind(team, matchPlay.finalStatus)}
@@ -389,14 +389,17 @@ function getMatchPlayTeams({
   }));
 }
 
-function formatTeamSecondary(team: MatchPlayTeamView) {
+function formatTeamSecondary(team: MatchPlayTeamView, format: MatchFormat) {
   if (team.rounds.length === 1) {
-    return `Hcp ${formatDecimalScore(team.rounds[0].playingHandicap)}`;
+    const handicap = `Hcp ${formatDecimalScore(team.rounds[0].playingHandicap)}`;
+    return format === "singles_match_play"
+      ? `${handicap} · Gets ${team.receivedStrokes}`
+      : handicap;
   }
 
   return team.rounds
     .map((round) => displayName({ ...round, email: null }))
-    .join(" / ");
+    .join(" & ");
 }
 
 function getTeamInitials(name: string) {

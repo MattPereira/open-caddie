@@ -24,12 +24,14 @@ export type RoundScoresTableRound = {
   scores: {
     hole: number;
     par: number | null;
+    handicap?: number | null;
     strokes: number | null;
     putts: number | null;
   }[];
   holes?: {
     hole: number;
     par: number;
+    handicap?: number | null;
   }[];
   tees?: {
     id: number;

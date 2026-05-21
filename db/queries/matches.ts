@@ -156,6 +156,7 @@ export const getMatchById = cache(async (matchId: number) => {
         .select({
           hole: courseHoles.hole,
           par: courseHoles.par,
+          handicap: courseHoles.handicap,
         })
         .from(courseHoles)
         .where(eq(courseHoles.courseId, match.courseId))

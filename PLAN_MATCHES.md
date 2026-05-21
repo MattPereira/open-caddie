@@ -18,18 +18,18 @@
 
 ## 3. Match Scoring
 
-- [ ] Add a Match Play tab for 1v1 matches derived from round scores.
-- [ ] Build match-play scoring around derived teams, even for 1v1 matches, so the UI and evaluator can grow into 2v2 best-ball matches later.
-- [ ] For 1v1 MVP, derive two one-player teams from the two match rounds.
-- [ ] Use standard relative match-play handicap allocation: the lowest playing handicap plays off zero, and other players receive the difference.
-- [ ] Allocate received strokes on the hardest handicap holes first, using each hole's course handicap value.
-- [ ] Use 100% allowance for singles match play.
-- [ ] Leave room for 2v2/four-ball match play to use a 90% allowance later.
-- [ ] Compare adjusted or net hole scores for each hole.
-- [ ] Show per-hole outcomes: Player A wins, Player B wins, or tied.
-- [ ] Show running match status such as `A 1 up`, `Tied`, or `B 2 up`.
-- [ ] Include a concise explanation paragraph on the Match Play tab explaining that strokes are allocated from the handicap difference and applied to the hardest holes.
-- [ ] Show each player's gross score, received stroke indicator, adjusted/net hole score, hole winner, and running match status.
+- [x] Add a Match Play tab for 1v1 matches derived from round scores.
+- [x] Build match-play scoring around derived teams, even for 1v1 matches, so the UI and evaluator can grow into 2v2 best-ball matches later.
+- [x] For 1v1 MVP, derive two one-player teams from the two match rounds.
+- [x] Use standard relative match-play handicap allocation: the lowest playing handicap plays off zero, and other players receive the difference.
+- [x] Allocate received strokes on the hardest handicap holes first, using each hole's course handicap value.
+- [x] Use 100% allowance for singles match play.
+- [x] Leave room for 2v2/four-ball match play to use a 90% allowance later.
+- [x] Compare adjusted or net hole scores for each hole.
+- [x] Show per-hole outcomes: Player A wins, Player B wins, or tied.
+- [x] Show running match status such as `A 1 up`, `Tied`, or `B 2 up`.
+- [x] Include a concise explanation paragraph on the Match Play tab explaining that strokes are allocated from the handicap difference and applied to the hardest holes.
+- [x] Show each player's gross score, received stroke indicator, adjusted/net hole score, hole winner, and running match status.
 
 ## 4. Skins Scoring
 

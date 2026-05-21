@@ -5,14 +5,12 @@ import { GreeniesTabContent } from "@/components/greenies-tab-content";
 import { RoundsTabContent } from "@/components/rounds-tab-content";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCoursesWithTees } from "@/db/queries/courses";
-import {
-  getAddablePlayersForMatch,
-  getMatchById,
-} from "@/db/queries/matches";
+import { getAddablePlayersForMatch, getMatchById } from "@/db/queries/matches";
 import { getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/utils";
 import { AddPlayersSheet } from "./_components/add-players-sheet";
 import { EditMatchButton } from "./_components/edit-match-button";
+import { MatchPlayTabContent } from "./_components/match-play-tab-content";
 
 type MatchPageProps = {
   params: Promise<{
@@ -45,7 +43,10 @@ export default async function MatchPage({ params }: MatchPageProps) {
     (currentUser.isAdmin || currentUser.id === match.createdByUserId);
 
   const [addablePlayers, courses] = canManage
-    ? await Promise.all([getAddablePlayersForMatch(match.id), getCoursesWithTees()])
+    ? await Promise.all([
+        getAddablePlayersForMatch(match.id),
+        getCoursesWithTees(),
+      ])
     : [[], []];
   const selectedCourse = courses.find(
     (course) => course.handle === match.courseHandle,
@@ -92,6 +93,12 @@ export default async function MatchPage({ params }: MatchPageProps) {
       <Tabs defaultValue="rounds" className="w-full">
         <TabsList className="mb-3 h-10! w-full p-1 sm:w-fit">
           <TabsTrigger
+            value="match-play"
+            className="flex-1 px-5 py-2 text-base sm:flex-none"
+          >
+            Match
+          </TabsTrigger>
+          <TabsTrigger
             value="rounds"
             className="flex-1 px-5 py-2 text-base sm:flex-none"
           >
@@ -110,6 +117,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
           emptyMessage="No rounds have been recorded for this match."
           rounds={match.rounds}
         />
+        <MatchPlayTabContent rounds={match.rounds} />
         <GreeniesTabContent
           emptyMessage="No greenies have been recorded for this match."
           greenies={match.greenies}

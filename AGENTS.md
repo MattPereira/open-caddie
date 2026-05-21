@@ -2,6 +2,8 @@
 
 ## Instructions
 
+- After making changes, do not attempt to run a dev server for validation. Just doing `pnpm run check` is sufficient.
+
 ### Next.js Rules
 
 - Before any Next.js work, find and read the relevant doc in `node_modules/next/dist/docs/`. Your training data is outdated — the docs are the source of truth.

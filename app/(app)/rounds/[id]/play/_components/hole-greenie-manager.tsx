@@ -138,8 +138,8 @@ export function HoleGreenieManager({
     return (
       <Button
         type="button"
-        variant="secondary"
-        size="xl"
+        variant="default"
+        size="2xl"
         onClick={() => setMode("editing")}
         className="mt-8"
       >

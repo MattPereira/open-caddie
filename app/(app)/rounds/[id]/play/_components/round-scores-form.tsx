@@ -251,9 +251,8 @@ export function RoundScoresForm({
       <div className="flex items-center gap-4">
         <Button
           type="button"
-          variant="secondary"
           size="xl"
-          className="shrink-0"
+          variant="secondary"
           disabled={!canScrollPrev}
           onClick={() => api?.scrollPrev()}
           aria-label="Previous hole"
@@ -261,7 +260,7 @@ export function RoundScoresForm({
           <HugeiconsIcon icon={ArrowLeft01Icon} strokeWidth={2} />
         </Button>
         <div className="flex min-w-0 flex-1 flex-wrap items-baseline justify-center gap-x-2 gap-y-1 text-center leading-tight">
-          <span className="text-lg font-medium tracking-tight">
+          <span className="text-base font-medium tracking-tight">
             Hole {currentHoleNumber}
           </span>
           <span className="text-sm uppercase tracking-wider text-muted-foreground">
@@ -275,7 +274,6 @@ export function RoundScoresForm({
           type="button"
           variant="secondary"
           size="xl"
-          className="shrink-0"
           disabled={!canScrollNext}
           onClick={() => api?.scrollNext()}
           aria-label="Next hole"

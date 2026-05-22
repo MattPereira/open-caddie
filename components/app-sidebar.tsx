@@ -7,9 +7,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ExpandIcon,
   UserCircleIcon,
-  Notification01Icon,
   Logout01Icon,
-  Settings02Icon,
   Sun01Icon,
   Moon02Icon,
   ComputerIcon,
@@ -21,7 +19,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
@@ -129,46 +126,19 @@ export function AppSidebar({ user }: { user: SidebarUser | null }) {
                   align="end"
                   sideOffset={4}
                 >
-                  <DropdownMenuLabel className="p-0 font-normal">
-                    <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                      <Avatar className="size-8">
-                        {user.image ? (
-                          <AvatarImage src={user.image} alt={user.name} />
-                        ) : null}
-                        <AvatarFallback>{initials}</AvatarFallback>
-                      </Avatar>
-                      <div className="grid flex-1 text-left text-sm leading-tight">
-                        <span className="truncate font-medium">
-                          {user.name}
-                        </span>
-                        <span className="truncate text-xs text-muted-foreground">
-                          {user.email}
-                        </span>
-                      </div>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
                   <DropdownMenuGroup>
-                    <DropdownMenuItem asChild>
+                    <DropdownMenuItem asChild className="py-3 text-lg">
                       <Link
                         href={`/players/${user.id}`}
                         onNavigate={closeMobileSidebar}
                       >
-                        <HugeiconsIcon icon={UserCircleIcon} />
+                        <HugeiconsIcon icon={UserCircleIcon} className="size-5" />
                         Profile
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem disabled>
-                      <HugeiconsIcon icon={Notification01Icon} />
-                      Notifications
-                    </DropdownMenuItem>
-                    <DropdownMenuItem disabled>
-                      <HugeiconsIcon icon={Settings02Icon} />
-                      Settings
-                    </DropdownMenuItem>
                     <DropdownMenuSub>
-                      <DropdownMenuSubTrigger>
-                        <HugeiconsIcon icon={Sun01Icon} />
+                      <DropdownMenuSubTrigger className="py-3 text-lg">
+                        <HugeiconsIcon icon={Sun01Icon} className="size-5" />
                         Theme
                       </DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
@@ -189,12 +159,13 @@ export function AppSidebar({ user }: { user: SidebarUser | null }) {
                   </DropdownMenuGroup>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
+                    className="py-3 text-lg"
                     onSelect={(e) => {
                       e.preventDefault();
                       void signOutAction();
                     }}
                   >
-                    <HugeiconsIcon icon={Logout01Icon} />
+                    <HugeiconsIcon icon={Logout01Icon} className="size-5" />
                     Log out
                   </DropdownMenuItem>
                 </DropdownMenuContent>

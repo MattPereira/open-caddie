@@ -1,10 +1,10 @@
 import Link from "next/link";
 import {
-  ChampionIcon,
+  Crown03Icon,
   GolfBallIcon,
   GolfBatIcon,
+  GolfCartIcon,
   UserCircleIcon,
-  UserMultipleIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
@@ -92,15 +92,15 @@ export default async function Home() {
             </Link>
           </Button>
           <Button asChild variant="outline" size="xl" className="w-full">
-            <Link href="/standings">
-              <HugeiconsIcon icon={ChampionIcon} data-icon="inline-start" />
-              Standings
+            <Link href="/matches">
+              <HugeiconsIcon icon={Crown03Icon} data-icon="inline-start" />
+              Matches
             </Link>
           </Button>
           <Button asChild variant="outline" size="xl" className="w-full">
-            <Link href="/players">
-              <HugeiconsIcon icon={UserMultipleIcon} data-icon="inline-start" />
-              Players
+            <Link href="/courses">
+              <HugeiconsIcon icon={GolfCartIcon} data-icon="inline-start" />
+              Courses
             </Link>
           </Button>
           <Button asChild variant="outline" size="xl" className="w-full">

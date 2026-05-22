@@ -110,6 +110,7 @@ export const getRoundById = cache(async (roundId: number) => {
       .select({
         hole: courseHoles.hole,
         par: courseHoles.par,
+        handicap: courseHoles.handicap,
         yards: teeYardages.yards,
       })
       .from(courseHoles)

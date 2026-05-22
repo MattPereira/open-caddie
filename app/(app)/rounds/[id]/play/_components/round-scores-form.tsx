@@ -82,6 +82,8 @@ import {
   formatScore,
   type RoundScoresTableRound,
 } from "@/components/round-scores-card";
+import { MatchPlayContent } from "@/app/(app)/matches/[id]/_components/match-play-tab-content";
+import { SkinsContent } from "@/app/(app)/matches/[id]/_components/skins-tab-content";
 import { toRoundScoreRow } from "@/components/round-scores-card-row";
 import { PlayScoresOverview } from "./play-scores-overview";
 import {
@@ -90,7 +92,7 @@ import {
   isRoundComplete,
 } from "./round-score-state";
 import { HoleGreenieManager, type GreenieValue } from "./hole-greenie-manager";
-import type { MatchPlayer } from "./round-play";
+import type { MatchPlayer, MatchScoreboard } from "./round-play";
 
 type GreenieEntry = GreenieValue & { hole: number };
 
@@ -108,11 +110,17 @@ type RoundScoresFormProps = {
   round: RoundScoresTableRound;
   leaderboardRounds?: RoundScoresTableRound[];
   date: Date | string;
-  holes: { hole: number; par: number; yards: number | null }[];
+  holes: {
+    hole: number;
+    par: number;
+    handicap?: number | null;
+    yards: number | null;
+  }[];
   scores: ScoreEntry[];
   setScores: Dispatch<SetStateAction<ScoreEntry[]>>;
   tees: SettingsTee[];
   matchPlayers: MatchPlayer[];
+  matchScoreboard: MatchScoreboard | null;
   delegateRoundId: number | null;
   setDelegateRoundId: (next: number | null) => void;
   onShowSummary: () => void;
@@ -129,6 +137,7 @@ export function RoundScoresForm({
   setScores,
   tees,
   matchPlayers,
+  matchScoreboard,
   delegateRoundId,
   setDelegateRoundId,
   onShowSummary,
@@ -167,9 +176,8 @@ export function RoundScoresForm({
   const [delegateGreenies, setDelegateGreenies] = useState<GreenieEntry[]>(
     () => delegatePlayer?.greenies ?? [],
   );
-  const [prevDelegateRoundId, setPrevDelegateRoundId] = useState(
-    delegateRoundId,
-  );
+  const [prevDelegateRoundId, setPrevDelegateRoundId] =
+    useState(delegateRoundId);
   if (prevDelegateRoundId !== delegateRoundId) {
     setPrevDelegateRoundId(delegateRoundId);
     setDelegateScores(initialDelegateScores);
@@ -325,6 +333,34 @@ export function RoundScoresForm({
     currentHoleNumber != null
       ? (delegateGreenies.find((g) => g.hole === currentHoleNumber) ?? null)
       : null;
+  const liveMatchScoreboard = useMemo(() => {
+    if (!matchScoreboard) return null;
+    const rounds = matchScoreboard.rounds.map((scoreboardRound) => {
+      if (scoreboardRound.id === round.id) {
+        return round;
+      }
+
+      if (scoreboardRound.id === delegatePlayer?.roundId) {
+        return applyScoreEntriesToRound(scoreboardRound, delegateScores);
+      }
+
+      return scoreboardRound;
+    });
+    const roundsById = new Map(
+      rounds.map((scoreboardRound) => [scoreboardRound.id, scoreboardRound]),
+    );
+
+    return {
+      ...matchScoreboard,
+      rounds,
+      teams: matchScoreboard.teams.map((team) => ({
+        ...team,
+        rounds: team.rounds.map(
+          (teamRound) => roundsById.get(teamRound.id) ?? teamRound,
+        ),
+      })),
+    };
+  }, [delegatePlayer?.roundId, delegateScores, matchScoreboard, round]);
 
   return (
     <div className="flex w-full min-w-0 flex-1 flex-col gap-5 p-0 sm:flex-none">
@@ -514,7 +550,7 @@ export function RoundScoresForm({
             leaderboardRounds={leaderboardRounds}
           />
         ) : round.matchId != null ? (
-          <MatchScoreboardDialog />
+          <MatchScoreboardDialog scoreboard={liveMatchScoreboard} />
         ) : null}
       </div>
 
@@ -749,6 +785,34 @@ function compareNullableNumbersDescending(a: number | null, b: number | null) {
   return b - a;
 }
 
+function applyScoreEntriesToRound(
+  round: RoundScoresTableRound,
+  scores: ScoreEntry[],
+): RoundScoresTableRound {
+  const recordedScores = scores.filter((score) => score.strokes != null);
+  const recordedPutts = scores.filter((score) => score.putts != null);
+
+  return {
+    ...round,
+    recordedStrokesCount: recordedScores.length,
+    recordedPuttsCount: recordedPutts.length,
+    totalStrokes: recordedScores.reduce(
+      (total, score) => total + (score.strokes ?? 0),
+      0,
+    ),
+    totalPutts: recordedPutts.reduce(
+      (total, score) => total + (score.putts ?? 0),
+      0,
+    ),
+    scores: scores.map((score) => ({
+      hole: score.hole,
+      par: score.par,
+      strokes: score.strokes,
+      putts: score.putts,
+    })),
+  };
+}
+
 function buildSettingsFormValues(
   round: RoundScoresTableRound,
   tees: SettingsTee[],
@@ -809,7 +873,9 @@ function SettingsDialog({
   });
   const serverError = form.formState.errors.root?.server?.message;
   const showHandicapTab = round.matchId != null;
-  const [activeTab, setActiveTab] = useState<"tees" | "handicap" | "scoring">("tees");
+  const [activeTab, setActiveTab] = useState<"tees" | "handicap" | "scoring">(
+    "tees",
+  );
   const watchedTeeId = useWatch({ control: form.control, name: "teeId" });
   const watchedHandicapOverride = useWatch({
     control: form.control,
@@ -889,275 +955,277 @@ function SettingsDialog({
             className="flex min-h-0 flex-1 flex-col"
           >
             <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pt-4">
-            {serverError ? (
-              <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                {serverError}
-              </p>
-            ) : null}
+              {serverError ? (
+                <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {serverError}
+                </p>
+              ) : null}
 
-            <Tabs
-              value={activeTab}
-              onValueChange={(value) =>
-                setActiveTab(value as "tees" | "handicap" | "scoring")
-              }
-              className="gap-3"
-            >
-              <TabsList className="w-full">
-                <TabsTrigger value="tees" className="text-base">
-                  Tees
-                </TabsTrigger>
-                {showHandicapTab ? (
-                  <TabsTrigger value="handicap" className="text-base">
-                    Handicap
+              <Tabs
+                value={activeTab}
+                onValueChange={(value) =>
+                  setActiveTab(value as "tees" | "handicap" | "scoring")
+                }
+                className="gap-3"
+              >
+                <TabsList className="w-full">
+                  <TabsTrigger value="tees" className="text-base">
+                    Tees
                   </TabsTrigger>
-                ) : null}
-                {showHandicapTab ? (
-                  <TabsTrigger value="scoring" className="text-base">
-                    Scoring
-                  </TabsTrigger>
-                ) : null}
-              </TabsList>
+                  {showHandicapTab ? (
+                    <TabsTrigger value="handicap" className="text-base">
+                      Handicap
+                    </TabsTrigger>
+                  ) : null}
+                  {showHandicapTab ? (
+                    <TabsTrigger value="scoring" className="text-base">
+                      Scoring
+                    </TabsTrigger>
+                  ) : null}
+                </TabsList>
 
-              <TabsContent value="tees" className="flex flex-col gap-5">
-                <FormField
-                  control={form.control}
-                  name="teeId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="sr-only">Tees</FormLabel>
-                      <FieldSet>
-                        <FormControl>
-                          <RadioGroup
-                            value={String(field.value)}
-                            onValueChange={(value) =>
-                              field.onChange(Number(value))
-                            }
-                            className="flex flex-col gap-2"
-                          >
-                            {tees.map((tee) => (
-                              <FieldLabel
-                                key={tee.id}
-                                htmlFor={`settings-tee-${tee.id}`}
-                              >
-                                <Field orientation="horizontal">
-                                  <FieldContent>
-                                    <FieldTitle className="flex items-center gap-2 text-base">
-                                      {tee.color ? (
-                                        <span
-                                          className="size-3 rounded-full border"
-                                          style={{
-                                            backgroundColor: tee.color,
-                                          }}
-                                        />
-                                      ) : null}
-                                      {tee.name}
-                                    </FieldTitle>
-                                    <FieldDescription>
-                                      {Number(tee.rating).toFixed(1)} /{" "}
-                                      {tee.slope}
-                                      {tee.totalYards != null
-                                        ? ` - ${tee.totalYards.toLocaleString()} yds`
-                                        : ""}
-                                    </FieldDescription>
-                                  </FieldContent>
-                                  <RadioGroupItem
-                                    id={`settings-tee-${tee.id}`}
-                                    value={String(tee.id)}
-                                    className="size-5"
-                                  />
-                                </Field>
-                              </FieldLabel>
-                            ))}
-                          </RadioGroup>
-                        </FormControl>
-                      </FieldSet>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </TabsContent>
-
-              {showHandicapTab ? (
-                <TabsContent value="handicap" className="flex flex-col gap-3">
-                  <Alert variant="info">
-                    <AlertTitle>Course Handicap</AlertTitle>
-                    <AlertDescription className="tabular-nums">
-                      {handicapIndex.toFixed(1)} x {selectedSlope} / 113 ={" "}
-                      {courseHandicap.toFixed(1)}
-                    </AlertDescription>
-                  </Alert>
-
+                <TabsContent value="tees" className="flex flex-col gap-5">
                   <FormField
                     control={form.control}
-                    name="handicapIndexOverride"
+                    name="teeId"
                     render={({ field }) => (
-                      <FormItem className="grid grid-cols-[1fr_8rem] items-center gap-x-3 gap-y-1">
-                        <FormLabel>Handicap Index</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={-10}
-                            max={54}
-                            step={0.1}
-                            inputMode="decimal"
-                            placeholder="Auto"
-                            className="h-10 text-right"
-                            {...field}
-                            value={field.value === "" ? "" : field.value}
-                            onChange={(e) =>
-                              field.onChange(
-                                e.target.value === ""
-                                  ? ""
-                                  : Number(e.target.value),
-                              )
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage className="col-span-2" />
+                      <FormItem>
+                        <FormLabel className="sr-only">Tees</FormLabel>
+                        <FieldSet>
+                          <FormControl>
+                            <RadioGroup
+                              value={String(field.value)}
+                              onValueChange={(value) =>
+                                field.onChange(Number(value))
+                              }
+                              className="flex flex-col gap-2"
+                            >
+                              {tees.map((tee) => (
+                                <FieldLabel
+                                  key={tee.id}
+                                  htmlFor={`settings-tee-${tee.id}`}
+                                >
+                                  <Field orientation="horizontal">
+                                    <FieldContent>
+                                      <FieldTitle className="flex items-center gap-2 text-base">
+                                        {tee.color ? (
+                                          <span
+                                            className="size-3 rounded-full border"
+                                            style={{
+                                              backgroundColor: tee.color,
+                                            }}
+                                          />
+                                        ) : null}
+                                        {tee.name}
+                                      </FieldTitle>
+                                      <FieldDescription>
+                                        {Number(tee.rating).toFixed(1)} /{" "}
+                                        {tee.slope}
+                                        {tee.totalYards != null
+                                          ? ` - ${tee.totalYards.toLocaleString()} yds`
+                                          : ""}
+                                      </FieldDescription>
+                                    </FieldContent>
+                                    <RadioGroupItem
+                                      id={`settings-tee-${tee.id}`}
+                                      value={String(tee.id)}
+                                      className="size-5"
+                                    />
+                                  </Field>
+                                </FieldLabel>
+                              ))}
+                            </RadioGroup>
+                          </FormControl>
+                        </FieldSet>
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
                 </TabsContent>
-              ) : null}
 
-              {showHandicapTab ? (
-                <TabsContent value="scoring" className="flex flex-col gap-3">
-                  <FieldSet>
-                    <FieldLabel className="text-sm text-muted-foreground">
-                      Record scores on behalf of another player in this match.
-                    </FieldLabel>
-                    <RadioGroup
-                      value={
-                        delegateRoundId == null
-                          ? "none"
-                          : String(delegateRoundId)
-                      }
-                      onValueChange={(value) =>
-                        setDelegateRoundId(
-                          value === "none" ? null : Number(value),
-                        )
-                      }
-                      className="flex flex-col gap-2"
-                    >
-                      <FieldLabel htmlFor="delegate-none">
-                        <Field orientation="horizontal">
-                          <FieldContent>
-                            <FieldTitle className="text-base">None</FieldTitle>
-                            <FieldDescription>
-                              Only record your own scores.
-                            </FieldDescription>
-                          </FieldContent>
-                          <RadioGroupItem
-                            id="delegate-none"
-                            value="none"
-                            className="size-5"
-                          />
-                        </Field>
+                {showHandicapTab ? (
+                  <TabsContent value="handicap" className="flex flex-col gap-3">
+                    <Alert variant="info">
+                      <AlertTitle>Course Handicap</AlertTitle>
+                      <AlertDescription className="tabular-nums">
+                        {handicapIndex.toFixed(1)} x {selectedSlope} / 113 ={" "}
+                        {courseHandicap.toFixed(1)}
+                      </AlertDescription>
+                    </Alert>
+
+                    <FormField
+                      control={form.control}
+                      name="handicapIndexOverride"
+                      render={({ field }) => (
+                        <FormItem className="grid grid-cols-[1fr_8rem] items-center gap-x-3 gap-y-1">
+                          <FormLabel>Handicap Index</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={-10}
+                              max={54}
+                              step={0.1}
+                              inputMode="decimal"
+                              placeholder="Auto"
+                              className="h-10 text-right"
+                              {...field}
+                              value={field.value === "" ? "" : field.value}
+                              onChange={(e) =>
+                                field.onChange(
+                                  e.target.value === ""
+                                    ? ""
+                                    : Number(e.target.value),
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage className="col-span-2" />
+                        </FormItem>
+                      )}
+                    />
+                  </TabsContent>
+                ) : null}
+
+                {showHandicapTab ? (
+                  <TabsContent value="scoring" className="flex flex-col gap-3">
+                    <FieldSet>
+                      <FieldLabel className="text-sm text-muted-foreground">
+                        Record scores on behalf of another player in this match.
                       </FieldLabel>
-                      {matchPlayers.map((player) => {
-                        const name =
-                          [player.firstName, player.lastName]
-                            .filter(Boolean)
-                            .join(" ") || "Player";
-                        return (
-                          <FieldLabel
-                            key={player.roundId}
-                            htmlFor={`delegate-${player.roundId}`}
-                          >
-                            <Field orientation="horizontal">
-                              <FieldContent>
-                                <FieldTitle className="text-base">
-                                  {name}
-                                </FieldTitle>
-                              </FieldContent>
-                              <RadioGroupItem
-                                id={`delegate-${player.roundId}`}
-                                value={String(player.roundId)}
-                                className="size-5"
-                              />
-                            </Field>
-                          </FieldLabel>
-                        );
-                      })}
-                    </RadioGroup>
-                  </FieldSet>
-                </TabsContent>
-              ) : null}
-            </Tabs>
+                      <RadioGroup
+                        value={
+                          delegateRoundId == null
+                            ? "none"
+                            : String(delegateRoundId)
+                        }
+                        onValueChange={(value) =>
+                          setDelegateRoundId(
+                            value === "none" ? null : Number(value),
+                          )
+                        }
+                        className="flex flex-col gap-2"
+                      >
+                        <FieldLabel htmlFor="delegate-none">
+                          <Field orientation="horizontal">
+                            <FieldContent>
+                              <FieldTitle className="text-base">
+                                None
+                              </FieldTitle>
+                              <FieldDescription>
+                                Only record your own scores.
+                              </FieldDescription>
+                            </FieldContent>
+                            <RadioGroupItem
+                              id="delegate-none"
+                              value="none"
+                              className="size-5"
+                            />
+                          </Field>
+                        </FieldLabel>
+                        {matchPlayers.map((player) => {
+                          const name =
+                            [player.firstName, player.lastName]
+                              .filter(Boolean)
+                              .join(" ") || "Player";
+                          return (
+                            <FieldLabel
+                              key={player.roundId}
+                              htmlFor={`delegate-${player.roundId}`}
+                            >
+                              <Field orientation="horizontal">
+                                <FieldContent>
+                                  <FieldTitle className="text-base">
+                                    {name}
+                                  </FieldTitle>
+                                </FieldContent>
+                                <RadioGroupItem
+                                  id={`delegate-${player.roundId}`}
+                                  value={String(player.roundId)}
+                                  className="size-5"
+                                />
+                              </Field>
+                            </FieldLabel>
+                          );
+                        })}
+                      </RadioGroup>
+                    </FieldSet>
+                  </TabsContent>
+                ) : null}
+              </Tabs>
             </div>
 
             <div className="shrink-0 pt-4">
-            {confirmingDelete ? (
-              <div className="flex flex-col gap-3">
-                <div className="text-sm font-medium">
-                  Delete this round?
-                  <div className="text-sm font-normal text-muted-foreground">
-                    This permanently deletes the round and all entered scores.
+              {confirmingDelete ? (
+                <div className="flex flex-col gap-3">
+                  <div className="text-sm font-medium">
+                    Delete this round?
+                    <div className="text-sm font-normal text-muted-foreground">
+                      This permanently deletes the round and all entered scores.
+                    </div>
+                  </div>
+                  {deleteError ? (
+                    <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                      {deleteError}
+                    </p>
+                  ) : null}
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="xl"
+                      disabled={isDeleting}
+                      onClick={() => {
+                        setConfirmingDelete(false);
+                        setDeleteError(null);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <HoldToConfirmButton
+                      onConfirmAction={onDelete}
+                      disabled={isDeleting}
+                      idleLabel={
+                        isDeleting ? "Deleting…" : "Hold to delete round"
+                      }
+                    />
                   </div>
                 </div>
-                {deleteError ? (
-                  <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                    {deleteError}
-                  </p>
-                ) : null}
-                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-lg"
+                    className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    disabled={isPending}
+                    onClick={() => {
+                      setDeleteError(null);
+                      setConfirmingDelete(true);
+                    }}
+                    aria-label="Delete round"
+                  >
+                    <HugeiconsIcon icon={Delete02Icon} aria-hidden />
+                  </Button>
                   <Button
                     type="button"
                     variant="outline"
                     size="xl"
-                    disabled={isDeleting}
-                    onClick={() => {
-                      setConfirmingDelete(false);
-                      setDeleteError(null);
-                    }}
+                    disabled={isPending}
+                    className="ml-auto"
+                    onClick={() => setOpen(false)}
                   >
                     Cancel
                   </Button>
-                  <HoldToConfirmButton
-                    onConfirmAction={onDelete}
-                    disabled={isDeleting}
-                    idleLabel={
-                      isDeleting ? "Deleting…" : "Hold to delete round"
-                    }
-                  />
+                  <Button
+                    type="submit"
+                    size="xl"
+                    className="w-22"
+                    disabled={isPending}
+                  >
+                    {isPending ? "Saving..." : "Save"}
+                  </Button>
                 </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-lg"
-                  className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                  disabled={isPending}
-                  onClick={() => {
-                    setDeleteError(null);
-                    setConfirmingDelete(true);
-                  }}
-                  aria-label="Delete round"
-                >
-                  <HugeiconsIcon icon={Delete02Icon} aria-hidden />
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="xl"
-                  disabled={isPending}
-                  className="ml-auto"
-                  onClick={() => setOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  size="xl"
-                  className="w-22"
-                  disabled={isPending}
-                >
-                  {isPending ? "Saving..." : "Save"}
-                </Button>
-              </div>
-            )}
+              )}
             </div>
           </form>
         </Form>
@@ -1166,7 +1234,11 @@ function SettingsDialog({
   );
 }
 
-function MatchScoreboardDialog() {
+function MatchScoreboardDialog({
+  scoreboard,
+}: {
+  scoreboard: MatchScoreboard | null;
+}) {
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -1174,11 +1246,45 @@ function MatchScoreboardDialog() {
           Scoreboard
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-[calc(100%-1.5rem)] sm:max-w-lg">
+      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-[calc(100%-1.5rem)] overflow-y-auto sm:max-w-5xl">
         <DialogHeader>
-          <DialogTitle>Match scoreboard</DialogTitle>
-          <DialogDescription>Match scoreboard will go here.</DialogDescription>
+          <DialogTitle>Scoreboard</DialogTitle>
+          <DialogDescription>
+            Match play and skins results for this match.
+          </DialogDescription>
         </DialogHeader>
+        {scoreboard ? (
+          <Tabs defaultValue="match" className="w-full">
+            <TabsList className="mb-3 h-10! w-full p-1 sm:w-fit">
+              <TabsTrigger
+                value="match"
+                className="flex-1 px-5 py-2 text-base sm:flex-none"
+              >
+                Match
+              </TabsTrigger>
+              <TabsTrigger
+                value="skins"
+                className="flex-1 px-5 py-2 text-base sm:flex-none"
+              >
+                Skins
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="match" className="flex flex-col gap-5">
+              <MatchPlayContent
+                format={scoreboard.format}
+                rounds={scoreboard.rounds}
+                teams={scoreboard.teams}
+              />
+            </TabsContent>
+            <TabsContent value="skins" className="flex flex-col gap-5">
+              <SkinsContent rounds={scoreboard.rounds} />
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+            Scoreboard is not available for this round.
+          </p>
+        )}
       </DialogContent>
     </Dialog>
   );

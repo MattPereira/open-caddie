@@ -63,21 +63,25 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
     lastName: round.lastName,
     username: round.username,
     image: round.image,
+    courseSlope: round.courseSlope,
     recordedStrokesCount: round.recordedStrokesCount,
     recordedPuttsCount: round.recordedPuttsCount,
     totalStrokes: round.totalStrokes,
     totalPutts: round.totalPutts,
+    handicapIndexOverride: round.handicapIndexOverride,
     playingHandicap: round.playingHandicap,
     netStrokes: round.netStrokes,
     scores: round.scores.map((score) => ({
       hole: score.hole,
       par: score.par,
+      handicap: null,
       strokes: score.strokes,
       putts: score.putts,
     })),
     holes: round.holes.map((hole) => ({
       hole: hole.hole,
       par: hole.par,
+      handicap: hole.handicap,
       yards: hole.yards,
     })),
     greenies: round.greenies.map((greenie) => ({
@@ -86,6 +90,45 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
       inches: greenie.inches,
     })),
   };
+  const scoreboardRounds =
+    match?.rounds.map((matchRound) => ({
+      id: matchRound.id,
+      matchId: matchRound.matchId,
+      tournamentId: null,
+      teeId: matchRound.teeId,
+      userId: matchRound.userId,
+      courseName: matchRound.courseName,
+      firstName: matchRound.firstName,
+      lastName: matchRound.lastName,
+      username: matchRound.username,
+      image: matchRound.image,
+      recordedStrokesCount: matchRound.recordedStrokesCount,
+      recordedPuttsCount: matchRound.recordedPuttsCount,
+      totalStrokes: matchRound.totalStrokes,
+      totalPutts: matchRound.totalPutts,
+      handicapIndexOverride: matchRound.handicapIndexOverride,
+      playingHandicap: matchRound.playingHandicap,
+      netStrokes: matchRound.netStrokes,
+      scores: matchRound.scores,
+      holes: matchRound.holes,
+      greenies: matchRound.greenies,
+    })) ?? [];
+  const scoreboardRoundsById = new Map(
+    scoreboardRounds.map((matchRound) => [matchRound.id, matchRound]),
+  );
+  const matchScoreboard = match
+    ? {
+        format: match.format,
+        rounds: scoreboardRounds,
+        teams: match.teams.map((team) => ({
+          id: team.id,
+          name: team.name,
+          rounds: team.rounds
+            .map((teamRound) => scoreboardRoundsById.get(teamRound.id))
+            .filter((teamRound) => teamRound != null),
+        })),
+      }
+    : null;
 
   return (
     <main className="flex min-h-[calc(100svh-3.5rem)] flex-col items-center p-5">
@@ -98,6 +141,7 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
           holes={tableRound.holes}
           tees={round.tees}
           matchPlayers={matchPlayers}
+          matchScoreboard={matchScoreboard}
         />
       </section>
     </main>

@@ -196,7 +196,14 @@ export async function updateMatch(
   const startsAt = parsed.data.startsAt;
   const name = parsed.data.name === "" ? null : parsed.data.name;
   const format = parsed.data.format;
-  const { teamOneRoundIds, teamTwoRoundIds } = parsed.data;
+  const {
+    playerUserIds,
+    teamOneUserIds,
+    teamTwoUserIds,
+    teamOneRoundIds,
+    teamTwoRoundIds,
+    teeId,
+  } = parsed.data;
   const courseId = await getCourseIdByHandle(parsed.data.courseHandle);
 
   if (!courseId) {
@@ -204,9 +211,12 @@ export async function updateMatch(
   }
 
   const matchRounds = await db
-    .select({ id: rounds.id })
+    .select({ id: rounds.id, userId: rounds.userId })
     .from(rounds)
     .where(eq(rounds.matchId, parsed.data.id));
+  const roundIdByUserId = new Map(
+    matchRounds.map((round) => [round.userId, round.id]),
+  );
   const matchRoundIds = new Set(matchRounds.map((round) => round.id));
   const roundCount = matchRoundIds.size;
 
@@ -218,18 +228,47 @@ export async function updateMatch(
   }
 
   if (format === "four_ball_match_play") {
+    const selectedUserIds = [...teamOneUserIds, ...teamTwoUserIds];
+    const canRepairFromPlayers =
+      roundCount < 4 &&
+      playerUserIds.length === 4 &&
+      teamOneUserIds.length === 2 &&
+      teamTwoUserIds.length === 2 &&
+      new Set(playerUserIds).size === 4 &&
+      new Set(selectedUserIds).size === 4 &&
+      selectedUserIds.every((userId) => playerUserIds.includes(userId)) &&
+      matchRounds.every((round) => playerUserIds.includes(round.userId));
     const selectedRoundIds = [...teamOneRoundIds, ...teamTwoRoundIds];
-    if (
-      roundCount !== 4 ||
-      teamOneRoundIds.length !== 2 ||
-      teamTwoRoundIds.length !== 2 ||
-      new Set(selectedRoundIds).size !== 4 ||
-      selectedRoundIds.some((roundId) => !matchRoundIds.has(roundId))
-    ) {
+    const canAssignFromRounds =
+      roundCount === 4 &&
+      teamOneRoundIds.length === 2 &&
+      teamTwoRoundIds.length === 2 &&
+      new Set(selectedRoundIds).size === 4 &&
+      selectedRoundIds.every((roundId) => matchRoundIds.has(roundId));
+
+    if (!canRepairFromPlayers && !canAssignFromRounds) {
       return {
         ok: false,
         error: "Four-ball match play requires 4 rounds split into 2 teams.",
       };
+    }
+
+    if (canRepairFromPlayers) {
+      const teeBelongsToCourse = await isTeeForCourse(teeId, courseId);
+      if (!teeBelongsToCourse) {
+        return { ok: false, error: "Selected tee does not belong to this course." };
+      }
+
+      const existingUsers = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(inArray(users.id, playerUserIds));
+      if (existingUsers.length !== 4) {
+        return {
+          ok: false,
+          error: "One or more selected players no longer exist.",
+        };
+      }
     }
   }
 
@@ -243,6 +282,39 @@ export async function updateMatch(
 
       if (format !== "four_ball_match_play") return;
 
+      let teamRoundIds = [teamOneRoundIds, teamTwoRoundIds];
+
+      if (roundCount < 4 && playerUserIds.length === 4) {
+        const missingUserIds = playerUserIds.filter(
+          (userId) => !roundIdByUserId.has(userId),
+        );
+
+        if (missingUserIds.length > 0) {
+          const insertedRounds = await tx
+            .insert(rounds)
+            .values(
+              missingUserIds.map((userId) => ({
+                matchId: parsed.data.id,
+                userId,
+                courseId,
+                teeId,
+                date,
+              })),
+            )
+            .returning({ id: rounds.id, userId: rounds.userId });
+
+          for (const round of insertedRounds) {
+            roundIdByUserId.set(round.userId, round.id);
+          }
+        }
+
+        teamRoundIds = [teamOneUserIds, teamTwoUserIds].map((userIds) =>
+          userIds.map((userId) => roundIdByUserId.get(userId)).filter(
+            (roundId): roundId is number => roundId != null,
+          ),
+        );
+      }
+
       const insertedTeams = await tx
         .insert(matchTeams)
         .values([
@@ -253,7 +325,7 @@ export async function updateMatch(
       const teamIdBySortOrder = new Map(
         insertedTeams.map((team) => [team.sortOrder, team.id]),
       );
-      const memberValues = [teamOneRoundIds, teamTwoRoundIds].flatMap(
+      const memberValues = teamRoundIds.flatMap(
         (roundIds, index) => {
           const matchTeamId = teamIdBySortOrder.get(index);
           if (matchTeamId == null) {

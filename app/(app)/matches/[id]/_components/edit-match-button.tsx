@@ -8,15 +8,21 @@ import { Button } from "@/components/ui/button";
 import {
   MatchSheet,
   type CourseOption,
+  type MatchPlayerOption,
   type MatchSheetMatch,
 } from "../../_components/match-sheet";
 
 type EditMatchButtonProps = {
   match: MatchSheetMatch;
   courses: CourseOption[];
+  players: MatchPlayerOption[];
 };
 
-export function EditMatchButton({ match, courses }: EditMatchButtonProps) {
+export function EditMatchButton({
+  match,
+  courses,
+  players,
+}: EditMatchButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -36,6 +42,7 @@ export function EditMatchButton({ match, courses }: EditMatchButtonProps) {
         mode="edit"
         match={match}
         courses={courses}
+        players={players}
       />
     </>
   );

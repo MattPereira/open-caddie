@@ -77,6 +77,10 @@ export const MatchCreateSchema = MatchFormSchema.superRefine((value, ctx) => {
 
 export const MatchUpdateSchema = MatchBaseSchema.extend({
   id: z.number().int().positive(),
+  teeId: z.number().int(),
+  playerUserIds: z.array(z.string().min(1)),
+  teamOneUserIds: z.array(z.string().min(1)),
+  teamTwoUserIds: z.array(z.string().min(1)),
   teamOneRoundIds: z.array(z.number().int().positive()),
   teamTwoRoundIds: z.array(z.number().int().positive()),
 });

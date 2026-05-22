@@ -145,7 +145,9 @@ export function HoleScoreSlide({
     [currentPutts, currentStrokes, flushSave],
   );
 
-  useImperativeHandle(ref, () => ({ applyDictatedScore }), [applyDictatedScore]);
+  useImperativeHandle(ref, () => ({ applyDictatedScore }), [
+    applyDictatedScore,
+  ]);
 
   return (
     <div className="grid grid-cols-2 gap-3">
@@ -198,7 +200,7 @@ function ScoreField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
-        className="h-14 text-center text-lg tabular-nums"
+        className="h-12 text-center text-lg tabular-nums"
         placeholder="0"
       />
     </div>

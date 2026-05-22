@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { GolfBatIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { RoundsTabContent } from "@/components/rounds-tab-content";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCoursesWithTees } from "@/db/queries/courses";
 import { getMatchById } from "@/db/queries/matches";
-import { getCurrentUser } from "@/db/queries/users";
+import { getAllUsers, getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/utils";
 import { EditMatchButton } from "./_components/edit-match-button";
 import { MatchPlayTabContent } from "./_components/match-play-tab-content";
@@ -40,12 +44,17 @@ export default async function MatchPage({ params }: MatchPageProps) {
   const canManage =
     currentUser != null &&
     (currentUser.isAdmin || currentUser.id === match.createdByUserId);
+  const currentUserRound = currentUser
+    ? match.rounds.find((round) => round.userId === currentUser.id)
+    : null;
 
-  const courses = canManage ? await getCoursesWithTees() : [];
+  const [courses, players] = canManage
+    ? await Promise.all([getCoursesWithTees(), getAllUsers()])
+    : [[], []];
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-normal">
             {match.name || "Match"}
@@ -64,6 +73,8 @@ export default async function MatchPage({ params }: MatchPageProps) {
                 roundCount: match.rounds.length,
                 rounds: match.rounds.map((round) => ({
                   id: round.id,
+                  userId: round.userId,
+                  teeId: round.teeId,
                   email: null,
                   firstName: round.firstName,
                   lastName: round.lastName,
@@ -73,10 +84,14 @@ export default async function MatchPage({ params }: MatchPageProps) {
                 teams: match.teams.map((team) => ({
                   id: team.id,
                   name: team.name,
-                  rounds: team.rounds.map((round) => ({ id: round.id })),
+                  rounds: team.rounds.map((round) => ({
+                    id: round.id,
+                    userId: round.userId,
+                  })),
                 })),
               }}
               courses={courses}
+              players={players}
             />
           ) : null}
         </div>
@@ -85,6 +100,14 @@ export default async function MatchPage({ params }: MatchPageProps) {
             .filter(Boolean)
             .join(" · ")}
         </p>
+        {currentUserRound ? (
+          <Button asChild size="xl" className="w-full">
+            <Link href={`/rounds/${currentUserRound.id}/play`}>
+              <HugeiconsIcon icon={GolfBatIcon} data-icon="inline-start" />
+              Play round
+            </Link>
+          </Button>
+        ) : null}
       </div>
 
       <Tabs defaultValue="match-play" className="w-full">

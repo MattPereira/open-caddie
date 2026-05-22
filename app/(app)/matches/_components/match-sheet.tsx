@@ -67,12 +67,14 @@ export type MatchPlayerOption = PlayerCardPlayer & { id: string };
 
 export type MatchSheetRound = PlayerCardPlayer & {
   id: number;
+  userId: string;
+  teeId: number;
 };
 
 export type MatchSheetTeam = {
   id: number;
   name: string;
-  rounds: { id: number }[];
+  rounds: { id: number; userId: string }[];
 };
 
 export type CourseOption = {
@@ -180,10 +182,12 @@ function toFormValues(match?: MatchSheetMatch): MatchFormValues {
     startsAt: match.startsAt?.slice(0, 5) ?? "",
     courseHandle: match.courseHandle ?? "",
     format: match.format,
-    teeId: 0,
-    playerUserIds: [],
-    teamOneUserIds: [],
-    teamTwoUserIds: [],
+    teeId: match.rounds[0]?.teeId ?? 0,
+    playerUserIds: match.rounds.map((round) => round.userId),
+    teamOneUserIds:
+      match.teams[0]?.rounds.map((round) => round.userId) ?? [],
+    teamTwoUserIds:
+      match.teams[1]?.rounds.map((round) => round.userId) ?? [],
     teamOneRoundIds: defaultTeamOneRoundIds,
     teamTwoRoundIds: defaultTeamTwoRoundIds,
   };
@@ -241,6 +245,14 @@ export function MatchSheet({
   );
   const requiredPlayerCount =
     selectedFormat === "singles_match_play" ? 2 : 4;
+  const existingMatchUserIds = useMemo(
+    () => new Set(match?.rounds.map((round) => round.userId) ?? []),
+    [match],
+  );
+  const canRepairFourBallTeams =
+    mode === "edit" &&
+    selectedFormat === "four_ball_match_play" &&
+    (match?.rounds.length ?? 0) < 4;
   const canAssignExistingTeams =
     mode === "edit" &&
     selectedFormat === "four_ball_match_play" &&
@@ -425,6 +437,8 @@ export function MatchSheet({
   const togglePlayer = (userId: string) => {
     const selected = selectedPlayerIds.includes(userId);
     if (selected) {
+      if (canRepairFourBallTeams && existingMatchUserIds.has(userId)) return;
+
       setArrayValue(
         "playerUserIds",
         selectedPlayerIds.filter((id) => id !== userId),
@@ -444,6 +458,10 @@ export function MatchSheet({
       setArrayValue("teamTwoUserIds", [...teamTwoUserIds, userId]);
     }
   };
+  const showPlayerPicker = mode === "create" || canRepairFourBallTeams;
+  const showCreateTeamPicker =
+    selectedFormat === "four_ball_match_play" &&
+    (mode === "create" || canRepairFourBallTeams);
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -594,7 +612,7 @@ export function MatchSheet({
                   )}
                 />
 
-                {mode === "create" ? (
+                {showPlayerPicker ? (
                   <>
                     <FormField
                       control={form.control}
@@ -610,7 +628,7 @@ export function MatchSheet({
                             <FormControl>
                               <select
                                 className={selectClass}
-                                disabled={disabled}
+                                disabled={disabled || mode === "edit"}
                                 value={field.value === 0 ? "" : String(field.value)}
                                 onBlur={field.onBlur}
                                 ref={field.ref}
@@ -703,7 +721,7 @@ export function MatchSheet({
                       )}
                     />
 
-                    {selectedFormat === "four_ball_match_play" ? (
+                    {showCreateTeamPicker ? (
                       <FormField
                         control={form.control}
                         name="teamOneUserIds"
@@ -812,7 +830,8 @@ export function MatchSheet({
                     )}
                   />
                 ) : mode === "edit" &&
-                  selectedFormat === "four_ball_match_play" ? (
+                  selectedFormat === "four_ball_match_play" &&
+                  !canRepairFourBallTeams ? (
                   <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
                     Four-ball match play requires exactly 4 player rounds.
                   </p>

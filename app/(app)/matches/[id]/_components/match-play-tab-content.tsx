@@ -3,7 +3,8 @@ import { TableFrame } from "@/components/responsive-table";
 import type { RoundScoresTableRound } from "@/components/round-scores-table";
 import { WinnerCard } from "@/components/winner-card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 import {
   Table,
@@ -37,7 +38,7 @@ type MatchPlayTeamView = {
   receivedStrokes: number;
 };
 
-type StoredMatchPlayTeam = {
+export type StoredMatchPlayTeam = {
   id: number;
   name: string;
   rounds: RoundScoresTableRound[];
@@ -46,6 +47,22 @@ type StoredMatchPlayTeam = {
 type MatchPlayHoleView = ReturnType<typeof toMatchPlayView>["holes"][number];
 
 export function MatchPlayTabContent({
+  format,
+  rounds,
+  teams = [],
+}: {
+  format: MatchFormat;
+  rounds: RoundScoresTableRound[];
+  teams?: StoredMatchPlayTeam[];
+}) {
+  return (
+    <TabsContent value="match-play" className="flex flex-col gap-5">
+      <MatchPlayContent format={format} rounds={rounds} teams={teams} />
+    </TabsContent>
+  );
+}
+
+export function MatchPlayContent({
   format,
   rounds,
   teams = [],
@@ -63,23 +80,21 @@ export function MatchPlayTabContent({
 
   if (!matchPlayTeams) {
     return (
-      <TabsContent value="match-play">
-        <Card className="border-dashed">
-          <CardContent className="py-10 text-center">
-            <p className="text-sm text-muted-foreground">
-              Match play scoring is available for singles matches with 2 rounds
-              or four-ball matches with 2 teams of 2.
-            </p>
-          </CardContent>
-        </Card>
-      </TabsContent>
+      <Card className="border-dashed">
+        <CardContent className="py-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            Match play scoring is available for singles matches with 2 rounds or
+            four-ball matches with 2 teams of 2.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
   const matchPlay = toMatchPlayView(matchPlayTeams, format);
 
   return (
-    <TabsContent value="match-play" className="flex flex-col gap-5">
+    <>
       <Alert variant="info">
         <AlertDescription className="text-base">
           {getMatchPlayExplanation(format)}
@@ -89,23 +104,39 @@ export function MatchPlayTabContent({
       <div className="flex flex-col gap-3">
         <h3 className="text-lg font-medium">Summary</h3>
         <div className="grid gap-3 md:grid-cols-2 max-w-2xl">
-          {matchPlay.teams.map((team) => (
-            <WinnerCard
-              key={team.id}
-              playerName={team.name}
-              initials={team.initials}
-              image={team.image}
-              secondary={formatTeamSecondary(team, format)}
-              primaryLabel="Holes"
-              primaryValue={formatTeamMatchStatus(team, matchPlay.finalStatus)}
-              primaryValueAdjusted={isTeamBehind(team, matchPlay.finalStatus)}
-            />
-          ))}
+          {matchPlay.teams.map((team) =>
+            format === "four_ball_match_play" ? (
+              <TeamWinnerCard
+                key={team.id}
+                team={team}
+                secondary={formatTeamSecondary(team, format)}
+                primaryValue={formatTeamMatchStatus(
+                  team,
+                  matchPlay.finalStatus,
+                )}
+                primaryValueAdjusted={isTeamBehind(team, matchPlay.finalStatus)}
+              />
+            ) : (
+              <WinnerCard
+                key={team.id}
+                playerName={team.name}
+                initials={team.initials}
+                image={team.image}
+                secondary={formatTeamSecondary(team, format)}
+                primaryLabel="Holes"
+                primaryValue={formatTeamMatchStatus(
+                  team,
+                  matchPlay.finalStatus,
+                )}
+                primaryValueAdjusted={isTeamBehind(team, matchPlay.finalStatus)}
+              />
+            ),
+          )}
         </div>
       </div>
 
       <MatchPlayTable holes={matchPlay.holes} teams={matchPlay.teams} />
-    </TabsContent>
+    </>
   );
 }
 
@@ -148,6 +179,11 @@ function MatchPlayNineTable({
   holes: MatchPlayHoleView[];
   teams: MatchPlayTeamView[];
 }) {
+  const playerColumnCount = teams.reduce(
+    (total, team) => total + team.rounds.length,
+    0,
+  );
+
   return (
     <div className="flex flex-col gap-3">
       <h3 className="text-lg font-medium">{title}</h3>
@@ -157,11 +193,18 @@ function MatchPlayNineTable({
             <TableRow>
               <TableHead className="w-12 px-2 text-center">Hole</TableHead>
               <TableHead className="w-10 px-2 text-center">Hcp</TableHead>
-              {teams.map((team) => (
-                <TableHead key={team.id} className="w-16 px-2 text-center">
-                  {team.label}
-                </TableHead>
-              ))}
+              {teams.flatMap((team) =>
+                team.rounds.map((round) => (
+                  <TableHead
+                    key={round.id}
+                    className="w-14 px-1 text-center sm:w-16"
+                  >
+                    <span className="block truncate">
+                      {formatRoundLabel(round)}
+                    </span>
+                  </TableHead>
+                )),
+              )}
               <TableHead className="w-28 px-2">Score</TableHead>
             </TableRow>
           </TableHeader>
@@ -174,24 +217,26 @@ function MatchPlayNineTable({
                 <TableCell className="px-2 text-center text-base font-medium tabular-nums">
                   {formatScore(hole.holeHandicap)}
                 </TableCell>
-                {teams.map((team) => {
-                  const result = hole.teams.find(
-                    (teamResult) => teamResult.teamId === team.id,
-                  );
+                {teams.flatMap((team) =>
+                  team.rounds.map((round) => {
+                    const result = hole.playerScores.find(
+                      (playerScore) => playerScore.roundId === round.id,
+                    );
 
-                  return (
-                    <TableCell
-                      key={team.id}
-                      className="px-2 text-center text-base tabular-nums"
-                    >
-                      <NetScore
-                        score={result?.netScore ?? null}
-                        adjusted={(result?.receivedStrokes ?? 0) > 0}
-                        wonHole={hole.winningTeamId === team.id}
-                      />
-                    </TableCell>
-                  );
-                })}
+                    return (
+                      <TableCell
+                        key={round.id}
+                        className="px-1 text-center text-base tabular-nums"
+                      >
+                        <NetScore
+                          score={result?.netScore ?? null}
+                          adjusted={(result?.receivedStrokes ?? 0) > 0}
+                          wonHole={result?.wonHole ?? false}
+                        />
+                      </TableCell>
+                    );
+                  }),
+                )}
                 <TableCell className="px-2 text-base">
                   {formatMatchPlayStatus(hole.status, teams)}
                 </TableCell>
@@ -201,7 +246,7 @@ function MatchPlayNineTable({
           <TableFooter>
             <TableRow>
               <TableCell
-                colSpan={2 + teams.length}
+                colSpan={2 + playerColumnCount}
                 className="px-2 text-base font-medium"
               >
                 {label}
@@ -213,6 +258,68 @@ function MatchPlayNineTable({
           </TableFooter>
         </Table>
       </TableFrame>
+    </div>
+  );
+}
+
+function TeamWinnerCard({
+  team,
+  secondary,
+  primaryValue,
+  primaryValueAdjusted,
+}: {
+  team: MatchPlayTeamView;
+  secondary: string;
+  primaryValue: string;
+  primaryValueAdjusted: boolean;
+}) {
+  return (
+    <Card className="overflow-hidden py-0">
+      <CardContent className="flex items-stretch gap-3 px-0">
+        <TeamAvatarPair team={team} />
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-3">
+          <div className="truncate text-base font-semibold sm:text-lg">
+            {team.name}
+          </div>
+          <CardDescription className="truncate text-sm leading-snug">
+            {secondary}
+          </CardDescription>
+        </div>
+        <div className="flex shrink-0 flex-col items-end justify-center pr-3 leading-none">
+          <span
+            className={cn(
+              "text-lg font-medium tabular-nums",
+              primaryValueAdjusted && "text-red-600 dark:text-red-500",
+            )}
+          >
+            {primaryValue}
+          </span>
+          <span className="mt-1 text-sm text-muted-foreground">Holes</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function TeamAvatarPair({ team }: { team: MatchPlayTeamView }) {
+  return (
+    <div className="flex shrink-0 overflow-hidden bg-muted">
+      {team.rounds.slice(0, 2).map((round) => {
+        const name = displayName({ ...round, email: null });
+
+        return (
+          <div key={round.id} className="size-18">
+            <Avatar className="size-full rounded-none">
+              {round.image ? (
+                <AvatarImage src={round.image} alt={name} />
+              ) : null}
+              <AvatarFallback className="rounded-none text-base">
+                {getInitials({ ...round, email: null })}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -240,6 +347,7 @@ function NetScore({
 }
 
 function toMatchPlayView(teams: MatchPlayTeamView[], format: MatchFormat) {
+  const allowance = format === "four_ball_match_play" ? 0.9 : 1;
   const result = evaluateMatchPlay(
     teams.map((team) => ({
       id: team.id,
@@ -250,9 +358,37 @@ function toMatchPlayView(teams: MatchPlayTeamView[], format: MatchFormat) {
       })),
     })),
     {
-      allowance: format === "four_ball_match_play" ? 0.9 : 1,
+      allowance,
     },
   );
+  const roundAllowances = getRoundAllowances(teams, allowance);
+  const holesWithPlayerScores = result.holes.map((hole) => ({
+    ...hole,
+    playerScores: teams.flatMap((team) => {
+      const teamResult = hole.teams.find(
+        (candidate) => candidate.teamId === team.id,
+      );
+
+      return team.rounds.map((round) => {
+        const playerScore = getRoundHoleScore({
+          round,
+          hole: hole.hole,
+          totalReceivedStrokes: roundAllowances.get(round.id) ?? 0,
+        });
+
+        return {
+          roundId: round.id,
+          teamId: team.id,
+          netScore: playerScore.netScore,
+          receivedStrokes: playerScore.receivedStrokes,
+          wonHole:
+            hole.winningTeamId === team.id &&
+            playerScore.netScore != null &&
+            playerScore.netScore === teamResult?.netScore,
+        };
+      });
+    }),
+  }));
   const teamsWithStrokes = teams.map((team) => {
     const firstHole = result.holes[0];
     const totalReceivedStrokes = firstHole
@@ -273,7 +409,7 @@ function toMatchPlayView(teams: MatchPlayTeamView[], format: MatchFormat) {
 
   return {
     teams: teamsWithStrokes,
-    holes: result.holes,
+    holes: holesWithPlayerScores,
     finalStatus: result.finalStatus,
   };
 }
@@ -294,7 +430,7 @@ function formatMatchPlayStatus(
   if (status.leadingTeamId == null || status.holesUp === 0) return "Tied";
 
   const leadingTeam = teams.find((team) => team.id === status.leadingTeamId);
-  return `${leadingTeam?.label ?? "Team"} +${status.holesUp}`;
+  return `${leadingTeam ? formatTeamPlayerInitials(leadingTeam) : "Team"} +${status.holesUp}`;
 }
 
 function formatTeamMatchStatus(
@@ -339,6 +475,63 @@ function toMatchPlayScores(round: MatchPlayRound) {
   });
 }
 
+function getRoundAllowances(teams: MatchPlayTeamView[], allowance: number) {
+  const rounds = teams.flatMap((team) => team.rounds);
+  if (rounds.length === 0) return new Map<MatchPlayRound["id"], number>();
+
+  const lowestHandicap = Math.min(
+    ...rounds.map((round) => round.playingHandicap ?? 0),
+  );
+
+  return new Map(
+    rounds.map((round) => [
+      round.id,
+      Math.max(
+        0,
+        Math.round(((round.playingHandicap ?? 0) - lowestHandicap) * allowance),
+      ),
+    ]),
+  );
+}
+
+function getRoundHoleScore({
+  round,
+  hole,
+  totalReceivedStrokes,
+}: {
+  round: MatchPlayRound;
+  hole: number;
+  totalReceivedStrokes: number;
+}) {
+  const score = round.scores.find((candidate) => candidate.hole === hole);
+  const holeHandicap =
+    round.holes.find((candidate) => candidate.hole === hole)?.handicap ?? null;
+  const receivedStrokes = getReceivedStrokesOnHole({
+    totalReceivedStrokes,
+    holeHandicap,
+  });
+
+  return {
+    netScore: score?.strokes == null ? null : score.strokes - receivedStrokes,
+    receivedStrokes,
+  };
+}
+
+function getReceivedStrokesOnHole({
+  totalReceivedStrokes,
+  holeHandicap,
+}: {
+  totalReceivedStrokes: number;
+  holeHandicap: number | null;
+}) {
+  if (holeHandicap == null || totalReceivedStrokes <= 0) return 0;
+
+  return (
+    Math.floor(totalReceivedStrokes / 18) +
+    (holeHandicap <= totalReceivedStrokes % 18 ? 1 : 0)
+  );
+}
+
 function getMatchPlayTeams({
   format,
   rounds,
@@ -380,10 +573,10 @@ function getMatchPlayTeams({
 
   return matchTeams.map((team) => ({
     id: String(team.id),
-    name: formatStoredTeamName(team.name),
+    name: formatTeamPlayerInitials({ rounds: team.rounds }),
     label: formatStoredTeamName(team.name),
-    initials: getTeamInitials(formatStoredTeamName(team.name)),
-    image: null,
+    initials: formatTeamPlayerInitials({ rounds: team.rounds }),
+    image: team.rounds.find((round) => round.image)?.image ?? null,
     rounds: team.rounds,
     receivedStrokes: 0,
   }));
@@ -397,16 +590,17 @@ function formatTeamSecondary(team: MatchPlayTeamView, format: MatchFormat) {
       : handicap;
   }
 
-  return team.rounds
-    .map((round) => displayName({ ...round, email: null }))
-    .join(" & ");
+  return team.rounds.map((round) => formatRoundLabel(round)).join(" & ");
 }
 
-function getTeamInitials(name: string) {
-  const parts = name.trim().split(/\s+/);
-  return parts
-    .slice(0, 2)
-    .map((part) => part[0])
+function formatRoundLabel(round: MatchPlayRound) {
+  const name = displayName({ ...round, email: null });
+  return round.firstName || name.split(" ")[0] || name;
+}
+
+function formatTeamPlayerInitials(team: { rounds: MatchPlayRound[] }) {
+  return team.rounds
+    .map((round) => formatRoundLabel(round)[0])
     .join("")
     .toUpperCase();
 }

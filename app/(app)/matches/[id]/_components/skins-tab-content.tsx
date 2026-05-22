@@ -51,27 +51,37 @@ export function SkinsTabContent({
 }: {
   rounds: RoundScoresTableRound[];
 }) {
+  return (
+    <TabsContent value="skins" className="flex flex-col gap-5">
+      <SkinsContent rounds={rounds} />
+    </TabsContent>
+  );
+}
+
+export function SkinsContent({
+  rounds,
+}: {
+  rounds: RoundScoresTableRound[];
+}) {
   const skinsRounds = rounds.filter(isEligibleSkinsRound);
 
   if (skinsRounds.length < 2) {
     return (
-      <TabsContent value="skins">
-        <Card className="border-dashed">
-          <CardContent className="py-10 text-center">
-            <p className="text-sm text-muted-foreground">
-              Skins scoring is available once at least two players have recorded
-              a score.
-            </p>
-          </CardContent>
-        </Card>
-      </TabsContent>
+      <Card className="border-dashed">
+        <CardContent className="py-10 text-center">
+          <p className="text-sm text-muted-foreground">
+            Skins scoring is available once at least two players have recorded
+            a score.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
   const skins = toSkinsView(skinsRounds);
 
   return (
-    <TabsContent value="skins" className="flex flex-col gap-5">
+    <>
       <Alert variant="info">
         <AlertDescription className="text-base">
           The skins game uses relative handicaps. The lowest handicap player
@@ -101,7 +111,7 @@ export function SkinsTabContent({
       <div className="flex flex-col gap-1">
         <SkinsTable holes={skins.holes} players={skins.players} />
       </div>
-    </TabsContent>
+    </>
   );
 }
 

@@ -189,9 +189,18 @@ function MatchPlayNineTable({
   holes: MatchPlayHoleView[];
   teams: MatchPlayTeamView[];
 }) {
-  const playerColumnCount = teams.reduce(
-    (total, team) => total + team.rounds.length,
-    0,
+  const roundTotals = new Map<number, number | null>();
+  teams.forEach((team) =>
+    team.rounds.forEach((round) => {
+      const total = holes.reduce<number | null>((sum, hole) => {
+        const result = hole.playerScores.find(
+          (playerScore) => playerScore.roundId === round.id,
+        );
+        if (result?.netScore == null) return sum;
+        return (sum ?? 0) + result.netScore;
+      }, null);
+      roundTotals.set(round.id, total);
+    }),
   );
 
   return (
@@ -201,8 +210,12 @@ function MatchPlayNineTable({
         <Table className="w-full sm:w-max">
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead className="w-12 px-2 text-center">Hole</TableHead>
-              <TableHead className="w-10 px-2 text-center">Hcp</TableHead>
+              <TableHead className="w-12 bg-muted/60 px-2 text-center">
+                Hole
+              </TableHead>
+              <TableHead className="w-10 border-r bg-muted/60 px-2 text-center text-muted-foreground">
+                Hcp
+              </TableHead>
               {teams.flatMap((team) =>
                 team.rounds.map((round) => (
                   <TableHead
@@ -215,16 +228,16 @@ function MatchPlayNineTable({
                   </TableHead>
                 )),
               )}
-              <TableHead className="w-28 px-2">Score</TableHead>
+              <TableHead className="w-28 border-l px-2">Tally</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {holes.map((hole) => (
               <TableRow key={hole.hole}>
-                <TableCell className="px-2 text-center text-base font-medium tabular-nums">
+                <TableCell className="bg-muted/40 px-2 text-center text-base font-medium tabular-nums">
                   {hole.hole}
                 </TableCell>
-                <TableCell className="px-2 text-center text-base font-medium tabular-nums">
+                <TableCell className="border-r bg-muted/40 px-2 text-center text-base font-medium tabular-nums text-muted-foreground">
                   {formatScore(hole.holeHandicap)}
                 </TableCell>
                 {teams.flatMap((team) =>
@@ -247,7 +260,7 @@ function MatchPlayNineTable({
                     );
                   }),
                 )}
-                <TableCell className="px-2 text-base">
+                <TableCell className="border-l px-2 text-base">
                   {formatMatchPlayStatus(hole.status, teams)}
                 </TableCell>
               </TableRow>
@@ -256,12 +269,22 @@ function MatchPlayNineTable({
           <TableFooter>
             <TableRow>
               <TableCell
-                colSpan={2 + playerColumnCount}
-                className="px-2 text-base font-medium"
+                colSpan={2}
+                className="border-r bg-muted/60 px-2 text-base font-medium text-muted-foreground"
               >
                 {label}
               </TableCell>
-              <TableCell className="px-2 text-base">
+              {teams.flatMap((team) =>
+                team.rounds.map((round) => (
+                  <TableCell
+                    key={round.id}
+                    className="px-1 text-center text-base font-medium tabular-nums"
+                  >
+                    {formatScore(roundTotals.get(round.id) ?? null)}
+                  </TableCell>
+                )),
+              )}
+              <TableCell className="border-l px-2 text-base">
                 {formatMatchPlayStatus(getLastStatus(holes), teams)}
               </TableCell>
             </TableRow>

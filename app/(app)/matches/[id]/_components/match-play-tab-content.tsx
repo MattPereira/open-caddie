@@ -228,7 +228,9 @@ function MatchPlayNineTable({
                   </TableHead>
                 )),
               )}
-              <TableHead className="w-28 border-l px-2">Tally</TableHead>
+              <TableHead className="w-28 border-l px-2 text-center">
+                Tally
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -260,7 +262,7 @@ function MatchPlayNineTable({
                     );
                   }),
                 )}
-                <TableCell className="border-l px-2 text-base">
+                <TableCell className="border-l px-2 text-center text-base">
                   {formatMatchPlayStatus(hole.status, teams)}
                 </TableCell>
               </TableRow>
@@ -270,7 +272,7 @@ function MatchPlayNineTable({
             <TableRow>
               <TableCell
                 colSpan={2}
-                className="border-r bg-muted/60 px-2 text-base font-medium text-muted-foreground"
+                className="border-r bg-muted/60 px-2 text-center text-base font-medium text-muted-foreground"
               >
                 {label}
               </TableCell>
@@ -284,7 +286,7 @@ function MatchPlayNineTable({
                   </TableCell>
                 )),
               )}
-              <TableCell className="border-l px-2 text-base">
+              <TableCell className="border-l px-2 text-center text-base">
                 {formatMatchPlayStatus(getLastStatus(holes), teams)}
               </TableCell>
             </TableRow>

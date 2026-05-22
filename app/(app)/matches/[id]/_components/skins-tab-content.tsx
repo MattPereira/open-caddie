@@ -28,6 +28,7 @@ type SkinHoleRow = {
   hole: number;
   holeHandicap: number | null;
   winningRoundId: number | null;
+  skinsAwarded: number;
   players: {
     roundId: number;
     netScore: number | null;
@@ -86,8 +87,8 @@ export function SkinsContent({
         <AlertDescription className="text-base">
           The skins game uses relative handicaps. The lowest handicap player
           serves as the baseline and other players receive the diff on the
-          hardest handicap holes. A skin is only awarded for a unique low hole
-          score.
+          hardest handicap holes. Tied holes carry over, and the next unique
+          low hole score wins the accumulated skins.
         </AlertDescription>
       </Alert>
 
@@ -182,6 +183,7 @@ function SkinsNineTable({
                         score={result?.netScore ?? null}
                         adjusted={(result?.receivedStrokes ?? 0) > 0}
                         wonHole={hole.winningRoundId === player.id}
+                        skinsAwarded={hole.skinsAwarded}
                       />
                     </TableCell>
                   );
@@ -199,16 +201,22 @@ function NetScore({
   score,
   adjusted,
   wonHole,
+  skinsAwarded,
 }: {
   score: number | null;
   adjusted: boolean;
   wonHole: boolean;
+  skinsAwarded: number;
 }) {
   return (
     <span
       className={cn(
-        "inline-flex size-7 items-center justify-center rounded-full border border-transparent tabular-nums text-foreground",
+        "inline-flex size-7 items-center justify-center rounded-full border border-transparent tabular-nums text-foreground outline outline-0 outline-offset-2 outline-transparent",
         wonHole && "border-foreground",
+        wonHole && skinsAwarded > 1 && "outline-1 outline-foreground",
+        wonHole &&
+          skinsAwarded > 2 &&
+          "relative after:absolute after:inset-[-6px] after:rounded-full after:border after:border-foreground after:content-['']",
         adjusted && "text-red-600 dark:text-red-500",
       )}
     >
@@ -267,8 +275,10 @@ function toSkinsView(rounds: SkinsRound[]) {
     })),
   );
   const holeRows: SkinHoleRow[] = [];
+  let pendingSkins = 1;
 
   for (const hole of result.holes) {
+    const isCompleteHole = hole.teams.every((team) => team.netScore != null);
     const winningRound =
       hole.winningTeamId == null
         ? null
@@ -279,6 +289,7 @@ function toSkinsView(rounds: SkinsRound[]) {
       holeHandicap: hole.holeHandicap,
       winningRoundId:
         hole.winningTeamId == null ? null : Number(hole.winningTeamId),
+      skinsAwarded: winningRound == null ? 0 : pendingSkins,
       players: hole.teams.map((team) => ({
         roundId: Number(team.teamId),
         netScore: team.netScore,
@@ -294,13 +305,19 @@ function toSkinsView(rounds: SkinsRound[]) {
     }
 
     if (winningRound == null) {
+      if (isCompleteHole) {
+        pendingSkins += 1;
+      }
+
       continue;
     }
 
     const winningPlayer = playersById.get(winningRound.id);
     if (winningPlayer) {
-      winningPlayer.skinsWon += 1;
+      winningPlayer.skinsWon += pendingSkins;
     }
+
+    pendingSkins = 1;
   }
 
   return {

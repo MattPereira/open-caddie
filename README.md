@@ -10,7 +10,7 @@ A modern golf application for match play and tournament coordination
 - Upload handwritten scores to automatically populate a round
 
 
-## Schema Changes
+### Schema Changes
 
 1. Edit `db/schema.ts` and any code that touches the affected tables.
 2. Run `pnpm run db:generate`.
@@ -22,7 +22,7 @@ A modern golf application for match play and tournament coordination
 8. Commit the app changes, `db/schema.ts`, and the generated migration files together.
 
 
-## Stack
+### Stack
 
 | Layer               | Choice                                                       |
 | ------------------- | ------------------------------------------------------------ |

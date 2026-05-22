@@ -9,19 +9,6 @@ A modern golf application for match play and tournament coordination
 - Upload scorecard image to automatically add new course data for tees, and pars, handicaps.
 - Upload handwritten scores to automatically populate a round
 
-
-### Schema Changes
-
-1. Edit `db/schema.ts` and any code that touches the affected tables.
-2. Run `pnpm run db:generate`.
-3. Read the generated SQL in `drizzle/`. Confirm it only does what you intend.
-4. Run `pnpm run db:migrate` against the intended database.
-5. Run any one-shot backfill scripts via `pnpm exec tsx scripts/<name>.ts`.
-6. Run `pnpm run dev` and smoke-test the affected flow.
-7. Run `pnpm run check`.
-8. Commit the app changes, `db/schema.ts`, and the generated migration files together.
-
-
 ### Stack
 
 | Layer               | Choice                                                       |

@@ -6,8 +6,8 @@ A modern golf application for match play and tournament coordination
 - Set up match play for two to four players with customizable rules
 - Skins games with customizable rules
 - Dictate scores verbally during a round for yourself and friends
-- Upload scorecard image to automatically add new course data for tees, and pars, handicaps.
-- Upload handwritten scores to automatically populate a round
+- Upload scorecard image to automatically add a new course
+- Upload handwritten scores image to automatically populate a round
 
 ### Stack
 

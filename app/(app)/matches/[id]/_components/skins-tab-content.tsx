@@ -1,7 +1,12 @@
 import { displayName, getInitials } from "@/components/player-card";
 import { TableFrame } from "@/components/responsive-table";
 import type { RoundScoresTableRound } from "@/components/round-scores-table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Card, CardContent } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 import {
@@ -83,14 +88,19 @@ export function SkinsContent({
 
   return (
     <>
-      <Alert variant="info">
-        <AlertDescription className="text-base">
-          The skins game uses relative handicaps. The lowest handicap player
-          serves as the baseline and other players receive the diff on the
-          hardest handicap holes. Tied holes carry over, and the next unique
-          low hole score wins the accumulated skins.
-        </AlertDescription>
-      </Alert>
+      <Accordion type="single" collapsible className="rounded-lg border px-4">
+        <AccordionItem value="rules">
+          <AccordionTrigger className="text-base">
+            How skins work
+          </AccordionTrigger>
+          <AccordionContent className="text-base text-muted-foreground">
+            The skins game uses relative handicaps. The lowest handicap player
+            serves as the baseline and other players receive the diff on the
+            hardest handicap holes. Tied holes carry over, and the next unique
+            low hole score wins the accumulated skins.
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       <div className="flex flex-col gap-3">
         <h3 className="text-lg font-medium">Summary</h3>

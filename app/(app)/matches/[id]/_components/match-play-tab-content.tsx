@@ -2,7 +2,12 @@ import { displayName, getInitials } from "@/components/player-card";
 import { TableFrame } from "@/components/responsive-table";
 import type { RoundScoresTableRound } from "@/components/round-scores-table";
 import { WinnerCard } from "@/components/winner-card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
@@ -95,11 +100,16 @@ export function MatchPlayContent({
 
   return (
     <>
-      <Alert variant="info">
-        <AlertDescription className="text-base">
-          {getMatchPlayExplanation(format)}
-        </AlertDescription>
-      </Alert>
+      <Accordion type="single" collapsible className="rounded-lg border px-4">
+        <AccordionItem value="rules">
+          <AccordionTrigger className="text-base">
+            How match play works
+          </AccordionTrigger>
+          <AccordionContent className="text-base text-muted-foreground">
+            {getMatchPlayExplanation(format)}
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       <div className="flex flex-col gap-3">
         <h3 className="text-lg font-medium">Summary</h3>

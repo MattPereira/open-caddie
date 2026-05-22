@@ -5,11 +5,10 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { GolfBatIcon, UserMultipleIcon } from "@hugeicons/core-free-icons";
 
 import { ClubMembersBrowser } from "@/app/(app)/clubs/[handle]/_components/club-members-browser";
+import { PointRulesSummary } from "@/app/(app)/clubs/[handle]/_components/point-rules-summary";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getClubByHandle, getClubMembersByHandle } from "@/db/queries/clubs";
 import { getCurrentUser } from "@/db/queries/users";
-import type { PointRules } from "@/lib/point-rules-schema";
 import { EditClubButton } from "../_components/edit-club-button";
 
 type ClubPageProps = {
@@ -50,7 +49,7 @@ export default async function ClubPage({ params }: ClubPageProps) {
           {currentUser?.isAdmin ? <EditClubButton club={club} /> : null}
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="flex flex-col gap-6">
           <ClubLogo src={club.logo} alt={club.name} />
           <PointRulesSummary pointRules={club.pointRules} />
         </div>
@@ -78,13 +77,13 @@ async function getClubFromParams(params: ClubPageProps["params"]) {
 
 function ClubLogo({ src, alt }: { src: string | null; alt: string }) {
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-lg border bg-background">
+    <div className="relative h-56 w-full overflow-hidden rounded-lg border bg-background sm:h-64 lg:h-72">
       {src ? (
         <Image
           src={src}
           alt={alt}
           fill
-          sizes="(min-width: 1024px) 50vw, 100vw"
+          sizes="100vw"
           className="object-contain p-6"
           priority
         />
@@ -93,87 +92,6 @@ function ClubLogo({ src, alt }: { src: string | null; alt: string }) {
           <HugeiconsIcon icon={GolfBatIcon} size={40} aria-hidden />
         </div>
       )}
-    </div>
-  );
-}
-
-function PointRulesSummary({ pointRules }: { pointRules: PointRules }) {
-  return (
-    <Card className="h-full">
-      <CardHeader>
-        <CardTitle>Point Rules</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-5">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          <RuleStat label="Participation" value={pointRules.participation} />
-          <RuleStat label="Pars" value={pointRules.pars} />
-          <RuleStat label="Birdies" value={pointRules.birdies} />
-          <RuleStat label="Eagles" value={pointRules.eagles} />
-          <RuleStat label="Aces" value={pointRules.aces} />
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <PositionRules
-            label="Strokes"
-            values={pointRules.strokes.positions}
-          />
-          <PositionRules label="Putts" values={pointRules.putts.positions} />
-          <GreenieRules tiers={pointRules.greenies.tiers} />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function RuleStat({ label, value }: { label: string; value: number }) {
-  return (
-    <div className="rounded-md border p-3">
-      <div className="text-xl font-semibold tabular-nums">{value}</div>
-      <div className="text-xs text-muted-foreground">{label}</div>
-    </div>
-  );
-}
-
-function PositionRules({
-  label,
-  values,
-}: {
-  label: string;
-  values: number[];
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <h3 className="text-sm font-medium">{label}</h3>
-      {values.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No position points.</p>
-      ) : (
-        <ol className="flex flex-col gap-1 text-sm">
-          {values.map((value, index) => (
-            <li key={index} className="flex justify-between gap-3">
-              <span className="text-muted-foreground">#{index + 1}</span>
-              <span className="font-medium tabular-nums">{value}</span>
-            </li>
-          ))}
-        </ol>
-      )}
-    </div>
-  );
-}
-
-function GreenieRules({ tiers }: { tiers: PointRules["greenies"]["tiers"] }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <h3 className="text-sm font-medium">Greenies</h3>
-      <ol className="flex flex-col gap-1 text-sm">
-        {tiers.map((tier, index) => (
-          <li key={index} className="flex justify-between gap-3">
-            <span className="text-muted-foreground">
-              {tier.maxFt == null ? "No max" : `Within ${tier.maxFt} ft`}
-            </span>
-            <span className="font-medium tabular-nums">{tier.pts}</span>
-          </li>
-        ))}
-      </ol>
     </div>
   );
 }

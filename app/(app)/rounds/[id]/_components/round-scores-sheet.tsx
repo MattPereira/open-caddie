@@ -14,7 +14,11 @@ import {
 } from "@/app/(app)/rounds/schema";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { HoldToConfirmButton } from "@/components/hold-to-confirm-button";
+import {
+  SheetDeleteConfirm,
+  SheetDiscardConfirm,
+  SheetFooterActions,
+} from "@/components/sheet-actions";
 import {
   Field,
   FieldContent,
@@ -35,7 +39,6 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Sheet,
-  SheetClose,
   SheetContent,
   SheetDescription,
   SheetFooter,
@@ -455,118 +458,36 @@ export function RoundScoresSheet({
 
             <SheetFooter className="shrink-0">
               {confirmingDiscard ? (
-                <div className="flex flex-col gap-3">
-                  <div className="text-sm font-medium">
-                    You have unsaved changes!
-                    <div className="text-sm font-normal text-muted-foreground">
-                      Choose how to proceed:
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-4">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="xl"
-                        className="flex-1"
-                        onClick={() => setConfirmingDiscard(false)}
-                      >
-                        Keep editing
-                      </Button>
-                      <Button
-                        type="submit"
-                        size="xl"
-                        className="flex-1"
-                        disabled={isPending}
-                      >
-                        {isPending ? "Saving..." : "Save"}
-                      </Button>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="w-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      onClick={() => {
-                        form.reset(toFormValues(round));
-                        closeSheet();
-                      }}
-                    >
-                      Discard changes
-                    </Button>
-                  </div>
-                </div>
+                <SheetDiscardConfirm
+                  isPending={isPending}
+                  onKeepEditingAction={() => setConfirmingDiscard(false)}
+                  onDiscardAction={() => {
+                    form.reset(toFormValues(round));
+                    closeSheet();
+                  }}
+                />
               ) : confirmingDelete ? (
-                <div className="flex flex-col gap-3">
-                  <div className="text-sm font-medium">
-                    Delete this round?
-                    <div className="text-sm font-normal text-muted-foreground">
-                      This permanently deletes the round and all entered scores.
-                    </div>
-                  </div>
-                  {deleteError ? (
-                    <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                      {deleteError}
-                    </p>
-                  ) : null}
-                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="xl"
-                      disabled={isDeleting}
-                      onClick={() => {
-                        setConfirmingDelete(false);
-                        setDeleteError(null);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <HoldToConfirmButton
-                      onConfirmAction={onDelete}
-                      disabled={isDeleting}
-                      idleLabel={
-                        isDeleting ? "Deleting…" : "Hold to delete round"
-                      }
-                    />
-                  </div>
-                </div>
+                <SheetDeleteConfirm
+                  title="Delete this round?"
+                  description="This permanently deletes the round and all entered scores."
+                  confirmLabel="Hold to delete round"
+                  isDeleting={isDeleting}
+                  error={deleteError}
+                  onConfirmAction={onDelete}
+                  onCancelAction={() => {
+                    setConfirmingDelete(false);
+                    setDeleteError(null);
+                  }}
+                />
               ) : (
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-lg"
-                    className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                    disabled={isPending}
-                    onClick={() => {
-                      setDeleteError(null);
-                      setConfirmingDelete(true);
-                    }}
-                    aria-label="Delete round"
-                  >
-                    <HugeiconsIcon icon={Delete02Icon} aria-hidden />
-                  </Button>
-                  <SheetClose asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="xl"
-                      disabled={isPending}
-                      className="ml-auto"
-                    >
-                      Cancel
-                    </Button>
-                  </SheetClose>
-                  <Button
-                    type="submit"
-                    size="xl"
-                    className="w-22"
-                    disabled={isPending}
-                  >
-                    {isPending ? "Saving..." : "Save"}
-                  </Button>
-                </div>
+                <SheetFooterActions
+                  isPending={isPending}
+                  onDeleteAction={() => {
+                    setDeleteError(null);
+                    setConfirmingDelete(true);
+                  }}
+                  deleteAriaLabel="Delete round"
+                />
               )}
             </SheetFooter>
           </form>

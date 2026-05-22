@@ -32,13 +32,17 @@ import {
 } from "@/components/ui/popover";
 import {
   Sheet,
-  SheetClose,
   SheetContent,
   SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  SheetDeleteConfirm,
+  SheetDiscardConfirm,
+  SheetFooterActions,
+} from "@/components/sheet-actions";
 import { cn, formatDate } from "@/lib/utils";
 import { createMatch, deleteMatch, updateMatch } from "../actions";
 import {
@@ -206,6 +210,7 @@ export function MatchSheet({
   const [isDeleting, startDeleteTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const [playerQuery, setPlayerQuery] = useState("");
 
   const form = useForm<MatchFormValues>({
@@ -213,6 +218,7 @@ export function MatchSheet({
     defaultValues: toFormValues(match),
   });
   const serverError = form.formState.errors.root?.server?.message;
+  const isDirty = form.formState.isDirty;
   const [
     selectedCourseHandle,
     selectedFormat,
@@ -264,15 +270,29 @@ export function MatchSheet({
     }
   }, [open, match, form]);
 
+  const closeSheet = () => {
+    form.clearErrors("root.server");
+    setDeleteError(null);
+    setConfirmingDelete(false);
+    setConfirmingDiscard(false);
+    setPlayerQuery("");
+    onOpenChange(false);
+  };
+
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) {
-      form.clearErrors("root.server");
-      setDeleteError(null);
-      setConfirmingDelete(false);
-      setPlayerQuery("");
+    if (nextOpen) {
+      setConfirmingDiscard(false);
+      onOpenChange(true);
+      return;
     }
 
-    onOpenChange(nextOpen);
+    if (isDirty) {
+      setConfirmingDiscard(true);
+      setConfirmingDelete(false);
+      return;
+    }
+
+    closeSheet();
   };
 
   const onDelete = () => {
@@ -285,6 +305,7 @@ export function MatchSheet({
         return;
       }
       setConfirmingDelete(false);
+      closeSheet();
       router.replace("/matches");
     });
   };
@@ -304,7 +325,7 @@ export function MatchSheet({
         });
         return;
       }
-      handleOpenChange(false);
+      closeSheet();
     });
   };
 
@@ -840,72 +861,43 @@ export function MatchSheet({
             </div>
 
             <SheetFooter className="shrink-0 border-t bg-popover">
-              {confirmingDelete && mode === "edit" && match ? (
-                <div className="flex flex-col gap-3">
-                  <p className="text-sm font-medium">
-                    Are you sure? This permanently deletes this match and its
-                    player rounds.
-                  </p>
-                  {deleteError ? (
-                    <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                      {deleteError}
-                    </p>
-                  ) : null}
-                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={isDeleting}
-                      onClick={() => {
-                        setConfirmingDelete(false);
-                        setDeleteError(null);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      disabled={isDeleting}
-                      onClick={onDelete}
-                    >
-                      {isDeleting ? "Deleting..." : "Yes, delete"}
-                    </Button>
-                  </div>
-                </div>
+              {confirmingDiscard ? (
+                <SheetDiscardConfirm
+                  isPending={isPending}
+                  onKeepEditingAction={() => setConfirmingDiscard(false)}
+                  onDiscardAction={() => {
+                    form.reset(toFormValues(match));
+                    closeSheet();
+                  }}
+                />
+              ) : confirmingDelete && mode === "edit" && match ? (
+                <SheetDeleteConfirm
+                  title="Delete this match?"
+                  description="This permanently deletes the match and its player rounds."
+                  confirmLabel="Hold to delete match"
+                  isDeleting={isDeleting}
+                  error={deleteError}
+                  onConfirmAction={onDelete}
+                  onCancelAction={() => {
+                    setConfirmingDelete(false);
+                    setDeleteError(null);
+                  }}
+                />
               ) : (
-                <>
-                  <Button type="submit" disabled={isPending}>
-                    {isPending
-                      ? "Saving..."
-                      : mode === "create"
-                        ? "Create match"
-                        : "Save changes"}
-                  </Button>
-                  <SheetClose asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={isPending}
-                    >
-                      Cancel
-                    </Button>
-                  </SheetClose>
-                  {mode === "edit" && match ? (
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      disabled={isPending}
-                      onClick={() => {
-                        setDeleteError(null);
-                        setConfirmingDelete(true);
-                      }}
-                      className="sm:mr-auto"
-                    >
-                      Delete match
-                    </Button>
-                  ) : null}
-                </>
+                <SheetFooterActions
+                  isPending={isPending}
+                  saveLabel={mode === "create" ? "Create" : "Save"}
+                  savingLabel="Saving..."
+                  onDeleteAction={
+                    mode === "edit" && match
+                      ? () => {
+                          setDeleteError(null);
+                          setConfirmingDelete(true);
+                        }
+                      : undefined
+                  }
+                  deleteAriaLabel="Delete match"
+                />
               )}
             </SheetFooter>
           </form>

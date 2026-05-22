@@ -25,13 +25,17 @@ import {
 } from "@/components/ui/popover";
 import {
   Sheet,
-  SheetClose,
   SheetContent,
   SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  SheetDeleteConfirm,
+  SheetDiscardConfirm,
+  SheetFooterActions,
+} from "@/components/sheet-actions";
 import { cn, formatDate } from "@/lib/utils";
 import {
   createTournament,
@@ -172,12 +176,14 @@ export function TournamentSheet({
   const [isDeleting, startDeleteTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
 
   const form = useForm<TournamentFormValues, unknown, TournamentFormOutput>({
     resolver: zodResolver(TournamentFormSchema),
     defaultValues: toFormValues(tournament),
   });
   const serverError = form.formState.errors.root?.server?.message;
+  const isDirty = form.formState.isDirty;
   const selectedCourseHandle = useWatch({
     control: form.control,
     name: "courseHandle",
@@ -189,14 +195,28 @@ export function TournamentSheet({
     }
   }, [open, tournament, form]);
 
+  const closeSheet = () => {
+    form.clearErrors("root.server");
+    setDeleteError(null);
+    setConfirmingDelete(false);
+    setConfirmingDiscard(false);
+    onOpenChange(false);
+  };
+
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) {
-      form.clearErrors("root.server");
-      setDeleteError(null);
-      setConfirmingDelete(false);
+    if (nextOpen) {
+      setConfirmingDiscard(false);
+      onOpenChange(true);
+      return;
     }
 
-    onOpenChange(nextOpen);
+    if (isDirty) {
+      setConfirmingDiscard(true);
+      setConfirmingDelete(false);
+      return;
+    }
+
+    closeSheet();
   };
 
   const onDelete = () => {
@@ -209,7 +229,7 @@ export function TournamentSheet({
         return;
       }
       setConfirmingDelete(false);
-      handleOpenChange(false);
+      closeSheet();
     });
   };
 
@@ -228,7 +248,7 @@ export function TournamentSheet({
         });
         return;
       }
-      handleOpenChange(false);
+      closeSheet();
     });
   };
 
@@ -428,71 +448,43 @@ export function TournamentSheet({
             </div>
 
             <SheetFooter>
-              {confirmingDelete && mode === "edit" && tournament ? (
-                <div className="flex flex-col gap-3">
-                  <p className="text-sm font-medium">
-                    Are you sure? This permanently deletes this tournament.
-                  </p>
-                  {deleteError ? (
-                    <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                      {deleteError}
-                    </p>
-                  ) : null}
-                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={isDeleting}
-                      onClick={() => {
-                        setConfirmingDelete(false);
-                        setDeleteError(null);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      disabled={isDeleting}
-                      onClick={onDelete}
-                    >
-                      {isDeleting ? "Deleting…" : "Yes, delete"}
-                    </Button>
-                  </div>
-                </div>
+              {confirmingDiscard ? (
+                <SheetDiscardConfirm
+                  isPending={isPending}
+                  onKeepEditingAction={() => setConfirmingDiscard(false)}
+                  onDiscardAction={() => {
+                    form.reset(toFormValues(tournament));
+                    closeSheet();
+                  }}
+                />
+              ) : confirmingDelete && mode === "edit" && tournament ? (
+                <SheetDeleteConfirm
+                  title="Delete this tournament?"
+                  description="This permanently deletes the tournament."
+                  confirmLabel="Hold to delete tournament"
+                  isDeleting={isDeleting}
+                  error={deleteError}
+                  onConfirmAction={onDelete}
+                  onCancelAction={() => {
+                    setConfirmingDelete(false);
+                    setDeleteError(null);
+                  }}
+                />
               ) : (
-                <>
-                  <Button type="submit" disabled={isPending}>
-                    {isPending
-                      ? "Saving…"
-                      : mode === "create"
-                        ? "Create tournament"
-                        : "Save changes"}
-                  </Button>
-                  <SheetClose asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={isPending}
-                    >
-                      Cancel
-                    </Button>
-                  </SheetClose>
-                  {mode === "edit" && tournament ? (
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      disabled={isPending}
-                      onClick={() => {
-                        setDeleteError(null);
-                        setConfirmingDelete(true);
-                      }}
-                      className="sm:mr-auto"
-                    >
-                      Delete tournament
-                    </Button>
-                  ) : null}
-                </>
+                <SheetFooterActions
+                  isPending={isPending}
+                  saveLabel={mode === "create" ? "Create" : "Save"}
+                  savingLabel="Saving…"
+                  onDeleteAction={
+                    mode === "edit" && tournament
+                      ? () => {
+                          setDeleteError(null);
+                          setConfirmingDelete(true);
+                        }
+                      : undefined
+                  }
+                  deleteAriaLabel="Delete tournament"
+                />
               )}
             </SheetFooter>
           </form>

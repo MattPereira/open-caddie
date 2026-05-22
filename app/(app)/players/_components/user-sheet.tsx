@@ -4,7 +4,6 @@ import { useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
@@ -19,13 +18,17 @@ import { getInitials } from "@/components/player-card";
 import { Input } from "@/components/ui/input";
 import {
   Sheet,
-  SheetClose,
   SheetContent,
   SheetDescription,
   SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  SheetDeleteConfirm,
+  SheetDiscardConfirm,
+  SheetFooterActions,
+} from "@/components/sheet-actions";
 import { Switch } from "@/components/ui/switch";
 import { createUser, deleteUser, updateUser } from "../actions";
 import { UserFormSchema, type UserFormValues } from "../schema";
@@ -84,6 +87,7 @@ export function UserSheet({
   const [isDeleting, startDeleteTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<UserFormValues>({
@@ -91,6 +95,7 @@ export function UserSheet({
     defaultValues: toFormValues(user),
   });
   const serverError = form.formState.errors.root?.server?.message;
+  const isDirty = form.formState.isDirty;
   const showAdminControls = mode === "create" || canManageUsers;
   const showDelete = mode === "edit" && canManageUsers && user;
 
@@ -100,14 +105,28 @@ export function UserSheet({
     }
   }, [open, user, form]);
 
+  const closeSheet = () => {
+    form.clearErrors("root.server");
+    setDeleteError(null);
+    setConfirmingDelete(false);
+    setConfirmingDiscard(false);
+    onOpenChange(false);
+  };
+
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) {
-      form.clearErrors("root.server");
-      setDeleteError(null);
-      setConfirmingDelete(false);
+    if (nextOpen) {
+      setConfirmingDiscard(false);
+      onOpenChange(true);
+      return;
     }
 
-    onOpenChange(nextOpen);
+    if (isDirty) {
+      setConfirmingDiscard(true);
+      setConfirmingDelete(false);
+      return;
+    }
+
+    closeSheet();
   };
 
   const onDelete = () => {
@@ -120,7 +139,7 @@ export function UserSheet({
         return;
       }
       setConfirmingDelete(false);
-      handleOpenChange(false);
+      closeSheet();
       onDeleted?.();
     });
   };
@@ -140,7 +159,7 @@ export function UserSheet({
         });
         return;
       }
-      handleOpenChange(false);
+      closeSheet();
       onSaved?.();
     });
   };
@@ -287,74 +306,44 @@ export function UserSheet({
             </div>
 
             <SheetFooter>
-              {confirmingDelete && showDelete ? (
-                <div className="flex flex-col gap-3">
-                  <p className="text-sm font-medium">
-                    Are you sure? This permanently deletes this user.
-                  </p>
-                  {deleteError ? (
-                    <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                      {deleteError}
-                    </p>
-                  ) : null}
-                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={isDeleting}
-                      onClick={() => {
-                        setConfirmingDelete(false);
-                        setDeleteError(null);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      disabled={isDeleting}
-                      onClick={onDelete}
-                    >
-                      {isDeleting ? "Deleting…" : "Yes, delete"}
-                    </Button>
-                  </div>
-                </div>
+              {confirmingDiscard ? (
+                <SheetDiscardConfirm
+                  isPending={isPending}
+                  onKeepEditingAction={() => setConfirmingDiscard(false)}
+                  onDiscardAction={() => {
+                    form.reset(toFormValues(user));
+                    closeSheet();
+                  }}
+                />
+              ) : confirmingDelete && showDelete ? (
+                <SheetDeleteConfirm
+                  title="Delete this user?"
+                  description="This permanently deletes the user account."
+                  confirmLabel="Hold to delete user"
+                  isDeleting={isDeleting}
+                  error={deleteError}
+                  onConfirmAction={onDelete}
+                  onCancelAction={() => {
+                    setConfirmingDelete(false);
+                    setDeleteError(null);
+                  }}
+                />
               ) : (
-                <>
-                  <Button
-                    type="submit"
-                    disabled={isPending || isUploading}
-                  >
-                    {isPending
-                      ? "Saving…"
-                      : mode === "create"
-                        ? "Create user"
-                        : "Save changes"}
-                  </Button>
-                  <SheetClose asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={isPending}
-                    >
-                      Cancel
-                    </Button>
-                  </SheetClose>
-                  {showDelete ? (
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      disabled={isPending}
-                      onClick={() => {
-                        setDeleteError(null);
-                        setConfirmingDelete(true);
-                      }}
-                      className="sm:mr-auto"
-                    >
-                      Delete user
-                    </Button>
-                  ) : null}
-                </>
+                <SheetFooterActions
+                  isPending={isPending}
+                  saveDisabled={isUploading}
+                  saveLabel={mode === "create" ? "Create" : "Save"}
+                  savingLabel="Saving…"
+                  onDeleteAction={
+                    showDelete
+                      ? () => {
+                          setDeleteError(null);
+                          setConfirmingDelete(true);
+                        }
+                      : undefined
+                  }
+                  deleteAriaLabel="Delete user"
+                />
               )}
             </SheetFooter>
           </form>

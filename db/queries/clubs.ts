@@ -1,7 +1,14 @@
 import { cache } from "react";
-import { asc, eq } from "drizzle-orm";
+import { asc, count, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { clubMembers, clubs, users } from "@/db/schema";
+import {
+  clubMembers,
+  clubs,
+  greenies,
+  rounds,
+  tournaments,
+  users,
+} from "@/db/schema";
 import type { PointRules } from "@/lib/point-rules-schema";
 
 export const getAllClubs = cache(async () => {
@@ -12,6 +19,24 @@ export const getAllClubs = cache(async () => {
 });
 
 export const getAllClubsFull = cache(async () => {
+  const membersCountSq = db
+    .select({
+      clubId: clubMembers.clubId,
+      value: count().as("value"),
+    })
+    .from(clubMembers)
+    .groupBy(clubMembers.clubId)
+    .as("mc");
+
+  const tournamentsCountSq = db
+    .select({
+      clubId: tournaments.clubId,
+      value: count().as("value"),
+    })
+    .from(tournaments)
+    .groupBy(tournaments.clubId)
+    .as("tc");
+
   const rows = await db
     .select({
       id: clubs.id,
@@ -19,8 +44,12 @@ export const getAllClubsFull = cache(async () => {
       name: clubs.name,
       logo: clubs.logo,
       pointRules: clubs.pointRules,
+      membersCount: sql<number>`coalesce("mc"."value", 0)`.mapWith(Number),
+      tournamentsCount: sql<number>`coalesce("tc"."value", 0)`.mapWith(Number),
     })
     .from(clubs)
+    .leftJoin(membersCountSq, eq(membersCountSq.clubId, clubs.id))
+    .leftJoin(tournamentsCountSq, eq(tournamentsCountSq.clubId, clubs.id))
     .orderBy(asc(clubs.name));
   return rows.map((r) => ({
     ...r,
@@ -50,6 +79,25 @@ export const getClubByHandle = cache(async (handle: string) => {
 });
 
 export const getClubMembersByHandle = cache(async (handle: string) => {
+  const roundsCountSq = db
+    .select({
+      userId: rounds.userId,
+      value: count().as("value"),
+    })
+    .from(rounds)
+    .groupBy(rounds.userId)
+    .as("rc");
+
+  const greeniesCountSq = db
+    .select({
+      userId: rounds.userId,
+      value: count().as("value"),
+    })
+    .from(greenies)
+    .innerJoin(rounds, eq(greenies.roundId, rounds.id))
+    .groupBy(rounds.userId)
+    .as("gc");
+
   return db
     .select({
       id: users.id,
@@ -59,10 +107,14 @@ export const getClubMembersByHandle = cache(async (handle: string) => {
       username: users.username,
       image: users.image,
       isAdmin: users.isAdmin,
+      roundsCount: sql<number>`coalesce("rc"."value", 0)`.mapWith(Number),
+      greeniesCount: sql<number>`coalesce("gc"."value", 0)`.mapWith(Number),
     })
     .from(clubMembers)
     .innerJoin(clubs, eq(clubMembers.clubId, clubs.id))
     .innerJoin(users, eq(clubMembers.userId, users.id))
+    .leftJoin(roundsCountSq, eq(roundsCountSq.userId, users.id))
+    .leftJoin(greeniesCountSq, eq(greeniesCountSq.userId, users.id))
     .where(eq(clubs.handle, handle))
     .orderBy(asc(users.firstName), asc(users.lastName), asc(users.email));
 });

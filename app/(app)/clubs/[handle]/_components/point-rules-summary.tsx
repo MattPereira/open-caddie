@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
 
@@ -10,24 +9,19 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { useIsMobile } from "@/hooks/use-mobile";
 import type { PointRules } from "@/lib/point-rules-schema";
 
 export function PointRulesSummary({ pointRules }: { pointRules: PointRules }) {
-  const isMobile = useIsMobile();
-  const [userOpen, setUserOpen] = useState<boolean | null>(null);
-  const open = userOpen ?? !isMobile;
-
   return (
     <Card className="py-0">
-      <Collapsible open={open} onOpenChange={setUserOpen}>
+      <Collapsible>
         <CollapsibleTrigger asChild>
           <button
             type="button"
             className="group flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50 data-[state=open]:bg-muted/50"
           >
             <span className="font-heading text-base font-medium">
-              Point Rules
+              View points rules
             </span>
             <HugeiconsIcon
               icon={ArrowDown01Icon}

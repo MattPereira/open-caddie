@@ -1,20 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { ClubCard, type ClubCardClub } from "@/components/club-card";
 import { SearchInput } from "@/components/search-input";
 
-type Club = {
-  handle: string;
-  name: string;
-  logo: string | null;
-};
-
-export function ClubsBrowser({ clubs }: { clubs: Club[] }) {
+export function ClubsBrowser({ clubs }: { clubs: ClubCardClub[] }) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -56,37 +49,11 @@ export function ClubsBrowser({ clubs }: { clubs: Club[] }) {
           ) : (
             <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
               {filtered.map((club) => (
-                <Card
+                <ClubCard
                   key={club.handle}
-                  className="gap-0 overflow-hidden py-0"
-                >
-                  <CardContent className="p-0">
-                    <Link
-                      href={`/clubs/${encodeURIComponent(club.handle)}`}
-                      className="flex w-full items-center gap-3 p-4 text-left hover:bg-accent"
-                    >
-                      <div className="relative size-10 shrink-0 overflow-hidden rounded-md bg-muted">
-                        {club.logo ? (
-                          <Image
-                            src={club.logo}
-                            alt={club.name}
-                            fill
-                            sizes="40px"
-                            className="object-cover"
-                          />
-                        ) : null}
-                      </div>
-                      <div className="flex min-w-0 flex-col">
-                        <span className="truncate text-base font-medium">
-                          {club.name}
-                        </span>
-                        <span className="truncate text-xs text-muted-foreground">
-                          {club.handle}
-                        </span>
-                      </div>
-                    </Link>
-                  </CardContent>
-                </Card>
+                  club={club}
+                  href={`/clubs/${encodeURIComponent(club.handle)}`}
+                />
               ))}
             </div>
           )}

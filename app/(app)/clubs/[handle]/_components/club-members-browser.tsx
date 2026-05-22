@@ -14,6 +14,8 @@ type ClubMember = {
   username: string | null;
   image: string | null;
   isAdmin: boolean;
+  roundsCount: number;
+  greeniesCount: number;
 };
 
 export function ClubMembersBrowser({ members }: { members: ClubMember[] }) {

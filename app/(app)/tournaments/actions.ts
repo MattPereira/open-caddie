@@ -111,7 +111,7 @@ export async function createTournament(
   }
 
   revalidatePath("/tournaments");
-  revalidatePath("/standings");
+  revalidatePath("/clubs/[handle]", "page");
   return { ok: true };
 }
 
@@ -169,7 +169,7 @@ export async function updateTournament(
 
   revalidatePath("/tournaments");
   revalidatePath(`/tournaments/${id}`);
-  revalidatePath("/standings");
+  revalidatePath("/clubs/[handle]", "page");
   return { ok: true };
 }
 
@@ -190,7 +190,7 @@ export async function deleteTournament(id: number): Promise<ActionResult> {
 
   await db.delete(tournaments).where(eq(tournaments.id, id));
   revalidatePath("/tournaments");
-  revalidatePath("/standings");
+  revalidatePath("/clubs/[handle]", "page");
   return { ok: true };
 }
 

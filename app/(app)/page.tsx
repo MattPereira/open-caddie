@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {
-  Crown03Icon,
+  ChampionIcon,
   GolfBallIcon,
   GolfBatIcon,
   GolfCartIcon,
@@ -87,13 +87,13 @@ export default async function Home() {
         <div className="grid grid-cols-2 gap-3">
           <Button asChild variant="outline" size="xl" className="w-full">
             <Link href="/tournaments">
-              <HugeiconsIcon icon={GolfBallIcon} data-icon="inline-start" />
+              <HugeiconsIcon icon={ChampionIcon} data-icon="inline-start" />
               Tournaments
             </Link>
           </Button>
           <Button asChild variant="outline" size="xl" className="w-full">
             <Link href="/matches">
-              <HugeiconsIcon icon={Crown03Icon} data-icon="inline-start" />
+              <HugeiconsIcon icon={GolfBallIcon} data-icon="inline-start" />
               Matches
             </Link>
           </Button>

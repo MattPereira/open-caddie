@@ -190,7 +190,7 @@ export async function updateUser(
   }
 
   revalidatePath("/players");
-  revalidatePath("/standings");
+  revalidatePath("/clubs/[handle]", "page");
   revalidatePath(`/players/${id}`);
   return { ok: true };
 }

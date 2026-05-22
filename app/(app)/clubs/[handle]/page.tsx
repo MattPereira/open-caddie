@@ -4,16 +4,23 @@ import { notFound } from "next/navigation";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { GolfBatIcon, UserMultipleIcon } from "@hugeicons/core-free-icons";
 
+import { ClubStandingsSeasonSelect } from "@/app/(app)/clubs/[handle]/_components/club-standings-season-select";
 import { ClubMembersBrowser } from "@/app/(app)/clubs/[handle]/_components/club-members-browser";
 import { PointRulesSummary } from "@/app/(app)/clubs/[handle]/_components/point-rules-summary";
+import { appPageIcons } from "@/components/app-nav-items";
+import { StandingsTable } from "@/components/standings-table";
 import { Badge } from "@/components/ui/badge";
 import { getClubByHandle, getClubMembersByHandle } from "@/db/queries/clubs";
+import { getClubSeasons, getSeasonStandings } from "@/db/queries/standings";
 import { getCurrentUser } from "@/db/queries/users";
 import { EditClubButton } from "../_components/edit-club-button";
 
 type ClubPageProps = {
   params: Promise<{
     handle: string;
+  }>;
+  searchParams: Promise<{
+    season?: string;
   }>;
 };
 
@@ -29,15 +36,30 @@ export async function generateMetadata({
   };
 }
 
-export default async function ClubPage({ params }: ClubPageProps) {
+export default async function ClubPage({
+  params,
+  searchParams,
+}: ClubPageProps) {
   const club = await getClubFromParams(params);
 
   if (!club) notFound();
 
-  const [currentUser, members] = await Promise.all([
-    getCurrentUser(),
-    getClubMembersByHandle(club.handle),
-  ]);
+  const [{ season: requestedSeason }, currentUser, members, seasons] =
+    await Promise.all([
+      searchParams,
+      getCurrentUser(),
+      getClubMembersByHandle(club.handle),
+      getClubSeasons(club.id),
+    ]);
+  const seasonOptions = seasons.map((season) => season.season);
+  const selectedSeason = getSelectedSeason(requestedSeason, seasonOptions);
+  const standings =
+    selectedSeason == null
+      ? null
+      : await getSeasonStandings({
+          clubId: club.id,
+          season: selectedSeason,
+        });
 
   return (
     <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
@@ -51,14 +73,40 @@ export default async function ClubPage({ params }: ClubPageProps) {
 
         <div className="flex flex-col gap-6">
           <ClubLogo src={club.logo} alt={club.name} />
-          <PointRulesSummary pointRules={club.pointRules} />
         </div>
       </div>
 
       <section className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="flex items-center gap-2 text-xl font-semibold tracking-normal">
+            <HugeiconsIcon
+              icon={appPageIcons.standings}
+              className="size-5"
+              aria-hidden
+            />
+            Standings
+          </h2>
+          {selectedSeason != null && seasonOptions.length > 0 ? (
+            <ClubStandingsSeasonSelect
+              seasons={seasonOptions}
+              selectedSeason={selectedSeason}
+            />
+          ) : null}
+        </div>
+        <div className="grid min-w-0 gap-3 lg:inline-grid lg:max-w-180">
+          <PointRulesSummary pointRules={club.pointRules} />
+          {standings ? <StandingsTable standings={standings} /> : null}
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
-          <h2 className="flex items-center gap-2 text-lg font-semibold tracking-normal">
-            <HugeiconsIcon icon={UserMultipleIcon} size={20} aria-hidden />
+          <h2 className="flex items-center gap-2 text-xl font-semibold tracking-normal">
+            <HugeiconsIcon
+              icon={UserMultipleIcon}
+              className="size-5"
+              aria-hidden
+            />
             Members
           </h2>
           <Badge variant="secondary">{members.length}</Badge>
@@ -67,6 +115,24 @@ export default async function ClubPage({ params }: ClubPageProps) {
       </section>
     </main>
   );
+}
+
+function getSelectedSeason(
+  requestedSeason: string | undefined,
+  seasonOptions: number[],
+) {
+  if (seasonOptions.length === 0) return null;
+
+  const parsed = requestedSeason == null ? null : Number(requestedSeason);
+  if (
+    parsed != null &&
+    Number.isInteger(parsed) &&
+    seasonOptions.includes(parsed)
+  ) {
+    return parsed;
+  }
+
+  return seasonOptions[0];
 }
 
 async function getClubFromParams(params: ClubPageProps["params"]) {

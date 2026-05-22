@@ -48,7 +48,7 @@ export async function createClub(
   }
 
   revalidatePath("/clubs");
-  revalidatePath("/standings");
+  revalidatePath("/clubs/[handle]", "page");
   return { ok: true };
 }
 
@@ -81,6 +81,6 @@ export async function updateClub(
 
   revalidatePath("/clubs");
   revalidatePath(`/clubs/${handle}`);
-  revalidatePath("/standings");
+  revalidatePath("/clubs/[handle]", "page");
   return { ok: true };
 }

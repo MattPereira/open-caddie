@@ -72,6 +72,16 @@ export function RoundPlay({
   );
   const [delegateRoundId, setDelegateRoundId] = useDelegateRoundId(roundId);
 
+  const summary =
+    tableRound.tournamentId != null
+      ? {
+          label: "View tournament",
+          href: `/tournaments/${tableRound.tournamentId}`,
+        }
+      : tableRound.matchId != null
+        ? { label: "View match", href: `/matches/${tableRound.matchId}` }
+        : { label: "Round summary", href: `/rounds/${roundId}` };
+
   return (
     <RoundScoresForm
       roundId={roundId}
@@ -80,14 +90,14 @@ export function RoundPlay({
       date={date}
       holes={holes}
       scores={scores}
-      setScores={setScores}
+      setScoresAction={setScores}
       tees={tees}
       matchPlayers={matchPlayers}
       matchScoreboard={matchScoreboard}
       delegateRoundId={delegateRoundId}
-      setDelegateRoundId={setDelegateRoundId}
-      onShowSummary={() => router.push(`/rounds/${roundId}`)}
-      onAbandoned={() => router.push("/")}
+      setDelegateRoundIdAction={setDelegateRoundId}
+      onShowSummaryAction={() => router.push(summary.href)}
+      summaryLabel={summary.label}
     />
   );
 }

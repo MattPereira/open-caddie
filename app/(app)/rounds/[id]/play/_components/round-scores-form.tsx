@@ -117,14 +117,14 @@ type RoundScoresFormProps = {
     yards: number | null;
   }[];
   scores: ScoreEntry[];
-  setScores: Dispatch<SetStateAction<ScoreEntry[]>>;
+  setScoresAction: Dispatch<SetStateAction<ScoreEntry[]>>;
   tees: SettingsTee[];
   matchPlayers: MatchPlayer[];
   matchScoreboard: MatchScoreboard | null;
   delegateRoundId: number | null;
-  setDelegateRoundId: (next: number | null) => void;
-  onShowSummary: () => void;
-  onAbandoned: () => void;
+  setDelegateRoundIdAction: (next: number | null) => void;
+  onShowSummaryAction: () => void;
+  summaryLabel: string;
 };
 
 export function RoundScoresForm({
@@ -134,13 +134,14 @@ export function RoundScoresForm({
   date,
   holes,
   scores,
-  setScores,
+  setScoresAction,
   tees,
   matchPlayers,
   matchScoreboard,
   delegateRoundId,
-  setDelegateRoundId,
-  onShowSummary,
+  setDelegateRoundIdAction,
+  onShowSummaryAction,
+  summaryLabel,
 }: RoundScoresFormProps) {
   const initialScores = useMemo(
     () => buildInitialScores(round.scores, holes),
@@ -440,7 +441,7 @@ export function RoundScoresForm({
                   selfInitialStrokes={entry.strokes}
                   selfInitialPutts={entry.putts}
                   onSelfScoreChangeAction={(patch) =>
-                    saveScore(roundId, setScores, scores, entry.hole, patch)
+                    saveScore(roundId, setScoresAction, scores, entry.hole, patch)
                   }
                   delegate={
                     delegatePlayer && delegateName
@@ -541,7 +542,7 @@ export function RoundScoresForm({
           tees={tees}
           matchPlayers={matchPlayers}
           delegateRoundId={delegateRoundId}
-          setDelegateRoundId={setDelegateRoundId}
+          setDelegateRoundIdAction={setDelegateRoundIdAction}
           fullWidth={round.tournamentId == null && round.matchId == null}
         />
         {round.tournamentId != null ? (
@@ -555,8 +556,8 @@ export function RoundScoresForm({
       </div>
 
       {isComplete ? (
-        <Button type="button" size="2xl" onClick={onShowSummary}>
-          Round summary
+        <Button type="button" size="2xl" onClick={onShowSummaryAction}>
+          {summaryLabel}
         </Button>
       ) : null}
     </div>
@@ -849,7 +850,7 @@ function SettingsDialog({
   tees,
   matchPlayers,
   delegateRoundId,
-  setDelegateRoundId,
+  setDelegateRoundIdAction,
   fullWidth,
 }: {
   roundId: number;
@@ -857,7 +858,7 @@ function SettingsDialog({
   tees: SettingsTee[];
   matchPlayers: MatchPlayer[];
   delegateRoundId: number | null;
-  setDelegateRoundId: (next: number | null) => void;
+  setDelegateRoundIdAction: (next: number | null) => void;
   fullWidth: boolean;
 }) {
   const router = useRouter();
@@ -1099,7 +1100,7 @@ function SettingsDialog({
                             : String(delegateRoundId)
                         }
                         onValueChange={(value) =>
-                          setDelegateRoundId(
+                          setDelegateRoundIdAction(
                             value === "none" ? null : Number(value),
                           )
                         }

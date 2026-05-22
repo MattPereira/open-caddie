@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
+import { HoleScore } from "@/components/round-scores-card";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import type { ScoreEntry } from "./round-score-state";
@@ -88,6 +89,9 @@ export function PlayScoresOverview({
           const scoreByHole = new Map(
             player.scores.map((entry) => [entry.hole, entry]),
           );
+          const pars = nineHoles.map(
+            (hole) => scoreByHole.get(hole)?.par ?? null,
+          );
           const nineStrokes = nineHoles.map(
             (hole) => scoreByHole.get(hole)?.strokes ?? null,
           );
@@ -104,6 +108,7 @@ export function PlayScoresOverview({
               currentHole={currentHole}
               playerKey={player.key}
               label={showLabels ? player.label : null}
+              pars={pars}
               strokes={nineStrokes}
               putts={ninePutts}
               strokeTotal={strokeTotal}
@@ -121,6 +126,7 @@ function PlayerSection({
   currentHole,
   playerKey,
   label,
+  pars,
   strokes,
   putts,
   strokeTotal,
@@ -130,6 +136,7 @@ function PlayerSection({
   currentHole: number;
   playerKey: string;
   label: string | null;
+  pars: (number | null)[];
   strokes: (number | null)[];
   putts: (number | null)[];
   strokeTotal: number | null;
@@ -149,7 +156,12 @@ function PlayerSection({
           bordered={!label}
           highlight={hole === currentHole}
         >
-          {strokes[index]}
+          <HoleScore
+            score={strokes[index]}
+            par={pars[index]}
+            showSymbol
+            size="sm"
+          />
         </Cell>
       ))}
       <Cell bordered={!label} total>

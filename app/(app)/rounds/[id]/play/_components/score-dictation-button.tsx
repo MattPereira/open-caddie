@@ -10,8 +10,10 @@ import { cn } from "@/lib/utils";
 import {
   type BrowserSpeechRecognition,
   type ScoreDictationPatch,
+  type TwoPlayerScoreDictation,
   getSpeechRecognitionConstructor,
   parseScoreDictation,
+  parseTwoPlayerScoreDictation,
 } from "./score-dictation";
 
 type DictationStatus =
@@ -22,30 +24,48 @@ type DictationStatus =
   | "blocked"
   | "error";
 
-type ScoreDictationButtonProps = {
+type SingleModeProps = {
+  mode?: "single";
   par: number;
   onDictatedScoreAction: (patch: ScoreDictationPatch) => void;
 };
 
-export function ScoreDictationButton({
-  par,
-  onDictatedScoreAction,
-}: ScoreDictationButtonProps) {
+type DuoModeProps = {
+  mode: "duo";
+  par: number;
+  selfName: string;
+  delegateName: string;
+  onDictatedDuoScoreAction: (patch: TwoPlayerScoreDictation) => void;
+};
+
+type ScoreDictationButtonProps = SingleModeProps | DuoModeProps;
+
+export function ScoreDictationButton(props: ScoreDictationButtonProps) {
+  const { par } = props;
+  const mode = props.mode ?? "single";
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
   const didParseScoreRef = useRef(false);
   const didManuallyStopRef = useRef(false);
   const statusRef = useRef<DictationStatus>("idle");
   const [status, setStatus] = useState<DictationStatus>("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const idleHelperText =
+    mode === "duo"
+      ? 'Say 4 numbers like "five two four one"'
+      : 'Say "five, two" or "five strokes, two putts"';
+  const errorHelperText =
+    mode === "duo"
+      ? 'Try again with "five two four one"'
+      : 'Try again with "five, two"';
   const helperText =
     message ??
     {
-      idle: 'Say "five, two" or "five strokes, two putts"',
+      idle: idleHelperText,
       listening: "Listening stops automatically",
       success: "Score updated",
       unsupported: "Speech dictation is not supported in this browser",
       blocked: "Microphone access is blocked",
-      error: 'Try again with "five, two"',
+      error: errorHelperText,
     }[status];
 
   function setDictationStatus(nextStatus: DictationStatus) {
@@ -87,8 +107,32 @@ export function ScoreDictationButton({
         .map((result) => result.transcript)
         .join(" ")
         .trim();
-      const patch = parseScoreDictation(transcript, par);
 
+      if (props.mode === "duo") {
+        const duoPatch = parseTwoPlayerScoreDictation(transcript);
+        if (!duoPatch) {
+          setDictationStatus("error");
+          setMessage(
+            transcript
+              ? `I heard "${transcript}" but couldn't read scores`
+              : 'I didn\'t catch that. Try "five two four one"',
+          );
+          return;
+        }
+        didParseScoreRef.current = true;
+        setDictationStatus("success");
+        setMessage(
+          formatDuoSavedScoreMessage(
+            duoPatch,
+            props.selfName,
+            props.delegateName,
+          ),
+        );
+        props.onDictatedDuoScoreAction(duoPatch);
+        return;
+      }
+
+      const patch = parseScoreDictation(transcript, par);
       if (!patch) {
         setDictationStatus("error");
         setMessage(
@@ -102,7 +146,7 @@ export function ScoreDictationButton({
       didParseScoreRef.current = true;
       setDictationStatus("success");
       setMessage(formatSavedScoreMessage(patch));
-      onDictatedScoreAction(patch);
+      props.onDictatedScoreAction(patch);
     };
     recognition.onerror = (event) => {
       if (event.error === "not-allowed") {
@@ -127,7 +171,7 @@ export function ScoreDictationButton({
         setMessage("Stopped listening. Tap again when ready");
         setDictationStatus("idle");
       } else {
-        setMessage('I didn\'t catch that. Try "five, two"');
+        setMessage(`I didn't catch that. ${errorHelperText}`);
         setDictationStatus("error");
       }
     };
@@ -158,7 +202,11 @@ export function ScoreDictationButton({
         aria-label={
           status === "listening" ? "Stop score dictation" : "Dictate score"
         }
-        title='Try "five, two" or "five strokes, two putts"'
+        title={
+          mode === "duo"
+            ? 'Try "five two four one"'
+            : 'Try "five, two" or "five strokes, two putts"'
+        }
       >
         <HugeiconsIcon
           icon={status === "unsupported" ? MicOff02Icon : Mic02Icon}
@@ -198,6 +246,29 @@ function ListeningWaveform() {
       <span className="h-3 w-1 animate-pulse rounded-full bg-current/75" />
     </span>
   );
+}
+
+function formatDuoSavedScoreMessage(
+  patch: TwoPlayerScoreDictation,
+  selfName: string,
+  delegateName: string,
+) {
+  const parts = [
+    patch.you ? `${selfName} ${formatPatchSummary(patch.you)}` : null,
+    patch.delegate
+      ? `${delegateName} ${formatPatchSummary(patch.delegate)}`
+      : null,
+  ].filter(Boolean);
+  return parts.length ? `Saved ${parts.join(" & ")}` : "Score updated";
+}
+
+function formatPatchSummary(patch: ScoreDictationPatch) {
+  return [
+    patch.strokes == null ? null : `${patch.strokes}`,
+    patch.putts == null ? null : `${patch.putts}`,
+  ]
+    .filter(Boolean)
+    .join("-");
 }
 
 function formatSavedScoreMessage(patch: ScoreDictationPatch) {

@@ -150,3 +150,7 @@ End-of-each-phase smoke check:
 - **P7** — Holding dictation in duo mode, say "five two four one" → both rows update. Single mode parses single-player phrases unchanged.
 
 **Final end-to-end:** as user A in a match, select user B as delegate in Settings → Scoring, walk through 18 holes via voice + manual entry, then log in as user B and verify all scores landed on their round. Tournament-only round still shows no Scoring tab.
+
+
+## Final Note
+- After implemention complete remind Matt to consider guarding against overlap of player entering scores if someone else is already delegating for them or same player being delegated by multiple users?

@@ -83,16 +83,20 @@ function scoreTermToStrokes(tokens: string[], par: number) {
   return null;
 }
 
-export function parseScoreDictation(
-  transcript: string,
-  par: number,
-): ScoreDictationPatch | null {
-  const tokens = transcript
+function tokenize(transcript: string): string[] {
+  return transcript
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, " ")
     .replace(/-/g, " ")
     .split(/\s+/)
     .filter(Boolean);
+}
+
+export function parseScoreDictation(
+  transcript: string,
+  par: number,
+): ScoreDictationPatch | null {
+  const tokens = tokenize(transcript);
 
   if (!tokens.length) return null;
 
@@ -162,5 +166,45 @@ export function parseScoreDictation(
 
   if (strokes == null && putts == null) return null;
 
+  return { strokes, putts };
+}
+
+export type TwoPlayerScoreDictation = {
+  you: ScoreDictationPatch | null;
+  delegate: ScoreDictationPatch | null;
+};
+
+export function parseTwoPlayerScoreDictation(
+  transcript: string,
+): TwoPlayerScoreDictation | null {
+  const tokens = tokenize(transcript);
+  if (!tokens.length) return null;
+
+  const numbers: number[] = [];
+  for (const token of tokens) {
+    if (/^\d{2,}$/.test(token)) {
+      for (const digit of token.split("")) numbers.push(Number(digit));
+    } else {
+      const value = getTokenNumber(token);
+      if (value != null) numbers.push(value);
+    }
+  }
+
+  if (numbers.length !== 4) return null;
+
+  const you = toPatch(numbers[0], numbers[1]);
+  const delegate = toPatch(numbers[2], numbers[3]);
+  if (!you || !delegate) return null;
+
+  return { you, delegate };
+}
+
+function toPatch(
+  strokesValue: number | null,
+  puttsValue: number | null,
+): ScoreDictationPatch | null {
+  const strokes = strokesValue != null && strokesValue >= 1 ? strokesValue : null;
+  const putts = puttsValue != null && puttsValue >= 0 ? puttsValue : null;
+  if (strokes == null && putts == null) return null;
   return { strokes, putts };
 }

@@ -28,6 +28,65 @@ import {
   type RoundScoresUpdateValues,
 } from "./schema";
 
+type WritableRound = {
+  id: number;
+  userId: string;
+  courseId: number;
+  tournamentId: number | null;
+  matchId: number | null;
+};
+
+async function assertCanWriteToRound(
+  sessionUserId: string,
+  roundId: number,
+): Promise<{ ok: true; round: WritableRound } | { ok: false; error: string }> {
+  const [round] = await db
+    .select({
+      id: rounds.id,
+      userId: rounds.userId,
+      courseId: rounds.courseId,
+      tournamentId: rounds.tournamentId,
+      matchId: rounds.matchId,
+    })
+    .from(rounds)
+    .where(eq(rounds.id, roundId))
+    .limit(1);
+  if (!round) {
+    return { ok: false, error: "Round not found." };
+  }
+
+  if (round.userId === sessionUserId) {
+    return { ok: true, round };
+  }
+
+  const [currentUser] = await db
+    .select({ isAdmin: users.isAdmin })
+    .from(users)
+    .where(eq(users.id, sessionUserId))
+    .limit(1);
+  if (currentUser?.isAdmin) {
+    return { ok: true, round };
+  }
+
+  if (round.matchId != null) {
+    const [peerRound] = await db
+      .select({ id: rounds.id })
+      .from(rounds)
+      .where(
+        and(
+          eq(rounds.matchId, round.matchId),
+          eq(rounds.userId, sessionUserId),
+        ),
+      )
+      .limit(1);
+    if (peerRound) {
+      return { ok: true, round };
+    }
+  }
+
+  return { ok: false, error: "Round not found." };
+}
+
 export async function createRound(
   values: RoundConfigValues,
 ): Promise<{ ok: true; roundId: number } | { ok: false; error: string }> {
@@ -190,19 +249,9 @@ export async function upsertRoundScore(
 
   const { roundId, hole, strokes, putts } = parsed.data;
 
-  const [owned] = await db
-    .select({
-      id: rounds.id,
-      userId: rounds.userId,
-      tournamentId: rounds.tournamentId,
-      matchId: rounds.matchId,
-    })
-    .from(rounds)
-    .where(and(eq(rounds.id, roundId), eq(rounds.userId, session.user.id)))
-    .limit(1);
-  if (!owned) {
-    return { ok: false, error: "Round not found." };
-  }
+  const auth_ = await assertCanWriteToRound(session.user.id, roundId);
+  if (!auth_.ok) return auth_;
+  const { round: owned } = auth_;
 
   try {
     await db
@@ -249,20 +298,9 @@ export async function upsertRoundGreenie(
 
   const { roundId, hole, feet, inches } = parsed.data;
 
-  const [owned] = await db
-    .select({
-      id: rounds.id,
-      userId: rounds.userId,
-      courseId: rounds.courseId,
-      tournamentId: rounds.tournamentId,
-      matchId: rounds.matchId,
-    })
-    .from(rounds)
-    .where(and(eq(rounds.id, roundId), eq(rounds.userId, session.user.id)))
-    .limit(1);
-  if (!owned) {
-    return { ok: false, error: "Round not found." };
-  }
+  const auth_ = await assertCanWriteToRound(session.user.id, roundId);
+  if (!auth_.ok) return auth_;
+  const { round: owned } = auth_;
 
   const [parThreeHole] = await db
     .select({ hole: courseHoles.hole })
@@ -335,19 +373,9 @@ export async function deleteRoundGreenie(
 
   const { roundId, hole } = parsed.data;
 
-  const [owned] = await db
-    .select({
-      id: rounds.id,
-      userId: rounds.userId,
-      tournamentId: rounds.tournamentId,
-      matchId: rounds.matchId,
-    })
-    .from(rounds)
-    .where(and(eq(rounds.id, roundId), eq(rounds.userId, session.user.id)))
-    .limit(1);
-  if (!owned) {
-    return { ok: false, error: "Round not found." };
-  }
+  const auth_ = await assertCanWriteToRound(session.user.id, roundId);
+  if (!auth_.ok) return auth_;
+  const { round: owned } = auth_;
 
   await db
     .delete(greenies)

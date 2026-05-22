@@ -12,6 +12,8 @@ const SAVE_DEBOUNCE_MS = 400;
 
 type HoleGreenieManagerProps = {
   hole: number;
+  idPrefix: string;
+  playerName: string;
   initialGreenie: GreenieValue | null;
   onSaveAction: (value: GreenieValue) => void;
   onDeleteAction: () => void;
@@ -37,6 +39,8 @@ function parseInches(value: string): number | null {
 
 export function HoleGreenieManager({
   hole,
+  idPrefix,
+  playerName,
   initialGreenie,
   onSaveAction,
   onDeleteAction,
@@ -141,18 +145,17 @@ export function HoleGreenieManager({
         variant="default"
         size="2xl"
         onClick={() => setMode("editing")}
-        className="mt-8"
       >
-        Add Greenie
+        Add {playerName} Greenie
       </Button>
     );
   }
 
-  const feetId = `hole-${hole}-greenie-feet`;
-  const inchesId = `hole-${hole}-greenie-inches`;
+  const feetId = `${idPrefix}-hole-${hole}-greenie-feet`;
+  const inchesId = `${idPrefix}-hole-${hole}-greenie-inches`;
   return (
     <div className="flex flex-col gap-2">
-      <Label htmlFor={feetId}>Greenie</Label>
+      <Label htmlFor={feetId}>{playerName} Greenie</Label>
       <div className="flex gap-3 items-end">
         <Input
           id={feetId}

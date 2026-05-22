@@ -7,19 +7,23 @@ import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import type { ScoreEntry } from "./round-score-state";
 
-type PlayScoresOverviewProps = {
+export type PlayerRows = {
+  key: string;
+  label: string;
   scores: ScoreEntry[];
+};
+
+type PlayScoresOverviewProps = {
+  players: PlayerRows[];
   currentHole: number;
-  greenieHoles?: Set<number>;
 };
 
 const frontNine = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const backNine = [10, 11, 12, 13, 14, 15, 16, 17, 18];
 
 export function PlayScoresOverview({
-  scores,
+  players,
   currentHole,
-  greenieHoles = new Set(),
 }: PlayScoresOverviewProps) {
   const [visibleNine, setVisibleNine] = useState<"front" | "back">(
     currentHole > 9 ? "back" : "front",
@@ -36,13 +40,7 @@ export function PlayScoresOverview({
 
   const nineHoles = visibleNine === "back" ? backNine : frontNine;
   const totalLabel = visibleNine === "back" ? "In" : "Out";
-
-  const scoreByHole = new Map(scores.map((s) => [s.hole, s]));
-
-  const nineStrokes = nineHoles.map((h) => scoreByHole.get(h)?.strokes ?? null);
-  const ninePutts = nineHoles.map((h) => scoreByHole.get(h)?.putts ?? null);
-  const strokeTotal = sumNonNull(nineStrokes);
-  const puttTotal = sumNonNull(ninePutts);
+  const showLabels = players.length > 1;
 
   return (
     <div className="relative">
@@ -74,37 +72,103 @@ export function PlayScoresOverview({
       </div>
 
       <div className="grid grid-cols-10 overflow-hidden rounded-lg ring-1 ring-border">
-        {/* Hole header row */}
         {nineHoles.map((hole) => (
           <Cell
             key={`h-${hole}`}
             muted
             header
             highlight={hole === currentHole}
-            greenie={greenieHoles.has(hole) && hole !== currentHole}
           >
             {hole}
           </Cell>
         ))}
         <Cell muted header>{totalLabel}</Cell>
 
-        {/* Strokes row */}
-        {nineHoles.map((hole) => (
-          <Cell key={`s-${hole}`} bordered highlight={hole === currentHole}>
-            {scoreByHole.get(hole)?.strokes ?? null}
-          </Cell>
-        ))}
-        <Cell bordered total>{strokeTotal}</Cell>
+        {players.map((player) => {
+          const scoreByHole = new Map(
+            player.scores.map((entry) => [entry.hole, entry]),
+          );
+          const nineStrokes = nineHoles.map(
+            (hole) => scoreByHole.get(hole)?.strokes ?? null,
+          );
+          const ninePutts = nineHoles.map(
+            (hole) => scoreByHole.get(hole)?.putts ?? null,
+          );
+          const strokeTotal = sumNonNull(nineStrokes);
+          const puttTotal = sumNonNull(ninePutts);
 
-        {/* Putts row */}
-        {nineHoles.map((hole) => (
-          <Cell key={`p-${hole}`} bordered highlight={hole === currentHole}>
-            {scoreByHole.get(hole)?.putts ?? null}
-          </Cell>
-        ))}
-        <Cell bordered total>{puttTotal}</Cell>
+          return (
+            <PlayerSection
+              key={player.key}
+              nineHoles={nineHoles}
+              currentHole={currentHole}
+              playerKey={player.key}
+              label={showLabels ? player.label : null}
+              strokes={nineStrokes}
+              putts={ninePutts}
+              strokeTotal={strokeTotal}
+              puttTotal={puttTotal}
+            />
+          );
+        })}
       </div>
     </div>
+  );
+}
+
+function PlayerSection({
+  nineHoles,
+  currentHole,
+  playerKey,
+  label,
+  strokes,
+  putts,
+  strokeTotal,
+  puttTotal,
+}: {
+  nineHoles: number[];
+  currentHole: number;
+  playerKey: string;
+  label: string | null;
+  strokes: (number | null)[];
+  putts: (number | null)[];
+  strokeTotal: number | null;
+  puttTotal: number | null;
+}) {
+  return (
+    <>
+      {label ? (
+        <div className="col-span-10 border-y border-border px-2 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </div>
+      ) : null}
+
+      {nineHoles.map((hole, index) => (
+        <Cell
+          key={`s-${playerKey}-${hole}`}
+          bordered={!label}
+          highlight={hole === currentHole}
+        >
+          {strokes[index]}
+        </Cell>
+      ))}
+      <Cell bordered={!label} total>
+        {strokeTotal}
+      </Cell>
+
+      {nineHoles.map((hole, index) => (
+        <Cell
+          key={`p-${playerKey}-${hole}`}
+          bordered
+          highlight={hole === currentHole}
+        >
+          {putts[index]}
+        </Cell>
+      ))}
+      <Cell bordered total>
+        {puttTotal}
+      </Cell>
+    </>
   );
 }
 
@@ -114,7 +178,6 @@ function Cell({
   header,
   bordered,
   highlight,
-  greenie,
   total,
 }: {
   children?: ReactNode;
@@ -122,7 +185,6 @@ function Cell({
   header?: boolean;
   bordered?: boolean;
   highlight?: boolean;
-  greenie?: boolean;
   total?: boolean;
 }) {
   return (
@@ -133,17 +195,15 @@ function Cell({
         muted && !highlight ? "bg-muted" : "",
         highlight ? "bg-muted/60" : "",
         bordered && "border-t border-border",
-        greenie
-          ? "font-bold text-green-600 dark:text-green-400"
-          : header && highlight
-            ? "font-bold text-foreground"
-            : header
-              ? "text-muted-foreground"
-              : highlight
-                ? "font-semibold text-foreground"
-                : total
-                  ? "font-semibold"
-                  : "font-normal",
+        header && highlight
+          ? "font-bold text-foreground"
+          : header
+            ? "text-muted-foreground"
+            : highlight
+              ? "font-semibold text-foreground"
+              : total
+                ? "font-semibold"
+                : "font-normal",
       )}
     >
       {children ?? "—"}

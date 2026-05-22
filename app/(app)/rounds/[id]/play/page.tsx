@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { getMatchById } from "@/db/queries/matches";
 import { getRoundById } from "@/db/queries/rounds";
 import { getTournamentById } from "@/db/queries/tournaments";
 import { getCurrentUser } from "@/db/queries/users";
@@ -23,10 +24,33 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
 
   if (!round || !currentUser) notFound();
   if (currentUser.id !== round.userId && !currentUser.isAdmin) notFound();
-  const tournament =
+  const [tournament, match] = await Promise.all([
     round.tournamentId == null
-      ? null
-      : await getTournamentById(round.tournamentId);
+      ? Promise.resolve(null)
+      : getTournamentById(round.tournamentId),
+    round.matchId == null ? Promise.resolve(null) : getMatchById(round.matchId),
+  ]);
+
+  const matchPlayers =
+    match?.rounds
+      .filter((matchRound) => matchRound.id !== round.id)
+      .map((matchRound) => ({
+        roundId: matchRound.id,
+        userId: matchRound.userId,
+        firstName: matchRound.firstName,
+        lastName: matchRound.lastName,
+        scores: matchRound.scores.map((score) => ({
+          hole: score.hole,
+          par: score.par,
+          strokes: score.strokes,
+          putts: score.putts,
+        })),
+        greenies: matchRound.greenies.map((greenie) => ({
+          hole: greenie.hole,
+          feet: greenie.feet,
+          inches: greenie.inches,
+        })),
+      })) ?? [];
 
   const tableRound = {
     id: round.id,
@@ -73,6 +97,7 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
           date={round.date}
           holes={tableRound.holes}
           tees={round.tees}
+          matchPlayers={matchPlayers}
         />
       </section>
     </main>

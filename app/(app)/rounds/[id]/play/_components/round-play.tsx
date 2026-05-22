@@ -10,6 +10,21 @@ import {
   buildLiveRound,
   type ScoreEntry,
 } from "./round-score-state";
+import { useDelegateRoundId } from "./use-delegate-round-id";
+
+export type MatchPlayer = {
+  roundId: number;
+  userId: string;
+  firstName: string | null;
+  lastName: string | null;
+  scores: {
+    hole: number;
+    par: number | null;
+    strokes: number | null;
+    putts: number | null;
+  }[];
+  greenies: { hole: number; feet: number; inches: number }[];
+};
 
 type RoundPlayProps = {
   roundId: number;
@@ -18,6 +33,7 @@ type RoundPlayProps = {
   date: Date | string;
   holes: { hole: number; par: number; yards: number | null }[];
   tees: SettingsTee[];
+  matchPlayers: MatchPlayer[];
 };
 
 export function RoundPlay({
@@ -27,6 +43,7 @@ export function RoundPlay({
   date,
   holes,
   tees,
+  matchPlayers,
 }: RoundPlayProps) {
   const router = useRouter();
   const initialScores = useMemo(
@@ -38,6 +55,7 @@ export function RoundPlay({
     () => buildLiveRound(tableRound, scores),
     [tableRound, scores],
   );
+  const [delegateRoundId, setDelegateRoundId] = useDelegateRoundId(roundId);
 
   return (
     <RoundScoresForm
@@ -49,6 +67,9 @@ export function RoundPlay({
       scores={scores}
       setScores={setScores}
       tees={tees}
+      matchPlayers={matchPlayers}
+      delegateRoundId={delegateRoundId}
+      setDelegateRoundId={setDelegateRoundId}
       onShowSummary={() => router.push(`/rounds/${roundId}`)}
       onAbandoned={() => router.push("/")}
     />

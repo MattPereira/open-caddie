@@ -1,10 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type Ref,
+} from "react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ScoreDictationButton } from "./score-dictation-button";
 
 const SAVE_DEBOUNCE_MS = 400;
 
@@ -13,12 +19,19 @@ export type HoleScorePatch = {
   putts: number | null;
 };
 
+export type HoleScoreSlideHandle = {
+  applyDictatedScore: (patch: HoleScorePatch) => void;
+};
+
 type HoleScoreSlideProps = {
   hole: number;
   par: number;
+  idPrefix: string;
+  playerName: string;
   initialStrokes: number | null;
   initialPutts: number | null;
   onScoreChangeAction: (patch: HoleScorePatch) => void;
+  ref?: Ref<HoleScoreSlideHandle>;
 };
 
 function toInputValue(value: number | null): string {
@@ -39,10 +52,12 @@ function parsePutts(value: string): number | null {
 
 export function HoleScoreSlide({
   hole,
-  par,
+  idPrefix,
+  playerName,
   initialStrokes,
   initialPutts,
   onScoreChangeAction,
+  ref,
 }: HoleScoreSlideProps) {
   const [strokesStr, setStrokesStr] = useState(toInputValue(initialStrokes));
   const [puttsStr, setPuttsStr] = useState(toInputValue(initialPutts));
@@ -130,30 +145,26 @@ export function HoleScoreSlide({
     [currentPutts, currentStrokes, flushSave],
   );
 
+  useImperativeHandle(ref, () => ({ applyDictatedScore }), [applyDictatedScore]);
+
   return (
-    <div className="flex flex-col gap-5">
-      <ScoreDictationButton
-        par={par}
-        onDictatedScoreAction={applyDictatedScore}
+    <div className="grid grid-cols-2 gap-3">
+      <ScoreField
+        id={`${idPrefix}-hole-${hole}-strokes`}
+        label={`${playerName} Strokes`}
+        value={strokesStr}
+        onChange={handleStrokesChange}
+        onBlur={handleStrokesBlur}
+        min={1}
       />
-      <div className="grid grid-cols-2 gap-3">
-        <ScoreField
-          id={`hole-${hole}-strokes`}
-          label="Strokes"
-          value={strokesStr}
-          onChange={handleStrokesChange}
-          onBlur={handleStrokesBlur}
-          min={1}
-        />
-        <ScoreField
-          id={`hole-${hole}-putts`}
-          label="Putts"
-          value={puttsStr}
-          onChange={handlePuttsChange}
-          onBlur={handlePuttsBlur}
-          min={0}
-        />
-      </div>
+      <ScoreField
+        id={`${idPrefix}-hole-${hole}-putts`}
+        label={`${playerName} Putts`}
+        value={puttsStr}
+        onChange={handlePuttsChange}
+        onBlur={handlePuttsBlur}
+        min={0}
+      />
     </div>
   );
 }

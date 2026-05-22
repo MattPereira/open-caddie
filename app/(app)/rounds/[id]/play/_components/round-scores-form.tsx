@@ -76,7 +76,8 @@ import {
   upsertRoundGreenie,
   upsertRoundScore,
 } from "../../../actions";
-import { HoleScoreSlide } from "./hole-score-slide";
+import { HoleScoreSlide, type HoleScoreSlideHandle } from "./hole-score-slide";
+import { ScoreDictationButton } from "./score-dictation-button";
 import {
   formatScore,
   type RoundScoresTableRound,
@@ -89,6 +90,7 @@ import {
   isRoundComplete,
 } from "./round-score-state";
 import { HoleGreenieManager, type GreenieValue } from "./hole-greenie-manager";
+import type { MatchPlayer } from "./round-play";
 
 type GreenieEntry = GreenieValue & { hole: number };
 
@@ -110,6 +112,9 @@ type RoundScoresFormProps = {
   scores: ScoreEntry[];
   setScores: Dispatch<SetStateAction<ScoreEntry[]>>;
   tees: SettingsTee[];
+  matchPlayers: MatchPlayer[];
+  delegateRoundId: number | null;
+  setDelegateRoundId: (next: number | null) => void;
   onShowSummary: () => void;
   onAbandoned: () => void;
 };
@@ -123,6 +128,9 @@ export function RoundScoresForm({
   scores,
   setScores,
   tees,
+  matchPlayers,
+  delegateRoundId,
+  setDelegateRoundId,
   onShowSummary,
 }: RoundScoresFormProps) {
   const initialScores = useMemo(
@@ -136,8 +144,37 @@ export function RoundScoresForm({
   const [api, setApi] = useState<CarouselApi | null>(null);
   const [current, setCurrent] = useState(initialHoleIndex);
   const didJumpRef = useRef(false);
-  const saveVersionRef = useRef<Record<number, number>>({});
-  const greenieSaveVersionRef = useRef<Record<number, number>>({});
+  const saveVersionRef = useRef<Record<string, number>>({});
+  const greenieSaveVersionRef = useRef<Record<string, number>>({});
+
+  const delegatePlayer = useMemo(
+    () =>
+      matchPlayers.find((player) => player.roundId === delegateRoundId) ?? null,
+    [matchPlayers, delegateRoundId],
+  );
+  const selfName = round.firstName ?? "You";
+  const delegateName = delegatePlayer
+    ? (delegatePlayer.firstName ?? delegatePlayer.lastName ?? "Player")
+    : null;
+  const initialDelegateScores = useMemo(
+    () =>
+      delegatePlayer ? buildInitialScores(delegatePlayer.scores, holes) : [],
+    [delegatePlayer, holes],
+  );
+  const [delegateScores, setDelegateScores] = useState<ScoreEntry[]>(
+    initialDelegateScores,
+  );
+  const [delegateGreenies, setDelegateGreenies] = useState<GreenieEntry[]>(
+    () => delegatePlayer?.greenies ?? [],
+  );
+  const [prevDelegateRoundId, setPrevDelegateRoundId] = useState(
+    delegateRoundId,
+  );
+  if (prevDelegateRoundId !== delegateRoundId) {
+    setPrevDelegateRoundId(delegateRoundId);
+    setDelegateScores(initialDelegateScores);
+    setDelegateGreenies(delegatePlayer?.greenies ?? []);
+  }
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -171,24 +208,32 @@ export function RoundScoresForm({
 
   const isComplete = isRoundComplete(round);
 
-  const handleSave = (
+  const saveScore = (
+    targetRoundId: number,
+    setTargetScores: Dispatch<SetStateAction<ScoreEntry[]>>,
+    currentEntries: ScoreEntry[],
     hole: number,
     patch: { strokes: number | null; putts: number | null },
   ) => {
-    const previousEntry = scores.find((s) => s.hole === hole) ?? null;
-    const saveVersion = (saveVersionRef.current[hole] ?? 0) + 1;
-    saveVersionRef.current[hole] = saveVersion;
+    const previousEntry = currentEntries.find((s) => s.hole === hole) ?? null;
+    const versionKey = `${targetRoundId}:${hole}`;
+    const saveVersion = (saveVersionRef.current[versionKey] ?? 0) + 1;
+    saveVersionRef.current[versionKey] = saveVersion;
 
     setSaveError(null);
-    setScores((prev) =>
+    setTargetScores((prev) =>
       prev.map((s) => (s.hole === hole ? { ...s, ...patch } : s)),
     );
     startSaveTransition(async () => {
-      const result = await upsertRoundScore({ roundId, hole, ...patch });
+      const result = await upsertRoundScore({
+        roundId: targetRoundId,
+        hole,
+        ...patch,
+      });
       if (!result.ok) {
-        if (saveVersionRef.current[hole] !== saveVersion) return;
+        if (saveVersionRef.current[versionKey] !== saveVersion) return;
         if (previousEntry) {
-          setScores((prev) =>
+          setTargetScores((prev) =>
             prev.map((s) => (s.hole === hole ? previousEntry : s)),
           );
         }
@@ -197,23 +242,34 @@ export function RoundScoresForm({
     });
   };
 
-  const handleGreenieSave = (hole: number, value: GreenieValue) => {
-    const previousGreenie = greenies.find((g) => g.hole === hole) ?? null;
-    const saveVersion = (greenieSaveVersionRef.current[hole] ?? 0) + 1;
-    greenieSaveVersionRef.current[hole] = saveVersion;
+  const saveGreenie = (
+    targetRoundId: number,
+    setTargetGreenies: Dispatch<SetStateAction<GreenieEntry[]>>,
+    currentEntries: GreenieEntry[],
+    hole: number,
+    value: GreenieValue,
+  ) => {
+    const previousGreenie = currentEntries.find((g) => g.hole === hole) ?? null;
+    const versionKey = `${targetRoundId}:${hole}`;
+    const saveVersion = (greenieSaveVersionRef.current[versionKey] ?? 0) + 1;
+    greenieSaveVersionRef.current[versionKey] = saveVersion;
 
     setSaveError(null);
-    setGreenies((prev) => {
+    setTargetGreenies((prev) => {
       const nextGreenie = { hole, ...value };
       return prev.some((g) => g.hole === hole)
         ? prev.map((g) => (g.hole === hole ? nextGreenie : g))
         : [...prev, nextGreenie].sort((a, b) => a.hole - b.hole);
     });
     startSaveTransition(async () => {
-      const result = await upsertRoundGreenie({ roundId, hole, ...value });
+      const result = await upsertRoundGreenie({
+        roundId: targetRoundId,
+        hole,
+        ...value,
+      });
       if (!result.ok) {
-        if (greenieSaveVersionRef.current[hole] !== saveVersion) return;
-        setGreenies((prev) => {
+        if (greenieSaveVersionRef.current[versionKey] !== saveVersion) return;
+        setTargetGreenies((prev) => {
           const withoutCurrent = prev.filter((g) => g.hole !== hole);
           return previousGreenie
             ? [...withoutCurrent, previousGreenie].sort(
@@ -226,19 +282,28 @@ export function RoundScoresForm({
     });
   };
 
-  const handleGreenieDelete = (hole: number) => {
-    const previousGreenie = greenies.find((g) => g.hole === hole) ?? null;
-    const saveVersion = (greenieSaveVersionRef.current[hole] ?? 0) + 1;
-    greenieSaveVersionRef.current[hole] = saveVersion;
+  const removeGreenie = (
+    targetRoundId: number,
+    setTargetGreenies: Dispatch<SetStateAction<GreenieEntry[]>>,
+    currentEntries: GreenieEntry[],
+    hole: number,
+  ) => {
+    const previousGreenie = currentEntries.find((g) => g.hole === hole) ?? null;
+    const versionKey = `${targetRoundId}:${hole}`;
+    const saveVersion = (greenieSaveVersionRef.current[versionKey] ?? 0) + 1;
+    greenieSaveVersionRef.current[versionKey] = saveVersion;
 
     setSaveError(null);
-    setGreenies((prev) => prev.filter((g) => g.hole !== hole));
+    setTargetGreenies((prev) => prev.filter((g) => g.hole !== hole));
     startSaveTransition(async () => {
-      const result = await deleteRoundGreenie({ roundId, hole });
+      const result = await deleteRoundGreenie({
+        roundId: targetRoundId,
+        hole,
+      });
       if (!result.ok) {
-        if (greenieSaveVersionRef.current[hole] !== saveVersion) return;
+        if (greenieSaveVersionRef.current[versionKey] !== saveVersion) return;
         if (previousGreenie) {
-          setGreenies((prev) =>
+          setTargetGreenies((prev) =>
             [...prev.filter((g) => g.hole !== hole), previousGreenie].sort(
               (a, b) => a.hole - b.hole,
             ),
@@ -256,6 +321,10 @@ export function RoundScoresForm({
     currentHoleNumber != null
       ? (greenies.find((g) => g.hole === currentHoleNumber) ?? null)
       : null;
+  const currentDelegateGreenie =
+    currentHoleNumber != null
+      ? (delegateGreenies.find((g) => g.hole === currentHoleNumber) ?? null)
+      : null;
 
   return (
     <div className="flex w-full min-w-0 flex-1 flex-col gap-5 p-0 sm:flex-none">
@@ -272,9 +341,19 @@ export function RoundScoresForm({
         </div>
 
         <PlayScoresOverview
-          scores={scores}
+          players={
+            delegatePlayer && delegateName
+              ? [
+                  { key: `round-${roundId}`, label: "You", scores },
+                  {
+                    key: `round-${delegatePlayer.roundId}`,
+                    label: delegateName,
+                    scores: delegateScores,
+                  },
+                ]
+              : [{ key: `round-${roundId}`, label: "You", scores }]
+          }
           currentHole={currentHoleNumber ?? 1}
-          greenieHoles={new Set(greenies.map((g) => g.hole))}
         />
       </div>
 
@@ -314,17 +393,41 @@ export function RoundScoresForm({
 
       <Carousel setApi={setApi} className="w-full min-w-0">
         <CarouselContent>
-          {scores.map((entry) => (
-            <CarouselItem key={entry.hole}>
-              <HoleScoreSlide
-                hole={entry.hole}
-                par={entry.par ?? 4}
-                initialStrokes={entry.strokes}
-                initialPutts={entry.putts}
-                onScoreChangeAction={(patch) => handleSave(entry.hole, patch)}
-              />
-            </CarouselItem>
-          ))}
+          {scores.map((entry, index) => {
+            const delegateEntry = delegateScores[index] ?? null;
+            return (
+              <CarouselItem key={entry.hole}>
+                <HoleScoreCarouselItem
+                  hole={entry.hole}
+                  par={entry.par ?? 4}
+                  selfName={selfName}
+                  selfInitialStrokes={entry.strokes}
+                  selfInitialPutts={entry.putts}
+                  onSelfScoreChangeAction={(patch) =>
+                    saveScore(roundId, setScores, scores, entry.hole, patch)
+                  }
+                  delegate={
+                    delegatePlayer && delegateName
+                      ? {
+                          roundId: delegatePlayer.roundId,
+                          name: delegateName,
+                          initialStrokes: delegateEntry?.strokes ?? null,
+                          initialPutts: delegateEntry?.putts ?? null,
+                          onScoreChangeAction: (patch) =>
+                            saveScore(
+                              delegatePlayer.roundId,
+                              setDelegateScores,
+                              delegateScores,
+                              entry.hole,
+                              patch,
+                            ),
+                        }
+                      : null
+                  }
+                />
+              </CarouselItem>
+            );
+          })}
         </CarouselContent>
       </Carousel>
 
@@ -335,17 +438,64 @@ export function RoundScoresForm({
       ) : null}
 
       {currentHolePar === 3 && currentHoleNumber != null ? (
-        <HoleGreenieManager
-          key={currentHoleNumber}
-          hole={currentHoleNumber}
-          initialGreenie={
-            currentGreenie
-              ? { feet: currentGreenie.feet, inches: currentGreenie.inches }
-              : null
-          }
-          onSaveAction={(value) => handleGreenieSave(currentHoleNumber, value)}
-          onDeleteAction={() => handleGreenieDelete(currentHoleNumber)}
-        />
+        <div className="flex flex-col gap-4">
+          <HoleGreenieManager
+            key={`self-${currentHoleNumber}`}
+            hole={currentHoleNumber}
+            idPrefix={`round-${roundId}`}
+            playerName={selfName}
+            initialGreenie={
+              currentGreenie
+                ? { feet: currentGreenie.feet, inches: currentGreenie.inches }
+                : null
+            }
+            onSaveAction={(value) =>
+              saveGreenie(
+                roundId,
+                setGreenies,
+                greenies,
+                currentHoleNumber,
+                value,
+              )
+            }
+            onDeleteAction={() =>
+              removeGreenie(roundId, setGreenies, greenies, currentHoleNumber)
+            }
+          />
+          {delegatePlayer && delegateName ? (
+            <HoleGreenieManager
+              key={`delegate-${delegatePlayer.roundId}-${currentHoleNumber}`}
+              hole={currentHoleNumber}
+              idPrefix={`round-${delegatePlayer.roundId}`}
+              playerName={delegateName}
+              initialGreenie={
+                currentDelegateGreenie
+                  ? {
+                      feet: currentDelegateGreenie.feet,
+                      inches: currentDelegateGreenie.inches,
+                    }
+                  : null
+              }
+              onSaveAction={(value) =>
+                saveGreenie(
+                  delegatePlayer.roundId,
+                  setDelegateGreenies,
+                  delegateGreenies,
+                  currentHoleNumber,
+                  value,
+                )
+              }
+              onDeleteAction={() =>
+                removeGreenie(
+                  delegatePlayer.roundId,
+                  setDelegateGreenies,
+                  delegateGreenies,
+                  currentHoleNumber,
+                )
+              }
+            />
+          ) : null}
+        </div>
       ) : null}
 
       <div className="mt-auto flex items-center gap-2 sm:mt-0">
@@ -353,6 +503,9 @@ export function RoundScoresForm({
           roundId={roundId}
           round={round}
           tees={tees}
+          matchPlayers={matchPlayers}
+          delegateRoundId={delegateRoundId}
+          setDelegateRoundId={setDelegateRoundId}
           fullWidth={round.tournamentId == null && round.matchId == null}
         />
         {round.tournamentId != null ? (
@@ -369,6 +522,91 @@ export function RoundScoresForm({
         <Button type="button" size="2xl" onClick={onShowSummary}>
           Round summary
         </Button>
+      ) : null}
+    </div>
+  );
+}
+
+type DelegateSlideConfig = {
+  roundId: number;
+  name: string;
+  initialStrokes: number | null;
+  initialPutts: number | null;
+  onScoreChangeAction: (patch: {
+    strokes: number | null;
+    putts: number | null;
+  }) => void;
+};
+
+function HoleScoreCarouselItem({
+  hole,
+  par,
+  selfName,
+  selfInitialStrokes,
+  selfInitialPutts,
+  onSelfScoreChangeAction,
+  delegate,
+}: {
+  hole: number;
+  par: number;
+  selfName: string;
+  selfInitialStrokes: number | null;
+  selfInitialPutts: number | null;
+  onSelfScoreChangeAction: (patch: {
+    strokes: number | null;
+    putts: number | null;
+  }) => void;
+  delegate: DelegateSlideConfig | null;
+}) {
+  const selfRef = useRef<HoleScoreSlideHandle | null>(null);
+  const delegateRef = useRef<HoleScoreSlideHandle | null>(null);
+
+  return (
+    <div className="flex flex-col gap-5">
+      {delegate ? (
+        <ScoreDictationButton
+          mode="duo"
+          par={par}
+          selfName={selfName}
+          delegateName={delegate.name}
+          onDictatedDuoScoreAction={(patch) => {
+            if (patch.you) selfRef.current?.applyDictatedScore(patch.you);
+            if (patch.delegate)
+              delegateRef.current?.applyDictatedScore(patch.delegate);
+          }}
+        />
+      ) : (
+        <ScoreDictationButton
+          par={par}
+          onDictatedScoreAction={(patch) =>
+            selfRef.current?.applyDictatedScore(patch)
+          }
+        />
+      )}
+
+      <HoleScoreSlide
+        ref={selfRef}
+        hole={hole}
+        par={par}
+        idPrefix="self"
+        playerName={selfName}
+        initialStrokes={selfInitialStrokes}
+        initialPutts={selfInitialPutts}
+        onScoreChangeAction={onSelfScoreChangeAction}
+      />
+
+      {delegate ? (
+        <HoleScoreSlide
+          key={`delegate-${delegate.roundId}-${hole}`}
+          ref={delegateRef}
+          hole={hole}
+          par={par}
+          idPrefix={`delegate-${delegate.roundId}`}
+          playerName={delegate.name}
+          initialStrokes={delegate.initialStrokes}
+          initialPutts={delegate.initialPutts}
+          onScoreChangeAction={delegate.onScoreChangeAction}
+        />
       ) : null}
     </div>
   );
@@ -545,11 +783,17 @@ function SettingsDialog({
   roundId,
   round,
   tees,
+  matchPlayers,
+  delegateRoundId,
+  setDelegateRoundId,
   fullWidth,
 }: {
   roundId: number;
   round: RoundScoresTableRound;
   tees: SettingsTee[];
+  matchPlayers: MatchPlayer[];
+  delegateRoundId: number | null;
+  setDelegateRoundId: (next: number | null) => void;
   fullWidth: boolean;
 }) {
   const router = useRouter();
@@ -778,10 +1022,65 @@ function SettingsDialog({
 
               {showHandicapTab ? (
                 <TabsContent value="scoring" className="flex flex-col gap-3">
-                  <p className="text-sm text-muted-foreground">
-                    TODO: allow user to select another player in this match to
-                    record scores on behalf of
-                  </p>
+                  <FieldSet>
+                    <FieldLabel className="text-sm text-muted-foreground">
+                      Record scores on behalf of another player in this match.
+                    </FieldLabel>
+                    <RadioGroup
+                      value={
+                        delegateRoundId == null
+                          ? "none"
+                          : String(delegateRoundId)
+                      }
+                      onValueChange={(value) =>
+                        setDelegateRoundId(
+                          value === "none" ? null : Number(value),
+                        )
+                      }
+                      className="flex flex-col gap-2"
+                    >
+                      <FieldLabel htmlFor="delegate-none">
+                        <Field orientation="horizontal">
+                          <FieldContent>
+                            <FieldTitle className="text-base">None</FieldTitle>
+                            <FieldDescription>
+                              Only record your own scores.
+                            </FieldDescription>
+                          </FieldContent>
+                          <RadioGroupItem
+                            id="delegate-none"
+                            value="none"
+                            className="size-5"
+                          />
+                        </Field>
+                      </FieldLabel>
+                      {matchPlayers.map((player) => {
+                        const name =
+                          [player.firstName, player.lastName]
+                            .filter(Boolean)
+                            .join(" ") || "Player";
+                        return (
+                          <FieldLabel
+                            key={player.roundId}
+                            htmlFor={`delegate-${player.roundId}`}
+                          >
+                            <Field orientation="horizontal">
+                              <FieldContent>
+                                <FieldTitle className="text-base">
+                                  {name}
+                                </FieldTitle>
+                              </FieldContent>
+                              <RadioGroupItem
+                                id={`delegate-${player.roundId}`}
+                                value={String(player.roundId)}
+                                className="size-5"
+                              />
+                            </Field>
+                          </FieldLabel>
+                        );
+                      })}
+                    </RadioGroup>
+                  </FieldSet>
                 </TabsContent>
               ) : null}
             </Tabs>

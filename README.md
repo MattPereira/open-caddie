@@ -4,7 +4,7 @@ A golf scorekeeping app for casual rounds, competitive formats, and club organiz
 
 - Track multiplayer contests including match play, skins games, and tournaments
 - Organize clubs with player groups, customizable point scoring, and season-long standings
-- Use AI-powered workflows to add course data from scorecard images and upload round scores from photos
+- Uses AI workflows to add course data from scorecard images and upload round scores from photos
 
 ### Stack
 

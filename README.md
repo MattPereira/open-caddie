@@ -1,13 +1,10 @@
 # Open Caddie
 
-A modern golf application for match play and tournament coordination
+A golf scorekeeping app for casual rounds, competitive formats, and club organizations
 
-- Organize clubs with tournament events and season long standings
-- Set up match play for two to four players with customizable rules
-- Skins games with customizable rules
-- Dictate scores verbally during a round for yourself and friends
-- Upload scorecard image to automatically add a new course
-- Upload handwritten scores image to automatically populate a round
+- Track multiplayer contests including match play, skins games, and tournaments
+- Organize clubs with player groups, customizable point scoring, and season-long standings
+- Use AI-powered workflows to add course data from scorecard images and upload round scores from photos
 
 ### Stack
 

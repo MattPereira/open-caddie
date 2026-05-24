@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { GolfHoleIcon } from "@hugeicons/core-free-icons";
 
+import { CardGrid } from "@/components/card-grid";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { CourseCard } from "@/components/course-card";
@@ -35,7 +36,7 @@ export function CoursesBrowser({ courses }: { courses: Course[] }) {
         placeholder="Search courses..."
         value={query}
         onValueChange={setQuery}
-        wrapperClassName="w-full md:w-1/2"
+        wrapperClassName="w-full"
       />
 
       {courses.length === 0 ? (
@@ -50,7 +51,7 @@ export function CoursesBrowser({ courses }: { courses: Course[] }) {
           {filtered.length === 0 ? (
             <EmptyCoursesState message="No courses match your search." />
           ) : (
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            <CardGrid>
               {filtered.map((course) => (
                 <CourseCard
                   key={course.id}
@@ -58,7 +59,7 @@ export function CoursesBrowser({ courses }: { courses: Course[] }) {
                   href={`/courses/${encodeURIComponent(course.handle)}`}
                 />
               ))}
-            </div>
+            </CardGrid>
           )}
         </section>
       )}

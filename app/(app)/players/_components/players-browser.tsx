@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { UserCircleIcon } from "@hugeicons/core-free-icons";
 
+import { CardGrid } from "@/components/card-grid";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlayerCard, displayName } from "@/components/player-card";
@@ -34,7 +35,7 @@ export function PlayersBrowser({ players }: { players: Player[] }) {
         placeholder="Search players..."
         value={query}
         onValueChange={setQuery}
-        wrapperClassName="w-full md:w-1/2"
+        wrapperClassName="w-full"
       />
 
       {players.length === 0 ? (
@@ -49,7 +50,7 @@ export function PlayersBrowser({ players }: { players: Player[] }) {
           {filtered.length === 0 ? (
             <EmptyPlayersState message="No players match your search." />
           ) : (
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            <CardGrid>
               {filtered.map((player) => (
                 <PlayerCard
                   key={player.id}
@@ -57,7 +58,7 @@ export function PlayersBrowser({ players }: { players: Player[] }) {
                   href={`/players/${encodeURIComponent(player.id)}`}
                 />
               ))}
-            </div>
+            </CardGrid>
           )}
         </section>
       )}

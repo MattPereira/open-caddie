@@ -1,7 +1,10 @@
+import Link from "next/link";
+
 import { auth } from "@/auth";
 import { AppSidebar } from "@/components/app-sidebar";
 import { HeaderWordmark } from "@/components/header-wordmark";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Button } from "@/components/ui/button";
 import {
   SidebarInset,
   SidebarProvider,
@@ -29,7 +32,18 @@ export default async function AppLayout({
         <header className="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b px-3">
           <SidebarTrigger className="size-8 justify-self-start" />
           <HeaderWordmark isAuthed={!!session?.user?.id} />
-          <ThemeToggle className="size-8 justify-self-end" />
+          {session?.user?.id ? (
+            <ThemeToggle className="size-8 justify-self-end" />
+          ) : (
+            <Button
+              asChild
+              variant="default"
+              size="default"
+              className="justify-self-end"
+            >
+              <Link href="/login">Sign in</Link>
+            </Button>
+          )}
         </header>
         <div className="flex flex-1 flex-col">{children}</div>
       </SidebarInset>

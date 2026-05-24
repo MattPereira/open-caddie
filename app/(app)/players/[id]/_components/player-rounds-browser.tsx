@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { GolfHoleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
+import { CardGrid } from "@/components/card-grid";
 import { RoundCard } from "@/components/round-card";
 import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
@@ -51,13 +52,13 @@ export function PlayerRoundsBrowser({ rounds }: { rounds: Round[] }) {
             placeholder="Search rounds..."
             value={query}
             onValueChange={setQuery}
-            wrapperClassName="w-full md:w-1/2 mb-2"
+            wrapperClassName="w-full mb-2"
           />
 
           {filtered.length === 0 ? (
             <EmptyRoundsState message="No rounds match your search." />
           ) : (
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            <CardGrid>
               {filtered.map((round) => (
                 <RoundCard
                   key={round.id}
@@ -65,7 +66,7 @@ export function PlayerRoundsBrowser({ rounds }: { rounds: Round[] }) {
                   href={`/rounds/${round.id}`}
                 />
               ))}
-            </div>
+            </CardGrid>
           )}
         </section>
       )}

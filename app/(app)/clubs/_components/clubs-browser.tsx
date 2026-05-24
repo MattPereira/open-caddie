@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { CardGrid } from "@/components/card-grid";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ClubCard, type ClubCardClub } from "@/components/club-card";
@@ -24,7 +25,7 @@ export function ClubsBrowser({ clubs }: { clubs: ClubCardClub[] }) {
         placeholder="Search clubs..."
         value={query}
         onValueChange={setQuery}
-        wrapperClassName="w-full md:w-1/2"
+        wrapperClassName="w-full"
       />
 
       {clubs.length === 0 ? (
@@ -47,7 +48,7 @@ export function ClubsBrowser({ clubs }: { clubs: ClubCardClub[] }) {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+            <CardGrid>
               {filtered.map((club) => (
                 <ClubCard
                   key={club.handle}
@@ -55,7 +56,7 @@ export function ClubsBrowser({ clubs }: { clubs: ClubCardClub[] }) {
                   href={`/clubs/${encodeURIComponent(club.handle)}`}
                 />
               ))}
-            </div>
+            </CardGrid>
           )}
         </section>
       )}

@@ -50,7 +50,7 @@ export function MediaCard({
       {mediaSlot}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         {header ? (
-          <CardTitle className="truncate text-base sm:text-lg">
+          <CardTitle className="truncate text-base">
             {header}
           </CardTitle>
         ) : null}

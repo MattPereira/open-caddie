@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { appPageIcons } from "@/components/app-nav-items";
+import { PageContent } from "@/components/page-content";
 import { PageHeading } from "@/components/page-heading";
 import { getAllClubs } from "@/db/queries/clubs";
 import { getCoursesWithTees } from "@/db/queries/courses";
@@ -26,7 +27,7 @@ export default async function TournamentsPage() {
     : [[], []];
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
+    <PageContent>
       <div className="flex items-start justify-between gap-2">
         <PageHeading
           icon={appPageIcons.tournaments}
@@ -44,6 +45,6 @@ export default async function TournamentsPage() {
           date: tournament.date.toISOString().slice(0, 10),
         }))}
       />
-    </main>
+    </PageContent>
   );
 }

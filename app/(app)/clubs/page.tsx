@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { appPageIcons } from "@/components/app-nav-items";
+import { PageContent } from "@/components/page-content";
 import { PageHeading } from "@/components/page-heading";
 import { getAllClubsFull } from "@/db/queries/clubs";
 import { getCurrentUser } from "@/db/queries/users";
@@ -20,7 +21,7 @@ export default async function ClubsPage() {
   ]);
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
+    <PageContent>
       <div className="flex items-start gap-2">
         <PageHeading
           icon={appPageIcons.clubs}
@@ -35,6 +36,6 @@ export default async function ClubsPage() {
         ) : null}
       </div>
       <ClubsBrowser clubs={clubs} />
-    </main>
+    </PageContent>
   );
 }

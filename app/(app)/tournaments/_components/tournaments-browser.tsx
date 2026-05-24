@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { GolfHoleIcon } from "@hugeicons/core-free-icons";
 
+import { CardGrid } from "@/components/card-grid";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SearchInput } from "@/components/search-input";
@@ -45,12 +46,12 @@ export function TournamentsBrowser({
   const visibleGroups = groups.filter((group) => group.tournaments.length > 0);
 
   return (
-    <div className="flex flex-col gap-6 max-w-6xl">
+    <div className="flex flex-col gap-6">
       <SearchInput
         placeholder="Search tournaments..."
         value={query}
         onValueChange={setQuery}
-        wrapperClassName="w-full md:w-1/2"
+        wrapperClassName="w-full"
       />
 
       {visibleGroups.length === 0 ? (
@@ -76,7 +77,7 @@ export function TournamentsBrowser({
                   message={`No ${group.label.toLowerCase()} tournaments match your search.`}
                 />
               ) : (
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                <CardGrid>
                   {filtered.map((tournament) => (
                     <TournamentCard
                       key={tournament.id}
@@ -84,7 +85,7 @@ export function TournamentsBrowser({
                       href={`/tournaments/${tournament.id}`}
                     />
                   ))}
-                </div>
+                </CardGrid>
               )}
             </section>
           );

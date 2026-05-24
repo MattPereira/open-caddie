@@ -4,6 +4,7 @@ import { Add01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { appPageIcons } from "@/components/app-nav-items";
+import { PageContent } from "@/components/page-content";
 import { PageHeading } from "@/components/page-heading";
 import { Button } from "@/components/ui/button";
 import { getAllCourses } from "@/db/queries/courses";
@@ -23,7 +24,7 @@ export default async function CoursesPage() {
   ]);
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
+    <PageContent>
       <div className="flex items-start gap-2">
         <PageHeading
           icon={appPageIcons.courses}
@@ -47,6 +48,6 @@ export default async function CoursesPage() {
         ) : null}
       </div>
       <CoursesBrowser courses={courses} />
-    </main>
+    </PageContent>
   );
 }

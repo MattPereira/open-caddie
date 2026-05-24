@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { CardGrid } from "@/components/card-grid";
 import { PlayerCard, displayName } from "@/components/player-card";
 import { SearchInput } from "@/components/search-input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,7 +33,7 @@ export function ClubMembersBrowser({ members }: { members: ClubMember[] }) {
         placeholder="Search members..."
         value={query}
         onValueChange={setQuery}
-        wrapperClassName="w-full md:w-1/2"
+        wrapperClassName="w-full"
       />
 
       {members.length === 0 ? (
@@ -40,7 +41,7 @@ export function ClubMembersBrowser({ members }: { members: ClubMember[] }) {
       ) : filtered.length === 0 ? (
         <MembersEmptyState message="No members match your search." />
       ) : (
-        <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <CardGrid>
           {filtered.map((member) => (
             <PlayerCard
               key={member.id}
@@ -48,7 +49,7 @@ export function ClubMembersBrowser({ members }: { members: ClubMember[] }) {
               href={`/players/${encodeURIComponent(member.id)}`}
             />
           ))}
-        </div>
+        </CardGrid>
       )}
     </div>
   );

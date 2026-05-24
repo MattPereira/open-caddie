@@ -4,17 +4,20 @@ import { useMemo, useState } from "react";
 import { GolfHoleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
+import type { MatchFormat } from "@/db/schema";
+import { CardGrid } from "@/components/card-grid";
 import { EventCard } from "@/components/event-card";
 import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { matchFormatLabel } from "@/lib/match-play";
 import { formatDate } from "@/lib/utils";
 
 type Match = {
   id: number;
   date: string;
   startsAt: string | null;
-  name: string | null;
+  format: MatchFormat | null;
   courseName: string | null;
   courseImgUrl: string | null;
   playerCount: number;
@@ -36,12 +39,12 @@ export function MatchesBrowser({ matches }: { matches: Match[] }) {
   const visibleGroups = groups.filter((group) => group.matches.length > 0);
 
   return (
-    <div className="flex max-w-6xl flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <SearchInput
         placeholder="Search matches..."
         value={query}
         onValueChange={setQuery}
-        wrapperClassName="w-full md:w-1/2"
+        wrapperClassName="w-full"
       />
 
       {visibleGroups.length === 0 ? (
@@ -64,12 +67,12 @@ export function MatchesBrowser({ matches }: { matches: Match[] }) {
                   message={`No ${group.label.toLowerCase()} matches your search.`}
                 />
               ) : (
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                <CardGrid>
                   {filtered.map((match) => (
                     <EventCard
                       key={match.id}
                       event={{
-                        title: match.name,
+                        title: matchFormatLabel(match.format),
                         date: match.date,
                         startsAt: match.startsAt,
                         courseName: match.courseName,
@@ -79,7 +82,7 @@ export function MatchesBrowser({ matches }: { matches: Match[] }) {
                       href={`/matches/${match.id}`}
                     />
                   ))}
-                </div>
+                </CardGrid>
               )}
             </section>
           );
@@ -134,7 +137,7 @@ function filterMatches(matches: Match[], query: string) {
 
   return matches.filter((match) => {
     const haystack = [
-      match.name ?? "",
+      matchFormatLabel(match.format) ?? "",
       match.courseName ?? "",
       formatDate(match.date, "short"),
       formatMatchTime(match.startsAt),

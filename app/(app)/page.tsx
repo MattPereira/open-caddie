@@ -1,116 +1,132 @@
 import Link from "next/link";
-import {
-  ChampionIcon,
-  GolfBallIcon,
-  GolfBatIcon,
-  GolfCartIcon,
-  UserCircleIcon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { ChampionIcon, GolfBallIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
 import { auth } from "@/auth";
-import { Button } from "@/components/ui/button";
-import { appNavItems } from "@/components/app-nav-items";
-import { RotatingTagline } from "@/components/rotating-tagline";
+import { EventCard } from "@/components/event-card";
+import { matchFormatLabel } from "@/lib/match-play";
 import { brandFont } from "@/lib/fonts";
 import { getActiveRoundForUser } from "@/db/queries/rounds";
+import { getAllTournaments } from "@/db/queries/tournaments";
+import { getAllMatches } from "@/db/queries/matches";
 import { cn } from "@/lib/utils";
+
+const RECENT_LIMIT = 3;
 
 export default async function Home() {
   const session = await auth();
+  const userId = session?.user?.id;
 
-  if (!session?.user?.id) {
-    return (
-      <main className="flex min-h-[calc(100svh-3.5rem)] flex-col items-center justify-center gap-10 p-6">
-        <section className="flex flex-col items-center gap-3 text-center">
-          <h1 className={cn(brandFont.className, "text-5xl sm:text-6xl")}>
-            Open Caddie
-          </h1>
-          <p className="max-w-sm text-muted-foreground sm:max-w-none">
-            A modern golf score keeper for singles, groups, and tournament play.
-          </p>
-        </section>
-        <RotatingTagline />
-        <div className="flex w-full max-w-sm flex-col gap-6">
-          <Button asChild size="2xl" className="w-full">
-            <Link href="/login">Sign in</Link>
-          </Button>
-          <div className="grid grid-cols-2 gap-3">
-            {appNavItems
-              .filter((item) => item.href !== "/greenies")
-              .map((item) => (
-                <Button
-                  key={item.href}
-                  asChild
-                  variant="outline"
-                  size="xl"
-                  className="w-full"
-                >
-                  <Link href={item.href}>
-                    <HugeiconsIcon icon={item.icon} data-icon="inline-start" />
-                    {item.title}
-                  </Link>
-                </Button>
-              ))}
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  const userId = session.user.id;
-  const activeRound = await getActiveRoundForUser(userId);
+  const [tournaments, matches, activeRound] = await Promise.all([
+    getAllTournaments(),
+    getAllMatches(),
+    userId ? getActiveRoundForUser(userId) : null,
+  ]);
 
   return (
-    <main className="flex min-h-[calc(100svh-3.5rem)] flex-col items-center justify-center gap-10 p-6">
-      <RotatingTagline />
-      <div className="flex w-full max-w-sm flex-col gap-6">
-        <div className="flex w-full flex-col gap-1.5">
-          <Button asChild size="2xl" className="w-full">
-            <Link
-              href={
-                activeRound
-                  ? `/rounds/${activeRound.roundId}/play`
-                  : "/rounds/new"
-              }
-            >
-              <HugeiconsIcon icon={GolfBatIcon} data-icon="inline-start" />
-              Play round
-            </Link>
-          </Button>
-          {activeRound ? (
-            <p className="text-center text-sm text-muted-foreground">
-              In progress at {activeRound.courseName}
-            </p>
-          ) : null}
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <Button asChild variant="outline" size="xl" className="w-full">
-            <Link href="/tournaments">
-              <HugeiconsIcon icon={ChampionIcon} data-icon="inline-start" />
-              Tournaments
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="xl" className="w-full">
-            <Link href="/matches">
-              <HugeiconsIcon icon={GolfBallIcon} data-icon="inline-start" />
-              Matches
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="xl" className="w-full">
-            <Link href="/courses">
-              <HugeiconsIcon icon={GolfCartIcon} data-icon="inline-start" />
-              Courses
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="xl" className="w-full">
-            <Link href={`/players/${userId}`}>
-              <HugeiconsIcon icon={UserCircleIcon} data-icon="inline-start" />
-              Profile
-            </Link>
-          </Button>
-        </div>
+    <main className="flex min-h-[calc(100svh-3.5rem)] flex-col items-center gap-10 p-6">
+      <section className="flex flex-col items-center gap-3 pt-6 text-center">
+        <h1 className={cn(brandFont.className, "text-5xl sm:text-6xl")}>
+          Open Caddie
+        </h1>
+        <p className="max-w-sm text-muted-foreground sm:max-w-none">
+          A golf scorekeeping app for casual rounds, competitive formats, and
+          club organizations
+        </p>
+      </section>
+      <div className="flex w-full max-w-3xl flex-col gap-8">
+        {activeRound ? (
+          <p className="text-center text-sm text-muted-foreground">
+            In progress at {activeRound.courseName}
+          </p>
+        ) : null}
+        <RecentEventsSections
+          tournaments={tournaments.slice(0, RECENT_LIMIT)}
+          matches={matches.slice(0, RECENT_LIMIT)}
+        />
       </div>
     </main>
+  );
+}
+
+type RecentTournament = Awaited<ReturnType<typeof getAllTournaments>>[number];
+type RecentMatch = Awaited<ReturnType<typeof getAllMatches>>[number];
+
+function RecentEventsSections({
+  tournaments,
+  matches,
+}: {
+  tournaments: RecentTournament[];
+  matches: RecentMatch[];
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+      <section className="flex flex-col gap-3">
+        <SectionHeader
+          icon={ChampionIcon}
+          title="Tournaments"
+          href="/tournaments"
+        />
+        {tournaments.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No tournaments yet.</p>
+        ) : (
+          tournaments.map((tournament) => (
+            <EventCard
+              key={tournament.id}
+              event={{
+                date: tournament.date,
+                startsAt: tournament.startsAt,
+                courseName: tournament.courseName,
+                courseImgUrl: tournament.courseImgUrl,
+                playerCount: tournament.playerCount,
+              }}
+              href={`/tournaments/${tournament.id}`}
+            />
+          ))
+        )}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <SectionHeader icon={GolfBallIcon} title="Matches" href="/matches" />
+        {matches.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No matches yet.</p>
+        ) : (
+          matches.map((match) => (
+            <EventCard
+              key={match.id}
+              event={{
+                title: matchFormatLabel(match.format),
+                date: match.date,
+                startsAt: match.startsAt,
+                courseName: match.courseName,
+                courseImgUrl: match.courseImgUrl,
+                playerCount: match.playerCount,
+              }}
+              href={`/matches/${match.id}`}
+            />
+          ))
+        )}
+      </section>
+    </div>
+  );
+}
+
+function SectionHeader({
+  icon,
+  title,
+  href,
+}: {
+  icon: IconSvgElement;
+  title: string;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center gap-2 text-lg font-semibold tracking-normal hover:text-primary"
+    >
+      <HugeiconsIcon icon={icon} size={22} aria-hidden />
+      <span>{title}</span>
+    </Link>
   );
 }

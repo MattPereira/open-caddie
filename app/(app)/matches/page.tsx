@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { appPageIcons } from "@/components/app-nav-items";
+import { PageContent } from "@/components/page-content";
 import { PageHeading } from "@/components/page-heading";
 import { getCoursesWithTees } from "@/db/queries/courses";
 import { getAllMatches } from "@/db/queries/matches";
@@ -25,7 +26,7 @@ export default async function MatchesPage() {
     : [[], []];
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
+    <PageContent>
       <div className="flex items-start justify-between gap-2">
         <PageHeading
           icon={appPageIcons.matches}
@@ -38,11 +39,16 @@ export default async function MatchesPage() {
         ) : null}
       </div>
       <MatchesBrowser
-        matches={matches.map((match) => ({
-          ...match,
-          date: match.date.toISOString().slice(0, 10),
+        matches={matches.map(({ id, format, date, startsAt, courseName, courseImgUrl, playerCount }) => ({
+          id,
+          format,
+          date: date.toISOString().slice(0, 10),
+          startsAt,
+          courseName,
+          courseImgUrl,
+          playerCount,
         }))}
       />
-    </main>
+    </PageContent>
   );
 }

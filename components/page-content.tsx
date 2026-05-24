@@ -10,7 +10,7 @@ export function PageContent({
   return (
     <main
       className={cn(
-        "mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-4 sm:p-8",
+        "mx-auto flex w-full max-w-4xl flex-1 flex-col gap-6 p-4 sm:p-8",
         className,
       )}
     >

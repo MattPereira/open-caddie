@@ -66,7 +66,7 @@ export function GreeniesBrowser({ greenies }: { greenies: Greenie[] }) {
             placeholder="Search greenies..."
             value={query}
             onValueChange={setQuery}
-            wrapperClassName="w-full md:w-1/2"
+            wrapperClassName="w-full"
           />
         </div>
 
@@ -106,7 +106,7 @@ export function GreeniesBrowser({ greenies }: { greenies: Greenie[] }) {
 
 function GreeniesGrid({ greenies }: { greenies: Greenie[] }) {
   return (
-    <div className="grid grid-cols-1 gap-3 xl:grid-cols-3 2xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
       {greenies.map((greenie) => (
         <GreenieCard
           key={`${greenie.roundId}-${greenie.hole}`}
@@ -167,7 +167,7 @@ function groupTopGreeniesBySeason(greenies: Greenie[]): GreenieGroup[] {
     .map(([season, seasonGreenies]) => ({
       key: season == null ? "no-season" : String(season),
       label: season == null ? "No season" : `Season ${season}`,
-      greenies: [...seasonGreenies].sort(compareGreenieDistance).slice(0, 3),
+      greenies: [...seasonGreenies].sort(compareGreenieDistance).slice(0, 4),
     }));
 }
 

@@ -43,7 +43,7 @@ export default async function Home() {
       <div className="flex w-full flex-col gap-8">
         {activeRound ? (
           <div className="flex flex-col items-center gap-2">
-            <Button asChild size="xl" className="w-full">
+            <Button asChild size="xl" className="w-full md:w-1/2">
               <Link href={`/rounds/${activeRound.roundId}`}>
                 <HugeiconsIcon icon={GolfBatIcon} size={20} aria-hidden />
                 Play round
@@ -88,6 +88,7 @@ function RecentEventsSections({
             <EventCard
               key={tournament.id}
               event={{
+                title: tournament.clubName,
                 date: tournament.date,
                 startsAt: tournament.startsAt,
                 courseName: tournament.courseName,

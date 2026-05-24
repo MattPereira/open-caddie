@@ -16,7 +16,7 @@ export default async function GreeniesPage() {
   const greenies = await getAllGreenies();
 
   return (
-    <PageContent className="max-w-5xl">
+    <PageContent className="max-w-4xl">
       <PageHeading
         icon={appPageIcons.greenies}
         description="Browse the closest to the pin shots on par 3s"

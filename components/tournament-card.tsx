@@ -22,6 +22,7 @@ export function TournamentCard({
   return (
     <EventCard
       event={{
+        title: tournament.clubName,
         date: tournament.date,
         startsAt: tournament.startsAt,
         courseName: tournament.courseName,

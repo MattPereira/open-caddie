@@ -8,7 +8,7 @@ export function CardGrid({
   className?: string;
 }) {
   return (
-    <div className={cn("grid max-w-3xl grid-cols-1 gap-3 xl:grid-cols-2", className)}>
+    <div className={cn("grid grid-cols-1 gap-3 xl:grid-cols-2", className)}>
       {children}
     </div>
   );

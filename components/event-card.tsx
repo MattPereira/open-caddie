@@ -1,4 +1,3 @@
-import { CardDescription } from "@/components/ui/card";
 import { MediaCard } from "@/components/media-card";
 import { formatDate } from "@/lib/utils";
 
@@ -22,13 +21,7 @@ export function EventCard({
 }) {
   const courseName = event.courseName ?? "Course to be announced";
   const title = event.title?.trim() || courseName;
-  const stats: string[] = [formatDate(event.date, "short")];
-
-  if (event.playerCount != null) {
-    stats.push(
-      `${event.playerCount} ${event.playerCount === 1 ? "player" : "players"}`,
-    );
-  }
+  const dateStats = [formatDate(event.date, "shorter")];
 
   return (
     <MediaCard
@@ -38,9 +31,10 @@ export function EventCard({
       href={href}
       onClick={onClick}
     >
-      <CardDescription className="text-sm leading-snug">
-        {stats.join(" · ")}
-      </CardDescription>
+      <div className="flex flex-col text-sm leading-snug text-muted-foreground">
+        <span className="truncate">{courseName}</span>
+        <span>{dateStats.join(" · ")}</span>
+      </div>
     </MediaCard>
   );
 }

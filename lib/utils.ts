@@ -1,9 +1,15 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
-type DateFormatStyle = "short" | "standard" | "long";
+type DateFormatStyle = "shorter" | "short" | "standard" | "long";
 
 const dateFormatOptionsByStyle = {
+  shorter: {
+    month: "2-digit",
+    day: "2-digit",
+    year: "2-digit",
+    timeZone: "UTC",
+  },
   short: {
     month: "short",
     day: "numeric",

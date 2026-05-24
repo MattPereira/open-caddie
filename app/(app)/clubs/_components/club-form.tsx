@@ -147,14 +147,7 @@ export function ClubForm(props: ClubFormProps) {
 
         <PointRulesFields control={form.control} />
 
-        <div className="flex gap-2">
-          <Button type="submit" disabled={isPending}>
-            {isPending
-              ? "Saving…"
-              : props.mode === "create"
-                ? "Create club"
-                : "Save changes"}
-          </Button>
+        <div className="flex justify-end gap-2">
           <Button
             type="button"
             variant="outline"
@@ -162,6 +155,13 @@ export function ClubForm(props: ClubFormProps) {
             onClick={() => router.push(cancelHref)}
           >
             Cancel
+          </Button>
+          <Button type="submit" disabled={isPending}>
+            {isPending
+              ? "Saving…"
+              : props.mode === "create"
+                ? "Create club"
+                : "Save changes"}
           </Button>
         </div>
       </form>

@@ -72,12 +72,14 @@ function NumberField({
   );
 }
 
-function PositionsList({
+function PositionsSection({
   control,
   name,
+  title,
 }: {
   control: Control<ClubFormValues>;
   name: "pointRules.strokes.positions" | "pointRules.putts.positions";
+  title: string;
 }) {
   const { fields, append, remove } = useFieldArray({
     control,
@@ -85,8 +87,9 @@ function PositionsList({
   });
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+    <RulesSection
+      title={title}
+      action={
         <Button
           type="button"
           size="sm"
@@ -96,65 +99,69 @@ function PositionsList({
           <HugeiconsIcon icon={Add01Icon} size={14} />
           Add
         </Button>
-      </div>
-      <div className="flex flex-col gap-2">
-        {fields.map((field, index) => (
-          <div key={field.id} className="flex items-center gap-2">
-            <span className="w-8 shrink-0 text-xs text-muted-foreground">
-              #{index + 1}
-            </span>
-            <FormField
-              control={control}
-              name={
-                `${name}.${index}` as `pointRules.strokes.positions.${number}`
-              }
-              render={({ field: f }) => (
-                <FormItem className="flex-1">
-                  <FormControl>
-                    <Input
-                      {...numberInputProps}
-                      {...f}
-                      value={f.value ?? ""}
-                      onChange={(e) =>
-                        f.onChange(
-                          e.target.value === "" ? "" : Number(e.target.value),
-                        )
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              onClick={() => remove(index)}
-              aria-label={`Remove position ${index + 1}`}
-            >
-              <HugeiconsIcon icon={Delete02Icon} size={16} />
-            </Button>
-          </div>
-        ))}
-      </div>
-    </div>
+      }
+    >
+      <RulesCard>
+        <div className="flex flex-col gap-2">
+          {fields.map((field, index) => (
+            <div key={field.id} className="flex items-center gap-2">
+              <span className="w-8 shrink-0 text-xs text-muted-foreground">
+                #{index + 1}
+              </span>
+              <FormField
+                control={control}
+                name={
+                  `${name}.${index}` as
+                    | `pointRules.strokes.positions.${number}`
+                    | `pointRules.putts.positions.${number}`
+                }
+                render={({ field: f }) => (
+                  <FormItem className="flex-1">
+                    <FormControl>
+                      <Input
+                        {...numberInputProps}
+                        {...f}
+                        value={f.value ?? ""}
+                        onChange={(e) =>
+                          f.onChange(
+                            e.target.value === ""
+                              ? ""
+                              : Number(e.target.value),
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => remove(index)}
+                aria-label={`Remove position ${index + 1}`}
+              >
+                <HugeiconsIcon icon={Delete02Icon} size={16} />
+              </Button>
+            </div>
+          ))}
+        </div>
+      </RulesCard>
+    </RulesSection>
   );
 }
 
-function GreeniesTiers({ control }: Props) {
+function GreeniesSection({ control }: Props) {
   const { fields, append, remove } = useFieldArray({
     control,
     name: "pointRules.greenies.tiers",
   });
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          Each tier awards <em>pts</em> when a greenie is within <em>maxFt</em>.
-          Toggle &quot;No max&quot; for the open-ended tier.
-        </p>
+    <RulesSection
+      title="Greenie tiers"
+      action={
         <Button
           type="button"
           size="sm"
@@ -164,41 +171,83 @@ function GreeniesTiers({ control }: Props) {
           <HugeiconsIcon icon={Add01Icon} size={14} />
           Add tier
         </Button>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {fields.map((field, index) => (
-          <div
-            key={field.id}
-            className="flex flex-col gap-2 rounded-md border p-3"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">
-                Tier {index + 1}
-              </span>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                onClick={() => remove(index)}
-                aria-label={`Remove tier ${index + 1}`}
+      }
+    >
+      <RulesCard>
+        <div className="flex flex-col gap-3">
+          <p className="text-xs text-muted-foreground">
+            Each tier awards <em>pts</em> when a greenie is within{" "}
+            <em>maxFt</em>. Toggle &quot;No max&quot; for the open-ended tier.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {fields.map((field, index) => (
+              <div
+                key={field.id}
+                className="flex flex-col gap-2 rounded-md border p-3"
               >
-                <HugeiconsIcon icon={Delete02Icon} size={16} />
-              </Button>
-            </div>
-            <FormField
-              control={control}
-              name={`pointRules.greenies.tiers.${index}.maxFt`}
-              render={({ field: f }) => {
-                const noMax = f.value === null;
-                return (
-                  <FormItem>
-                    <FormLabel>Max feet</FormLabel>
-                    <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Tier {index + 1}
+                  </span>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => remove(index)}
+                    aria-label={`Remove tier ${index + 1}`}
+                  >
+                    <HugeiconsIcon icon={Delete02Icon} size={16} />
+                  </Button>
+                </div>
+                <FormField
+                  control={control}
+                  name={`pointRules.greenies.tiers.${index}.maxFt`}
+                  render={({ field: f }) => {
+                    const noMax = f.value === null;
+                    return (
+                      <FormItem>
+                        <FormLabel>Max feet</FormLabel>
+                        <div className="flex items-center gap-3">
+                          <FormControl>
+                            <Input
+                              {...numberInputProps}
+                              disabled={noMax}
+                              value={noMax ? "" : (f.value ?? "")}
+                              onChange={(e) =>
+                                f.onChange(
+                                  e.target.value === ""
+                                    ? ""
+                                    : Number(e.target.value),
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <label className="flex shrink-0 items-center gap-2 text-sm">
+                            <Switch
+                              checked={noMax}
+                              onCheckedChange={(checked) =>
+                                f.onChange(checked ? null : 0)
+                              }
+                            />
+                            No max
+                          </label>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+                <FormField
+                  control={control}
+                  name={`pointRules.greenies.tiers.${index}.pts`}
+                  render={({ field: f }) => (
+                    <FormItem>
+                      <FormLabel>Points</FormLabel>
                       <FormControl>
                         <Input
                           {...numberInputProps}
-                          disabled={noMax}
-                          value={noMax ? "" : (f.value ?? "")}
+                          {...f}
+                          value={f.value ?? ""}
                           onChange={(e) =>
                             f.onChange(
                               e.target.value === ""
@@ -208,60 +257,42 @@ function GreeniesTiers({ control }: Props) {
                           }
                         />
                       </FormControl>
-                      <label className="flex shrink-0 items-center gap-2 text-sm">
-                        <Switch
-                          checked={noMax}
-                          onCheckedChange={(checked) =>
-                            f.onChange(checked ? null : 0)
-                          }
-                        />
-                        No max
-                      </label>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                );
-              }}
-            />
-            <FormField
-              control={control}
-              name={`pointRules.greenies.tiers.${index}.pts`}
-              render={({ field: f }) => (
-                <FormItem>
-                  <FormLabel>Points</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...numberInputProps}
-                      {...f}
-                      value={f.value ?? ""}
-                      onChange={(e) =>
-                        f.onChange(
-                          e.target.value === "" ? "" : Number(e.target.value),
-                        )
-                      }
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </div>
+        </div>
+      </RulesCard>
+    </RulesSection>
   );
 }
 
-function RulesCard({
+function RulesSection({
   title,
+  action,
   children,
 }: {
   title: string;
+  action?: ReactNode;
   children: ReactNode;
 }) {
   return (
+    <section className="flex flex-col gap-2">
+      <div className="flex min-h-9 items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {action}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function RulesCard({ children }: { children: ReactNode }) {
+  return (
     <div className="flex flex-col gap-4 rounded-md border p-4">
-      <h3 className="text-sm font-semibold">{title}</h3>
       {children}
     </div>
   );
@@ -271,50 +302,51 @@ export function PointRulesFields({ control }: Props) {
   return (
     <div className="flex flex-col gap-5">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <RulesCard title="Hole scores">
-          <div className="grid grid-cols-2 gap-3">
-            <NumberField
-              control={control}
-              name="pointRules.participation"
-              label="Participation"
-            />
-            <NumberField
-              control={control}
-              name="pointRules.pars"
-              label="Pars"
-            />
-            <NumberField
-              control={control}
-              name="pointRules.birdies"
-              label="Birdies"
-            />
-            <NumberField
-              control={control}
-              name="pointRules.eagles"
-              label="Eagles"
-            />
-            <NumberField
-              control={control}
-              name="pointRules.aces"
-              label="Aces"
-            />
-          </div>
-        </RulesCard>
+        <RulesSection title="Hole scores">
+          <RulesCard>
+            <div className="grid grid-cols-2 gap-3">
+              <NumberField
+                control={control}
+                name="pointRules.participation"
+                label="Participation"
+              />
+              <NumberField
+                control={control}
+                name="pointRules.pars"
+                label="Pars"
+              />
+              <NumberField
+                control={control}
+                name="pointRules.birdies"
+                label="Birdies"
+              />
+              <NumberField
+                control={control}
+                name="pointRules.eagles"
+                label="Eagles"
+              />
+              <NumberField
+                control={control}
+                name="pointRules.aces"
+                label="Aces"
+              />
+            </div>
+          </RulesCard>
+        </RulesSection>
 
-        <RulesCard title="Strokes positions">
-          <PositionsList
-            control={control}
-            name="pointRules.strokes.positions"
-          />
-        </RulesCard>
+        <PositionsSection
+          title="Strokes positions"
+          control={control}
+          name="pointRules.strokes.positions"
+        />
 
-        <RulesCard title="Putts positions">
-          <PositionsList control={control} name="pointRules.putts.positions" />
-        </RulesCard>
+        <PositionsSection
+          title="Putts positions"
+          control={control}
+          name="pointRules.putts.positions"
+        />
       </div>
-      <RulesCard title="Greenie tiers">
-        <GreeniesTiers control={control} />
-      </RulesCard>
+      <GreeniesSection control={control} />
     </div>
   );
 }

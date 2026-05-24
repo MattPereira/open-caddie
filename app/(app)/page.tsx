@@ -1,15 +1,21 @@
 import Link from "next/link";
-import { ChampionIcon, GolfBallIcon } from "@hugeicons/core-free-icons";
+import {
+  ChampionIcon,
+  GolfBallIcon,
+  GolfBatIcon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
 import { auth } from "@/auth";
 import { EventCard } from "@/components/event-card";
+import { PageContent } from "@/components/page-content";
 import { matchFormatLabel } from "@/lib/match-play";
 import { brandFont } from "@/lib/fonts";
 import { getActiveRoundForUser } from "@/db/queries/rounds";
 import { getAllTournaments } from "@/db/queries/tournaments";
 import { getAllMatches } from "@/db/queries/matches";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const RECENT_LIMIT = 3;
 
@@ -24,7 +30,7 @@ export default async function Home() {
   ]);
 
   return (
-    <main className="flex min-h-[calc(100svh-3.5rem)] flex-col items-center gap-10 p-6">
+    <PageContent className="max-w-4xl">
       <section className="flex flex-col items-center gap-3 pt-6 text-center">
         <h1 className={cn(brandFont.className, "text-5xl sm:text-6xl")}>
           Open Caddie
@@ -34,18 +40,26 @@ export default async function Home() {
           club organizations
         </p>
       </section>
-      <div className="flex w-full max-w-3xl flex-col gap-8">
+      <div className="flex w-full flex-col gap-8">
         {activeRound ? (
-          <p className="text-center text-sm text-muted-foreground">
-            In progress at {activeRound.courseName}
-          </p>
+          <div className="flex flex-col items-center gap-2">
+            <Button asChild size="xl" className="w-full">
+              <Link href={`/rounds/${activeRound.roundId}`}>
+                <HugeiconsIcon icon={GolfBatIcon} size={20} aria-hidden />
+                Play round
+              </Link>
+            </Button>
+            <p className="text-sm text-muted-foreground">
+              In progress at {activeRound.courseName}
+            </p>
+          </div>
         ) : null}
         <RecentEventsSections
           tournaments={tournaments.slice(0, RECENT_LIMIT)}
           matches={matches.slice(0, RECENT_LIMIT)}
         />
       </div>
-    </main>
+    </PageContent>
   );
 }
 

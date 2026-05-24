@@ -11,6 +11,7 @@ import { getCoursesWithTees } from "@/db/queries/courses";
 import { getMatchById } from "@/db/queries/matches";
 import { getAllUsers, getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/utils";
+import { PageContent } from "@/components/page-content";
 import { EditMatchButton } from "./_components/edit-match-button";
 import { MatchPlayTabContent } from "./_components/match-play-tab-content";
 import { SkinsTabContent } from "./_components/skins-tab-content";
@@ -53,7 +54,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
     : [[], []];
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
+    <PageContent>
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-normal">
@@ -144,7 +145,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
         />
         <SkinsTabContent rounds={match.rounds} />
       </Tabs>
-    </main>
+    </PageContent>
   );
 }
 

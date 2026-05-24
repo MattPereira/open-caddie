@@ -12,6 +12,7 @@ import {
 } from "@/db/queries/tournaments";
 import { getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/utils";
+import { PageContent } from "@/components/page-content";
 import { AddPlayersSheet } from "./_components/add-players-sheet";
 import { EditTournamentButton } from "./_components/edit-tournament-button";
 import { WinnersTabContent } from "./_components/winners-tab-content";
@@ -51,7 +52,7 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
     : [[], [], []];
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
+    <PageContent>
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-normal">Tournament</h1>
@@ -125,7 +126,7 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
           greenies={tournament.greenies}
         />
       </Tabs>
-    </main>
+    </PageContent>
   );
 }
 

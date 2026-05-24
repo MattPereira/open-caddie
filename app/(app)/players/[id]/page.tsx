@@ -11,6 +11,7 @@ import {
   getUserPlayingStatsById,
   getUserRoundsById,
 } from "@/db/queries/users";
+import { PageContent } from "@/components/page-content";
 import { PlayerProfileActions } from "./_components/player-profile-actions";
 import { PlayerRoundsBrowser } from "./_components/player-rounds-browser";
 
@@ -47,7 +48,7 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
   const canEdit = canManageUsers || currentUser?.id === player.id;
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
+    <PageContent>
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-muted">
@@ -109,7 +110,7 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
           date: round.date.toISOString().slice(0, 10),
         }))}
       />
-    </main>
+    </PageContent>
   );
 }
 

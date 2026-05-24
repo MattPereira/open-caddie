@@ -14,6 +14,7 @@ import {
   getLowestRoundsByCourseId,
 } from "@/db/queries/courses";
 import { getCurrentUser } from "@/db/queries/users";
+import { PageContent } from "@/components/page-content";
 import { EditCourseButton } from "./_components/edit-course-button";
 
 type CoursePageProps = {
@@ -52,7 +53,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
     ]);
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
+    <PageContent>
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-end gap-3">
           <h1 className="text-xl font-semibold tracking-normal">
@@ -132,6 +133,6 @@ export default async function CoursePage({ params }: CoursePageProps) {
           </p>
         )}
       </div>
-    </main>
+    </PageContent>
   );
 }

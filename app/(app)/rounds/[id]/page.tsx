@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { getRoundById } from "@/db/queries/rounds";
 import { getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/utils";
+import { PageContent } from "@/components/page-content";
 import { RoundActions } from "./_components/round-actions";
 import { StatTile } from "@/components/stat-tile";
 import { RoundScoresCard } from "@/components/round-scores-card";
@@ -54,7 +55,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
     });
 
   return (
-    <main className="flex min-w-0 flex-1 flex-col gap-6 p-4 sm:p-8">
+    <PageContent className="min-w-0">
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-end gap-2">
           <h1 className="text-2xl font-semibold tracking-normal">
@@ -127,7 +128,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
       {round.tournamentHandicapDetails ? (
         <TournamentHandicapSection round={round} />
       ) : null}
-    </main>
+    </PageContent>
   );
 }
 

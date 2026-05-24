@@ -113,7 +113,7 @@ export function MatchPlayContent({
 
       <div className="flex flex-col gap-3">
         <h3 className="text-lg font-medium">Summary</h3>
-        <div className="grid gap-3 md:grid-cols-2 max-w-2xl">
+        <div className="grid gap-3 md:grid-cols-2">
           {matchPlay.teams.map((team) =>
             format === "four_ball_match_play" ? (
               <TeamWinnerCard

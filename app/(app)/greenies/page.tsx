@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { appPageIcons } from "@/components/app-nav-items";
+import { PageContent } from "@/components/page-content";
 import { PageHeading } from "@/components/page-heading";
 import { getAllGreenies } from "@/db/queries/greenies";
 import { GreeniesBrowser } from "./_components/greenies-browser";
@@ -15,7 +16,7 @@ export default async function GreeniesPage() {
   const greenies = await getAllGreenies();
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
+    <PageContent className="max-w-5xl">
       <PageHeading
         icon={appPageIcons.greenies}
         description="Browse the closest to the pin shots on par 3s"
@@ -29,6 +30,6 @@ export default async function GreeniesPage() {
           roundDate: greenie.roundDate.toISOString().slice(0, 10),
         }))}
       />
-    </main>
+    </PageContent>
   );
 }

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { getClubByHandle, getClubMembersByHandle } from "@/db/queries/clubs";
 import { getClubSeasons, getSeasonStandings } from "@/db/queries/standings";
 import { getCurrentUser } from "@/db/queries/users";
+import { PageContent } from "@/components/page-content";
 import { EditClubButton } from "../_components/edit-club-button";
 
 type ClubPageProps = {
@@ -62,7 +63,7 @@ export default async function ClubPage({
         });
 
   return (
-    <main className="flex flex-1 flex-col gap-6 p-4 sm:p-8">
+    <PageContent>
       <div className="flex flex-col gap-4">
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-2xl font-semibold tracking-normal">
@@ -113,7 +114,7 @@ export default async function ClubPage({
         </div>
         <ClubMembersBrowser members={members} />
       </section>
-    </main>
+    </PageContent>
   );
 }
 

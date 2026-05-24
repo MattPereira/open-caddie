@@ -50,9 +50,7 @@ export function GreenieCard({
       }
       header={playerName}
       endSlot={
-        <span className="text-lg font-medium tabular-nums">
-          {formatGreenieDistance(greenie)}
-        </span>
+        <span className="text-lg">{formatGreenieDistance(greenie)}</span>
       }
     >
       <CardDescription className="flex min-w-0 flex-col text-sm leading-snug">

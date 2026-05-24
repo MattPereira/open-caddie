@@ -45,15 +45,13 @@ export function WinnerCard({
         <div className="flex flex-col items-end leading-none">
           <span
             className={cn(
-              "text-lg font-medium tabular-nums",
+              "text-lg tabular-nums",
               primaryValueAdjusted && "text-red-600 dark:text-red-500",
             )}
           >
             {primaryValue}
           </span>
-          <span className="mt-1 text-sm text-muted-foreground">
-            {primaryLabel}
-          </span>
+          <span className="text-sm text-muted-foreground">{primaryLabel}</span>
         </div>
       }
     >

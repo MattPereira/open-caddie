@@ -70,7 +70,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
       </div>
 
       <div className="flex flex-col gap-3">
-        <h3 className="text-lg font-semibold">Best Rounds</h3>
+        <h3 className="text-lg font-medium">Best Rounds</h3>
         {lowestRounds.length > 0 ? (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {lowestRounds.map((round) => (
@@ -93,7 +93,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
       </div>
 
       <div className="flex flex-col gap-3">
-        <h3 className="text-lg font-semibold">Fewest Putts</h3>
+        <h3 className="text-lg font-medium">Fewest Putts</h3>
         {fewestPuttsRounds.length > 0 ? (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {fewestPuttsRounds.map((round) => (
@@ -116,7 +116,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
       </div>
 
       <div className="flex flex-col gap-3">
-        <h3 className="text-lg font-semibold">Closest Greenies</h3>
+        <h3 className="text-lg font-medium">Closest Greenies</h3>
         {closestGreenies.length > 0 ? (
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
             {closestGreenies.map((greenie) => (

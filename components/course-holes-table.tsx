@@ -53,7 +53,7 @@ export function CourseHolesTable({
     [selectedTeeId, tees],
   );
 
-  const { front, back, outPar, inPar, totalPar } = useMemo(() => {
+  const { front, back, outPar, inPar } = useMemo(() => {
     const byHole = new Map(holes.map((h) => [h.hole, h]));
     const ordered = HOLE_NUMBERS.map(
       (hole) => byHole.get(hole) ?? { hole, par: null, handicap: null },
@@ -68,15 +68,13 @@ export function CourseHolesTable({
       back,
       outPar,
       inPar,
-      totalPar:
-        outPar != null && inPar != null ? outPar + inPar : (outPar ?? inPar),
     };
   }, [holes]);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex w-full flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <h3 className="text-lg font-semibold">Scorecard</h3>
+        <h3 className="text-lg font-medium">Scorecard</h3>
         {tees.length > 0 ? (
           <Select value={selectedTeeId} onValueChange={setSelectedTeeId}>
             <SelectTrigger className="w-full sm:w-72">
@@ -101,7 +99,6 @@ export function CourseHolesTable({
             back={back}
             outPar={outPar}
             inPar={inPar}
-            totalPar={totalPar}
             tee={selectedTee}
           />
         }
@@ -137,69 +134,88 @@ function DesktopCourseHolesTable({
   back,
   outPar,
   inPar,
-  totalPar,
   tee,
 }: {
   front: CourseHole[];
   back: CourseHole[];
   outPar: number | null;
   inPar: number | null;
-  totalPar: number | null;
   tee?: CourseTee;
 }) {
   return (
-    <TableFrame>
-      <Table className="w-max">
+    <div className="flex flex-col gap-4">
+      <DesktopNineTable
+        label="Out"
+        holes={front}
+        totalPar={outPar}
+        tee={tee}
+        teeOffset={0}
+      />
+      <DesktopNineTable
+        label="In"
+        holes={back}
+        totalPar={inPar}
+        tee={tee}
+        teeOffset={9}
+      />
+    </div>
+  );
+}
+
+function DesktopNineTable({
+  label,
+  holes,
+  totalPar,
+  tee,
+  teeOffset,
+}: {
+  label: string;
+  holes: CourseHole[];
+  totalPar: number | null;
+  tee?: CourseTee;
+  teeOffset: number;
+}) {
+  return (
+    <TableFrame className="w-full">
+      <Table className="table-fixed">
         <TableHeader>
           <TableRow>
-            <TableHead className="sticky left-0 z-10 min-w-20 bg-card">
+            <TableHead className="sticky left-0 z-10 w-28 bg-muted text-muted-foreground">
               Hole
             </TableHead>
-            {front.map((h) => (
-              <TableHead key={`f-${h.hole}`} className="w-10 text-center">
+            {holes.map((h) => (
+              <TableHead
+                key={`${label}-${h.hole}`}
+                className="bg-muted text-center text-muted-foreground"
+              >
                 {h.hole}
               </TableHead>
             ))}
-            <TableHead className="w-12 text-center">Out</TableHead>
-            {back.map((h) => (
-              <TableHead key={`b-${h.hole}`} className="w-10 text-center">
-                {h.hole}
-              </TableHead>
-            ))}
-            <TableHead className="w-12 text-center">In</TableHead>
-            <TableHead className="w-12 text-center">Tot</TableHead>
+            <TableHead className="w-16 bg-muted text-center text-muted-foreground">
+              {label}
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {tee ? (
-            <TeeYardageRow tee={tee} />
+            <TeeYardageRow tee={tee} label={label} offset={teeOffset} />
           ) : null}
           <TableRow>
             <TableCell className="sticky left-0 z-10 bg-card font-medium">
               Hcp
             </TableCell>
-            {front.map((h) => (
-              <ValueCell key={`f-hcp-${h.hole}`} value={h.handicap} />
+            {holes.map((h) => (
+              <ValueCell key={`${label}-hcp-${h.hole}`} value={h.handicap} />
             ))}
-            <TableCell />
-            {back.map((h) => (
-              <ValueCell key={`b-hcp-${h.hole}`} value={h.handicap} />
-            ))}
-            <TableCell />
             <TableCell />
           </TableRow>
           <TableRow>
             <TableCell className="sticky left-0 z-10 bg-card font-medium">
               Par
             </TableCell>
-            {front.map((h) => (
-              <ValueCell key={`f-par-${h.hole}`} value={h.par} />
+            {holes.map((h) => (
+              <ValueCell key={`${label}-par-${h.hole}`} value={h.par} />
             ))}
-            <ValueCell value={outPar} strong />
-            {back.map((h) => (
-              <ValueCell key={`b-par-${h.hole}`} value={h.par} />
-            ))}
-            <ValueCell value={inPar} strong />
             <ValueCell value={totalPar} strong />
           </TableRow>
         </TableBody>
@@ -208,29 +224,26 @@ function DesktopCourseHolesTable({
   );
 }
 
-function TeeYardageRow({ tee }: { tee: CourseTee }) {
-  const frontYardages = tee.yardages.slice(0, 9);
-  const backYardages = tee.yardages.slice(9);
-  const outYards = sumValues(frontYardages);
-  const inYards = sumValues(backYardages);
-  const totalYards =
-    outYards != null && inYards != null
-      ? outYards + inYards
-      : (outYards ?? inYards);
+function TeeYardageRow({
+  tee,
+  label,
+  offset,
+}: {
+  tee: CourseTee;
+  label: string;
+  offset: number;
+}) {
+  const yardages = tee.yardages.slice(offset, offset + 9);
+  const totalYards = sumValues(yardages);
 
   return (
     <TableRow>
       <TableCell className="sticky left-0 z-10 bg-card font-medium">
         <TeeRowLabel tee={tee} />
       </TableCell>
-      {frontYardages.map((yards, index) => (
-        <ValueCell key={`${tee.id}-f-yards-${index}`} value={yards} />
+      {yardages.map((yards, index) => (
+        <ValueCell key={`${tee.id}-${label}-yards-${index}`} value={yards} />
       ))}
-      <ValueCell value={outYards} strong />
-      {backYardages.map((yards, index) => (
-        <ValueCell key={`${tee.id}-b-yards-${index}`} value={yards} />
-      ))}
-      <ValueCell value={inYards} strong />
       <ValueCell value={totalYards} strong />
     </TableRow>
   );

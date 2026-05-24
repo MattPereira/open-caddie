@@ -64,11 +64,7 @@ export function SkinsTabContent({
   );
 }
 
-export function SkinsContent({
-  rounds,
-}: {
-  rounds: RoundScoresTableRound[];
-}) {
+export function SkinsContent({ rounds }: { rounds: RoundScoresTableRound[] }) {
   const skinsRounds = rounds.filter(isEligibleSkinsRound);
 
   if (skinsRounds.length < 2) {
@@ -76,8 +72,8 @@ export function SkinsContent({
       <Card className="border-dashed">
         <CardContent className="py-10 text-center">
           <p className="text-sm text-muted-foreground">
-            Skins scoring is available once at least two players have recorded
-            a score.
+            Skins scoring is available once at least two players have recorded a
+            score.
           </p>
         </CardContent>
       </Card>
@@ -104,7 +100,7 @@ export function SkinsContent({
 
       <div className="flex flex-col gap-3">
         <h3 className="text-lg font-medium">Summary</h3>
-        <div className="grid max-w-2xl gap-3 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           {skins.players.map((player) => (
             <WinnerCard
               key={player.id}

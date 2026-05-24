@@ -44,7 +44,6 @@ type SkinHoleRow = {
 type SkinPlayerView = {
   id: number;
   name: string;
-  firstName: string;
   initials: string;
   image: string | null;
   playingHandicap: number | null;
@@ -165,7 +164,7 @@ function SkinsNineTable({
               </TableHead>
               {players.map((player) => (
                 <TableHead key={player.id} className="w-16 px-2 text-center">
-                  {player.firstName}
+                  {player.initials}
                 </TableHead>
               ))}
             </TableRow>
@@ -246,7 +245,6 @@ function toSkinsView(rounds: SkinsRound[]) {
         {
           id: round.id,
           name,
-          firstName: round.firstName || name.split(" ")[0] || name,
           initials: getInitials({ ...round, email: null }),
           image: round.image,
           playingHandicap: round.playingHandicap,
@@ -263,7 +261,6 @@ function toSkinsView(rounds: SkinsRound[]) {
       playersById.get(round.id) ?? {
         id: round.id,
         name,
-        firstName: round.firstName || name.split(" ")[0] || name,
         initials: getInitials({ ...round, email: null }),
         image: round.image,
         playingHandicap: round.playingHandicap,

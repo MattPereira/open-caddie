@@ -223,7 +223,7 @@ function MatchPlayNineTable({
                     className="w-14 px-1 text-center sm:w-16"
                   >
                     <span className="block truncate">
-                      {formatRoundLabel(round)}
+                      {formatRoundInitials(round)}
                     </span>
                   </TableHead>
                 )),
@@ -631,6 +631,10 @@ function formatTeamSecondary(team: MatchPlayTeamView, format: MatchFormat) {
 function formatRoundLabel(round: MatchPlayRound) {
   const name = displayName({ ...round, email: null });
   return round.firstName || name.split(" ")[0] || name;
+}
+
+function formatRoundInitials(round: MatchPlayRound) {
+  return getInitials({ ...round, email: null });
 }
 
 function formatTeamPlayerInitials(team: { rounds: MatchPlayRound[] }) {

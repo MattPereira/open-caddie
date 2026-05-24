@@ -56,12 +56,10 @@ export default async function MatchPage({ params }: MatchPageProps) {
     : [[], []];
 
   return (
-    <PageContent>
-      <div className="flex flex-col gap-3">
+    <PageContent className="max-w-5xl">
+      <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-normal">
-            {title}
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-normal">{title}</h1>
           {canManage ? (
             <EditMatchButton
               match={{
@@ -96,7 +94,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
             />
           ) : null}
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           {[match.courseName, formatDate(match.date, "short")]
             .filter(Boolean)
             .join(" · ")}

@@ -44,8 +44,8 @@ export default async function Home() {
           Open Caddie
         </h1>
         <p className="max-w-sm text-muted-foreground sm:max-w-none">
-          A golf scorekeeping app for casual rounds, competitive formats, and
-          club organizations
+          Track casual rounds, competitive matches, and club tournaments with
+          season long standings
         </p>
       </section>
       <div className="flex w-full flex-col gap-8">
@@ -114,7 +114,7 @@ function RecentEventsSections({
             action={tournamentAction}
           />
           <p className="text-sm text-muted-foreground">
-            Club events contributing towards season long standings
+            Club events that count toward season long standings
           </p>
         </div>
         {tournaments.length === 0 ? (
@@ -145,7 +145,7 @@ function RecentEventsSections({
             action={matchAction}
           />
           <p className="text-sm text-muted-foreground">
-            Two to four player contests for match play and skins
+            Singles and team match play for friendly competition
           </p>
         </div>
         {matches.length === 0 ? (

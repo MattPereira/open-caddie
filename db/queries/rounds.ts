@@ -27,6 +27,27 @@ type PriorClubScoreDifferentialsParams = {
   limit?: number;
 };
 
+export const getLowestRounds = cache(async (limit = 10) => {
+  return db
+    .select({
+      roundId: roundSummaries.roundId,
+      date: roundSummaries.date,
+      totalStrokes: roundSummaries.totalStrokes,
+      courseName: courses.name,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      username: users.username,
+      email: users.email,
+      image: users.image,
+    })
+    .from(roundSummaries)
+    .innerJoin(users, eq(roundSummaries.userId, users.id))
+    .innerJoin(courses, eq(roundSummaries.courseId, courses.id))
+    .where(eq(roundSummaries.isComplete, true))
+    .orderBy(asc(roundSummaries.totalStrokes), desc(roundSummaries.date))
+    .limit(limit);
+});
+
 export const getActiveRoundForUser = cache(async (userId: string) => {
   const [row] = await db
     .select({

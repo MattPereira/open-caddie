@@ -221,7 +221,7 @@ export async function deleteRound(
   }
 
   revalidatePath("/");
-  revalidatePath("/greenies");
+  revalidatePath("/records");
   revalidatePath("/clubs/[handle]", "page");
   revalidatePath(`/players/${result[0].userId}`);
   revalidatePath(`/rounds/${roundId}`);
@@ -345,7 +345,7 @@ export async function upsertRoundGreenie(
   }
 
   revalidatePath("/");
-  revalidatePath("/greenies");
+  revalidatePath("/records");
   revalidatePath("/clubs/[handle]", "page");
   revalidatePath(`/players/${owned.userId}`);
   revalidatePath(`/rounds/${roundId}`);
@@ -382,7 +382,7 @@ export async function deleteRoundGreenie(
     .where(and(eq(greenies.roundId, roundId), eq(greenies.hole, hole)));
 
   revalidatePath("/");
-  revalidatePath("/greenies");
+  revalidatePath("/records");
   revalidatePath("/clubs/[handle]", "page");
   revalidatePath(`/players/${owned.userId}`);
   revalidatePath(`/rounds/${roundId}`);
@@ -551,7 +551,7 @@ export async function updateRoundScores(
   }
 
   revalidatePath("/");
-  revalidatePath("/greenies");
+  revalidatePath("/records");
   revalidatePath("/clubs/[handle]", "page");
   revalidatePath(`/players/${owned.userId}`);
   revalidatePath(`/rounds/${roundId}`);

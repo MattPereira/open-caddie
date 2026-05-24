@@ -17,12 +17,14 @@ type GreenieCardProps = {
   greenie: GreenieCardGreenie;
   courseName?: string | null;
   details?: string;
+  href?: string;
 };
 
 export function GreenieCard({
   greenie,
   courseName,
   details,
+  href,
 }: GreenieCardProps) {
   const playerName = formatGreeniePlayerName(greenie);
   const subtext = [courseName?.trim() || null, details]
@@ -49,6 +51,7 @@ export function GreenieCard({
         </div>
       }
       header={playerName}
+      href={href}
       endSlot={
         <span className="text-lg">{formatGreenieDistance(greenie)}</span>
       }

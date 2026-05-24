@@ -38,7 +38,7 @@ export default async function Home() {
     ]);
 
   return (
-    <PageContent className="max-w-4xl gap-8">
+    <PageContent className="max-w-4xl gap-10">
       <section className="flex flex-col items-center gap-5 pt-3 text-center">
         <h1 className={cn(brandFont.className, "text-5xl sm:text-6xl")}>
           Open Caddie
@@ -106,12 +106,17 @@ function RecentEventsSections({
   return (
     <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
       <section className="flex flex-col gap-3">
-        <SectionHeader
-          icon={ChampionIcon}
-          title="Tournaments"
-          href="/tournaments"
-          action={tournamentAction}
-        />
+        <div className="flex flex-col gap-0">
+          <SectionHeader
+            icon={ChampionIcon}
+            title="Tournaments"
+            href="/tournaments"
+            action={tournamentAction}
+          />
+          <p className="text-sm text-muted-foreground">
+            Club events contributing towards season long standings
+          </p>
+        </div>
         {tournaments.length === 0 ? (
           <p className="text-sm text-muted-foreground">No tournaments yet.</p>
         ) : (
@@ -132,12 +137,17 @@ function RecentEventsSections({
       </section>
 
       <section className="flex flex-col gap-3">
-        <SectionHeader
-          icon={GolfBallIcon}
-          title="Matches"
-          href="/matches"
-          action={matchAction}
-        />
+        <div className="flex flex-col gap-0">
+          <SectionHeader
+            icon={GolfBallIcon}
+            title="Matches"
+            href="/matches"
+            action={matchAction}
+          />
+          <p className="text-sm text-muted-foreground">
+            Two to four player contests for match play and skins
+          </p>
+        </div>
         {matches.length === 0 ? (
           <p className="text-sm text-muted-foreground">No matches yet.</p>
         ) : (

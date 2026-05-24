@@ -14,14 +14,16 @@ export function WinnerCard({
   primaryLabel,
   primaryValue,
   primaryValueAdjusted,
+  href,
 }: {
   playerName: string;
   initials: string;
   image: string | null;
   secondary?: ReactNode;
-  primaryLabel: string;
+  primaryLabel?: string;
   primaryValue: ReactNode;
   primaryValueAdjusted?: boolean;
+  href?: string;
 }) {
   return (
     <MediaCard
@@ -41,6 +43,7 @@ export function WinnerCard({
         </div>
       }
       header={playerName}
+      href={href}
       endSlot={
         <div className="flex flex-col items-end leading-none">
           <span
@@ -51,12 +54,16 @@ export function WinnerCard({
           >
             {primaryValue}
           </span>
-          <span className="text-sm text-muted-foreground">{primaryLabel}</span>
+          {primaryLabel ? (
+            <span className="text-sm text-muted-foreground">
+              {primaryLabel}
+            </span>
+          ) : null}
         </div>
       }
     >
       {secondary ? (
-        <CardDescription className="truncate text-sm leading-snug">
+        <CardDescription className="flex min-w-0 flex-col text-sm leading-snug">
           {secondary}
         </CardDescription>
       ) : null}

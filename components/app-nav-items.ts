@@ -5,6 +5,7 @@ import {
   GolfCartIcon,
   GolfHoleIcon,
   GolfBallIcon,
+  Award02Icon,
   UserMultipleIcon,
 } from "@hugeicons/core-free-icons";
 
@@ -18,6 +19,7 @@ export const appPageIcons = {
   tournaments: ChampionIcon,
   standings: ChampionIcon,
   matches: GolfBallIcon,
+  records: Award02Icon,
   greenies: GolfHoleIcon,
   courses: GolfCartIcon,
   players: UserMultipleIcon,
@@ -31,8 +33,8 @@ export const appNavItems: AppNavItem[] = [
     icon: appPageIcons.tournaments,
   },
   { title: "Matches", href: "/matches", icon: appPageIcons.matches },
-  { title: "Greenies", href: "/greenies", icon: appPageIcons.greenies },
   { title: "Courses", href: "/courses", icon: appPageIcons.courses },
+  { title: "Records", href: "/records", icon: appPageIcons.records },
   { title: "Players", href: "/players", icon: appPageIcons.players },
   { title: "Clubs", href: "/clubs", icon: appPageIcons.clubs },
 ];

@@ -3,28 +3,33 @@ import type { Metadata } from "next";
 import { appPageIcons } from "@/components/app-nav-items";
 import { PageContent } from "@/components/page-content";
 import { PageHeading } from "@/components/page-heading";
-import { getAllGreenies } from "@/db/queries/greenies";
-import { GreeniesBrowser } from "./_components/greenies-browser";
+import { getClosestGreenies } from "@/db/queries/greenies";
+import { getLowestRounds } from "@/db/queries/rounds";
+import { RecordsBrowser } from "./_components/records-browser";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Greenies",
+  title: "Records",
 };
 
-export default async function GreeniesPage() {
-  const greenies = await getAllGreenies();
+export default async function RecordsPage() {
+  const [greenies, rounds] = await Promise.all([
+    getClosestGreenies(),
+    getLowestRounds(),
+  ]);
 
   return (
     <PageContent className="max-w-4xl">
       <PageHeading
-        icon={appPageIcons.greenies}
-        description="Browse the closest to the pin shots on par 3s"
+        icon={appPageIcons.records}
+        description="Browse the all time best rounds and closest greenies"
       >
-        Greenies
+        Records
       </PageHeading>
 
-      <GreeniesBrowser
+      <RecordsBrowser
+        rounds={rounds}
         greenies={greenies.map((greenie) => ({
           ...greenie,
           roundDate: greenie.roundDate.toISOString().slice(0, 10),

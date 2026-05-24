@@ -30,7 +30,7 @@ export default async function MatchesPage() {
       <div className="flex items-start justify-between gap-2">
         <PageHeading
           icon={appPageIcons.matches}
-          description="Browse live, upcoming, and past casual matches"
+          description="Select a match to see the results"
         >
           Matches
         </PageHeading>
@@ -39,14 +39,16 @@ export default async function MatchesPage() {
         ) : null}
       </div>
       <MatchesBrowser
-        matches={matches.map(({ id, format, date, courseName, courseImgUrl, playerCount }) => ({
-          id,
-          format,
-          date: date.toISOString().slice(0, 10),
-          courseName,
-          courseImgUrl,
-          playerCount,
-        }))}
+        matches={matches.map(
+          ({ id, format, date, courseName, courseImgUrl, playerCount }) => ({
+            id,
+            format,
+            date: date.toISOString().slice(0, 10),
+            courseName,
+            courseImgUrl,
+            playerCount,
+          }),
+        )}
       />
     </PageContent>
   );

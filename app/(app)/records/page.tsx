@@ -23,7 +23,7 @@ export default async function RecordsPage() {
     <PageContent className="max-w-4xl">
       <PageHeading
         icon={appPageIcons.records}
-        description="Browse the all time best rounds and closest greenies"
+        description="Browse all time lowest rounds and closest greenies"
       >
         Records
       </PageHeading>

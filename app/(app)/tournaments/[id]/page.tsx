@@ -13,6 +13,7 @@ import {
 import { getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/utils";
 import { PageContent } from "@/components/page-content";
+import { UploadScorecardButton } from "@/components/upload-scorecard-button";
 import { AddPlayersSheet } from "./_components/add-players-sheet";
 import { EditTournamentButton } from "./_components/edit-tournament-button";
 import { WinnersTabContent } from "./_components/winners-tab-content";
@@ -75,30 +76,16 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
               courses={courses}
             />
           ) : null}
-          {currentUser?.isAdmin ? (
-            <div className="ml-auto">
-              <AddPlayersSheet
-                tournamentId={tournament.id}
-                players={addablePlayers}
-              />
-            </div>
-          ) : null}
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           {[tournament.courseName, formatDate(tournament.date, "short")]
             .filter(Boolean)
             .join(" · ")}
         </p>
       </div>
 
-      <Tabs defaultValue="winners" className="w-full">
+      <Tabs defaultValue="rounds" className="w-full">
         <TabsList className="w-full p-1 sm:w-fit mb-3 h-10!">
-          <TabsTrigger
-            value="winners"
-            className="flex-1 px-5 py-2 text-base sm:flex-none"
-          >
-            Winners
-          </TabsTrigger>
           <TabsTrigger
             value="rounds"
             className="flex-1 px-5 py-2 text-base sm:flex-none"
@@ -111,19 +98,38 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
           >
             Greenies
           </TabsTrigger>
+          <TabsTrigger
+            value="winners"
+            className="flex-1 px-5 py-2 text-base sm:flex-none"
+          >
+            Winners
+          </TabsTrigger>
         </TabsList>
 
-        <WinnersTabContent
-          rounds={tournament.rounds}
-          greenies={tournament.greenies}
-        />
         <RoundsTabContent
           currentUser={currentUser}
           emptyMessage="No rounds have been recorded for this tournament."
           rounds={tournament.rounds}
+          actions={
+            currentUser?.isAdmin ? (
+              <>
+                <AddPlayersSheet
+                  tournamentId={tournament.id}
+                  players={addablePlayers}
+                />
+                <UploadScorecardButton
+                  href={`/tournaments/${tournament.id}/upload-scorecard`}
+                />
+              </>
+            ) : null
+          }
         />
         <GreeniesTabContent
           emptyMessage="No greenies have been recorded for this tournament."
+          greenies={tournament.greenies}
+        />
+        <WinnersTabContent
+          rounds={tournament.rounds}
           greenies={tournament.greenies}
         />
       </Tabs>

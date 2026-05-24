@@ -25,7 +25,7 @@ export default async function ClubsPage() {
       <div className="flex items-start gap-2">
         <PageHeading
           icon={appPageIcons.clubs}
-          description="Browse clubs and their scoring rules"
+          description="Select a club to see season long standings"
         >
           Clubs
         </PageHeading>

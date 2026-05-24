@@ -15,7 +15,9 @@ export function PageHeading({ children, icon, description }: PageHeadingProps) {
         <span>{children}</span>
       </h1>
       {description ? (
-        <p className="max-w-2xl text-sm text-muted-foreground">{description}</p>
+        <p className="max-w-2xl text-base text-muted-foreground">
+          {description}
+        </p>
       ) : null}
     </div>
   );

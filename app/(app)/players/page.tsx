@@ -24,7 +24,7 @@ export default async function PlayersPage() {
       <div className="flex items-start gap-2">
         <PageHeading
           icon={appPageIcons.players}
-          description="Select a player to view their profile"
+          description="Select a player to view their round history"
         >
           Players
         </PageHeading>

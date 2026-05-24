@@ -57,7 +57,7 @@ export function SkinsTabContent({
   rounds: RoundScoresTableRound[];
 }) {
   return (
-    <TabsContent value="skins" className="flex flex-col gap-5">
+    <TabsContent value="skins" className="flex flex-col gap-5 max-w-3xl">
       <SkinsContent rounds={rounds} />
     </TabsContent>
   );

@@ -13,6 +13,7 @@ import { getAllUsers, getCurrentUser } from "@/db/queries/users";
 import { matchFormatLabel } from "@/lib/match-play";
 import { formatDate } from "@/lib/utils";
 import { PageContent } from "@/components/page-content";
+import { UploadScorecardButton } from "@/components/upload-scorecard-button";
 import { EditMatchButton } from "./_components/edit-match-button";
 import { MatchPlayTabContent } from "./_components/match-play-tab-content";
 import { SkinsTabContent } from "./_components/skins-tab-content";
@@ -135,6 +136,13 @@ export default async function MatchPage({ params }: MatchPageProps) {
           currentUser={currentUser}
           emptyMessage="No rounds have been recorded for this match."
           rounds={match.rounds}
+          actions={
+            canManage ? (
+              <UploadScorecardButton
+                href={`/matches/${match.id}/upload-scorecard`}
+              />
+            ) : null
+          }
         />
         <MatchPlayTabContent
           format={match.format}

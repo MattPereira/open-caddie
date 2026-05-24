@@ -31,7 +31,7 @@ export default async function TournamentsPage() {
       <div className="flex items-start justify-between gap-2">
         <PageHeading
           icon={appPageIcons.tournaments}
-          description="Browse live, upcoming, and past tournaments"
+          description="Select a tournament to see the winners"
         >
           Tournaments
         </PageHeading>

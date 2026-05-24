@@ -39,7 +39,6 @@ export default async function NewRoundPage() {
           tournaments={tournaments.map((tournament) => ({
             id: tournament.id,
             date: tournament.date,
-            startsAt: tournament.startsAt,
             season: tournament.season,
             clubName: tournament.clubName,
             courseImgUrl: tournament.courseImgUrl,

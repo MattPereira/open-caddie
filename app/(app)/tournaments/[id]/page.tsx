@@ -52,7 +52,7 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
     : [[], [], []];
 
   return (
-    <PageContent>
+    <PageContent className="max-w-5xl">
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-normal">Tournament</h1>
@@ -63,7 +63,6 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
                 clubHandle: tournament.clubHandle,
                 clubName: tournament.clubName,
                 date: tournament.date,
-                startsAt: tournament.startsAt,
                 season: tournament.season,
                 courseHandle: tournament.courseHandle,
                 courseName: tournament.courseName,

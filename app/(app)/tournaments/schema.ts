@@ -10,10 +10,6 @@ export const TournamentFormSchema = z.object({
       .nonnegative("Season cannot be negative"),
     z.literal(""),
   ]),
-  startsAt: z
-    .string()
-    .trim()
-    .regex(/^\d{2}:\d{2}$/, "Start time is required"),
   courseHandle: z.string().trim().min(1, "Course is required"),
   teeId: z
     .union([z.number().int().positive(), z.literal("")])

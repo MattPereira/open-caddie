@@ -14,11 +14,13 @@ import {
 type AddTournamentButtonProps = {
   clubs: ClubOption[];
   courses: CourseOption[];
+  redirectOnCreate?: boolean;
 };
 
 export function AddTournamentButton({
   clubs,
   courses,
+  redirectOnCreate,
 }: AddTournamentButtonProps) {
   const [open, setOpen] = useState(false);
 
@@ -40,6 +42,7 @@ export function AddTournamentButton({
         mode="create"
         clubs={clubs}
         courses={courses}
+        redirectOnCreate={redirectOnCreate}
       />
     </>
   );

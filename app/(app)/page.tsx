@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import {
   ChampionIcon,
   GolfBallIcon,
@@ -6,32 +7,39 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
-import { auth } from "@/auth";
 import { EventCard } from "@/components/event-card";
 import { PageContent } from "@/components/page-content";
 import { matchFormatLabel } from "@/lib/match-play";
 import { brandFont } from "@/lib/fonts";
+import { getAllClubs } from "@/db/queries/clubs";
+import { getCoursesWithTees } from "@/db/queries/courses";
 import { getActiveRoundForUser } from "@/db/queries/rounds";
 import { getAllTournaments } from "@/db/queries/tournaments";
 import { getAllMatches } from "@/db/queries/matches";
+import { getAllUsers, getCurrentUser } from "@/db/queries/users";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { AddMatchButton } from "./matches/_components/add-match-button";
+import { AddTournamentButton } from "./tournaments/_components/add-tournament-button";
 
 const RECENT_LIMIT = 3;
 
 export default async function Home() {
-  const session = await auth();
-  const userId = session?.user?.id;
+  const currentUser = await getCurrentUser();
 
-  const [tournaments, matches, activeRound] = await Promise.all([
-    getAllTournaments(),
-    getAllMatches(),
-    userId ? getActiveRoundForUser(userId) : null,
-  ]);
+  const [tournaments, matches, activeRound, courses, players, clubs] =
+    await Promise.all([
+      getAllTournaments(),
+      getAllMatches(),
+      currentUser ? getActiveRoundForUser(currentUser.id) : null,
+      currentUser ? getCoursesWithTees() : [],
+      currentUser ? getAllUsers() : [],
+      currentUser?.isAdmin ? getAllClubs() : [],
+    ]);
 
   return (
-    <PageContent className="max-w-4xl">
-      <section className="flex flex-col items-center gap-3 pt-6 text-center">
+    <PageContent className="max-w-4xl gap-8">
+      <section className="flex flex-col items-center gap-5 pt-3 text-center">
         <h1 className={cn(brandFont.className, "text-5xl sm:text-6xl")}>
           Open Caddie
         </h1>
@@ -57,6 +65,24 @@ export default async function Home() {
         <RecentEventsSections
           tournaments={tournaments.slice(0, RECENT_LIMIT)}
           matches={matches.slice(0, RECENT_LIMIT)}
+          tournamentAction={
+            currentUser?.isAdmin ? (
+              <AddTournamentButton
+                clubs={clubs}
+                courses={courses}
+                redirectOnCreate
+              />
+            ) : null
+          }
+          matchAction={
+            currentUser ? (
+              <AddMatchButton
+                courses={courses}
+                players={players}
+                redirectOnCreate
+              />
+            ) : null
+          }
         />
       </div>
     </PageContent>
@@ -69,9 +95,13 @@ type RecentMatch = Awaited<ReturnType<typeof getAllMatches>>[number];
 function RecentEventsSections({
   tournaments,
   matches,
+  tournamentAction,
+  matchAction,
 }: {
   tournaments: RecentTournament[];
   matches: RecentMatch[];
+  tournamentAction?: ReactNode;
+  matchAction?: ReactNode;
 }) {
   return (
     <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
@@ -80,6 +110,7 @@ function RecentEventsSections({
           icon={ChampionIcon}
           title="Tournaments"
           href="/tournaments"
+          action={tournamentAction}
         />
         {tournaments.length === 0 ? (
           <p className="text-sm text-muted-foreground">No tournaments yet.</p>
@@ -90,7 +121,6 @@ function RecentEventsSections({
               event={{
                 title: tournament.clubName,
                 date: tournament.date,
-                startsAt: tournament.startsAt,
                 courseName: tournament.courseName,
                 courseImgUrl: tournament.courseImgUrl,
                 playerCount: tournament.playerCount,
@@ -102,7 +132,12 @@ function RecentEventsSections({
       </section>
 
       <section className="flex flex-col gap-3">
-        <SectionHeader icon={GolfBallIcon} title="Matches" href="/matches" />
+        <SectionHeader
+          icon={GolfBallIcon}
+          title="Matches"
+          href="/matches"
+          action={matchAction}
+        />
         {matches.length === 0 ? (
           <p className="text-sm text-muted-foreground">No matches yet.</p>
         ) : (
@@ -112,7 +147,6 @@ function RecentEventsSections({
               event={{
                 title: matchFormatLabel(match.format),
                 date: match.date,
-                startsAt: match.startsAt,
                 courseName: match.courseName,
                 courseImgUrl: match.courseImgUrl,
                 playerCount: match.playerCount,
@@ -130,18 +164,23 @@ function SectionHeader({
   icon,
   title,
   href,
+  action,
 }: {
   icon: IconSvgElement;
   title: string;
   href: string;
+  action?: ReactNode;
 }) {
   return (
-    <Link
-      href={href}
-      className="flex items-center gap-2 text-lg font-semibold tracking-normal hover:text-primary"
-    >
-      <HugeiconsIcon icon={icon} size={22} aria-hidden />
-      <span>{title}</span>
-    </Link>
+    <div className="flex items-center justify-between gap-2">
+      <Link
+        href={href}
+        className="flex items-center gap-2 text-lg font-semibold tracking-normal hover:text-primary"
+      >
+        <HugeiconsIcon icon={icon} size={22} aria-hidden />
+        <span>{title}</span>
+      </Link>
+      {action}
+    </div>
   );
 }

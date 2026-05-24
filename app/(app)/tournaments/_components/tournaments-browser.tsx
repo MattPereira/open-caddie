@@ -17,7 +17,6 @@ type Tournament = {
   clubHandle: string;
   clubName: string;
   date: string;
-  startsAt: string | null;
   season: number | null;
   courseId: number;
   courseHandle: string | null;
@@ -156,7 +155,6 @@ function filterTournaments(tournaments: Tournament[], query: string) {
       tournament.courseName ?? "",
       tournament.season != null ? `Season ${tournament.season}` : "",
       formatDate(tournament.date, "short"),
-      formatTournamentTime(tournament.startsAt),
       tournament.date,
     ]
       .join(" ")
@@ -183,16 +181,5 @@ function getLocalDateKey(date: Date) {
 }
 
 function compareTournamentDateTime(a: Tournament, b: Tournament) {
-  const dateCompare = a.date.localeCompare(b.date);
-  if (dateCompare !== 0) return dateCompare;
-  return (a.startsAt ?? "").localeCompare(b.startsAt ?? "");
-}
-
-function formatTournamentTime(time: string | null) {
-  if (!time) return "";
-  const [hours = "0", minutes = "0"] = time.split(":");
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(2000, 0, 1, Number(hours), Number(minutes)));
+  return a.date.localeCompare(b.date);
 }

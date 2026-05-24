@@ -30,8 +30,6 @@ export const getAllMatches = cache(async () => {
       creatorLastName: users.lastName,
       creatorUsername: users.username,
       date: matches.date,
-      startsAt: matches.startsAt,
-      name: matches.name,
       format: matches.format,
       courseId: matches.courseId,
       courseHandle: courses.handle,
@@ -52,7 +50,7 @@ export const getAllMatches = cache(async () => {
       courses.name,
       courses.imgUrl,
     )
-    .orderBy(desc(matches.date), desc(matches.startsAt));
+    .orderBy(desc(matches.date), desc(matches.id));
 });
 
 export const getMatchById = cache(async (matchId: number) => {
@@ -64,8 +62,6 @@ export const getMatchById = cache(async (matchId: number) => {
       creatorLastName: users.lastName,
       creatorUsername: users.username,
       date: matches.date,
-      startsAt: matches.startsAt,
-      name: matches.name,
       format: matches.format,
       courseId: matches.courseId,
       courseHandle: courses.handle,

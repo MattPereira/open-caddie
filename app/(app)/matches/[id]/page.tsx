@@ -10,6 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCoursesWithTees } from "@/db/queries/courses";
 import { getMatchById } from "@/db/queries/matches";
 import { getAllUsers, getCurrentUser } from "@/db/queries/users";
+import { matchFormatLabel } from "@/lib/match-play";
 import { formatDate } from "@/lib/utils";
 import { PageContent } from "@/components/page-content";
 import { EditMatchButton } from "./_components/edit-match-button";
@@ -30,7 +31,7 @@ export async function generateMetadata({
   const match = await getMatchFromParams(params);
 
   return {
-    title: match?.name || match?.courseName || "Match",
+    title: matchFormatLabel(match?.format) ?? match?.courseName ?? "Match",
   };
 }
 
@@ -48,6 +49,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
   const currentUserRound = currentUser
     ? match.rounds.find((round) => round.userId === currentUser.id)
     : null;
+  const title = matchFormatLabel(match.format) ?? "Match";
 
   const [courses, players] = canManage
     ? await Promise.all([getCoursesWithTees(), getAllUsers()])
@@ -58,15 +60,13 @@ export default async function MatchPage({ params }: MatchPageProps) {
       <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-normal">
-            {match.name || "Match"}
+            {title}
           </h1>
           {canManage ? (
             <EditMatchButton
               match={{
                 id: match.id,
                 date: match.date,
-                startsAt: match.startsAt,
-                name: match.name,
                 courseHandle: match.courseHandle,
                 courseName: match.courseName,
                 courseImgUrl: match.courseImgUrl,

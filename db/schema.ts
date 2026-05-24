@@ -12,7 +12,6 @@ import {
   primaryKey,
   serial,
   text,
-  time,
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -103,7 +102,6 @@ export const tournaments = pgTable("tournaments", {
     .notNull()
     .references(() => clubs.id, { onDelete: "restrict" }),
   date: date("date", { mode: "date" }).notNull(),
-  startsAt: time("starts_at").notNull(),
   season: integer("season"),
   courseId: integer("course_id")
     .notNull()
@@ -132,8 +130,6 @@ export const matches = pgTable(
       .notNull()
       .references(() => courses.id, { onDelete: "restrict" }),
     date: date("date", { mode: "date" }).notNull(),
-    startsAt: time("starts_at").notNull(),
-    name: text("name"),
     format: text("format")
       .$type<MatchFormat>()
       .notNull()

@@ -25,11 +25,7 @@ export function GreenieCard({
   details,
 }: GreenieCardProps) {
   const playerName = formatGreeniePlayerName(greenie);
-  const subtext = [
-    courseName ? clipCourseName(courseName) : null,
-    details,
-    `Hole ${greenie.hole}`,
-  ]
+  const subtext = [courseName?.trim() || null, details]
     .filter(Boolean)
     .join(" · ");
 
@@ -54,16 +50,14 @@ export function GreenieCard({
       }
       header={playerName}
       endSlot={
-        <div className="flex flex-col items-end leading-none">
-          <span className="text-lg font-medium tabular-nums">
-            {formatGreenieDistance(greenie)}
-          </span>
-          <span className="mt-1 text-sm text-muted-foreground">Dist</span>
-        </div>
+        <span className="text-lg font-medium tabular-nums">
+          {formatGreenieDistance(greenie)}
+        </span>
       }
     >
-      <CardDescription className="truncate text-sm leading-snug">
-        {subtext}
+      <CardDescription className="flex min-w-0 flex-col text-sm leading-snug">
+        {subtext ? <span className="truncate">{subtext}</span> : null}
+        <span>Hole {greenie.hole}</span>
       </CardDescription>
     </MediaCard>
   );
@@ -85,10 +79,6 @@ function getInitials(greenie: GreenieCardGreenie) {
   if (initials) return initials;
   const fallback = (greenie.username ?? "?").trim();
   return fallback.slice(0, 2).toUpperCase();
-}
-
-function clipCourseName(name: string) {
-  return name.trim().split(/\s+/).slice(0, 2).join(" ");
 }
 
 export function formatGreenieDistance(

@@ -39,11 +39,10 @@ export default async function MatchesPage() {
         ) : null}
       </div>
       <MatchesBrowser
-        matches={matches.map(({ id, format, date, startsAt, courseName, courseImgUrl, playerCount }) => ({
+        matches={matches.map(({ id, format, date, courseName, courseImgUrl, playerCount }) => ({
           id,
           format,
           date: date.toISOString().slice(0, 10),
-          startsAt,
           courseName,
           courseImgUrl,
           playerCount,

@@ -16,7 +16,6 @@ import { formatDate } from "@/lib/utils";
 type Match = {
   id: number;
   date: string;
-  startsAt: string | null;
   format: MatchFormat | null;
   courseName: string | null;
   courseImgUrl: string | null;
@@ -74,7 +73,6 @@ export function MatchesBrowser({ matches }: { matches: Match[] }) {
                       event={{
                         title: matchFormatLabel(match.format),
                         date: match.date,
-                        startsAt: match.startsAt,
                         courseName: match.courseName,
                         courseImgUrl: match.courseImgUrl,
                         playerCount: match.playerCount,
@@ -140,7 +138,6 @@ function filterMatches(matches: Match[], query: string) {
       matchFormatLabel(match.format) ?? "",
       match.courseName ?? "",
       formatDate(match.date, "short"),
-      formatMatchTime(match.startsAt),
       match.date,
     ]
       .join(" ")
@@ -167,16 +164,5 @@ function getLocalDateKey(date: Date) {
 }
 
 function compareMatchDateTime(a: Match, b: Match) {
-  const dateCompare = a.date.localeCompare(b.date);
-  if (dateCompare !== 0) return dateCompare;
-  return (a.startsAt ?? "").localeCompare(b.startsAt ?? "");
-}
-
-function formatMatchTime(time: string | null) {
-  if (!time) return "";
-  const [hours = "0", minutes = "0"] = time.split(":");
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(2000, 0, 1, Number(hours), Number(minutes)));
+  return a.date.localeCompare(b.date);
 }

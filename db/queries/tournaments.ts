@@ -30,7 +30,6 @@ export const getAllTournaments = cache(async () => {
       clubHandle: clubs.handle,
       clubName: clubs.name,
       date: tournaments.date,
-      startsAt: tournaments.startsAt,
       season: tournaments.season,
       courseId: tournaments.courseId,
       courseHandle: courses.handle,
@@ -43,7 +42,7 @@ export const getAllTournaments = cache(async () => {
     .leftJoin(courses, eq(tournaments.courseId, courses.id))
     .leftJoin(rounds, eq(rounds.tournamentId, tournaments.id))
     .groupBy(tournaments.id, clubs.handle, clubs.name, courses.handle, courses.name, courses.imgUrl)
-    .orderBy(desc(tournaments.date), desc(tournaments.startsAt));
+    .orderBy(desc(tournaments.date), desc(tournaments.id));
 });
 
 export const getTournamentsByClubHandle = cache(async (clubHandle: string) => {
@@ -54,7 +53,6 @@ export const getTournamentsByClubHandle = cache(async (clubHandle: string) => {
       clubHandle: clubs.handle,
       clubName: clubs.name,
       date: tournaments.date,
-      startsAt: tournaments.startsAt,
       season: tournaments.season,
       courseId: tournaments.courseId,
       courseHandle: courses.handle,
@@ -68,7 +66,7 @@ export const getTournamentsByClubHandle = cache(async (clubHandle: string) => {
     .leftJoin(rounds, eq(rounds.tournamentId, tournaments.id))
     .where(eq(clubs.handle, clubHandle))
     .groupBy(tournaments.id, clubs.handle, clubs.name, courses.handle, courses.name, courses.imgUrl)
-    .orderBy(desc(tournaments.date), desc(tournaments.startsAt));
+    .orderBy(desc(tournaments.date), desc(tournaments.id));
 });
 
 export const getTournamentById = cache(async (tournamentId: number) => {
@@ -79,7 +77,6 @@ export const getTournamentById = cache(async (tournamentId: number) => {
       clubHandle: clubs.handle,
       clubName: clubs.name,
       date: tournaments.date,
-      startsAt: tournaments.startsAt,
       season: tournaments.season,
       courseId: tournaments.courseId,
       courseHandle: courses.handle,
@@ -272,7 +269,6 @@ export const getUpcomingTournamentsForUser = cache(async (userId: string) => {
     .select({
       id: tournaments.id,
       date: tournaments.date,
-      startsAt: tournaments.startsAt,
       season: tournaments.season,
       clubId: tournaments.clubId,
       clubName: clubs.name,
@@ -292,7 +288,7 @@ export const getUpcomingTournamentsForUser = cache(async (userId: string) => {
       ),
     )
     .where(gte(tournaments.date, today))
-    .orderBy(asc(tournaments.date), asc(tournaments.startsAt));
+    .orderBy(asc(tournaments.date), asc(tournaments.id));
 });
 
 export const getAddablePlayersForTournament = cache(

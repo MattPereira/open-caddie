@@ -6,12 +6,7 @@ export const MatchFormatSchema = z.enum([
 ]);
 
 export const MatchBaseSchema = z.object({
-  name: z.string().trim(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required"),
-  startsAt: z
-    .string()
-    .trim()
-    .regex(/^\d{2}:\d{2}$/, "Start time is required"),
   courseHandle: z.string().trim().min(1, "Course is required"),
   format: MatchFormatSchema,
 });

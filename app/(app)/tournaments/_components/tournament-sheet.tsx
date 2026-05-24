@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -54,7 +55,6 @@ export type TournamentSheetTournament = {
   clubHandle: string;
   clubName: string;
   date: Date;
-  startsAt: string | null;
   season: number | null;
   courseHandle: string | null;
   courseName: string | null;
@@ -81,13 +81,13 @@ type TournamentSheetProps = {
   tournament?: TournamentSheetTournament;
   clubs: ClubOption[];
   courses: CourseOption[];
+  redirectOnCreate?: boolean;
 };
 
 const emptyDefaults: TournamentFormValues = {
   clubHandle: "",
   date: "",
   season: "",
-  startsAt: "",
   courseHandle: "",
   teeId: "",
 };
@@ -151,7 +151,6 @@ function toFormValues(t?: TournamentSheetTournament): TournamentFormValues {
     clubHandle: t.clubHandle,
     date: toIsoDate(t.date),
     season: t.season ?? "",
-    startsAt: t.startsAt?.slice(0, 5) ?? "",
     courseHandle: t.courseHandle ?? "",
     teeId: t.teeId ?? "",
   };
@@ -171,7 +170,9 @@ export function TournamentSheet({
   tournament,
   clubs,
   courses,
+  redirectOnCreate = false,
 }: TournamentSheetProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -249,6 +250,9 @@ export function TournamentSheet({
         return;
       }
       closeSheet();
+      if (mode === "create" && redirectOnCreate && result.id != null) {
+        router.push(`/tournaments/${result.id}`);
+      }
     });
   };
 
@@ -290,24 +294,6 @@ export function TournamentSheet({
                           value={field.value}
                           onChange={field.onChange}
                           placeholder="Pick a date"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="startsAt"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Start time</FormLabel>
-                      <FormControl>
-                        <input
-                          type="time"
-                          className={selectClass}
-                          {...field}
                         />
                       </FormControl>
                       <FormMessage />

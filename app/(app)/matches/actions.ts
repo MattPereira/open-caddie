@@ -22,7 +22,7 @@ import {
   type MatchUpdateValues,
 } from "./schema";
 
-type ActionResult = { ok: true } | { ok: false; error: string };
+type ActionResult = { ok: true; id?: number } | { ok: false; error: string };
 
 async function requireCurrentUser() {
   const me = await getCurrentUser();
@@ -79,8 +79,6 @@ export async function createMatch(
   }
 
   const date = parseDateOnly(parsed.data.date);
-  const startsAt = parsed.data.startsAt;
-  const name = parsed.data.name === "" ? null : parsed.data.name;
   const courseId = await getCourseIdByHandle(parsed.data.courseHandle);
   const { format, teeId, playerUserIds, teamOneUserIds, teamTwoUserIds } =
     parsed.data;
@@ -103,15 +101,13 @@ export async function createMatch(
   }
 
   try {
-    await db.transaction(async (tx) => {
+    const matchId = await db.transaction(async (tx) => {
       const [match] = await tx
         .insert(matches)
         .values({
           createdByUserId: me.id,
           courseId,
           date,
-          startsAt,
-          name,
           format,
         })
         .returning({ id: matches.id });
@@ -129,7 +125,7 @@ export async function createMatch(
         )
         .returning({ id: rounds.id, userId: rounds.userId });
 
-      if (format !== "four_ball_match_play") return;
+      if (format !== "four_ball_match_play") return match.id;
 
       const roundIdByUserId = new Map(
         insertedRounds.map((round) => [round.userId, round.id]),
@@ -164,7 +160,13 @@ export async function createMatch(
           }));
         }),
       );
+
+      return match.id;
     });
+
+    revalidatePath("/");
+    revalidatePath("/matches");
+    return { ok: true, id: matchId };
   } catch (e: unknown) {
     const code =
       (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
@@ -174,9 +176,6 @@ export async function createMatch(
     }
     throw e;
   }
-
-  revalidatePath("/matches");
-  return { ok: true };
 }
 
 export async function updateMatch(
@@ -193,8 +192,6 @@ export async function updateMatch(
   if (!manage.ok) return manage;
 
   const date = parseDateOnly(parsed.data.date);
-  const startsAt = parsed.data.startsAt;
-  const name = parsed.data.name === "" ? null : parsed.data.name;
   const format = parsed.data.format;
   const {
     playerUserIds,
@@ -276,7 +273,7 @@ export async function updateMatch(
     await db.transaction(async (tx) => {
       await tx
       .update(matches)
-      .set({ courseId, date, startsAt, name, format })
+      .set({ courseId, date, format })
       .where(eq(matches.id, parsed.data.id));
       await tx.delete(matchTeams).where(eq(matchTeams.matchId, parsed.data.id));
 

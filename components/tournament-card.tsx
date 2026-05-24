@@ -3,7 +3,6 @@ import { EventCard } from "@/components/event-card";
 export type TournamentCardTournament = {
   clubName: string;
   date: Date | string;
-  startsAt?: string | null;
   season?: number | null;
   courseName: string | null;
   courseImgUrl: string | null;
@@ -24,7 +23,6 @@ export function TournamentCard({
       event={{
         title: tournament.clubName,
         date: tournament.date,
-        startsAt: tournament.startsAt,
         courseName: tournament.courseName,
         courseImgUrl: tournament.courseImgUrl,
         playerCount: tournament.playerCount,

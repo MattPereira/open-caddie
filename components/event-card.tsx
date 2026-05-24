@@ -3,7 +3,6 @@ import { formatDate } from "@/lib/utils";
 
 export type EventCardEvent = {
   date: Date | string;
-  startsAt?: string | null;
   title?: string | null;
   courseName: string | null;
   courseImgUrl: string | null;

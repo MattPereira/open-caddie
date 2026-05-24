@@ -31,14 +31,14 @@ export default async function AppLayout({
       <SidebarInset>
         <header className="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b px-3">
           <SidebarTrigger className="size-8 justify-self-start" />
-          <HeaderWordmark isAuthed={!!session?.user?.id} />
+          <HeaderWordmark />
           {session?.user?.id ? (
             <ThemeToggle className="size-8 justify-self-end" />
           ) : (
             <Button
               asChild
-              variant="default"
-              size="default"
+              variant="ghost"
+              size="lg"
               className="justify-self-end"
             >
               <Link href="/login">Sign in</Link>

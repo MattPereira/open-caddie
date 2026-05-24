@@ -87,7 +87,6 @@ export type SeasonStandings = {
   tournaments: Array<{
     id: number;
     date: Date;
-    startsAt: string;
     season: number;
     courseId: number;
     courseHandle: string;
@@ -157,7 +156,6 @@ export const getSeasonStandings = cache(
         .select({
           id: tournaments.id,
           date: tournaments.date,
-          startsAt: tournaments.startsAt,
           season: tournaments.season,
           courseId: tournaments.courseId,
           courseHandle: courses.handle,
@@ -168,7 +166,7 @@ export const getSeasonStandings = cache(
         .where(
           and(eq(tournaments.clubId, clubId), eq(tournaments.season, season)),
         )
-        .orderBy(desc(tournaments.date), desc(tournaments.startsAt)),
+        .orderBy(desc(tournaments.date), desc(tournaments.id)),
     ]);
 
     if (!club) return null;

@@ -64,7 +64,6 @@ export type CourseOption = {
 export type TournamentOption = {
   id: number;
   date: Date;
-  startsAt: string | null;
   season: number | null;
   clubName: string;
   courseHandle: string;

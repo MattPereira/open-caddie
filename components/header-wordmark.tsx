@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export function HeaderWordmark({ isAuthed }: { isAuthed: boolean }) {
+export function HeaderWordmark() {
   const pathname = usePathname();
-  if (pathname === "/" && !isAuthed) return <span aria-hidden />;
+  if (pathname === "/") return <span aria-hidden />;
 
   return (
     <Link

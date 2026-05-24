@@ -22,7 +22,7 @@ import {
   type TournamentUpdateValues,
 } from "./schema";
 
-type ActionResult = { ok: true } | { ok: false; error: string };
+type ActionResult = { ok: true; id?: number } | { ok: false; error: string };
 
 async function requireAdmin() {
   const me = await getCurrentUser();
@@ -76,7 +76,6 @@ export async function createTournament(
   const { clubHandle } = parsed.data;
   const date = parseDateOnly(parsed.data.date);
   const season = parsed.data.season === "" ? null : parsed.data.season;
-  const startsAt = parsed.data.startsAt;
   const courseHandle = parsed.data.courseHandle;
   const clubId = await getClubIdByHandle(clubHandle);
   const courseId = await getCourseIdByHandle(courseHandle);
@@ -92,14 +91,21 @@ export async function createTournament(
   }
 
   try {
-    await db.insert(tournaments).values({
-      clubId,
-      date,
-      season,
-      startsAt,
-      courseId,
-      teeId,
-    });
+    const [tournament] = await db
+      .insert(tournaments)
+      .values({
+        clubId,
+        date,
+        season,
+        courseId,
+        teeId,
+      })
+      .returning({ id: tournaments.id });
+
+    revalidatePath("/");
+    revalidatePath("/tournaments");
+    revalidatePath("/clubs/[handle]", "page");
+    return { ok: true, id: tournament.id };
   } catch (e: unknown) {
     const code =
       (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
@@ -109,10 +115,6 @@ export async function createTournament(
     }
     throw e;
   }
-
-  revalidatePath("/tournaments");
-  revalidatePath("/clubs/[handle]", "page");
-  return { ok: true };
 }
 
 export async function updateTournament(
@@ -128,7 +130,6 @@ export async function updateTournament(
   const { id, clubHandle } = parsed.data;
   const date = parseDateOnly(parsed.data.date);
   const season = parsed.data.season === "" ? null : parsed.data.season;
-  const startsAt = parsed.data.startsAt;
   const courseHandle = parsed.data.courseHandle;
   const clubId = await getClubIdByHandle(clubHandle);
   const courseId = await getCourseIdByHandle(courseHandle);
@@ -155,7 +156,7 @@ export async function updateTournament(
   try {
     await db
       .update(tournaments)
-      .set({ clubId, date, season, startsAt, courseId, teeId })
+      .set({ clubId, date, season, courseId, teeId })
       .where(eq(tournaments.id, id));
   } catch (e: unknown) {
     const code =

@@ -24,7 +24,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -56,8 +55,6 @@ import {
 export type MatchSheetMatch = {
   id: number;
   date: Date;
-  startsAt: string | null;
-  name: string | null;
   courseHandle: string | null;
   courseName: string | null;
   courseImgUrl: string | null;
@@ -98,12 +95,11 @@ type MatchSheetProps = {
   match?: MatchSheetMatch;
   courses: CourseOption[];
   players?: MatchPlayerOption[];
+  redirectOnCreate?: boolean;
 };
 
 const emptyDefaults: MatchFormValues = {
-  name: "",
   date: "",
-  startsAt: "",
   courseHandle: "",
   format: "singles_match_play",
   teeId: 0,
@@ -181,9 +177,7 @@ function toFormValues(match?: MatchSheetMatch): MatchFormValues {
       : []);
 
   return {
-    name: match.name ?? "",
     date: toIsoDate(match.date),
-    startsAt: match.startsAt?.slice(0, 5) ?? "",
     courseHandle: match.courseHandle ?? "",
     format: match.format,
     teeId: match.rounds[0]?.teeId ?? 0,
@@ -204,6 +198,7 @@ export function MatchSheet({
   match,
   courses,
   players = [],
+  redirectOnCreate = false,
 }: MatchSheetProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -326,6 +321,9 @@ export function MatchSheet({
         return;
       }
       closeSheet();
+      if (mode === "create" && redirectOnCreate && result.id != null) {
+        router.push(`/matches/${result.id}`);
+      }
     });
   };
 
@@ -511,20 +509,6 @@ export function MatchSheet({
 
                 <FormField
                   control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Optional" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="format"
                   render={({ field }) => {
                     const formatLocked =
@@ -577,24 +561,6 @@ export function MatchSheet({
                         <DatePickerField
                           value={field.value}
                           onChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="startsAt"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Start time</FormLabel>
-                      <FormControl>
-                        <input
-                          type="time"
-                          className={selectClass}
-                          {...field}
                         />
                       </FormControl>
                       <FormMessage />

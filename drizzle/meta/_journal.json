@@ -15,6 +15,20 @@
       "when": 1779400154245,
       "tag": "0001_worried_skrulls",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779649867982,
+      "tag": "0002_redundant_the_captain",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1779650931361,
+      "tag": "0003_wooden_ozymandias",
+      "breakpoints": true
     }
   ]
 }

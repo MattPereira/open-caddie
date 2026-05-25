@@ -84,7 +84,7 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
   );
 
   return (
-    <div className="relative w-fit max-w-full">
+    <div className="relative w-full">
       <div className="absolute -top-8 right-0 z-20">
         <ScoreMetricSwitch
           id="desktop-round-score-metric"
@@ -92,18 +92,18 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
           onMetricChange={setMetric}
         />
       </div>
-      <TableFrame>
-        <Table className="w-max">
-          <TableHeader>
+      <TableFrame className="w-full">
+        <Table className="table-fixed">
+          <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead className="sticky left-0 z-10 min-w-32 bg-card">
+              <TableHead className="sticky left-0 z-10 w-36 bg-muted/60">
                 Player
               </TableHead>
-              {holes.map((hole) => (
+              {holes.slice(0, 9).map((hole) => (
                 <TableHead
                   key={hole}
                   className={cn(
-                    "w-10 text-center",
+                    "w-8 px-1 text-center",
                     greenieHoles.has(hole) &&
                       "text-green-600 dark:text-green-400",
                   )}
@@ -111,11 +111,29 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
                   {hole}
                 </TableHead>
               ))}
-              <TableHead className="w-10 text-center">Out</TableHead>
-              <TableHead className="w-10 text-center">In</TableHead>
-              <TableHead className="w-12 text-center">Tot</TableHead>
-              <TableHead className="w-12 text-center">Hcp</TableHead>
-              <TableHead className="w-12 text-center">Net</TableHead>
+              <TableHead className="w-9 border-x bg-muted/60 px-1 text-center">
+                Out
+              </TableHead>
+              {holes.slice(9).map((hole) => (
+                <TableHead
+                  key={hole}
+                  className={cn(
+                    "w-8 px-1 text-center",
+                    greenieHoles.has(hole) &&
+                      "text-green-600 dark:text-green-400",
+                  )}
+                >
+                  {hole}
+                </TableHead>
+              ))}
+              <TableHead className="w-9 border-x bg-muted/60 px-1 text-center">
+                In
+              </TableHead>
+              <TableHead className="w-10 bg-muted/60 px-1 text-center">
+                Tot
+              </TableHead>
+              <TableHead className="w-10 px-1 text-center text-muted-foreground">Hcp</TableHead>
+              <TableHead className="w-10 px-1 text-center">Net</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -127,22 +145,36 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
                   <TableCell className="sticky left-0 z-10 bg-card font-medium">
                     <PlayerLabel row={row} />
                   </TableCell>
-                  {values.scores.map((score, index) => (
+                  {values.scores.slice(0, 9).map((score, index) => (
                     <TableCell
-                      key={`${row.round.id}-${index}`}
-                      className="text-center tabular-nums"
+                      key={`${row.round.id}-f${index}`}
+                      className="px-1 py-2 text-center tabular-nums"
                     >
                       <HoleScore
                         score={score}
                         par={row.pars[index] ?? null}
                         showSymbol={metric === "strokes"}
+                        size="sm"
                       />
                     </TableCell>
                   ))}
-                  <ScoreTotalCell value={values.out} />
-                  <ScoreTotalCell value={values.in} />
-                  <ScoreTotalCell value={values.total} strong />
-                  <DerivedScoreCell value={row.round.playingHandicap} />
+                  <ScoreTotalCell value={values.out} className="border-x bg-muted/20" />
+                  {values.scores.slice(9).map((score, index) => (
+                    <TableCell
+                      key={`${row.round.id}-b${index}`}
+                      className="px-1 py-2 text-center tabular-nums"
+                    >
+                      <HoleScore
+                        score={score}
+                        par={row.pars[index + 9] ?? null}
+                        showSymbol={metric === "strokes"}
+                        size="sm"
+                      />
+                    </TableCell>
+                  ))}
+                  <ScoreTotalCell value={values.in} className="border-x bg-muted/20" />
+                  <ScoreTotalCell value={values.total} strong className="bg-muted/20" />
+                  <DerivedScoreCell value={row.round.playingHandicap} className="font-normal text-muted-foreground" />
                   <DerivedScoreCell value={row.round.netStrokes} strong />
                 </TableRow>
               );
@@ -226,15 +258,18 @@ function RoundScoresCardEditAction({ round }: { round: EditableRound }) {
 function ScoreTotalCell({
   value,
   strong,
+  className,
 }: {
   value: number | null;
   strong?: boolean;
+  className?: string;
 }) {
   return (
     <TableCell
       className={cn(
-        "text-center tabular-nums",
+        "px-1 py-2 text-center tabular-nums",
         strong ? "font-semibold" : "font-medium",
+        className,
       )}
     >
       {formatScore(value)}
@@ -245,15 +280,18 @@ function ScoreTotalCell({
 function DerivedScoreCell({
   value,
   strong,
+  className,
 }: {
   value: number | null;
   strong?: boolean;
+  className?: string;
 }) {
   return (
     <TableCell
       className={cn(
-        "text-center tabular-nums",
+        "px-1 py-2 text-center tabular-nums",
         strong ? "font-semibold" : "font-medium",
+        className,
       )}
     >
       {formatDecimalScore(value)}

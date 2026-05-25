@@ -100,48 +100,56 @@ export function MatchPlayContent({
 
   return (
     <>
-      <Accordion type="single" collapsible className="rounded-lg border px-4">
-        <AccordionItem value="rules">
-          <AccordionTrigger className="text-base">
-            How match play works
-          </AccordionTrigger>
-          <AccordionContent className="text-base text-muted-foreground">
-            {getMatchPlayExplanation(format)}
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+      <div className="max-w-3xl flex flex-col gap-5">
+        <Accordion type="single" collapsible className="rounded-lg border px-4">
+          <AccordionItem value="rules">
+            <AccordionTrigger className="text-base">
+              How match play works
+            </AccordionTrigger>
+            <AccordionContent className="text-base text-muted-foreground">
+              {getMatchPlayExplanation(format)}
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
-      <div className="flex flex-col gap-3">
-        <h3 className="text-lg font-medium">Summary</h3>
-        <div className="grid gap-3 md:grid-cols-2">
-          {matchPlay.teams.map((team) =>
-            format === "four_ball_match_play" ? (
-              <TeamWinnerCard
-                key={team.id}
-                team={team}
-                secondary={formatTeamSecondary(team, format)}
-                primaryValue={formatTeamMatchStatus(
-                  team,
-                  matchPlay.finalStatus,
-                )}
-                primaryValueAdjusted={isTeamBehind(team, matchPlay.finalStatus)}
-              />
-            ) : (
-              <WinnerCard
-                key={team.id}
-                playerName={team.name}
-                initials={team.initials}
-                image={team.image}
-                secondary={formatTeamSecondary(team, format)}
-                primaryLabel="Holes"
-                primaryValue={formatTeamMatchStatus(
-                  team,
-                  matchPlay.finalStatus,
-                )}
-                primaryValueAdjusted={isTeamBehind(team, matchPlay.finalStatus)}
-              />
-            ),
-          )}
+        <div className="flex flex-col gap-3">
+          <h3 className="text-lg font-medium">Summary</h3>
+          <div className="grid gap-3 md:grid-cols-2">
+            {matchPlay.teams.map((team) =>
+              format === "four_ball_match_play" ? (
+                <TeamWinnerCard
+                  key={team.id}
+                  team={team}
+                  secondary={formatTeamSecondary(team, format)}
+                  primaryValue={formatTeamMatchStatus(
+                    team,
+                    matchPlay.finalStatus,
+                  )}
+                  primaryValueAdjusted={isTeamBehind(
+                    team,
+                    matchPlay.finalStatus,
+                  )}
+                />
+              ) : (
+                <WinnerCard
+                  key={team.id}
+                  playerName={team.name}
+                  initials={team.initials}
+                  image={team.image}
+                  secondary={formatTeamSecondary(team, format)}
+                  primaryLabel="Holes"
+                  primaryValue={formatTeamMatchStatus(
+                    team,
+                    matchPlay.finalStatus,
+                  )}
+                  primaryValueAdjusted={isTeamBehind(
+                    team,
+                    matchPlay.finalStatus,
+                  )}
+                />
+              ),
+            )}
+          </div>
         </div>
       </div>
 
@@ -161,20 +169,137 @@ function MatchPlayTable({
   const backNine = holes.slice(9);
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-3 *:w-full sm:w-fit">
-      <MatchPlayNineTable
-        title="Front"
-        label="Out"
-        holes={frontNine}
-        teams={teams}
-      />
-      <MatchPlayNineTable
-        title="Back"
-        label="In"
-        holes={backNine}
-        teams={teams}
-      />
-    </div>
+    <>
+      <div className="hidden lg:block">
+        <MatchPlayFullTable holes={holes} teams={teams} />
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-3 *:w-full sm:w-fit lg:hidden">
+        <MatchPlayNineTable
+          title="Front"
+          label="Out"
+          holes={frontNine}
+          teams={teams}
+        />
+        <MatchPlayNineTable
+          title="Back"
+          label="In"
+          holes={backNine}
+          teams={teams}
+        />
+      </div>
+    </>
+  );
+}
+
+function MatchPlayFullTable({
+  holes,
+  teams,
+}: {
+  holes: MatchPlayHoleView[];
+  teams: MatchPlayTeamView[];
+}) {
+  const frontNine = holes.slice(0, 9);
+  const backNine = holes.slice(9);
+  const allRounds = teams.flatMap((team) => team.rounds);
+
+  const outTotals = new Map<number, number | null>();
+  const inTotals = new Map<number, number | null>();
+  allRounds.forEach((round) => {
+    outTotals.set(
+      round.id,
+      frontNine.reduce<number | null>((sum, hole) => {
+        const s = hole.playerScores.find((p) => p.roundId === round.id);
+        if (s?.netScore == null) return sum;
+        return (sum ?? 0) + s.netScore;
+      }, null),
+    );
+    inTotals.set(
+      round.id,
+      backNine.reduce<number | null>((sum, hole) => {
+        const s = hole.playerScores.find((p) => p.roundId === round.id);
+        if (s?.netScore == null) return sum;
+        return (sum ?? 0) + s.netScore;
+      }, null),
+    );
+  });
+
+  return (
+    <TableFrame className="w-full">
+      <Table>
+        <TableHeader className="bg-muted/50">
+          <TableRow>
+            <TableHead className="sticky left-0 z-10 bg-muted/60 px-2">
+              Player
+            </TableHead>
+            {frontNine.map((hole) => (
+              <TableHead key={hole.hole} className="px-1 text-center">
+                {hole.hole}
+              </TableHead>
+            ))}
+            <TableHead className="border-x bg-muted/60 px-1 text-center">
+              Out
+            </TableHead>
+            {backNine.map((hole) => (
+              <TableHead key={hole.hole} className="px-1 text-center">
+                {hole.hole}
+              </TableHead>
+            ))}
+            <TableHead className="border-x bg-muted/60 px-1 text-center">
+              In
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {allRounds.map((round) => (
+            <TableRow key={round.id}>
+              <TableCell className="sticky left-0 z-10 bg-card font-medium">
+                {formatRoundLabel(round)}
+              </TableCell>
+              {frontNine.map((hole) => {
+                const result = hole.playerScores.find(
+                  (s) => s.roundId === round.id,
+                );
+                return (
+                  <TableCell
+                    key={hole.hole}
+                    className="px-1 py-2 text-center tabular-nums"
+                  >
+                    <NetScore
+                      score={result?.netScore ?? null}
+                      adjusted={(result?.receivedStrokes ?? 0) > 0}
+                      wonHole={result?.wonHole ?? false}
+                    />
+                  </TableCell>
+                );
+              })}
+              <TableCell className="border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
+                {formatScore(outTotals.get(round.id) ?? null)}
+              </TableCell>
+              {backNine.map((hole) => {
+                const result = hole.playerScores.find(
+                  (s) => s.roundId === round.id,
+                );
+                return (
+                  <TableCell
+                    key={hole.hole}
+                    className="px-1 py-2 text-center tabular-nums"
+                  >
+                    <NetScore
+                      score={result?.netScore ?? null}
+                      adjusted={(result?.receivedStrokes ?? 0) > 0}
+                      wonHole={result?.wonHole ?? false}
+                    />
+                  </TableCell>
+                );
+              })}
+              <TableCell className="border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
+                {formatScore(inTotals.get(round.id) ?? null)}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableFrame>
   );
 }
 

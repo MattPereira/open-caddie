@@ -65,7 +65,7 @@ export default async function MatchPage({
     : [[], []];
 
   return (
-    <PageContent className="max-w-4xl">
+    <PageContent className="max-w-5xl">
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-normal">{title}</h1>

@@ -57,7 +57,7 @@ export function SkinsTabContent({
   rounds: RoundScoresTableRound[];
 }) {
   return (
-    <TabsContent value="skins" className="flex flex-col gap-5 max-w-3xl">
+    <TabsContent value="skins" className="flex flex-col gap-5 ">
       <SkinsContent rounds={rounds} />
     </TabsContent>
   );
@@ -83,34 +83,36 @@ export function SkinsContent({ rounds }: { rounds: RoundScoresTableRound[] }) {
 
   return (
     <>
-      <Accordion type="single" collapsible className="rounded-lg border px-4">
-        <AccordionItem value="rules">
-          <AccordionTrigger className="text-base">
-            How skins work
-          </AccordionTrigger>
-          <AccordionContent className="text-base text-muted-foreground">
-            The skins game uses relative handicaps. The lowest handicap player
-            serves as the baseline and other players receive the diff on the
-            hardest handicap holes. Tied holes carry over, and the next unique
-            low hole score wins the accumulated skins.
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
+      <div className="max-w-2xl flex flex-col gap-5">
+        <Accordion type="single" collapsible className="rounded-lg border px-4">
+          <AccordionItem value="rules">
+            <AccordionTrigger className="text-base">
+              How skins work
+            </AccordionTrigger>
+            <AccordionContent className="text-base text-muted-foreground">
+              The skins game uses relative handicaps. The lowest handicap player
+              serves as the baseline and other players receive the diff on the
+              hardest handicap holes. Tied holes carry over, and the next unique
+              low hole score wins the accumulated skins.
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
-      <div className="flex flex-col gap-3">
-        <h3 className="text-lg font-medium">Summary</h3>
-        <div className="grid gap-3 md:grid-cols-2">
-          {skins.players.map((player) => (
-            <WinnerCard
-              key={player.id}
-              playerName={player.name}
-              initials={player.initials}
-              image={player.image}
-              secondary={`Hcp ${formatDecimalScore(player.playingHandicap)} · Gets ${player.receivedStrokes}`}
-              primaryLabel="Skins"
-              primaryValue={player.skinsWon.toString()}
-            />
-          ))}
+        <div className="flex flex-col gap-3">
+          <h3 className="text-lg font-medium">Summary</h3>
+          <div className="grid gap-3 md:grid-cols-2">
+            {skins.players.map((player) => (
+              <WinnerCard
+                key={player.id}
+                playerName={player.name}
+                initials={player.initials}
+                image={player.image}
+                secondary={`Hcp ${formatDecimalScore(player.playingHandicap)} · Gets ${player.receivedStrokes}`}
+                primaryLabel="Skins"
+                primaryValue={player.skinsWon.toString()}
+              />
+            ))}
+          </div>
         </div>
       </div>
 
@@ -129,14 +131,123 @@ function SkinsTable({
   players: SkinPlayerView[];
 }) {
   return (
-    <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-5 *:w-full sm:w-fit">
-      <SkinsNineTable
-        title="Front"
-        holes={holes.slice(0, 9)}
-        players={players}
-      />
-      <SkinsNineTable title="Back" holes={holes.slice(9)} players={players} />
-    </div>
+    <>
+      <div className="hidden lg:block">
+        <SkinsFullTable holes={holes} players={players} />
+      </div>
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-5 *:w-full sm:w-fit lg:hidden">
+        <SkinsNineTable
+          title="Front"
+          holes={holes.slice(0, 9)}
+          players={players}
+        />
+        <SkinsNineTable title="Back" holes={holes.slice(9)} players={players} />
+      </div>
+    </>
+  );
+}
+
+function SkinsFullTable({
+  holes,
+  players,
+}: {
+  holes: SkinHoleRow[];
+  players: SkinPlayerView[];
+}) {
+  const frontNine = holes.slice(0, 9);
+  const backNine = holes.slice(9);
+
+  return (
+    <TableFrame className="w-full">
+      <Table>
+        <TableHeader className="bg-muted/50">
+          <TableRow>
+            <TableHead className="sticky left-0 z-10 bg-muted/60 px-2">
+              Player
+            </TableHead>
+            {frontNine.map((hole) => (
+              <TableHead key={hole.hole} className="px-1 text-center">
+                {hole.hole}
+              </TableHead>
+            ))}
+            <TableHead className="border-x bg-muted/60 px-1 text-center">
+              Out
+            </TableHead>
+            {backNine.map((hole) => (
+              <TableHead key={hole.hole} className="px-1 text-center">
+                {hole.hole}
+              </TableHead>
+            ))}
+            <TableHead className="border-x bg-muted/60 px-1 text-center">
+              In
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {players.map((player) => (
+            <TableRow key={player.id}>
+              <TableCell className="sticky left-0 z-10 bg-card font-medium">
+                {player.name.split(" ")[0]}
+              </TableCell>
+              {frontNine.map((hole) => {
+                const result = hole.players.find(
+                  (p) => p.roundId === player.id,
+                );
+                return (
+                  <TableCell
+                    key={hole.hole}
+                    className="px-1 py-2 text-center tabular-nums"
+                  >
+                    <NetScore
+                      score={result?.netScore ?? null}
+                      adjusted={(result?.receivedStrokes ?? 0) > 0}
+                      wonHole={hole.winningRoundId === player.id}
+                      skinsAwarded={hole.skinsAwarded}
+                    />
+                  </TableCell>
+                );
+              })}
+              <TableCell className="border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
+                {formatScore(
+                  frontNine.reduce<number | null>((sum, hole) => {
+                    const s = hole.players.find((p) => p.roundId === player.id);
+                    if (s?.netScore == null) return sum;
+                    return (sum ?? 0) + s.netScore;
+                  }, null),
+                )}
+              </TableCell>
+              {backNine.map((hole) => {
+                const result = hole.players.find(
+                  (p) => p.roundId === player.id,
+                );
+                return (
+                  <TableCell
+                    key={hole.hole}
+                    className="px-1 py-2 text-center tabular-nums"
+                  >
+                    <NetScore
+                      score={result?.netScore ?? null}
+                      adjusted={(result?.receivedStrokes ?? 0) > 0}
+                      wonHole={hole.winningRoundId === player.id}
+                      skinsAwarded={hole.skinsAwarded}
+                    />
+                  </TableCell>
+                );
+              })}
+              <TableCell className="border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
+                {formatScore(
+                  backNine.reduce<number | null>((sum, hole) => {
+                    const s = hole.players.find((p) => p.roundId === player.id);
+                    if (s?.netScore == null) return sum;
+                    return (sum ?? 0) + s.netScore;
+                  }, null),
+                )}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableFrame>
   );
 }
 

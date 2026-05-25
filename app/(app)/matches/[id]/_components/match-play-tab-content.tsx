@@ -202,24 +202,22 @@ function MatchPlayFullTable({
   const backNine = holes.slice(9);
   const allRounds = teams.flatMap((team) => team.rounds);
 
-  const outTotals = new Map<number, number | null>();
-  const inTotals = new Map<number, number | null>();
+  const outTotals = new Map<number, number>();
+  const inTotals = new Map<number, number>();
   allRounds.forEach((round) => {
     outTotals.set(
       round.id,
-      frontNine.reduce<number | null>((sum, hole) => {
+      frontNine.reduce((count, hole) => {
         const s = hole.playerScores.find((p) => p.roundId === round.id);
-        if (s?.netScore == null) return sum;
-        return (sum ?? 0) + s.netScore;
-      }, null),
+        return count + (s?.wonHole ? 1 : 0);
+      }, 0),
     );
     inTotals.set(
       round.id,
-      backNine.reduce<number | null>((sum, hole) => {
+      backNine.reduce((count, hole) => {
         const s = hole.playerScores.find((p) => p.roundId === round.id);
-        if (s?.netScore == null) return sum;
-        return (sum ?? 0) + s.netScore;
-      }, null),
+        return count + (s?.wonHole ? 1 : 0);
+      }, 0),
     );
   });
 
@@ -236,7 +234,7 @@ function MatchPlayFullTable({
                 {hole.hole}
               </TableHead>
             ))}
-            <TableHead className="border-x bg-muted/60 px-1 text-center">
+            <TableHead className="w-12 border-x bg-muted/60 px-1 text-center">
               Out
             </TableHead>
             {backNine.map((hole) => (
@@ -244,14 +242,36 @@ function MatchPlayFullTable({
                 {hole.hole}
               </TableHead>
             ))}
-            <TableHead className="border-x bg-muted/60 px-1 text-center">
+            <TableHead className="w-12 border-x bg-muted/60 px-1 text-center">
               In
+            </TableHead>
+            <TableHead className="w-12 border-x bg-muted/60 px-1 text-center">
+              Tot
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {allRounds.map((round) => (
-            <TableRow key={round.id}>
+          {teams.flatMap((team, teamIndex) => {
+            const teamOut = team.rounds.reduce(
+              (sum, round) => sum + (outTotals.get(round.id) ?? 0),
+              0,
+            );
+            const teamIn = team.rounds.reduce(
+              (sum, round) => sum + (inTotals.get(round.id) ?? 0),
+              0,
+            );
+            const teamTotal = teamOut + teamIn;
+            const isTeamDivider =
+              teamIndex < teams.length - 1;
+            return team.rounds.map((round, roundIndex) => (
+            <TableRow
+              key={round.id}
+              className={cn(
+                isTeamDivider &&
+                  roundIndex === team.rounds.length - 1 &&
+                  "[&>td]:border-b-2 [&>td]:border-b-foreground/40",
+              )}
+            >
               <TableCell className="sticky left-0 z-10 bg-card font-medium">
                 {formatRoundLabel(round)}
               </TableCell>
@@ -272,9 +292,18 @@ function MatchPlayFullTable({
                   </TableCell>
                 );
               })}
-              <TableCell className="border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
-                {formatScore(outTotals.get(round.id) ?? null)}
-              </TableCell>
+              {roundIndex === 0 ? (
+                <TableCell
+                  rowSpan={team.rounds.length}
+                  className={cn(
+                    "w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums",
+                    isTeamDivider &&
+                      "border-b-2 border-b-foreground/40",
+                  )}
+                >
+                  {`+${teamOut}`}
+                </TableCell>
+              ) : null}
               {backNine.map((hole) => {
                 const result = hole.playerScores.find(
                   (s) => s.roundId === round.id,
@@ -292,11 +321,33 @@ function MatchPlayFullTable({
                   </TableCell>
                 );
               })}
-              <TableCell className="border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
-                {formatScore(inTotals.get(round.id) ?? null)}
-              </TableCell>
+              {roundIndex === 0 ? (
+                <TableCell
+                  rowSpan={team.rounds.length}
+                  className={cn(
+                    "w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums",
+                    isTeamDivider &&
+                      "border-b-2 border-b-foreground/40",
+                  )}
+                >
+                  {`+${teamIn}`}
+                </TableCell>
+              ) : null}
+              {roundIndex === 0 ? (
+                <TableCell
+                  rowSpan={team.rounds.length}
+                  className={cn(
+                    "w-12 border-x bg-muted/30 px-1 py-2 text-center font-semibold tabular-nums",
+                    isTeamDivider &&
+                      "border-b-2 border-b-foreground/40",
+                  )}
+                >
+                  {`+${teamTotal}`}
+                </TableCell>
+              ) : null}
             </TableRow>
-          ))}
+            ));
+          })}
         </TableBody>
       </Table>
     </TableFrame>
@@ -314,16 +365,15 @@ function MatchPlayNineTable({
   holes: MatchPlayHoleView[];
   teams: MatchPlayTeamView[];
 }) {
-  const roundTotals = new Map<number, number | null>();
+  const roundTotals = new Map<number, number>();
   teams.forEach((team) =>
     team.rounds.forEach((round) => {
-      const total = holes.reduce<number | null>((sum, hole) => {
+      const total = holes.reduce((count, hole) => {
         const result = hole.playerScores.find(
           (playerScore) => playerScore.roundId === round.id,
         );
-        if (result?.netScore == null) return sum;
-        return (sum ?? 0) + result.netScore;
-      }, null);
+        return count + (result?.wonHole ? 1 : 0);
+      }, 0);
       roundTotals.set(round.id, total);
     }),
   );
@@ -338,11 +388,16 @@ function MatchPlayNineTable({
               <TableHead className="w-12 border-r bg-muted/60 px-2 text-center">
                 Hole
               </TableHead>
-              {teams.flatMap((team) =>
-                team.rounds.map((round) => (
+              {teams.flatMap((team, teamIndex) =>
+                team.rounds.map((round, roundIndex) => (
                   <TableHead
                     key={round.id}
-                    className="w-14 px-1 text-center sm:w-16"
+                    className={cn(
+                      "w-14 px-1 text-center sm:w-16",
+                      teamIndex > 0 &&
+                        roundIndex === 0 &&
+                        "border-l-2 border-l-foreground/40",
+                    )}
                   >
                     <span className="block truncate">
                       {formatRoundInitials(round)}
@@ -350,9 +405,6 @@ function MatchPlayNineTable({
                   </TableHead>
                 )),
               )}
-              <TableHead className="w-28 border-l px-2 text-center">
-                Tally
-              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -361,8 +413,8 @@ function MatchPlayNineTable({
                 <TableCell className="border-r bg-muted/40 px-2 text-center text-base font-medium tabular-nums">
                   {hole.hole}
                 </TableCell>
-                {teams.flatMap((team) =>
-                  team.rounds.map((round) => {
+                {teams.flatMap((team, teamIndex) =>
+                  team.rounds.map((round, roundIndex) => {
                     const result = hole.playerScores.find(
                       (playerScore) => playerScore.roundId === round.id,
                     );
@@ -370,7 +422,12 @@ function MatchPlayNineTable({
                     return (
                       <TableCell
                         key={round.id}
-                        className="px-1 text-center text-base tabular-nums"
+                        className={cn(
+                          "px-1 text-center text-base tabular-nums",
+                          teamIndex > 0 &&
+                            roundIndex === 0 &&
+                            "border-l-2 border-l-foreground/40",
+                        )}
                       >
                         <NetScore
                           score={result?.netScore ?? null}
@@ -381,9 +438,6 @@ function MatchPlayNineTable({
                     );
                   }),
                 )}
-                <TableCell className="border-l px-2 text-center text-base">
-                  {formatMatchPlayStatus(hole.status, teams)}
-                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -395,19 +449,24 @@ function MatchPlayNineTable({
               >
                 {label}
               </TableCell>
-              {teams.flatMap((team) =>
-                team.rounds.map((round) => (
+              {teams.map((team, teamIndex) => {
+                const teamTotal = team.rounds.reduce(
+                  (sum, round) => sum + (roundTotals.get(round.id) ?? 0),
+                  0,
+                );
+                return (
                   <TableCell
-                    key={round.id}
-                    className="px-1 text-center text-base font-medium tabular-nums"
+                    key={team.id}
+                    colSpan={team.rounds.length}
+                    className={cn(
+                      "px-1 text-center text-base font-medium tabular-nums",
+                      teamIndex > 0 && "border-l-2 border-l-foreground/40",
+                    )}
                   >
-                    {formatScore(roundTotals.get(round.id) ?? null)}
+                    {`+${teamTotal}`}
                   </TableCell>
-                )),
-              )}
-              <TableCell className="border-l px-2 text-center text-base">
-                {formatMatchPlayStatus(getLastStatus(holes), teams)}
-              </TableCell>
+                );
+              })}
             </TableRow>
           </TableFooter>
         </Table>
@@ -522,25 +581,30 @@ function toMatchPlayView(teams: MatchPlayTeamView[], format: MatchFormat) {
       const teamResult = hole.teams.find(
         (candidate) => candidate.teamId === team.id,
       );
-
-      return team.rounds.map((round) => {
-        const playerScore = getRoundHoleScore({
+      const playersData = team.rounds.map((round) => ({
+        round,
+        playerScore: getRoundHoleScore({
           round,
           hole: hole.hole,
           totalReceivedStrokes: roundAllowances.get(round.id) ?? 0,
-        });
+        }),
+      }));
+      const winningRoundId =
+        hole.winningTeamId === team.id
+          ? (playersData.find(
+              ({ playerScore }) =>
+                playerScore.netScore != null &&
+                playerScore.netScore === teamResult?.netScore,
+            )?.round.id ?? null)
+          : null;
 
-        return {
-          roundId: round.id,
-          teamId: team.id,
-          netScore: playerScore.netScore,
-          receivedStrokes: playerScore.receivedStrokes,
-          wonHole:
-            hole.winningTeamId === team.id &&
-            playerScore.netScore != null &&
-            playerScore.netScore === teamResult?.netScore,
-        };
-      });
+      return playersData.map(({ round, playerScore }) => ({
+        roundId: round.id,
+        teamId: team.id,
+        netScore: playerScore.netScore,
+        receivedStrokes: playerScore.receivedStrokes,
+        wonHole: round.id === winningRoundId,
+      }));
     }),
   }));
   const teamsWithStrokes = teams.map((team) => {
@@ -576,17 +640,6 @@ function getMatchPlayExplanation(format: MatchFormat) {
   return "Four-ball match play compares each team's best net score hole by hole. The lowest-handicap player gets no strokes. Other players get 90% of their handicap difference, applied one stroke at a time on the hardest handicap holes.";
 }
 
-function formatMatchPlayStatus(
-  status: MatchPlayStatus | null,
-  teams: MatchPlayTeamView[],
-) {
-  if (status == null) return "-";
-  if (status.leadingTeamId == null || status.holesUp === 0) return "Tied";
-
-  const leadingTeam = teams.find((team) => team.id === status.leadingTeamId);
-  return `${leadingTeam ? formatTeamPlayerInitials(leadingTeam) : "Team"} +${status.holesUp}`;
-}
-
 function formatTeamMatchStatus(
   team: MatchPlayTeamView,
   status: MatchPlayStatus,
@@ -597,10 +650,6 @@ function formatTeamMatchStatus(
 
 function isTeamBehind(team: MatchPlayTeamView, status: MatchPlayStatus) {
   return status.leadingTeamId != null && status.leadingTeamId !== team.id;
-}
-
-function getLastStatus(holes: MatchPlayHoleView[]) {
-  return holes.at(-1)?.status ?? null;
 }
 
 function isMatchPlayRound(

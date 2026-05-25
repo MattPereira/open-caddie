@@ -13,6 +13,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableFooter,
   TableHead,
   TableHeader,
   TableRow,
@@ -138,10 +139,16 @@ function SkinsTable({
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-5 *:w-full sm:w-fit lg:hidden">
         <SkinsNineTable
           title="Front"
+          label="Out"
           holes={holes.slice(0, 9)}
           players={players}
         />
-        <SkinsNineTable title="Back" holes={holes.slice(9)} players={players} />
+        <SkinsNineTable
+          title="Back"
+          label="In"
+          holes={holes.slice(9)}
+          players={players}
+        />
       </div>
     </>
   );
@@ -170,7 +177,7 @@ function SkinsFullTable({
                 {hole.hole}
               </TableHead>
             ))}
-            <TableHead className="border-x bg-muted/60 px-1 text-center">
+            <TableHead className="w-12 border-x bg-muted/60 px-1 text-center">
               Out
             </TableHead>
             {backNine.map((hole) => (
@@ -178,13 +185,29 @@ function SkinsFullTable({
                 {hole.hole}
               </TableHead>
             ))}
-            <TableHead className="border-x bg-muted/60 px-1 text-center">
+            <TableHead className="w-12 border-x bg-muted/60 px-1 text-center">
               In
+            </TableHead>
+            <TableHead className="w-12 border-x bg-muted/60 px-1 text-center">
+              Tot
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {players.map((player) => (
+          {players.map((player) => {
+            const frontSkins = frontNine.reduce(
+              (sum, hole) =>
+                sum +
+                (hole.winningRoundId === player.id ? hole.skinsAwarded : 0),
+              0,
+            );
+            const backSkins = backNine.reduce(
+              (sum, hole) =>
+                sum +
+                (hole.winningRoundId === player.id ? hole.skinsAwarded : 0),
+              0,
+            );
+            return (
             <TableRow key={player.id}>
               <TableCell className="sticky left-0 z-10 bg-card font-medium">
                 {player.name.split(" ")[0]}
@@ -207,14 +230,8 @@ function SkinsFullTable({
                   </TableCell>
                 );
               })}
-              <TableCell className="border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
-                {formatScore(
-                  frontNine.reduce<number | null>((sum, hole) => {
-                    const s = hole.players.find((p) => p.roundId === player.id);
-                    if (s?.netScore == null) return sum;
-                    return (sum ?? 0) + s.netScore;
-                  }, null),
-                )}
+              <TableCell className="w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
+                {`+${frontSkins}`}
               </TableCell>
               {backNine.map((hole) => {
                 const result = hole.players.find(
@@ -234,17 +251,15 @@ function SkinsFullTable({
                   </TableCell>
                 );
               })}
-              <TableCell className="border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
-                {formatScore(
-                  backNine.reduce<number | null>((sum, hole) => {
-                    const s = hole.players.find((p) => p.roundId === player.id);
-                    if (s?.netScore == null) return sum;
-                    return (sum ?? 0) + s.netScore;
-                  }, null),
-                )}
+              <TableCell className="w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
+                {`+${backSkins}`}
+              </TableCell>
+              <TableCell className="w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
+                {`+${frontSkins + backSkins}`}
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
     </TableFrame>
@@ -253,13 +268,25 @@ function SkinsFullTable({
 
 function SkinsNineTable({
   title,
+  label,
   holes,
   players,
 }: {
   title: string;
+  label: string;
   holes: SkinHoleRow[];
   players: SkinPlayerView[];
 }) {
+  const playerSkins = new Map<number, number>(
+    players.map((player) => [
+      player.id,
+      holes.reduce(
+        (sum, hole) =>
+          sum + (hole.winningRoundId === player.id ? hole.skinsAwarded : 0),
+        0,
+      ),
+    ]),
+  );
   return (
     <div className="flex flex-col gap-3">
       <h3 className="text-lg font-medium">{title}</h3>
@@ -305,6 +332,21 @@ function SkinsNineTable({
               </TableRow>
             ))}
           </TableBody>
+          <TableFooter>
+            <TableRow>
+              <TableCell className="border-r bg-muted/60 px-2 text-center text-base font-medium text-muted-foreground">
+                {label}
+              </TableCell>
+              {players.map((player) => (
+                <TableCell
+                  key={player.id}
+                  className="px-2 text-center text-base font-medium tabular-nums"
+                >
+                  {`+${playerSkins.get(player.id) ?? 0}`}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableFooter>
         </Table>
       </TableFrame>
     </div>

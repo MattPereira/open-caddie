@@ -210,11 +210,8 @@ function MatchPlayNineTable({
         <Table className="w-full sm:w-max">
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead className="w-12 bg-muted/60 px-2 text-center">
+              <TableHead className="w-12 border-r bg-muted/60 px-2 text-center">
                 Hole
-              </TableHead>
-              <TableHead className="w-10 border-r bg-muted/60 px-2 text-center text-muted-foreground">
-                Hcp
               </TableHead>
               {teams.flatMap((team) =>
                 team.rounds.map((round) => (
@@ -236,11 +233,8 @@ function MatchPlayNineTable({
           <TableBody>
             {holes.map((hole) => (
               <TableRow key={hole.hole}>
-                <TableCell className="bg-muted/40 px-2 text-center text-base font-medium tabular-nums">
+                <TableCell className="border-r bg-muted/40 px-2 text-center text-base font-medium tabular-nums">
                   {hole.hole}
-                </TableCell>
-                <TableCell className="border-r bg-muted/40 px-2 text-center text-base font-medium tabular-nums text-muted-foreground">
-                  {formatScore(hole.holeHandicap)}
                 </TableCell>
                 {teams.flatMap((team) =>
                   team.rounds.map((round) => {
@@ -271,7 +265,7 @@ function MatchPlayNineTable({
           <TableFooter>
             <TableRow>
               <TableCell
-                colSpan={2}
+                colSpan={1}
                 className="border-r bg-muted/60 px-2 text-center text-base font-medium text-muted-foreground"
               >
                 {label}
@@ -310,7 +304,7 @@ function TeamWinnerCard({
 }) {
   return (
     <Card className="overflow-hidden py-0">
-      <CardContent className="flex items-stretch gap-3 px-0">
+      <CardContent className="flex min-h-20 items-center gap-3 px-0">
         <TeamAvatarPair team={team} />
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-3">
           <div className="truncate text-base font-semibold sm:text-lg">
@@ -338,12 +332,12 @@ function TeamWinnerCard({
 
 function TeamAvatarPair({ team }: { team: MatchPlayTeamView }) {
   return (
-    <div className="flex shrink-0 overflow-hidden bg-muted">
+    <div className="flex h-20 shrink-0 overflow-hidden bg-muted">
       {team.rounds.slice(0, 2).map((round) => {
         const name = displayName({ ...round, email: null });
 
         return (
-          <div key={round.id} className="size-18">
+          <div key={round.id} className="size-20">
             <Avatar className="size-full rounded-none">
               {round.image ? (
                 <AvatarImage src={round.image} alt={name} />

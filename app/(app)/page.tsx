@@ -40,7 +40,7 @@ export default async function Home() {
 
   return (
     <PageContent className="max-w-4xl gap-10">
-      <section className="flex flex-col items-center gap-3 text-center">
+      <section className="flex flex-col items-center text-center">
         <div className="relative aspect-21/9 w-full overflow-hidden rounded-xl bg-zinc-900 sm:aspect-3/1">
           <Image
             src="/poipu-bay.jpg"
@@ -65,11 +65,13 @@ export default async function Home() {
             </h1>
           </div>
         </div>
-        <p className="max-w-sm text-base text-foreground/80 sm:max-w-none sm:text-lg">
-          Track match play, skins games, and club tournaments with season-long
-          standings
-        </p>
       </section>
+
+      <p className="text-center text-lg text-foreground/80">
+        Track match play, skins games, and club tournaments with season-long
+        standings
+      </p>
+
       <div className="flex w-full flex-col gap-8">
         {activeRound ? (
           <div className="flex flex-col items-center gap-2">
@@ -126,38 +128,7 @@ function RecentEventsSections({
   matchAction?: ReactNode;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-0">
-          <SectionHeader
-            icon={ChampionIcon}
-            title="Tournaments"
-            href="/tournaments"
-            action={tournamentAction}
-          />
-          <p className="text-sm text-muted-foreground">
-            Club events that count toward season long standings
-          </p>
-        </div>
-        {tournaments.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No tournaments yet.</p>
-        ) : (
-          tournaments.map((tournament) => (
-            <EventCard
-              key={tournament.id}
-              event={{
-                title: tournament.clubName,
-                date: tournament.date,
-                courseName: tournament.courseName,
-                courseImgUrl: tournament.courseImgUrl,
-                playerCount: tournament.playerCount,
-              }}
-              href={`/tournaments/${tournament.id}`}
-            />
-          ))
-        )}
-      </section>
-
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
       <section className="flex flex-col gap-3">
         <div className="flex flex-col gap-0">
           <SectionHeader
@@ -184,6 +155,37 @@ function RecentEventsSections({
                 playerCount: match.playerCount,
               }}
               href={`/matches/${match.id}`}
+            />
+          ))
+        )}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-0">
+          <SectionHeader
+            icon={ChampionIcon}
+            title="Tournaments"
+            href="/tournaments"
+            action={tournamentAction}
+          />
+          <p className="text-sm text-muted-foreground">
+            Club events that count toward season long standings
+          </p>
+        </div>
+        {tournaments.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No tournaments yet.</p>
+        ) : (
+          tournaments.map((tournament) => (
+            <EventCard
+              key={tournament.id}
+              event={{
+                title: tournament.clubName,
+                date: tournament.date,
+                courseName: tournament.courseName,
+                courseImgUrl: tournament.courseImgUrl,
+                playerCount: tournament.playerCount,
+              }}
+              href={`/tournaments/${tournament.id}`}
             />
           ))
         )}

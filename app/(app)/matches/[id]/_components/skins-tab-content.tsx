@@ -156,11 +156,8 @@ function SkinsNineTable({
         <Table className="w-full sm:w-max">
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead className="w-12 bg-muted/60 px-2 text-center">
+              <TableHead className="w-12 border-r bg-muted/60 px-2 text-center">
                 Hole
-              </TableHead>
-              <TableHead className="w-10 border-r bg-muted/60 px-2 text-center text-muted-foreground">
-                Hcp
               </TableHead>
               {players.map((player) => (
                 <TableHead key={player.id} className="w-16 px-2 text-center">
@@ -172,11 +169,8 @@ function SkinsNineTable({
           <TableBody>
             {holes.map((hole) => (
               <TableRow key={hole.hole}>
-                <TableCell className="bg-muted/40 px-2 text-center text-base font-medium tabular-nums">
+                <TableCell className="border-r bg-muted/40 px-2 text-center text-base font-medium tabular-nums">
                   {hole.hole}
-                </TableCell>
-                <TableCell className="border-r bg-muted/40 px-2 text-center text-base font-medium tabular-nums text-muted-foreground">
-                  {formatScore(hole.holeHandicap)}
                 </TableCell>
                 {players.map((player) => {
                   const result = hole.players.find(

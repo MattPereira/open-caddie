@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { Input } from "@/components/ui/input";
+import { courseHandleFromName } from "@/lib/course-handle";
 import {
   createCourse,
   deleteDraftBlobs,
@@ -67,6 +68,9 @@ export function CourseCreateForm() {
     resolver: zodResolver(CourseCreateInputSchema),
     defaultValues: { name: "", imgUrl: "", scorecardImgUrl: "" },
   });
+  const watchedName = useWatch({ control: form.control, name: "name" });
+  const courseHandle = courseHandleFromName(watchedName);
+  const uploadPathPrefix = courseHandle ? `courses/${courseHandle}` : draftPrefix;
   const serverError = form.formState.errors.root?.server?.message;
 
   const finalizeAndRedirect = (
@@ -316,7 +320,7 @@ export function CourseCreateForm() {
                       trackUpload(url);
                       field.onChange(url ?? "");
                     }}
-                    pathPrefix={draftPrefix}
+                    pathPrefix={uploadPathPrefix}
                     aspectRatio={16 / 9}
                     variant="wide"
                     title="Course image"
@@ -342,7 +346,7 @@ export function CourseCreateForm() {
                       trackUpload(url);
                       field.onChange(url ?? "");
                     }}
-                    pathPrefix={draftPrefix}
+                    pathPrefix={uploadPathPrefix}
                     variant="freeform"
                     fallback="Upload a photo of blank scorecard"
                     title="Scorecard image"

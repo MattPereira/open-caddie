@@ -62,7 +62,7 @@ export default async function MatchUploadScorecardPage({
         action={action}
         cancelHref={`/matches/${matchId}`}
         players={players}
-        uploadPathPrefix={`round-scorecards/${currentUser.id}/match-${matchId}`}
+        uploadPathPrefix={`round-scorecards/${match.courseHandle}/${currentUser.id}/match-${matchId}`}
       />
     </PageContent>
   );

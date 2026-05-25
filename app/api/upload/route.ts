@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { eq } from "drizzle-orm";
 
 import { auth } from "@/auth";
+import { db } from "@/db";
+import { users } from "@/db/schema";
 
 const ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_BYTES = 2 * 1024 * 1024;
@@ -17,6 +20,13 @@ function parseUploadTarget(pathname: string): UploadTarget | null {
 
   const courseMatch = pathname.match(/^courses\/([^/]+)\//);
   if (courseMatch) return { kind: "course", id: courseMatch[1] };
+
+  const roundScorecardCourseMatch = pathname.match(
+    /^round-scorecards\/[^/]+\/([^/]+)\//,
+  );
+  if (roundScorecardCourseMatch) {
+    return { kind: "round-scorecard", id: roundScorecardCourseMatch[1] };
+  }
 
   const roundScorecardMatch = pathname.match(/^round-scorecards\/([^/]+)\//);
   if (roundScorecardMatch) {
@@ -46,7 +56,13 @@ export async function POST(request: Request): Promise<NextResponse> {
         }
 
         if (target.kind === "user") {
-          const isSelf = me.id === target.id;
+          const [currentUser] = await db
+            .select({ username: users.username })
+            .from(users)
+            .where(eq(users.id, me.id))
+            .limit(1);
+          const isSelf =
+            me.id === target.id || currentUser?.username === target.id;
           if (!isSelf && !me.isAdmin) {
             throw new Error("Forbidden");
           }

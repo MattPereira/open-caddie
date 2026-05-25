@@ -20,7 +20,8 @@ import {
 } from "@/db/schema";
 import { getCurrentUser } from "@/db/queries/users";
 import { isVercelBlobUrl, safeDeleteBlob } from "@/lib/blob";
-import { parseScorecardImage } from "@/lib/scorecard-parser";
+import { courseHandleFromName } from "@/lib/course-handle";
+import { parseScorecardImage } from "@/lib/course-scorecard-parser";
 import {
   CourseCreateFinalizeSchema,
   CourseCreateInputSchema,
@@ -307,10 +308,8 @@ function revalidateCoursePaths(handles: string[]) {
 }
 
 /**
- * Best-effort cleanup of draft blobs uploaded by the create-course form but
- * never saved (e.g. user clicked Cancel). Only deletes URLs whose path is
- * under `courses/draft-` to prevent misuse — never touches saved course
- * images or scorecards.
+ * Best-effort cleanup of blobs uploaded by the create-course form but never
+ * saved (e.g. user clicked Cancel). Limited to image uploads under `courses/`.
  */
 export async function deleteDraftBlobs(urls: string[]): Promise<void> {
   await requireAdmin();
@@ -318,7 +317,9 @@ export async function deleteDraftBlobs(urls: string[]): Promise<void> {
     if (!isVercelBlobUrl(url)) continue;
     try {
       const path = new URL(url).pathname.replace(/^\/+/, "");
-      if (!path.startsWith("courses/draft-")) continue;
+      if (!/^courses\/[^/]+\/image-\d+[^/]*\.webp$/.test(path)) {
+        continue;
+      }
     } catch {
       continue;
     }
@@ -327,13 +328,7 @@ export async function deleteDraftBlobs(urls: string[]): Promise<void> {
 }
 
 function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 50);
+  return courseHandleFromName(name);
 }
 
 async function fetchImageBytes(

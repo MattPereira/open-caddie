@@ -673,7 +673,7 @@ export function CourseForm({ course }: CourseFormProps) {
                     <ImageUploadField
                       value={field.value || null}
                       onChange={(url) => field.onChange(url ?? "")}
-                      pathPrefix={`courses/${course.id}`}
+                      pathPrefix={`courses/${course.handle}`}
                       aspectRatio={16 / 9}
                       variant="wide"
                       title="Course image"
@@ -695,7 +695,7 @@ export function CourseForm({ course }: CourseFormProps) {
                     <ImageUploadField
                       value={field.value || null}
                       onChange={onScorecardImageChange}
-                      pathPrefix={`courses/${course.id}`}
+                      pathPrefix={`courses/${course.handle}`}
                       variant="freeform"
                       skipCrop
                       fallback="Upload a photo of the scorecard"

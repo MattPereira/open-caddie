@@ -41,6 +41,7 @@ export default async function TournamentUploadScorecardPage({
     image: round.image,
   }));
   const action = uploadTournamentRoundScorecard.bind(null, tournamentId);
+  const uploadCourseHandle = tournament.courseHandle ?? `tournament-${tournamentId}`;
 
   return (
     <PageContent className="max-w-3xl">
@@ -57,7 +58,7 @@ export default async function TournamentUploadScorecardPage({
         action={action}
         cancelHref={`/tournaments/${tournamentId}`}
         players={players}
-        uploadPathPrefix={`round-scorecards/${currentUser.id}/tournament-${tournamentId}`}
+        uploadPathPrefix={`round-scorecards/${uploadCourseHandle}/${currentUser.id}/tournament-${tournamentId}`}
       />
     </PageContent>
   );

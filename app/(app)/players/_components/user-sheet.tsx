@@ -98,6 +98,7 @@ export function UserSheet({
   const isDirty = form.formState.isDirty;
   const showAdminControls = mode === "create" || canManageUsers;
   const showDelete = mode === "edit" && canManageUsers && user;
+  const userImagePathSegment = user?.username?.trim() || user?.id;
 
   useEffect(() => {
     if (open) {
@@ -264,7 +265,7 @@ export function UserSheet({
                           <ImageUploadField
                             value={field.value || null}
                             onChange={(url) => field.onChange(url ?? "")}
-                            pathPrefix={`users/${user.id}`}
+                            pathPrefix={`users/${userImagePathSegment}`}
                             fallback={getInitials(user)}
                             onUploadingChange={setIsUploading}
                           />

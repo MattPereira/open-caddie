@@ -1,7 +1,7 @@
 import { generateText, Output, type LanguageModelUsage } from "ai";
 import { z } from "zod";
 
-import { DEFAULT_SCORECARD_MODEL } from "@/lib/scorecard-parser";
+import { DEFAULT_SCORECARD_MODEL } from "@/lib/course-scorecard-parser";
 
 const HoleScoreSchema = z.object({
   hole: z.number().int().min(1).max(18),

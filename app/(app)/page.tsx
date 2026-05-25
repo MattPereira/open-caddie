@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
@@ -39,13 +40,34 @@ export default async function Home() {
 
   return (
     <PageContent className="max-w-4xl gap-10">
-      <section className="flex flex-col items-center gap-5 pt-3 text-center">
-        <h1 className={cn(brandFont.className, "text-5xl sm:text-6xl")}>
-          Open Caddie
-        </h1>
-        <p className="max-w-sm text-muted-foreground sm:max-w-none">
-          Track casual rounds, competitive matches, and club tournaments with
-          season long standings
+      <section className="flex flex-col items-center gap-3 text-center">
+        <div className="relative aspect-21/9 w-full overflow-hidden rounded-xl bg-zinc-900 sm:aspect-3/1">
+          <Image
+            src="/poipu-bay.jpg"
+            alt="Open Caddie"
+            fill
+            sizes="100vw"
+            priority
+            className="object-cover object-bottom"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-linear-to-b from-black/50 via-black/15 to-black/30"
+          />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <h1
+              className={cn(
+                brandFont.className,
+                "text-5xl text-white [text-shadow:0_2px_12px_rgb(0_0_0_/_0.6)] sm:text-7xl md:text-8xl",
+              )}
+            >
+              Open Caddie
+            </h1>
+          </div>
+        </div>
+        <p className="max-w-sm text-base text-foreground/80 sm:max-w-none sm:text-lg">
+          Track match play, skins games, and club tournaments with season-long
+          standings
         </p>
       </section>
       <div className="flex w-full flex-col gap-8">

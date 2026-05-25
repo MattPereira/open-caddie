@@ -1,13 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useActionState, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ImageUpload01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
+import { Tick02Icon } from "@hugeicons/core-free-icons";
 
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import { Textarea } from "@/components/ui/textarea";
+import { ImageUploadField } from "@/components/image-upload-field";
 import { PlayerCard } from "@/components/player-card";
+import type { UploadRoundScorecardState } from "@/lib/actions/upload-round-scorecard";
 
 export type ScorecardPlayer = {
   roundId: number;
@@ -19,20 +33,31 @@ export type ScorecardPlayer = {
 };
 
 type ScorecardUploadFormProps = {
+  action: (
+    state: UploadRoundScorecardState,
+    formData: FormData,
+  ) => Promise<UploadRoundScorecardState>;
   cancelHref: string;
   players: ScorecardPlayer[];
+  uploadPathPrefix: string;
 };
 
 export function ScorecardUploadForm({
+  action,
   cancelHref,
   players,
+  uploadPathPrefix,
 }: ScorecardUploadFormProps) {
-  const [file, setFile] = useState<File | null>(null);
+  const [state, formAction] = useActionState(action, { error: null });
+  const [scorecardImgUrl, setScorecardImgUrl] = useState<string | null>(null);
+  const [isUploadingScorecard, setIsUploadingScorecard] = useState(false);
   const [selectedRoundIds, setSelectedRoundIds] = useState<Set<number>>(
     new Set(),
   );
-  const previewUrl = file ? URL.createObjectURL(file) : null;
-  const canSubmit = file != null && selectedRoundIds.size > 0;
+  const canSubmit =
+    scorecardImgUrl != null &&
+    selectedRoundIds.size > 0 &&
+    !isUploadingScorecard;
 
   const toggleRound = (roundId: number) => {
     setSelectedRoundIds((prev) => {
@@ -44,7 +69,14 @@ export function ScorecardUploadForm({
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <form action={formAction} className="flex flex-col gap-6">
+      {state.error ? (
+        <Alert variant="error">
+          <AlertTitle>Upload failed</AlertTitle>
+          <AlertDescription>{state.error}</AlertDescription>
+        </Alert>
+      ) : null}
+
       <section className="flex flex-col gap-2">
         <div className="flex flex-col gap-1">
           <h2 className="text-sm font-medium">Who&apos;s on this card?</h2>
@@ -83,68 +115,72 @@ export function ScorecardUploadForm({
                 </div>
               );
             })}
+            {players
+              .filter((player) => selectedRoundIds.has(player.roundId))
+              .map((player) => (
+                <input
+                  key={`selected-${player.roundId}`}
+                  type="hidden"
+                  name="roundId"
+                  value={player.roundId}
+                />
+              ))}
           </div>
         )}
       </section>
 
       <section className="flex flex-col gap-2">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-sm font-medium">Scorecard photo</h2>
-          <p className="text-sm text-muted-foreground">
-            Take a photo or pick one from your device.
-          </p>
-        </div>
-
-        {previewUrl ? (
-          <div className="flex flex-col gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewUrl}
-              alt="Scorecard preview"
-              className="w-full rounded-md border"
-            />
-            <label className="cursor-pointer self-start">
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              />
-              <span className="inline-flex h-9 items-center rounded-md border border-input bg-background px-4 text-sm font-medium shadow-xs hover:bg-accent hover:text-accent-foreground">
-                Replace image
-              </span>
-            </label>
-          </div>
-        ) : (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
-              <HugeiconsIcon icon={ImageUpload01Icon} size={32} />
-              <label className="cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                />
-                <span className="inline-flex h-9 items-center rounded-md border border-input bg-background px-4 text-sm font-medium shadow-xs hover:bg-accent hover:text-accent-foreground">
-                  Choose image
-                </span>
-              </label>
-            </CardContent>
-          </Card>
-        )}
+        <input
+          type="hidden"
+          name="scorecardImgUrl"
+          value={scorecardImgUrl ?? ""}
+        />
+        <ImageUploadField
+          value={scorecardImgUrl}
+          onChange={setScorecardImgUrl}
+          pathPrefix={uploadPathPrefix}
+          variant="freeform"
+          fallback="Upload a photo of the scorecard"
+          title="Scorecard photo"
+          description="Crop to show the score table and player rows"
+          onUploadingChange={setIsUploadingScorecard}
+        />
       </section>
+
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="additional-context">
+            Parsing notes
+          </FieldLabel>
+          <Textarea
+            id="additional-context"
+            name="additionalContext"
+            maxLength={1000}
+            placeholder="Example: Player rows are Matt, Alex, Jamie top to bottom."
+            rows={3}
+          />
+          <FieldDescription>
+            Optional row order, nicknames, or handwriting hints for this card.
+          </FieldDescription>
+        </Field>
+      </FieldGroup>
 
       <div className="flex justify-end gap-2">
         <Button asChild variant="outline">
           <Link href={cancelHref}>Cancel</Link>
         </Button>
-        <Button type="button" disabled={!canSubmit}>
-          Upload scorecard
-        </Button>
+        <SubmitButton canSubmit={canSubmit} />
       </div>
-    </div>
+    </form>
+  );
+}
+
+function SubmitButton({ canSubmit }: { canSubmit: boolean }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <Button type="submit" disabled={!canSubmit || pending}>
+      {pending ? "Parsing..." : "Upload scorecard"}
+    </Button>
   );
 }

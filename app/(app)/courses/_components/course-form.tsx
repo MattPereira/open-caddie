@@ -212,10 +212,15 @@ function TeeEditCard({ control, index }: TeeEditCardProps) {
 }
 
 function ScorecardTable({ control, selectedTeeIndex }: ScorecardTableProps) {
-  const holes = useWatch({ control, name: "holes" }) as CourseFormValues["holes"];
+  const holes = useWatch({
+    control,
+    name: "holes",
+  }) as CourseFormValues["holes"];
   const tees = useWatch({ control, name: "tees" }) as TeeFormValues[];
   const visibleTeeIndexes =
-    selectedTeeIndex == null ? tees.map((_, index) => index) : [selectedTeeIndex];
+    selectedTeeIndex == null
+      ? tees.map((_, index) => index)
+      : [selectedTeeIndex];
   const outPar = sumPars(holes, 0, 9);
   const inPar = sumPars(holes, 9, 18);
   const totalPar = outPar + inPar;
@@ -294,9 +299,7 @@ function ScorecardTable({ control, selectedTeeIndex }: ScorecardTableProps) {
               name={`tees.${teeIndex}.yardages.${index}`}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="sr-only">
-                    Hole {hole} yardage
-                  </FormLabel>
+                  <FormLabel className="sr-only">Hole {hole} yardage</FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -445,7 +448,8 @@ export function CourseForm({ course }: CourseFormProps) {
       !tee.yardages.some((yardage) => typeof yardage === "number"),
   );
   const replacementSourceTees = watchedTees.filter(
-    (tee) => tee.id && tee.id !== placeholderTee?.id && hasCompleteYardages(tee),
+    (tee) =>
+      tee.id && tee.id !== placeholderTee?.id && hasCompleteYardages(tee),
   );
   const suggestedReplacementMatches =
     placeholderTee == null
@@ -873,7 +877,9 @@ export function CourseForm({ course }: CourseFormProps) {
           <div className="overflow-x-auto rounded-md border">
             <ScorecardTable
               control={form.control}
-              selectedTeeIndex={isDesktop ? undefined : effectiveSelectedTeeIndex}
+              selectedTeeIndex={
+                isDesktop ? undefined : effectiveSelectedTeeIndex
+              }
             />
           </div>
         </section>

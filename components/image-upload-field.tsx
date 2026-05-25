@@ -3,11 +3,16 @@
 import { useRef, useState } from "react";
 import imageCompression from "browser-image-compression";
 import { upload } from "@vercel/blob/client";
-import { Upload03Icon, Delete02Icon } from "@hugeicons/core-free-icons";
+import {
+  Upload03Icon,
+  Delete02Icon,
+  ImageUpload01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { ImageCropperDialog } from "@/components/image-cropper-dialog";
 import { cn } from "@/lib/utils";
 
@@ -125,50 +130,68 @@ export function ImageUploadField({
     await uploadImage(croppedBlob, pendingFile.name, pendingFile.size);
   };
 
-  const buttons = (
-    <div
-      className={cn(
-        "flex flex-wrap gap-2",
-        variant === "avatar" ? null : "justify-end",
-      )}
-    >
-      <Button
-        type="button"
-        variant="outline"
-        onClick={handlePick}
-        disabled={disabled || isUploading}
-      >
-        <HugeiconsIcon icon={Upload03Icon} data-icon="inline-start" />
-        {isUploading ? "Uploading…" : value ? "Replace" : "Upload"}
-      </Button>
-      {value ? (
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => onChange(null)}
-          disabled={disabled || isUploading}
-        >
-          <HugeiconsIcon icon={Delete02Icon} data-icon="inline-start" />
-          Remove
-        </Button>
-      ) : null}
-    </div>
-  );
-
   const helperText = error ? (
     <p className="text-sm text-destructive">{error}</p>
   ) : null;
 
+  if (variant === "avatar") {
+    return (
+      <div className={cn("flex items-center gap-4", className)}>
+        <Avatar size="lg" className="size-16 rounded-lg">
+          {value ? <AvatarImage src={value} alt="" /> : null}
+          <AvatarFallback className="text-lg">{fallback ?? "?"}</AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePick}
+              disabled={disabled || isUploading}
+            >
+              <HugeiconsIcon icon={Upload03Icon} data-icon="inline-start" />
+              {isUploading ? "Uploading…" : value ? "Replace" : "Upload"}
+            </Button>
+            {value ? (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => onChange(null)}
+                disabled={disabled || isUploading}
+              >
+                <HugeiconsIcon icon={Delete02Icon} data-icon="inline-start" />
+                Remove
+              </Button>
+            ) : null}
+          </div>
+          {helperText}
+        </div>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={handleFile}
+        />
+        <ImageCropperDialog
+          file={pendingFile}
+          aspectRatio={effectiveAspectRatio}
+          open={cropperOpen}
+          onOpenChange={handleCropperOpenChange}
+          onCropped={handleCropped}
+        />
+      </div>
+    );
+  }
+
+  const previewAspectRatio =
+    variant === "wide"
+      ? effectiveAspectRatio
+      : aspectRatio /* freeform with optional aspect ratio */;
+
   return (
-    <div
-      className={cn(
-        variant === "avatar"
-          ? "flex items-center gap-4"
-          : "flex flex-col gap-4",
-        className,
-      )}
-    >
-      {variant !== "avatar" && (title || description) ? (
+    <div className={cn("flex flex-col gap-4", className)}>
+      {title || description ? (
         <div className="flex flex-col gap-1">
           {title ? (
             <p className="text-sm leading-none font-medium">{title}</p>
@@ -178,75 +201,70 @@ export function ImageUploadField({
           ) : null}
         </div>
       ) : null}
-      {variant === "wide" ? (
-        <div
-          className="relative w-full overflow-hidden rounded-lg border bg-muted"
-          style={{ aspectRatio: `${effectiveAspectRatio}` }}
-        >
-          {value ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={value}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-              {fallback ?? "No image"}
-            </div>
-          )}
-        </div>
-      ) : variant === "freeform" ? (
-        aspectRatio ? (
-          <div
-            className="relative w-full overflow-hidden rounded-lg border bg-muted"
-            style={{ aspectRatio: `${aspectRatio}` }}
-          >
-            {value ? (
-              // eslint-disable-next-line @next/next/no-img-element
+
+      {value ? (
+        <div className="flex flex-col gap-2">
+          {previewAspectRatio ? (
+            <div
+              className="relative w-full overflow-hidden rounded-md border"
+              style={{ aspectRatio: `${previewAspectRatio}` }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={value}
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover"
               />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-                {fallback ?? "No image"}
-              </div>
-            )}
+            </div>
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={value}
+              alt=""
+              className="w-full max-h-80 rounded-md border object-contain"
+            />
+          )}
+          <div className="flex flex-wrap gap-2 self-start">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePick}
+              disabled={disabled || isUploading}
+            >
+              <HugeiconsIcon icon={Upload03Icon} data-icon="inline-start" />
+              {isUploading ? "Uploading…" : "Replace image"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => onChange(null)}
+              disabled={disabled || isUploading}
+            >
+              <HugeiconsIcon icon={Delete02Icon} data-icon="inline-start" />
+              Remove
+            </Button>
           </div>
-        ) : (
-          <div className="flex max-h-80 w-full overflow-hidden rounded-lg border bg-muted">
-            {value ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={value}
-                alt=""
-                className="max-h-80 w-full object-contain"
-              />
-            ) : (
-              <div className="flex h-32 w-full items-center justify-center text-sm text-muted-foreground">
-                {fallback ?? "No image"}
-              </div>
-            )}
-          </div>
-        )
+        </div>
       ) : (
-        <Avatar size="lg" className="size-16 rounded-lg">
-          {value ? <AvatarImage src={value} alt="" /> : null}
-          <AvatarFallback className="text-lg">{fallback ?? "?"}</AvatarFallback>
-        </Avatar>
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+            <HugeiconsIcon icon={ImageUpload01Icon} size={32} />
+            {fallback ? (
+              <p className="text-sm text-muted-foreground">{fallback}</p>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handlePick}
+              disabled={disabled || isUploading}
+            >
+              {isUploading ? "Uploading…" : "Choose image"}
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
-      <div
-        className={cn(
-          "flex flex-col gap-2",
-          variant === "avatar" ? null : "items-stretch",
-        )}
-      >
-        {buttons}
-        {helperText}
-      </div>
+      {helperText}
 
       <input
         ref={inputRef}

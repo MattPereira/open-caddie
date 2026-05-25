@@ -1,5 +1,11 @@
 "use server";
 
+import {
+  GatewayAuthenticationError,
+  GatewayError,
+  GatewayModelNotFoundError,
+  GatewayRateLimitError,
+} from "@ai-sdk/gateway";
 import { revalidatePath } from "next/cache";
 import { and, asc, count, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
@@ -116,6 +122,26 @@ function isPlaceholderTeeName(value: string): boolean {
 
 function normalizeImgUrl(value: string): string | null {
   return value.length > 0 ? value : null;
+}
+
+function getScorecardParseErrorMessage(error: unknown): string {
+  if (GatewayAuthenticationError.isInstance(error)) {
+    return "Scorecard parsing is not authenticated. Set AI_GATEWAY_API_KEY or refresh the Vercel AI Gateway credentials, then try again.";
+  }
+
+  if (GatewayRateLimitError.isInstance(error)) {
+    return "Scorecard parsing is rate limited by the AI Gateway. Wait a moment and try again.";
+  }
+
+  if (GatewayModelNotFoundError.isInstance(error)) {
+    return "Scorecard parsing is unavailable because the configured AI model is not available.";
+  }
+
+  if (GatewayError.isInstance(error) && error.statusCode === 403) {
+    return "Scorecard parsing is unavailable because the AI Gateway rejected the model request. Check AI Gateway credits or credentials, then try again.";
+  }
+
+  return "Could not parse the scorecard image. Make sure it's cropped to just the scorecard table and try again.";
 }
 
 function yardageRows(teeId: number, yardages: TeeFormValues["yardages"]) {
@@ -394,8 +420,7 @@ export async function createCourse(
     console.error("[createCourse] parse failed", e);
     return {
       ok: false,
-      error:
-        "Could not parse the scorecard image. Make sure it's cropped to just the scorecard table and try again.",
+      error: getScorecardParseErrorMessage(e),
     };
   }
 
@@ -776,8 +801,7 @@ export async function applyScorecardImageToExistingCourse({
     console.error("[applyScorecardImageToExistingCourse] parse failed", e);
     return {
       ok: false,
-      error:
-        "Could not parse the scorecard image. Make sure it's cropped to just the scorecard table and try again.",
+      error: getScorecardParseErrorMessage(e),
     };
   }
 

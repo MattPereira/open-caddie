@@ -45,7 +45,9 @@ export function CourseCreateForm() {
   const [teeMetaError, setTeeMetaError] = useState<string | null>(null);
   // Tracks every blob URL uploaded during this session — including ones the
   // user replaced — so we can clean them up on cancel / after submit.
-  const [uploadedUrls, setUploadedUrls] = useState<Set<string>>(() => new Set());
+  const [uploadedUrls, setUploadedUrls] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   const trackUpload = (url: string | null) => {
     if (!url) return;
@@ -59,10 +61,7 @@ export function CourseCreateForm() {
 
   // Stable draft prefix for both blob uploads. The blob URL persists, so the
   // prefix is internal organization only — never user-visible.
-  const draftPrefix = useMemo(
-    () => `courses/draft-${crypto.randomUUID()}`,
-    [],
-  );
+  const draftPrefix = useMemo(() => `courses/draft-${crypto.randomUUID()}`, []);
 
   const form = useForm<CourseCreateInputValues>({
     resolver: zodResolver(CourseCreateInputSchema),
@@ -322,6 +321,7 @@ export function CourseCreateForm() {
                     variant="wide"
                     title="Course image"
                     description="Choose a nice landscape photo"
+                    fallback="Upload a photo of the course"
                     onUploadingChange={setIsUploadingImg}
                   />
                 </FormControl>
@@ -344,7 +344,7 @@ export function CourseCreateForm() {
                     }}
                     pathPrefix={draftPrefix}
                     variant="freeform"
-                    fallback="Upload a photo of the scorecard"
+                    fallback="Upload a photo of blank scorecard"
                     title="Scorecard image"
                     description="Crop to show only the table"
                     onUploadingChange={setIsUploadingScorecard}

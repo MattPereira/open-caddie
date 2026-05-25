@@ -5,6 +5,7 @@ import { PageContent } from "@/components/page-content";
 import { ScorecardUploadForm } from "@/components/scorecard-upload-form";
 import { getTournamentById } from "@/db/queries/tournaments";
 import { getCurrentUser } from "@/db/queries/users";
+import { uploadTournamentRoundScorecard } from "@/lib/actions/upload-round-scorecard";
 
 type UploadScorecardPageProps = {
   params: Promise<{ id: string }>;
@@ -39,6 +40,7 @@ export default async function TournamentUploadScorecardPage({
     username: round.username,
     image: round.image,
   }));
+  const action = uploadTournamentRoundScorecard.bind(null, tournamentId);
 
   return (
     <PageContent className="max-w-3xl">
@@ -52,8 +54,10 @@ export default async function TournamentUploadScorecardPage({
       </div>
 
       <ScorecardUploadForm
+        action={action}
         cancelHref={`/tournaments/${tournamentId}`}
         players={players}
+        uploadPathPrefix={`round-scorecards/${currentUser.id}/tournament-${tournamentId}`}
       />
     </PageContent>
   );

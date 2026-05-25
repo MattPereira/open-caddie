@@ -22,6 +22,9 @@ type TournamentPageProps = {
   params: Promise<{
     id: string;
   }>;
+  searchParams?: Promise<{
+    tab?: string;
+  }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -36,13 +39,18 @@ export async function generateMetadata({
   };
 }
 
-export default async function TournamentPage({ params }: TournamentPageProps) {
-  const [tournament, currentUser] = await Promise.all([
+export default async function TournamentPage({
+  params,
+  searchParams,
+}: TournamentPageProps) {
+  const [tournament, currentUser, resolvedSearchParams] = await Promise.all([
     getTournamentFromParams(params),
     getCurrentUser(),
+    searchParams,
   ]);
 
   if (!tournament) notFound();
+  const defaultTab = getTournamentDefaultTab(resolvedSearchParams?.tab);
 
   const [addablePlayers, clubs, courses] = currentUser?.isAdmin
     ? await Promise.all([
@@ -84,7 +92,7 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
         </p>
       </div>
 
-      <Tabs defaultValue="rounds" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="w-full p-1 sm:w-fit mb-3 h-10!">
           <TabsTrigger
             value="rounds"
@@ -135,6 +143,10 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
       </Tabs>
     </PageContent>
   );
+}
+
+function getTournamentDefaultTab(tab: string | undefined) {
+  return tab === "greenies" || tab === "winners" ? tab : "rounds";
 }
 
 async function getTournamentFromParams(params: TournamentPageProps["params"]) {

@@ -22,6 +22,9 @@ type MatchPageProps = {
   params: Promise<{
     id: string;
   }>;
+  searchParams?: Promise<{
+    tab?: string;
+  }>;
 };
 
 export const dynamic = "force-dynamic";
@@ -36,10 +39,14 @@ export async function generateMetadata({
   };
 }
 
-export default async function MatchPage({ params }: MatchPageProps) {
-  const [match, currentUser] = await Promise.all([
+export default async function MatchPage({
+  params,
+  searchParams,
+}: MatchPageProps) {
+  const [match, currentUser, resolvedSearchParams] = await Promise.all([
     getMatchFromParams(params),
     getCurrentUser(),
+    searchParams,
   ]);
 
   if (!match) notFound();
@@ -51,6 +58,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
     ? match.rounds.find((round) => round.userId === currentUser.id)
     : null;
   const title = matchFormatLabel(match.format) ?? "Match";
+  const defaultTab = getMatchDefaultTab(resolvedSearchParams?.tab);
 
   const [courses, players] = canManage
     ? await Promise.all([getCoursesWithTees(), getAllUsers()])
@@ -110,7 +118,7 @@ export default async function MatchPage({ params }: MatchPageProps) {
         ) : null}
       </div>
 
-      <Tabs defaultValue="match-play" className="w-full">
+      <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="mb-3 h-10! w-full p-1 sm:w-fit">
           <TabsTrigger
             value="match-play"
@@ -153,6 +161,10 @@ export default async function MatchPage({ params }: MatchPageProps) {
       </Tabs>
     </PageContent>
   );
+}
+
+function getMatchDefaultTab(tab: string | undefined) {
+  return tab === "rounds" || tab === "skins" ? tab : "match-play";
 }
 
 async function getMatchFromParams(params: MatchPageProps["params"]) {

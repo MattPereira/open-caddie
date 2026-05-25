@@ -5,6 +5,7 @@ import { PageContent } from "@/components/page-content";
 import { ScorecardUploadForm } from "@/components/scorecard-upload-form";
 import { getMatchById } from "@/db/queries/matches";
 import { getCurrentUser } from "@/db/queries/users";
+import { uploadMatchRoundScorecard } from "@/lib/actions/upload-round-scorecard";
 import { matchFormatLabel } from "@/lib/match-play";
 
 type UploadScorecardPageProps = {
@@ -44,6 +45,7 @@ export default async function MatchUploadScorecardPage({
     username: round.username,
     image: round.image,
   }));
+  const action = uploadMatchRoundScorecard.bind(null, matchId);
 
   return (
     <PageContent className="max-w-3xl">
@@ -57,8 +59,10 @@ export default async function MatchUploadScorecardPage({
       </div>
 
       <ScorecardUploadForm
+        action={action}
         cancelHref={`/matches/${matchId}`}
         players={players}
+        uploadPathPrefix={`round-scorecards/${currentUser.id}/match-${matchId}`}
       />
     </PageContent>
   );

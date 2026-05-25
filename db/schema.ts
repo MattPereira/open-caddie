@@ -20,6 +20,10 @@ import type { AdapterAccountType } from "next-auth/adapters";
 export const matchFormats = ["singles_match_play", "four_ball_match_play"] as const;
 export type MatchFormat = (typeof matchFormats)[number];
 
+export const roundScorecardUploadStatuses = ["parsed", "failed"] as const;
+export type RoundScorecardUploadStatus =
+  (typeof roundScorecardUploadStatuses)[number];
+
 export const users = pgTable("user", {
   id: text("id")
     .primaryKey()
@@ -277,6 +281,39 @@ export const roundScores = pgTable(
     check("round_scores_hole_check", sql`${rs.hole} between 1 and 18`),
     check("round_scores_strokes_check", sql`${rs.strokes} >= 1`),
     check("round_scores_putts_check", sql`${rs.putts} >= 0`),
+  ],
+);
+
+export const roundScorecardUploads = pgTable(
+  "round_scorecard_uploads",
+  {
+    id: serial("id").primaryKey(),
+    uploadedByUserId: text("uploaded_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    tournamentId: integer("tournament_id").references(() => tournaments.id, {
+      onDelete: "restrict",
+    }),
+    matchId: integer("match_id").references(() => matches.id, {
+      onDelete: "restrict",
+    }),
+    imageUrl: text("image_url").notNull(),
+    additionalContext: text("additional_context"),
+    status: text("status").$type<RoundScorecardUploadStatus>().notNull(),
+    parsed: jsonb("parsed"),
+    sumCheckIssues: jsonb("sum_check_issues").$type<string[]>().notNull().default([]),
+    error: text("error"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (upload) => [
+    check(
+      "round_scorecard_uploads_status_check",
+      sql`${upload.status} in ('parsed', 'failed')`,
+    ),
+    check(
+      "round_scorecard_uploads_single_event_check",
+      sql`not (${upload.tournamentId} is not null and ${upload.matchId} is not null)`,
+    ),
   ],
 );
 

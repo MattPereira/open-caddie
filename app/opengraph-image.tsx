@@ -7,9 +7,11 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function Image() {
-  const damion = await readFile(
-    join(process.cwd(), "assets/Damion-Regular.ttf"),
-  );
+  const [damion, bg] = await Promise.all([
+    readFile(join(process.cwd(), "assets/Damion-Regular.ttf")),
+    readFile(join(process.cwd(), "public/poipu-bay.jpg")),
+  ]);
+  const bgDataUrl = `data:image/jpeg;base64,${bg.toString("base64")}`;
 
   return new ImageResponse(
     <div
@@ -17,20 +19,45 @@ export default async function Image() {
         width: "100%",
         height: "100%",
         display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "flex-start",
-        padding: "96px 96px 96px 64px",
-        background: "#0b3d2e",
+        position: "relative",
         color: "white",
       }}
     >
+      <img
+        src={bgDataUrl}
+        alt=""
+        width={size.width}
+        height={size.height}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          objectPosition: "bottom",
+        }}
+      />
       <div
         style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(to bottom, rgba(0,0,0,0.5), rgba(0,0,0,0.15), rgba(0,0,0,0.4))",
+        }}
+      />
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           fontFamily: "Damion",
-          fontSize: 220,
+          fontSize: 240,
           lineHeight: 1,
           whiteSpace: "nowrap",
+          textShadow: "0 4px 24px rgba(0,0,0,0.6)",
         }}
       >
         Open Caddie

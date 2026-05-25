@@ -1,13 +1,13 @@
 import type { IconSvgElement } from "@hugeicons/react";
 import {
   ChampionIcon,
-  GolfBatIcon,
   GolfCartIcon,
   GolfHoleIcon,
   GolfBallIcon,
-  Award02Icon,
   UserMultipleIcon,
 } from "@hugeicons/core-free-icons";
+
+import { CrossedClubsIcon } from "@/components/icons/crossed-clubs";
 
 type AppNavItem = {
   title: string;
@@ -19,11 +19,11 @@ export const appPageIcons = {
   tournaments: ChampionIcon,
   standings: ChampionIcon,
   matches: GolfBallIcon,
-  records: Award02Icon,
+  records: GolfCartIcon,
   greenies: GolfHoleIcon,
-  courses: GolfCartIcon,
+  courses: GolfHoleIcon,
   players: UserMultipleIcon,
-  clubs: GolfBatIcon,
+  clubs: CrossedClubsIcon,
 } satisfies Record<string, IconSvgElement>;
 
 export const appNavItems: AppNavItem[] = [

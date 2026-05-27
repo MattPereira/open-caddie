@@ -100,7 +100,7 @@ export function MatchPlayContent({
 
   return (
     <>
-      <div className="max-w-md flex flex-col gap-5">
+      <div className="max-w-3xl flex flex-col gap-5">
         <Accordion type="single" collapsible className="rounded-lg border px-4">
           <AccordionItem value="rules">
             <AccordionTrigger className="text-base">
@@ -114,7 +114,7 @@ export function MatchPlayContent({
 
         <div className="flex flex-col gap-3">
           <h3 className="text-lg font-medium">Summary</h3>
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 w-full">
             {matchPlay.teams.map((team) =>
               format === "four_ball_match_play" ? (
                 <TeamWinnerCard
@@ -496,7 +496,7 @@ function TeamWinnerCard({
         <div className="flex shrink-0 flex-col items-end justify-center pr-3 leading-none">
           <span
             className={cn(
-              "text-lg font-medium tabular-nums",
+              "text-lg  tabular-nums",
               primaryValueAdjusted && "text-red-600 dark:text-red-500",
             )}
           >

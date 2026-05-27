@@ -84,7 +84,7 @@ export function SkinsContent({ rounds }: { rounds: RoundScoresTableRound[] }) {
 
   return (
     <>
-      <div className="max-w-2xl flex flex-col gap-5">
+      <div className="max-w-3xl flex flex-col gap-5">
         <Accordion type="single" collapsible className="rounded-lg border px-4">
           <AccordionItem value="rules">
             <AccordionTrigger className="text-base">
@@ -208,56 +208,56 @@ function SkinsFullTable({
               0,
             );
             return (
-            <TableRow key={player.id}>
-              <TableCell className="sticky left-0 z-10 bg-card font-medium">
-                {player.name.split(" ")[0]}
-              </TableCell>
-              {frontNine.map((hole) => {
-                const result = hole.players.find(
-                  (p) => p.roundId === player.id,
-                );
-                return (
-                  <TableCell
-                    key={hole.hole}
-                    className="px-1 py-2 text-center tabular-nums"
-                  >
-                    <NetScore
-                      score={result?.netScore ?? null}
-                      adjusted={(result?.receivedStrokes ?? 0) > 0}
-                      wonHole={hole.winningRoundId === player.id}
-                      skinsAwarded={hole.skinsAwarded}
-                    />
-                  </TableCell>
-                );
-              })}
-              <TableCell className="w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
-                {`+${frontSkins}`}
-              </TableCell>
-              {backNine.map((hole) => {
-                const result = hole.players.find(
-                  (p) => p.roundId === player.id,
-                );
-                return (
-                  <TableCell
-                    key={hole.hole}
-                    className="px-1 py-2 text-center tabular-nums"
-                  >
-                    <NetScore
-                      score={result?.netScore ?? null}
-                      adjusted={(result?.receivedStrokes ?? 0) > 0}
-                      wonHole={hole.winningRoundId === player.id}
-                      skinsAwarded={hole.skinsAwarded}
-                    />
-                  </TableCell>
-                );
-              })}
-              <TableCell className="w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
-                {`+${backSkins}`}
-              </TableCell>
-              <TableCell className="w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
-                {`+${frontSkins + backSkins}`}
-              </TableCell>
-            </TableRow>
+              <TableRow key={player.id}>
+                <TableCell className="sticky left-0 z-10 bg-card font-medium">
+                  {player.name.split(" ")[0]}
+                </TableCell>
+                {frontNine.map((hole) => {
+                  const result = hole.players.find(
+                    (p) => p.roundId === player.id,
+                  );
+                  return (
+                    <TableCell
+                      key={hole.hole}
+                      className="px-1 py-2 text-center tabular-nums"
+                    >
+                      <NetScore
+                        score={result?.netScore ?? null}
+                        adjusted={(result?.receivedStrokes ?? 0) > 0}
+                        wonHole={hole.winningRoundId === player.id}
+                        skinsAwarded={hole.skinsAwarded}
+                      />
+                    </TableCell>
+                  );
+                })}
+                <TableCell className="w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
+                  {`+${frontSkins}`}
+                </TableCell>
+                {backNine.map((hole) => {
+                  const result = hole.players.find(
+                    (p) => p.roundId === player.id,
+                  );
+                  return (
+                    <TableCell
+                      key={hole.hole}
+                      className="px-1 py-2 text-center tabular-nums"
+                    >
+                      <NetScore
+                        score={result?.netScore ?? null}
+                        adjusted={(result?.receivedStrokes ?? 0) > 0}
+                        wonHole={hole.winningRoundId === player.id}
+                        skinsAwarded={hole.skinsAwarded}
+                      />
+                    </TableCell>
+                  );
+                })}
+                <TableCell className="w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
+                  {`+${backSkins}`}
+                </TableCell>
+                <TableCell className="w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums">
+                  {`+${frontSkins + backSkins}`}
+                </TableCell>
+              </TableRow>
             );
           })}
         </TableBody>

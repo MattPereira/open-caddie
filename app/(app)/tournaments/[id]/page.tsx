@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { CourseHero } from "@/components/course-hero";
 import { GreeniesTabContent } from "@/components/greenies-tab-content";
 import { RoundsTabContent } from "@/components/rounds-tab-content";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,7 +12,6 @@ import {
   getTournamentById,
 } from "@/db/queries/tournaments";
 import { getCurrentUser } from "@/db/queries/users";
-import { formatDate } from "@/lib/utils";
 import { PageContent } from "@/components/page-content";
 import { UploadScorecardButton } from "@/components/upload-scorecard-button";
 import { AddPlayersSheet } from "./_components/add-players-sheet";
@@ -62,7 +62,7 @@ export default async function TournamentPage({
 
   return (
     <PageContent className="max-w-5xl">
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-normal">
             {tournament.clubName}
@@ -85,11 +85,11 @@ export default async function TournamentPage({
             />
           ) : null}
         </div>
-        <p className="text-base text-muted-foreground">
-          {[tournament.courseName, formatDate(tournament.date, "short")]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
+        <CourseHero
+          courseName={tournament.courseName}
+          courseImgUrl={tournament.courseImgUrl}
+          date={tournament.date}
+        />
       </div>
 
       <Tabs defaultValue={defaultTab} className="w-full">

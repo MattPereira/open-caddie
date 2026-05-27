@@ -75,7 +75,6 @@ export default async function RoundPage({ params }: RoundPageProps) {
         <CourseHero
           courseName={round.courseName}
           courseImgUrl={round.courseImgUrl}
-          subtitle={formatDate(round.date, "long")}
         />
         {canEdit && !hasAllScores ? (
           <Button asChild size="xl" className="w-full">

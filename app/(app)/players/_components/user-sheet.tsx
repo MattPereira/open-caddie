@@ -74,6 +74,13 @@ function toFormValues(user?: AdminUser): UserFormValues {
   };
 }
 
+function inferUsername(firstName: string, lastName: string) {
+  return [firstName, lastName]
+    .map((part) => part.trim().toLowerCase().replace(/\s+/g, "-"))
+    .filter(Boolean)
+    .join("-");
+}
+
 export function UserSheet({
   open,
   onOpenChange,
@@ -148,10 +155,17 @@ export function UserSheet({
   const onSubmit = (values: UserFormValues) => {
     form.clearErrors("root.server");
     startTransition(async () => {
+      const submitValues =
+        mode === "create"
+          ? {
+              ...values,
+              username: inferUsername(values.firstName, values.lastName),
+            }
+          : values;
       const result =
         mode === "create"
-          ? await createUser(values)
-          : await updateUser({ ...values, id: user!.id });
+          ? await createUser(submitValues)
+          : await updateUser({ ...submitValues, id: user!.id });
 
       if (!result.ok) {
         form.setError("root.server", {
@@ -240,19 +254,21 @@ export function UserSheet({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Username</FormLabel>
-                      <FormControl>
-                        <Input type="text" maxLength={50} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {mode === "edit" ? (
+                  <FormField
+                    control={form.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Username</FormLabel>
+                        <FormControl>
+                          <Input type="text" maxLength={50} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : null}
 
                 {mode === "edit" && user ? (
                   <FormField

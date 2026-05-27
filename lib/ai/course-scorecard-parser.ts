@@ -1,17 +1,11 @@
 import { generateText, Output, type LanguageModelUsage } from "ai";
 import { z } from "zod";
 
-export const DEFAULT_SCORECARD_MODEL = "google/gemini-3.1-flash-lite";
-
-const TeeColor = z.enum([
-  "red",
-  "white",
-  "blue",
-  "gold",
-  "black",
-  "green",
-  "silver",
-]);
+import {
+  DEFAULT_SCORECARD_MODEL,
+  getGoogleGenerativeAIScorecardModel,
+  withGoogleGenerativeAIScorecardFallback,
+} from "@/lib/ai/scorecard";
 
 export const ScorecardSchema = z.object({
   tees: z
@@ -19,10 +13,18 @@ export const ScorecardSchema = z.object({
       z.object({
         name: z
           .string()
-          .describe("Tee set name exactly as printed, e.g. 'Blue' or 'Championship'."),
-        color: TeeColor.optional().describe(
-          "Lowercase color label if the scorecard indicates one; omit if ambiguous.",
-        ),
+          .describe(
+            "Tee set name exactly as printed, e.g. 'Blue' or 'Championship'.",
+          ),
+        color: z
+          .string()
+          .trim()
+          .toLowerCase()
+          .max(30)
+          .describe(
+            "Lowercase color label if the scorecard indicates one; omit if ambiguous.",
+          )
+          .optional(),
         rating: z
           .number()
           .optional()
@@ -131,9 +133,13 @@ export function verifySums(parsed: Scorecard): string[] {
     const out = sum(tee.yardages.slice(0, 9));
     const i = sum(tee.yardages.slice(9, 18));
     if (out !== tee.printedOutYards)
-      issues.push(`${tee.name} OUT yards: summed ${out} vs printed ${tee.printedOutYards}`);
+      issues.push(
+        `${tee.name} OUT yards: summed ${out} vs printed ${tee.printedOutYards}`,
+      );
     if (i !== tee.printedInYards)
-      issues.push(`${tee.name} IN yards: summed ${i} vs printed ${tee.printedInYards}`);
+      issues.push(
+        `${tee.name} IN yards: summed ${i} vs printed ${tee.printedInYards}`,
+      );
     if (out + i !== tee.printedTotalYards)
       issues.push(
         `${tee.name} TOT yards: summed ${out + i} vs printed ${tee.printedTotalYards}`,
@@ -158,25 +164,48 @@ export async function parseScorecardImage(
   mediaType: string,
   model: string = DEFAULT_SCORECARD_MODEL,
 ): Promise<ParseScorecardResult> {
-  const result = await generateText({
-    model,
-    output: Output.object({
-      schema: ScorecardSchema,
-      name: "Scorecard",
-      description:
-        "Structured contents of a printed golf scorecard: tee sets and per-hole par/handicap.",
-    }),
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "text", text: USER_PROMPT },
-          { type: "file", data: buffer, mediaType },
+  const result = await withGoogleGenerativeAIScorecardFallback(
+    () =>
+      generateText({
+        model,
+        output: Output.object({
+          schema: ScorecardSchema,
+          name: "Scorecard",
+          description:
+            "Structured contents of a printed golf scorecard: tee sets and per-hole par/handicap.",
+        }),
+        system: SYSTEM_PROMPT,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: USER_PROMPT },
+              { type: "file", data: buffer, mediaType },
+            ],
+          },
         ],
-      },
-    ],
-  });
+      }),
+    () =>
+      generateText({
+        model: getGoogleGenerativeAIScorecardModel(model),
+        output: Output.object({
+          schema: ScorecardSchema,
+          name: "Scorecard",
+          description:
+            "Structured contents of a printed golf scorecard: tee sets and per-hole par/handicap.",
+        }),
+        system: SYSTEM_PROMPT,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: USER_PROMPT },
+              { type: "file", data: buffer, mediaType },
+            ],
+          },
+        ],
+      }),
+  );
 
   const parsed: Scorecard = result.output;
   return {

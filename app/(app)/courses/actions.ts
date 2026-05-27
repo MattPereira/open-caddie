@@ -21,7 +21,7 @@ import {
 import { getCurrentUser } from "@/db/queries/users";
 import { isVercelBlobUrl, safeDeleteBlob } from "@/lib/blob";
 import { courseHandleFromName } from "@/lib/course-handle";
-import { parseScorecardImage } from "@/lib/course-scorecard-parser";
+import { parseScorecardImage } from "@/lib/ai/course-scorecard-parser";
 import {
   CourseCreateFinalizeSchema,
   CourseCreateInputSchema,

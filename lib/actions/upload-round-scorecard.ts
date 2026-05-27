@@ -16,7 +16,7 @@ import {
   users,
 } from "@/db/schema";
 import { isVercelBlobUrl } from "@/lib/blob";
-import { parseRoundScorecardImage } from "@/lib/round-scorecard-parser";
+import { parseRoundScorecardImage } from "@/lib/ai/round-scorecard-parser";
 
 export type UploadRoundScorecardState = {
   error: string | null;

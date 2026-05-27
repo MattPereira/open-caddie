@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.112",
+    "@ai-sdk/google": "^3.0.80",
     "@auth/drizzle-adapter": "^1.11.2",
     "@hookform/resolvers": "^5.2.2",
     "@hugeicons/core-free-icons": "^4.1.3",

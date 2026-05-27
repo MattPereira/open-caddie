@@ -20,7 +20,9 @@ export default async function NewCoursePage() {
   return (
     <PageContent>
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-normal">Add course</h1>
+        <h1 className="text-2xl font-semibold tracking-normal">
+          Add new course
+        </h1>
       </div>
       <CourseCreateForm />
     </PageContent>

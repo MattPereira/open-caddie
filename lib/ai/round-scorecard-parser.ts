@@ -1,7 +1,11 @@
 import { generateText, Output, type LanguageModelUsage } from "ai";
 import { z } from "zod";
 
-import { DEFAULT_SCORECARD_MODEL } from "@/lib/course-scorecard-parser";
+import {
+  DEFAULT_SCORECARD_MODEL,
+  getGoogleGenerativeAIScorecardModel,
+  withGoogleGenerativeAIScorecardFallback,
+} from "@/lib/ai/scorecard";
 
 const HoleScoreSchema = z.object({
   hole: z.number().int().min(1).max(18),
@@ -128,25 +132,48 @@ export async function parseRoundScorecardImage(
   context: RoundScorecardContext,
   model: string = DEFAULT_SCORECARD_MODEL,
 ): Promise<ParseRoundScorecardResult> {
-  const result = await generateText({
-    model,
-    output: Output.object({
-      schema: RoundScorecardSchema,
-      name: "RoundScorecard",
-      description:
-        "Handwritten golf scores for existing player rounds on a scorecard.",
-    }),
-    system: ROUND_SCORECARD_SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "text", text: buildRoundScorecardUserPrompt(context) },
-          { type: "file", data: buffer, mediaType },
+  const result = await withGoogleGenerativeAIScorecardFallback(
+    () =>
+      generateText({
+        model,
+        output: Output.object({
+          schema: RoundScorecardSchema,
+          name: "RoundScorecard",
+          description:
+            "Handwritten golf scores for existing player rounds on a scorecard.",
+        }),
+        system: ROUND_SCORECARD_SYSTEM_PROMPT,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: buildRoundScorecardUserPrompt(context) },
+              { type: "file", data: buffer, mediaType },
+            ],
+          },
         ],
-      },
-    ],
-  });
+      }),
+    () =>
+      generateText({
+        model: getGoogleGenerativeAIScorecardModel(model),
+        output: Output.object({
+          schema: RoundScorecardSchema,
+          name: "RoundScorecard",
+          description:
+            "Handwritten golf scores for existing player rounds on a scorecard.",
+        }),
+        system: ROUND_SCORECARD_SYSTEM_PROMPT,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: buildRoundScorecardUserPrompt(context) },
+              { type: "file", data: buffer, mediaType },
+            ],
+          },
+        ],
+      }),
+  );
 
   const parsed: RoundScorecard = result.output;
   return {

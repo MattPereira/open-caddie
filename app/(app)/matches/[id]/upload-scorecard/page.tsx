@@ -61,6 +61,7 @@ export default async function MatchUploadScorecardPage({
       <ScorecardUploadForm
         action={action}
         cancelHref={`/matches/${matchId}`}
+        draftStorageKey={`opencaddie:scorecardUpload:match:${matchId}`}
         players={players}
         uploadPathPrefix={`round-scorecards/${match.courseHandle}/${currentUser.id}/match-${matchId}`}
       />

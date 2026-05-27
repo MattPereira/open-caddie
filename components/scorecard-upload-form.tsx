@@ -1,7 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import {
+  useActionState,
+  useCallback,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useFormStatus } from "react-dom";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Tick02Icon } from "@hugeicons/core-free-icons";
@@ -38,34 +44,109 @@ type ScorecardUploadFormProps = {
     formData: FormData,
   ) => Promise<UploadRoundScorecardState>;
   cancelHref: string;
+  draftStorageKey: string;
   players: ScorecardPlayer[];
   uploadPathPrefix: string;
 };
 
+type ScorecardUploadDraft = {
+  scorecardImgUrl: string | null;
+  selectedRoundIds: number[];
+  additionalContext: string;
+};
+
+const emptyDraft: ScorecardUploadDraft = {
+  scorecardImgUrl: null,
+  selectedRoundIds: [],
+  additionalContext: "",
+};
+
+const subscribeToStorage = (callback: () => void) => {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+};
+
+const parseDraft = (
+  raw: string | null,
+  validRoundIds: Set<number>,
+): ScorecardUploadDraft => {
+  if (!raw) return emptyDraft;
+
+  try {
+    const draft = JSON.parse(raw) as Partial<ScorecardUploadDraft>;
+    return {
+      scorecardImgUrl:
+        typeof draft.scorecardImgUrl === "string"
+          ? draft.scorecardImgUrl
+          : null,
+      selectedRoundIds: Array.isArray(draft.selectedRoundIds)
+        ? draft.selectedRoundIds.filter(
+            (roundId) => Number.isInteger(roundId) && validRoundIds.has(roundId),
+          )
+        : [],
+      additionalContext:
+        typeof draft.additionalContext === "string"
+          ? draft.additionalContext
+          : "",
+    };
+  } catch {
+    return emptyDraft;
+  }
+};
+
+const isEmptyDraft = (draft: ScorecardUploadDraft) =>
+  draft.scorecardImgUrl == null &&
+  draft.selectedRoundIds.length === 0 &&
+  draft.additionalContext.trim().length === 0;
+
 export function ScorecardUploadForm({
   action,
   cancelHref,
+  draftStorageKey,
   players,
   uploadPathPrefix,
 }: ScorecardUploadFormProps) {
   const [state, formAction] = useActionState(action, { error: null });
-  const [scorecardImgUrl, setScorecardImgUrl] = useState<string | null>(null);
   const [isUploadingScorecard, setIsUploadingScorecard] = useState(false);
-  const [selectedRoundIds, setSelectedRoundIds] = useState<Set<number>>(
-    new Set(),
+  const validRoundIds = useMemo(
+    () => new Set(players.map((player) => player.roundId)),
+    [players],
+  );
+  const rawDraft = useSyncExternalStore(
+    subscribeToStorage,
+    () => window.localStorage.getItem(draftStorageKey),
+    () => null,
+  );
+  const draft = useMemo(
+    () => parseDraft(rawDraft, validRoundIds),
+    [rawDraft, validRoundIds],
+  );
+  const selectedRoundIds = useMemo(
+    () => new Set(draft.selectedRoundIds),
+    [draft.selectedRoundIds],
   );
   const canSubmit =
-    scorecardImgUrl != null &&
+    draft.scorecardImgUrl != null &&
     selectedRoundIds.size > 0 &&
     !isUploadingScorecard;
 
+  const setDraft = useCallback(
+    (next: ScorecardUploadDraft) => {
+      if (isEmptyDraft(next)) {
+        window.localStorage.removeItem(draftStorageKey);
+      } else {
+        window.localStorage.setItem(draftStorageKey, JSON.stringify(next));
+      }
+      window.dispatchEvent(new StorageEvent("storage"));
+    },
+    [draftStorageKey],
+  );
+
   const toggleRound = (roundId: number) => {
-    setSelectedRoundIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(roundId)) next.delete(roundId);
-      else next.add(roundId);
-      return next;
-    });
+    const next = new Set(draft.selectedRoundIds);
+    if (next.has(roundId)) next.delete(roundId);
+    else next.add(roundId);
+    setDraft({ ...draft, selectedRoundIds: [...next] });
   };
 
   return (
@@ -133,11 +214,11 @@ export function ScorecardUploadForm({
         <input
           type="hidden"
           name="scorecardImgUrl"
-          value={scorecardImgUrl ?? ""}
+          value={draft.scorecardImgUrl ?? ""}
         />
         <ImageUploadField
-          value={scorecardImgUrl}
-          onChange={setScorecardImgUrl}
+          value={draft.scorecardImgUrl}
+          onChange={(scorecardImgUrl) => setDraft({ ...draft, scorecardImgUrl })}
           pathPrefix={uploadPathPrefix}
           variant="freeform"
           fallback="Upload a photo of the scorecard"
@@ -158,6 +239,10 @@ export function ScorecardUploadForm({
             maxLength={1000}
             placeholder="Example: Player rows are Matt, Alex, Jamie top to bottom."
             rows={3}
+            value={draft.additionalContext}
+            onChange={(event) =>
+              setDraft({ ...draft, additionalContext: event.target.value })
+            }
           />
           <FieldDescription>
             Optional row order, nicknames, or handwriting hints for this card.

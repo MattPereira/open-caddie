@@ -100,7 +100,7 @@ export function MatchPlayContent({
 
   return (
     <>
-      <div className="max-w-3xl flex flex-col gap-5">
+      <div className="max-w-md flex flex-col gap-5">
         <Accordion type="single" collapsible className="rounded-lg border px-4">
           <AccordionItem value="rules">
             <AccordionTrigger className="text-base">
@@ -114,7 +114,7 @@ export function MatchPlayContent({
 
         <div className="flex flex-col gap-3">
           <h3 className="text-lg font-medium">Summary</h3>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="flex flex-col gap-3">
             {matchPlay.teams.map((team) =>
               format === "four_ball_match_play" ? (
                 <TeamWinnerCard
@@ -137,7 +137,6 @@ export function MatchPlayContent({
                   initials={team.initials}
                   image={team.image}
                   secondary={formatTeamSecondary(team, format)}
-                  primaryLabel="Holes"
                   primaryValue={formatTeamMatchStatus(
                     team,
                     matchPlay.finalStatus,
@@ -261,91 +260,87 @@ function MatchPlayFullTable({
               0,
             );
             const teamTotal = teamOut + teamIn;
-            const isTeamDivider =
-              teamIndex < teams.length - 1;
+            const isTeamDivider = teamIndex < teams.length - 1;
             return team.rounds.map((round, roundIndex) => (
-            <TableRow
-              key={round.id}
-              className={cn(
-                isTeamDivider &&
-                  roundIndex === team.rounds.length - 1 &&
-                  "[&>td]:border-b-2 [&>td]:border-b-foreground/40",
-              )}
-            >
-              <TableCell className="sticky left-0 z-10 bg-card font-medium">
-                {formatRoundLabel(round)}
-              </TableCell>
-              {frontNine.map((hole) => {
-                const result = hole.playerScores.find(
-                  (s) => s.roundId === round.id,
-                );
-                return (
+              <TableRow
+                key={round.id}
+                className={cn(
+                  isTeamDivider &&
+                    roundIndex === team.rounds.length - 1 &&
+                    "[&>td]:border-b-2 [&>td]:border-b-foreground/40",
+                )}
+              >
+                <TableCell className="sticky left-0 z-10 bg-card font-medium">
+                  {formatRoundLabel(round)}
+                </TableCell>
+                {frontNine.map((hole) => {
+                  const result = hole.playerScores.find(
+                    (s) => s.roundId === round.id,
+                  );
+                  return (
+                    <TableCell
+                      key={hole.hole}
+                      className="px-1 py-2 text-center tabular-nums"
+                    >
+                      <NetScore
+                        score={result?.netScore ?? null}
+                        adjusted={(result?.receivedStrokes ?? 0) > 0}
+                        wonHole={result?.wonHole ?? false}
+                      />
+                    </TableCell>
+                  );
+                })}
+                {roundIndex === 0 ? (
                   <TableCell
-                    key={hole.hole}
-                    className="px-1 py-2 text-center tabular-nums"
+                    rowSpan={team.rounds.length}
+                    className={cn(
+                      "w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums",
+                      isTeamDivider && "border-b-2 border-b-foreground/40",
+                    )}
                   >
-                    <NetScore
-                      score={result?.netScore ?? null}
-                      adjusted={(result?.receivedStrokes ?? 0) > 0}
-                      wonHole={result?.wonHole ?? false}
-                    />
+                    {`+${teamOut}`}
                   </TableCell>
-                );
-              })}
-              {roundIndex === 0 ? (
-                <TableCell
-                  rowSpan={team.rounds.length}
-                  className={cn(
-                    "w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums",
-                    isTeamDivider &&
-                      "border-b-2 border-b-foreground/40",
-                  )}
-                >
-                  {`+${teamOut}`}
-                </TableCell>
-              ) : null}
-              {backNine.map((hole) => {
-                const result = hole.playerScores.find(
-                  (s) => s.roundId === round.id,
-                );
-                return (
+                ) : null}
+                {backNine.map((hole) => {
+                  const result = hole.playerScores.find(
+                    (s) => s.roundId === round.id,
+                  );
+                  return (
+                    <TableCell
+                      key={hole.hole}
+                      className="px-1 py-2 text-center tabular-nums"
+                    >
+                      <NetScore
+                        score={result?.netScore ?? null}
+                        adjusted={(result?.receivedStrokes ?? 0) > 0}
+                        wonHole={result?.wonHole ?? false}
+                      />
+                    </TableCell>
+                  );
+                })}
+                {roundIndex === 0 ? (
                   <TableCell
-                    key={hole.hole}
-                    className="px-1 py-2 text-center tabular-nums"
+                    rowSpan={team.rounds.length}
+                    className={cn(
+                      "w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums",
+                      isTeamDivider && "border-b-2 border-b-foreground/40",
+                    )}
                   >
-                    <NetScore
-                      score={result?.netScore ?? null}
-                      adjusted={(result?.receivedStrokes ?? 0) > 0}
-                      wonHole={result?.wonHole ?? false}
-                    />
+                    {`+${teamIn}`}
                   </TableCell>
-                );
-              })}
-              {roundIndex === 0 ? (
-                <TableCell
-                  rowSpan={team.rounds.length}
-                  className={cn(
-                    "w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums",
-                    isTeamDivider &&
-                      "border-b-2 border-b-foreground/40",
-                  )}
-                >
-                  {`+${teamIn}`}
-                </TableCell>
-              ) : null}
-              {roundIndex === 0 ? (
-                <TableCell
-                  rowSpan={team.rounds.length}
-                  className={cn(
-                    "w-12 border-x bg-muted/30 px-1 py-2 text-center font-semibold tabular-nums",
-                    isTeamDivider &&
-                      "border-b-2 border-b-foreground/40",
-                  )}
-                >
-                  {`+${teamTotal}`}
-                </TableCell>
-              ) : null}
-            </TableRow>
+                ) : null}
+                {roundIndex === 0 ? (
+                  <TableCell
+                    rowSpan={team.rounds.length}
+                    className={cn(
+                      "w-12 border-x bg-muted/30 px-1 py-2 text-center font-semibold tabular-nums",
+                      isTeamDivider && "border-b-2 border-b-foreground/40",
+                    )}
+                  >
+                    {`+${teamTotal}`}
+                  </TableCell>
+                ) : null}
+              </TableRow>
             ));
           })}
         </TableBody>
@@ -491,7 +486,7 @@ function TeamWinnerCard({
       <CardContent className="flex min-h-20 items-center gap-3 px-0">
         <TeamAvatarPair team={team} />
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-3">
-          <div className="truncate text-base font-semibold sm:text-lg">
+          <div className="truncate text-base font-medium sm:text-lg">
             {team.name}
           </div>
           <CardDescription className="truncate text-sm leading-snug">
@@ -507,7 +502,6 @@ function TeamWinnerCard({
           >
             {primaryValue}
           </span>
-          <span className="mt-1 text-sm text-muted-foreground">Holes</span>
         </div>
       </CardContent>
     </Card>
@@ -516,17 +510,33 @@ function TeamWinnerCard({
 
 function TeamAvatarPair({ team }: { team: MatchPlayTeamView }) {
   return (
-    <div className="flex h-20 shrink-0 overflow-hidden bg-muted">
-      {team.rounds.slice(0, 2).map((round) => {
+    <div className="flex h-20 shrink-0">
+      {team.rounds.slice(0, 2).map((round, index) => {
         const name = displayName({ ...round, email: null });
-
+        const isSecond = index > 0;
         return (
-          <div key={round.id} className="size-20">
-            <Avatar className="size-full rounded-none">
+          <div
+            key={round.id}
+            className={cn(
+              "size-20",
+              isSecond && "-ml-4 rounded-full ring-2 ring-card",
+            )}
+          >
+            <Avatar
+              className={cn(
+                "size-full",
+                isSecond ? "rounded-full" : "rounded-none",
+              )}
+            >
               {round.image ? (
                 <AvatarImage src={round.image} alt={name} />
               ) : null}
-              <AvatarFallback className="rounded-none text-base">
+              <AvatarFallback
+                className={cn(
+                  "text-base",
+                  isSecond ? "rounded-full" : "rounded-none",
+                )}
+              >
                 {getInitials({ ...round, email: null })}
               </AvatarFallback>
             </Avatar>
@@ -793,7 +803,7 @@ function formatTeamSecondary(team: MatchPlayTeamView, format: MatchFormat) {
       : handicap;
   }
 
-  return team.rounds.map((round) => formatRoundLabel(round)).join(" & ");
+  return team.rounds.map((round) => formatRoundLabel(round)).join(" · ");
 }
 
 function formatRoundLabel(round: MatchPlayRound) {
@@ -807,9 +817,8 @@ function formatRoundInitials(round: MatchPlayRound) {
 
 function formatTeamPlayerInitials(team: { rounds: MatchPlayRound[] }) {
   return team.rounds
-    .map((round) => formatRoundLabel(round)[0])
-    .join("")
-    .toUpperCase();
+    .map((round) => getInitials({ ...round, email: null }))
+    .join(" · ");
 }
 
 function formatStoredTeamName(name: string) {

@@ -108,15 +108,16 @@ export default async function MatchPage({
             .filter(Boolean)
             .join(" · ")}
         </p>
-        {currentUserRound ? (
-          <Button asChild size="xl" className="w-full">
-            <Link href={`/rounds/${currentUserRound.id}/play`}>
-              <HugeiconsIcon icon={GolfBatIcon} data-icon="inline-start" />
-              Play round
-            </Link>
-          </Button>
-        ) : null}
       </div>
+
+      {currentUserRound ? (
+        <Button asChild size="xl" className="w-full md:w-60">
+          <Link href={`/rounds/${currentUserRound.id}/play`}>
+            <HugeiconsIcon icon={GolfBatIcon} data-icon="inline-start" />
+            Play round
+          </Link>
+        </Button>
+      ) : null}
 
       <Tabs defaultValue={defaultTab} className="w-full">
         <TabsList className="mb-3 h-10! w-full p-1 sm:w-fit">

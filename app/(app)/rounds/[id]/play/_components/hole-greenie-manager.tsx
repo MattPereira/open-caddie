@@ -142,11 +142,11 @@ export function HoleGreenieManager({
     return (
       <Button
         type="button"
-        variant="default"
+        variant="secondary"
         size="xl"
         onClick={() => setMode("editing")}
       >
-        Add {playerName} Greenie
+        {playerName} Greenie
       </Button>
     );
   }

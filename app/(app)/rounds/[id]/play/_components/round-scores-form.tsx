@@ -173,7 +173,7 @@ export function RoundScoresForm({
     [delegateRoundIds, matchPlayers],
   );
   const getPlayerName = (player: MatchPlayer) =>
-    [player.firstName, player.lastName].filter(Boolean).join(" ") || "Player";
+    player.firstName || "Player";
   const [delegateScoresByRoundId, setDelegateScoresByRoundId] = useState<
     Record<number, ScoreEntry[]>
   >(() => {

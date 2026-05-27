@@ -128,44 +128,50 @@ export function HoleScoreSlide({
     flushSave({ strokes: nextStrokes, putts: nextPutts });
   };
 
+  const strokesId = `${idPrefix}-hole-${hole}-strokes`;
+  const puttsId = `${idPrefix}-hole-${hole}-putts`;
+
   return (
-    <div
-      className={
-        showPutts
-          ? "grid grid-cols-[1fr_1fr_auto] items-end gap-4"
-          : "grid grid-cols-[1fr_auto] items-end gap-4"
-      }
-    >
-      <ScoreField
-        id={`${idPrefix}-hole-${hole}-strokes`}
-        label={`${playerName} Strokes`}
-        value={strokesStr}
-        onChange={handleStrokesChange}
-        onBlur={handleBlur}
-        min={1}
-      />
-      {showPutts && (
+    <div className="flex flex-col gap-2">
+      <Label htmlFor={strokesId}>{playerName} scores</Label>
+      <div
+        className={
+          showPutts
+            ? "grid grid-cols-[1fr_1fr_auto] items-center gap-4"
+            : "grid grid-cols-[1fr_auto] items-center gap-4"
+        }
+      >
         <ScoreField
-          id={`${idPrefix}-hole-${hole}-putts`}
-          label={`${playerName} Putts`}
-          value={puttsStr}
-          onChange={handlePuttsChange}
+          id={strokesId}
+          placeholder="Strokes"
+          value={strokesStr}
+          onChange={handleStrokesChange}
           onBlur={handleBlur}
-          min={0}
+          min={1}
         />
-      )}
-      <ScoreDictationButton
-        par={par}
-        ariaLabel={`Dictate ${playerName} score`}
-        onDictatedScoreAction={handleDictatedScore}
-      />
+        {showPutts && (
+          <ScoreField
+            id={puttsId}
+            placeholder="Putts"
+            value={puttsStr}
+            onChange={handlePuttsChange}
+            onBlur={handleBlur}
+            min={0}
+          />
+        )}
+        <ScoreDictationButton
+          par={par}
+          ariaLabel={`Dictate ${playerName} score`}
+          onDictatedScoreAction={handleDictatedScore}
+        />
+      </div>
     </div>
   );
 }
 
 type ScoreFieldProps = {
   id: string;
-  label: string;
+  placeholder: string;
   value: string;
   onChange: (value: string) => void;
   onBlur?: () => void;
@@ -174,27 +180,24 @@ type ScoreFieldProps = {
 
 function ScoreField({
   id,
-  label,
+  placeholder,
   value,
   onChange,
   onBlur,
   min,
 }: ScoreFieldProps) {
   return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      <Input
-        id={id}
-        type="number"
-        inputMode="numeric"
-        min={min}
-        step={1}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onBlur={onBlur}
-        className="h-12 text-center text-lg tabular-nums"
-        placeholder="0"
-      />
-    </div>
+    <Input
+      id={id}
+      type="number"
+      inputMode="numeric"
+      min={min}
+      step={1}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
+      className="h-12 text-center text-lg tabular-nums"
+      placeholder={placeholder}
+    />
   );
 }

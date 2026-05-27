@@ -10,68 +10,25 @@ import { cn } from "@/lib/utils";
 import {
   type BrowserSpeechRecognition,
   type ScoreDictationPatch,
-  type TwoPlayerScoreDictation,
   getSpeechRecognitionConstructor,
   parseScoreDictation,
-  parseTwoPlayerScoreDictation,
 } from "./score-dictation";
 
-type DictationStatus =
-  | "idle"
-  | "listening"
-  | "success"
-  | "unsupported"
-  | "blocked"
-  | "error";
+type DictationStatus = "idle" | "listening" | "unsupported" | "blocked";
 
-type SingleModeProps = {
-  mode?: "single";
+type ScoreDictationButtonProps = {
   par: number;
+  ariaLabel?: string;
   onDictatedScoreAction: (patch: ScoreDictationPatch) => void;
 };
 
-type DuoModeProps = {
-  mode: "duo";
-  par: number;
-  selfName: string;
-  delegateName: string;
-  onDictatedDuoScoreAction: (patch: TwoPlayerScoreDictation) => void;
-};
-
-type ScoreDictationButtonProps = SingleModeProps | DuoModeProps;
-
-export function ScoreDictationButton(props: ScoreDictationButtonProps) {
-  const { par } = props;
-  const mode = props.mode ?? "single";
+export function ScoreDictationButton({
+  par,
+  ariaLabel = "Dictate score",
+  onDictatedScoreAction,
+}: ScoreDictationButtonProps) {
   const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
-  const didParseScoreRef = useRef(false);
-  const didManuallyStopRef = useRef(false);
-  const statusRef = useRef<DictationStatus>("idle");
   const [status, setStatus] = useState<DictationStatus>("idle");
-  const [message, setMessage] = useState<string | null>(null);
-  const idleHelperText =
-    mode === "duo"
-      ? 'Say 4 numbers like "five two four one"'
-      : 'Say "five, two" or "five strokes, two putts"';
-  const errorHelperText =
-    mode === "duo"
-      ? 'Try again with "five two four one"'
-      : 'Try again with "five, two"';
-  const helperText =
-    message ??
-    {
-      idle: idleHelperText,
-      listening: "Listening stops automatically",
-      success: "Score updated",
-      unsupported: "Speech dictation is not supported in this browser",
-      blocked: "Microphone access is blocked",
-      error: errorHelperText,
-    }[status];
-
-  function setDictationStatus(nextStatus: DictationStatus) {
-    statusRef.current = nextStatus;
-    setStatus(nextStatus);
-  }
 
   useEffect(() => {
     return () => {
@@ -81,22 +38,18 @@ export function ScoreDictationButton(props: ScoreDictationButtonProps) {
 
   const handleClick = () => {
     if (status === "listening") {
-      didManuallyStopRef.current = true;
       recognitionRef.current?.stop();
       return;
     }
 
     const SpeechRecognition = getSpeechRecognitionConstructor();
     if (!SpeechRecognition) {
-      setDictationStatus("unsupported");
-      setMessage("Speech input is not supported in this browser");
+      setStatus("unsupported");
       return;
     }
 
     const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
-    didParseScoreRef.current = false;
-    didManuallyStopRef.current = false;
     recognition.continuous = false;
     recognition.interimResults = false;
     recognition.lang = "en-US";
@@ -108,178 +61,44 @@ export function ScoreDictationButton(props: ScoreDictationButtonProps) {
         .join(" ")
         .trim();
 
-      if (props.mode === "duo") {
-        const duoPatch = parseTwoPlayerScoreDictation(transcript);
-        if (!duoPatch) {
-          setDictationStatus("error");
-          setMessage(
-            transcript
-              ? `I heard "${transcript}" but couldn't read scores`
-              : 'I didn\'t catch that. Try "five two four one"',
-          );
-          return;
-        }
-        didParseScoreRef.current = true;
-        setDictationStatus("success");
-        setMessage(
-          formatDuoSavedScoreMessage(
-            duoPatch,
-            props.selfName,
-            props.delegateName,
-          ),
-        );
-        props.onDictatedDuoScoreAction(duoPatch);
-        return;
-      }
-
       const patch = parseScoreDictation(transcript, par);
-      if (!patch) {
-        setDictationStatus("error");
-        setMessage(
-          transcript
-            ? `I heard "${transcript}" but couldn't read a score`
-            : 'I didn\'t catch that. Try "five, two"',
-        );
-        return;
-      }
-
-      didParseScoreRef.current = true;
-      setDictationStatus("success");
-      setMessage(formatSavedScoreMessage(patch));
-      props.onDictatedScoreAction(patch);
+      if (patch) onDictatedScoreAction(patch);
     };
     recognition.onerror = (event) => {
-      if (event.error === "not-allowed") {
-        setDictationStatus("blocked");
-        setMessage("Microphone access is blocked");
-        return;
-      }
-
-      setDictationStatus("error");
-      setMessage(
-        event.error === "no-speech"
-          ? 'I didn\'t catch that. Try "five, two"'
-          : "Speech input failed. Try again",
-      );
+      if (event.error === "not-allowed") setStatus("blocked");
+      else setStatus("idle");
     };
     recognition.onend = () => {
       recognitionRef.current = null;
-      if (statusRef.current !== "listening") return;
-      if (didParseScoreRef.current) {
-        setDictationStatus("success");
-      } else if (didManuallyStopRef.current) {
-        setMessage("Stopped listening. Tap again when ready");
-        setDictationStatus("idle");
-      } else {
-        setMessage(`I didn't catch that. ${errorHelperText}`);
-        setDictationStatus("error");
-      }
+      setStatus((prev) => (prev === "listening" ? "idle" : prev));
     };
 
-    setMessage(null);
-    setDictationStatus("listening");
+    setStatus("listening");
     try {
       recognition.start();
     } catch {
       recognitionRef.current = null;
-      setDictationStatus("error");
-      setMessage("Speech input failed. Try again");
+      setStatus("idle");
     }
   };
 
-  return (
-    <div className="flex flex-col gap-2">
-      <Button
-        type="button"
-        size="2xl"
-        className={cn(
-          "w-full",
-          status === "listening" &&
-            "bg-blue-600 text-white shadow-sm ring-2 ring-blue-200 hover:bg-blue-600 focus-visible:ring-blue-300",
-        )}
-        disabled={["unsupported", "blocked"].includes(status)}
-        onClick={handleClick}
-        aria-label={
-          status === "listening" ? "Stop score dictation" : "Dictate score"
-        }
-        title={
-          mode === "duo"
-            ? 'Try "five two four one"'
-            : 'Try "five, two" or "five strokes, two putts"'
-        }
-      >
-        <HugeiconsIcon
-          icon={status === "unsupported" ? MicOff02Icon : Mic02Icon}
-          data-icon="inline-start"
-        />
-        <span>{status === "listening" ? "Listening" : "Dictate"}</span>
-        {status === "listening" ? <ListeningWaveform /> : null}
-      </Button>
+  const isUnsupported = status === "unsupported" || status === "blocked";
 
-      <p
-        className={cn(
-          "text-center text-base",
-          ["error", "unsupported", "blocked"].includes(status) &&
-            "text-destructive",
-          status === "success" && "text-primary",
-          !["error", "unsupported", "blocked", "success"].includes(status) &&
-            "text-muted-foreground",
-        )}
-        role="status"
-        aria-live="polite"
-      >
-        {helperText}
-      </p>
-    </div>
-  );
-}
-
-function ListeningWaveform() {
   return (
-    <span
-      className="flex h-5 items-center gap-0.5"
-      aria-hidden="true"
-      data-icon="inline-end"
+    <Button
+      type="button"
+      size="icon-xl"
+      variant="default"
+      className={cn(
+        "h-12 w-14",
+        status === "listening" &&
+          "bg-blue-600 text-white shadow-sm ring-2 ring-blue-200 hover:bg-blue-600 focus-visible:ring-blue-300",
+      )}
+      disabled={isUnsupported}
+      onClick={handleClick}
+      aria-label={status === "listening" ? "Stop score dictation" : ariaLabel}
     >
-      <span className="h-2 w-1 animate-pulse rounded-full bg-current/75 [animation-delay:-300ms]" />
-      <span className="h-4 w-1 animate-pulse rounded-full bg-current/90 [animation-delay:-150ms]" />
-      <span className="h-3 w-1 animate-pulse rounded-full bg-current/75" />
-    </span>
+      <HugeiconsIcon icon={isUnsupported ? MicOff02Icon : Mic02Icon} />
+    </Button>
   );
-}
-
-function formatDuoSavedScoreMessage(
-  patch: TwoPlayerScoreDictation,
-  selfName: string,
-  delegateName: string,
-) {
-  const parts = [
-    patch.you ? `${selfName} ${formatPatchSummary(patch.you)}` : null,
-    patch.delegate
-      ? `${delegateName} ${formatPatchSummary(patch.delegate)}`
-      : null,
-  ].filter(Boolean);
-  return parts.length ? `Saved ${parts.join(" & ")}` : "Score updated";
-}
-
-function formatPatchSummary(patch: ScoreDictationPatch) {
-  return [
-    patch.strokes == null ? null : `${patch.strokes}`,
-    patch.putts == null ? null : `${patch.putts}`,
-  ]
-    .filter(Boolean)
-    .join("-");
-}
-
-function formatSavedScoreMessage(patch: ScoreDictationPatch) {
-  const parts = [
-    patch.strokes == null
-      ? null
-      : `${patch.strokes} ${patch.strokes === 1 ? "stroke" : "strokes"}`,
-    patch.putts == null
-      ? null
-      : `${patch.putts} ${patch.putts === 1 ? "putt" : "putts"}`,
-  ].filter(Boolean);
-
-  return `Saved ${parts.join(", ")}`;
 }

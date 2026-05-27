@@ -511,32 +511,15 @@ function TeamWinnerCard({
 function TeamAvatarPair({ team }: { team: MatchPlayTeamView }) {
   return (
     <div className="flex h-20 shrink-0">
-      {team.rounds.slice(0, 2).map((round, index) => {
+      {team.rounds.slice(0, 2).map((round) => {
         const name = displayName({ ...round, email: null });
-        const isSecond = index > 0;
         return (
-          <div
-            key={round.id}
-            className={cn(
-              "size-20",
-              isSecond && "-ml-4 rounded-full ring-2 ring-card",
-            )}
-          >
-            <Avatar
-              className={cn(
-                "size-full",
-                isSecond ? "rounded-full" : "rounded-none",
-              )}
-            >
+          <div key={round.id} className="size-20">
+            <Avatar className="size-full rounded-none">
               {round.image ? (
                 <AvatarImage src={round.image} alt={name} />
               ) : null}
-              <AvatarFallback
-                className={cn(
-                  "text-base",
-                  isSecond ? "rounded-full" : "rounded-none",
-                )}
-              >
+              <AvatarFallback className="rounded-none text-base">
                 {getInitials({ ...round, email: null })}
               </AvatarFallback>
             </Avatar>

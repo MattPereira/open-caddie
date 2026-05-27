@@ -76,8 +76,7 @@ import {
   upsertRoundGreenie,
   upsertRoundScore,
 } from "../../../actions";
-import { HoleScoreSlide, type HoleScoreSlideHandle } from "./hole-score-slide";
-import { ScoreDictationButton } from "./score-dictation-button";
+import { HoleScoreSlide } from "./hole-score-slide";
 import {
   formatScore,
   type RoundScoresTableRound,
@@ -432,36 +431,48 @@ export function RoundScoresForm({
         <CarouselContent>
           {scores.map((entry, index) => {
             const delegateEntry = delegateScores[index] ?? null;
+            const par = entry.par ?? 4;
             return (
               <CarouselItem key={entry.hole}>
-                <HoleScoreCarouselItem
-                  hole={entry.hole}
-                  par={entry.par ?? 4}
-                  selfName={selfName}
-                  selfInitialStrokes={entry.strokes}
-                  selfInitialPutts={entry.putts}
-                  onSelfScoreChangeAction={(patch) =>
-                    saveScore(roundId, setScoresAction, scores, entry.hole, patch)
-                  }
-                  delegate={
-                    delegatePlayer && delegateName
-                      ? {
-                          roundId: delegatePlayer.roundId,
-                          name: delegateName,
-                          initialStrokes: delegateEntry?.strokes ?? null,
-                          initialPutts: delegateEntry?.putts ?? null,
-                          onScoreChangeAction: (patch) =>
-                            saveScore(
-                              delegatePlayer.roundId,
-                              setDelegateScores,
-                              delegateScores,
-                              entry.hole,
-                              patch,
-                            ),
-                        }
-                      : null
-                  }
-                />
+                <div className="flex flex-col gap-5">
+                  <HoleScoreSlide
+                    hole={entry.hole}
+                    par={par}
+                    idPrefix="self"
+                    playerName={selfName}
+                    initialStrokes={entry.strokes}
+                    initialPutts={entry.putts}
+                    onScoreChangeAction={(patch) =>
+                      saveScore(
+                        roundId,
+                        setScoresAction,
+                        scores,
+                        entry.hole,
+                        patch,
+                      )
+                    }
+                  />
+                  {delegatePlayer && delegateName ? (
+                    <HoleScoreSlide
+                      key={`delegate-${delegatePlayer.roundId}-${entry.hole}`}
+                      hole={entry.hole}
+                      par={par}
+                      idPrefix={`delegate-${delegatePlayer.roundId}`}
+                      playerName={delegateName}
+                      initialStrokes={delegateEntry?.strokes ?? null}
+                      initialPutts={delegateEntry?.putts ?? null}
+                      onScoreChangeAction={(patch) =>
+                        saveScore(
+                          delegatePlayer.roundId,
+                          setDelegateScores,
+                          delegateScores,
+                          entry.hole,
+                          patch,
+                        )
+                      }
+                    />
+                  ) : null}
+                </div>
               </CarouselItem>
             );
           })}
@@ -559,91 +570,6 @@ export function RoundScoresForm({
         <Button type="button" size="2xl" onClick={onShowSummaryAction}>
           {summaryLabel}
         </Button>
-      ) : null}
-    </div>
-  );
-}
-
-type DelegateSlideConfig = {
-  roundId: number;
-  name: string;
-  initialStrokes: number | null;
-  initialPutts: number | null;
-  onScoreChangeAction: (patch: {
-    strokes: number | null;
-    putts: number | null;
-  }) => void;
-};
-
-function HoleScoreCarouselItem({
-  hole,
-  par,
-  selfName,
-  selfInitialStrokes,
-  selfInitialPutts,
-  onSelfScoreChangeAction,
-  delegate,
-}: {
-  hole: number;
-  par: number;
-  selfName: string;
-  selfInitialStrokes: number | null;
-  selfInitialPutts: number | null;
-  onSelfScoreChangeAction: (patch: {
-    strokes: number | null;
-    putts: number | null;
-  }) => void;
-  delegate: DelegateSlideConfig | null;
-}) {
-  const selfRef = useRef<HoleScoreSlideHandle | null>(null);
-  const delegateRef = useRef<HoleScoreSlideHandle | null>(null);
-
-  return (
-    <div className="flex flex-col gap-5">
-      {delegate ? (
-        <ScoreDictationButton
-          mode="duo"
-          par={par}
-          selfName={selfName}
-          delegateName={delegate.name}
-          onDictatedDuoScoreAction={(patch) => {
-            if (patch.you) selfRef.current?.applyDictatedScore(patch.you);
-            if (patch.delegate)
-              delegateRef.current?.applyDictatedScore(patch.delegate);
-          }}
-        />
-      ) : (
-        <ScoreDictationButton
-          par={par}
-          onDictatedScoreAction={(patch) =>
-            selfRef.current?.applyDictatedScore(patch)
-          }
-        />
-      )}
-
-      <HoleScoreSlide
-        ref={selfRef}
-        hole={hole}
-        par={par}
-        idPrefix="self"
-        playerName={selfName}
-        initialStrokes={selfInitialStrokes}
-        initialPutts={selfInitialPutts}
-        onScoreChangeAction={onSelfScoreChangeAction}
-      />
-
-      {delegate ? (
-        <HoleScoreSlide
-          key={`delegate-${delegate.roundId}-${hole}`}
-          ref={delegateRef}
-          hole={hole}
-          par={par}
-          idPrefix={`delegate-${delegate.roundId}`}
-          playerName={delegate.name}
-          initialStrokes={delegate.initialStrokes}
-          initialPutts={delegate.initialPutts}
-          onScoreChangeAction={delegate.onScoreChangeAction}
-        />
       ) : null}
     </div>
   );

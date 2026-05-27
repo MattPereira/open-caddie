@@ -1,26 +1,16 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useRef,
-  useState,
-  type Ref,
-} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ScoreDictationButton } from "./score-dictation-button";
 
 const SAVE_DEBOUNCE_MS = 400;
 
 export type HoleScorePatch = {
   strokes: number | null;
   putts: number | null;
-};
-
-export type HoleScoreSlideHandle = {
-  applyDictatedScore: (patch: HoleScorePatch) => void;
 };
 
 type HoleScoreSlideProps = {
@@ -31,7 +21,6 @@ type HoleScoreSlideProps = {
   initialStrokes: number | null;
   initialPutts: number | null;
   onScoreChangeAction: (patch: HoleScorePatch) => void;
-  ref?: Ref<HoleScoreSlideHandle>;
 };
 
 function toInputValue(value: number | null): string {
@@ -52,12 +41,12 @@ function parsePutts(value: string): number | null {
 
 export function HoleScoreSlide({
   hole,
+  par,
   idPrefix,
   playerName,
   initialStrokes,
   initialPutts,
   onScoreChangeAction,
-  ref,
 }: HoleScoreSlideProps) {
   const [strokesStr, setStrokesStr] = useState(toInputValue(initialStrokes));
   const [puttsStr, setPuttsStr] = useState(toInputValue(initialPutts));
@@ -123,40 +112,28 @@ export function HoleScoreSlide({
     scheduleSave({ strokes: currentStrokes, putts: parsePutts(value) });
   };
 
-  const handleStrokesBlur = () => {
+  const handleBlur = () => {
     const pendingPatch = pendingPatchRef.current;
     if (pendingPatch) flushSave(pendingPatch);
   };
 
-  const handlePuttsBlur = () => {
-    const pendingPatch = pendingPatchRef.current;
-    if (pendingPatch) flushSave(pendingPatch);
+  const handleDictatedScore = (patch: HoleScorePatch) => {
+    const nextStrokes = patch.strokes ?? currentStrokes;
+    const nextPutts = patch.putts ?? currentPutts;
+
+    setStrokesStr(toInputValue(nextStrokes));
+    setPuttsStr(toInputValue(nextPutts));
+    flushSave({ strokes: nextStrokes, putts: nextPutts });
   };
-
-  const applyDictatedScore = useCallback(
-    (patch: HoleScorePatch) => {
-      const nextStrokes = patch.strokes ?? currentStrokes;
-      const nextPutts = patch.putts ?? currentPutts;
-
-      setStrokesStr(toInputValue(nextStrokes));
-      setPuttsStr(toInputValue(nextPutts));
-      flushSave({ strokes: nextStrokes, putts: nextPutts });
-    },
-    [currentPutts, currentStrokes, flushSave],
-  );
-
-  useImperativeHandle(ref, () => ({ applyDictatedScore }), [
-    applyDictatedScore,
-  ]);
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-4">
       <ScoreField
         id={`${idPrefix}-hole-${hole}-strokes`}
         label={`${playerName} Strokes`}
         value={strokesStr}
         onChange={handleStrokesChange}
-        onBlur={handleStrokesBlur}
+        onBlur={handleBlur}
         min={1}
       />
       <ScoreField
@@ -164,8 +141,13 @@ export function HoleScoreSlide({
         label={`${playerName} Putts`}
         value={puttsStr}
         onChange={handlePuttsChange}
-        onBlur={handlePuttsBlur}
+        onBlur={handleBlur}
         min={0}
+      />
+      <ScoreDictationButton
+        par={par}
+        ariaLabel={`Dictate ${playerName} score`}
+        onDictatedScoreAction={handleDictatedScore}
       />
     </div>
   );

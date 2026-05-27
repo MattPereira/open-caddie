@@ -20,6 +20,7 @@ type HoleScoreSlideProps = {
   playerName: string;
   initialStrokes: number | null;
   initialPutts: number | null;
+  showPutts?: boolean;
   onScoreChangeAction: (patch: HoleScorePatch) => void;
 };
 
@@ -46,6 +47,7 @@ export function HoleScoreSlide({
   playerName,
   initialStrokes,
   initialPutts,
+  showPutts = true,
   onScoreChangeAction,
 }: HoleScoreSlideProps) {
   const [strokesStr, setStrokesStr] = useState(toInputValue(initialStrokes));
@@ -127,7 +129,13 @@ export function HoleScoreSlide({
   };
 
   return (
-    <div className="grid grid-cols-[1fr_1fr_auto] items-end gap-4">
+    <div
+      className={
+        showPutts
+          ? "grid grid-cols-[1fr_1fr_auto] items-end gap-4"
+          : "grid grid-cols-[1fr_auto] items-end gap-4"
+      }
+    >
       <ScoreField
         id={`${idPrefix}-hole-${hole}-strokes`}
         label={`${playerName} Strokes`}
@@ -136,14 +144,16 @@ export function HoleScoreSlide({
         onBlur={handleBlur}
         min={1}
       />
-      <ScoreField
-        id={`${idPrefix}-hole-${hole}-putts`}
-        label={`${playerName} Putts`}
-        value={puttsStr}
-        onChange={handlePuttsChange}
-        onBlur={handleBlur}
-        min={0}
-      />
+      {showPutts && (
+        <ScoreField
+          id={`${idPrefix}-hole-${hole}-putts`}
+          label={`${playerName} Putts`}
+          value={puttsStr}
+          onChange={handlePuttsChange}
+          onBlur={handleBlur}
+          min={0}
+        />
+      )}
       <ScoreDictationButton
         par={par}
         ariaLabel={`Dictate ${playerName} score`}

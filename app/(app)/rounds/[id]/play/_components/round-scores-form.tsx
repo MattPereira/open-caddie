@@ -39,6 +39,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
   SelectContent,
@@ -161,6 +162,8 @@ export function RoundScoresForm({
   const saveVersionRef = useRef<Record<string, number>>({});
   const greenieSaveVersionRef = useRef<Record<string, number>>({});
 
+  const [recordPutts, setRecordPutts] = useState(true);
+  const [recordGreenies, setRecordGreenies] = useState(true);
   const selfName = round.firstName ?? "You";
   const delegatePlayers = useMemo(
     () =>
@@ -433,7 +436,13 @@ export function RoundScoresForm({
 
         <PlayScoresOverview
           players={[
-            { key: `round-${roundId}`, label: "You", scores },
+            {
+              key: `round-${roundId}`,
+              label:
+                [round.firstName, round.lastName].filter(Boolean).join(" ") ||
+                "You",
+              scores,
+            },
             ...delegatePlayers.map((player) => ({
               key: `round-${player.roundId}`,
               label: getPlayerName(player),
@@ -441,6 +450,7 @@ export function RoundScoresForm({
             })),
           ]}
           currentHole={currentHoleNumber ?? 1}
+          showPutts={recordPutts}
         />
       </div>
 
@@ -492,6 +502,7 @@ export function RoundScoresForm({
                     playerName={selfName}
                     initialStrokes={entry.strokes}
                     initialPutts={entry.putts}
+                    showPutts={recordPutts}
                     onScoreChangeAction={(patch) =>
                       saveScore(roundId, entry.hole, patch)
                     }
@@ -509,6 +520,7 @@ export function RoundScoresForm({
                         playerName={getPlayerName(player)}
                         initialStrokes={delegateEntry?.strokes ?? null}
                         initialPutts={delegateEntry?.putts ?? null}
+                        showPutts={recordPutts}
                         onScoreChangeAction={(patch) =>
                           saveScore(player.roundId, entry.hole, patch)
                         }
@@ -528,7 +540,7 @@ export function RoundScoresForm({
         </p>
       ) : null}
 
-      {currentHolePar === 3 && currentHoleNumber != null ? (
+      {recordGreenies && currentHolePar === 3 && currentHoleNumber != null ? (
         <div className="flex flex-col gap-4">
           <HoleGreenieManager
             key={`self-${currentHoleNumber}`}
@@ -583,6 +595,10 @@ export function RoundScoresForm({
           matchPlayers={matchPlayers}
           delegateRoundIds={delegateRoundIds}
           setDelegateRoundIdsAction={setDelegateRoundIdsAction}
+          recordPutts={recordPutts}
+          setRecordPuttsAction={setRecordPutts}
+          recordGreenies={recordGreenies}
+          setRecordGreeniesAction={setRecordGreenies}
           fullWidth={round.tournamentId == null && round.matchId == null}
         />
         {round.tournamentId != null ? (
@@ -806,6 +822,10 @@ function SettingsDialog({
   matchPlayers,
   delegateRoundIds,
   setDelegateRoundIdsAction,
+  recordPutts,
+  setRecordPuttsAction,
+  recordGreenies,
+  setRecordGreeniesAction,
   fullWidth,
 }: {
   roundId: number;
@@ -814,6 +834,10 @@ function SettingsDialog({
   matchPlayers: MatchPlayer[];
   delegateRoundIds: readonly number[];
   setDelegateRoundIdsAction: (next: readonly number[]) => void;
+  recordPutts: boolean;
+  setRecordPuttsAction: Dispatch<SetStateAction<boolean>>;
+  recordGreenies: boolean;
+  setRecordGreeniesAction: Dispatch<SetStateAction<boolean>>;
   fullWidth: boolean;
 }) {
   const router = useRouter();
@@ -892,7 +916,7 @@ function SettingsDialog({
             onSubmit={form.handleSubmit(onSubmit)}
             className="flex min-h-0 flex-1 flex-col"
           >
-            <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto pt-4">
+            <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto pt-4">
               {serverError ? (
                 <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                   {serverError}
@@ -940,6 +964,66 @@ function SettingsDialog({
                   </FormItem>
                 )}
               />
+
+              <FieldSet className="gap-2">
+                <FieldLabel className="text-base">Record Putts</FieldLabel>
+                <RadioGroup
+                  value={recordPutts ? "yes" : "no"}
+                  onValueChange={(v) => setRecordPuttsAction(v === "yes")}
+                  className="flex flex-row gap-2"
+                >
+                  {(["yes", "no"] as const).map((v) => (
+                    <FieldLabel
+                      key={v}
+                      htmlFor={`record-putts-${v}`}
+                      className="flex-1"
+                    >
+                      <Field orientation="horizontal">
+                        <RadioGroupItem
+                          id={`record-putts-${v}`}
+                          value={v}
+                          className="size-5"
+                        />
+                        <FieldContent>
+                          <FieldTitle className="text-base capitalize">
+                            {v}
+                          </FieldTitle>
+                        </FieldContent>
+                      </Field>
+                    </FieldLabel>
+                  ))}
+                </RadioGroup>
+              </FieldSet>
+
+              <FieldSet className="gap-2">
+                <FieldLabel className="text-base">Record Greenies</FieldLabel>
+                <RadioGroup
+                  value={recordGreenies ? "yes" : "no"}
+                  onValueChange={(v) => setRecordGreeniesAction(v === "yes")}
+                  className="flex flex-row gap-2"
+                >
+                  {(["yes", "no"] as const).map((v) => (
+                    <FieldLabel
+                      key={v}
+                      htmlFor={`record-greenies-${v}`}
+                      className="flex-1"
+                    >
+                      <Field orientation="horizontal">
+                        <RadioGroupItem
+                          id={`record-greenies-${v}`}
+                          value={v}
+                          className="size-5"
+                        />
+                        <FieldContent>
+                          <FieldTitle className="text-base capitalize">
+                            {v}
+                          </FieldTitle>
+                        </FieldContent>
+                      </Field>
+                    </FieldLabel>
+                  ))}
+                </RadioGroup>
+              </FieldSet>
 
               {showMatchOptions && matchPlayers.length > 0 ? (
                 <FieldSet className="gap-2">

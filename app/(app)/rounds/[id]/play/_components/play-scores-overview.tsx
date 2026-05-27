@@ -17,6 +17,7 @@ export type PlayerRows = {
 type PlayScoresOverviewProps = {
   players: PlayerRows[];
   currentHole: number;
+  showPutts?: boolean;
 };
 
 const frontNine = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -25,6 +26,7 @@ const backNine = [10, 11, 12, 13, 14, 15, 16, 17, 18];
 export function PlayScoresOverview({
   players,
   currentHole,
+  showPutts = true,
 }: PlayScoresOverviewProps) {
   const [visibleNine, setVisibleNine] = useState<"front" | "back">(
     currentHole > 9 ? "back" : "front",
@@ -41,7 +43,6 @@ export function PlayScoresOverview({
 
   const nineHoles = visibleNine === "back" ? backNine : frontNine;
   const totalLabel = visibleNine === "back" ? "In" : "Out";
-  const showLabels = players.length > 1;
 
   return (
     <div className="relative">
@@ -72,7 +73,8 @@ export function PlayScoresOverview({
         </label>
       </div>
 
-      <div className="grid grid-cols-10 overflow-hidden rounded-lg ring-1 ring-border">
+      <div className="grid grid-cols-11 overflow-hidden rounded-lg ring-1 ring-border">
+        <Cell muted header>{false}</Cell>
         {nineHoles.map((hole) => (
           <Cell
             key={`h-${hole}`}
@@ -107,12 +109,13 @@ export function PlayScoresOverview({
               nineHoles={nineHoles}
               currentHole={currentHole}
               playerKey={player.key}
-              label={showLabels ? player.label : null}
+              label={player.label}
               pars={pars}
               strokes={nineStrokes}
               putts={ninePutts}
               strokeTotal={strokeTotal}
               puttTotal={puttTotal}
+              showPutts={showPutts}
             />
           );
         })}
@@ -131,29 +134,41 @@ function PlayerSection({
   putts,
   strokeTotal,
   puttTotal,
+  showPutts,
 }: {
   nineHoles: number[];
   currentHole: number;
   playerKey: string;
-  label: string | null;
+  label: string;
   pars: (number | null)[];
   strokes: (number | null)[];
   putts: (number | null)[];
   strokeTotal: number | null;
   puttTotal: number | null;
+  showPutts: boolean;
 }) {
+  const initials = label
+    .split(" ")
+    .map((w) => w[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
     <>
-      {label ? (
-        <div className="col-span-10 border-y border-border px-2 py-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {label}
-        </div>
-      ) : null}
+      <div
+        className={cn(
+          "flex items-center justify-center border-t border-border bg-muted px-0.5 text-xs font-semibold text-muted-foreground",
+          showPutts ? "row-span-2" : "",
+        )}
+      >
+        {initials}
+      </div>
 
       {nineHoles.map((hole, index) => (
         <Cell
           key={`s-${playerKey}-${hole}`}
-          bordered={!label}
+          bordered
           highlight={hole === currentHole}
         >
           <HoleScore
@@ -164,22 +179,26 @@ function PlayerSection({
           />
         </Cell>
       ))}
-      <Cell bordered={!label} total>
+      <Cell bordered total>
         {strokeTotal}
       </Cell>
 
-      {nineHoles.map((hole, index) => (
-        <Cell
-          key={`p-${playerKey}-${hole}`}
-          bordered
-          highlight={hole === currentHole}
-        >
-          {putts[index]}
-        </Cell>
-      ))}
-      <Cell bordered total>
-        {puttTotal}
-      </Cell>
+      {showPutts && (
+        <>
+          {nineHoles.map((hole, index) => (
+            <Cell
+              key={`p-${playerKey}-${hole}`}
+              bordered
+              highlight={hole === currentHole}
+            >
+              {putts[index]}
+            </Cell>
+          ))}
+          <Cell bordered total>
+            {puttTotal}
+          </Cell>
+        </>
+      )}
     </>
   );
 }

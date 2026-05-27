@@ -11,7 +11,7 @@ import {
 } from "react";
 
 import { useRouter } from "next/navigation";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -20,16 +20,12 @@ import {
   Delete02Icon,
 } from "@hugeicons/core-free-icons";
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { HoldToConfirmButton } from "@/components/hold-to-confirm-button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { calculateCourseHandicap } from "@/lib/scoring";
 import {
   Field,
   FieldContent,
-  FieldDescription,
   FieldLabel,
   FieldSet,
   FieldTitle,
@@ -42,7 +38,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { deleteRound, updateRoundScores } from "@/app/(app)/rounds/actions";
 import {
   RoundScoresUpdateSchema,
@@ -95,6 +98,8 @@ import type { MatchPlayer, MatchScoreboard } from "./round-play";
 
 type GreenieEntry = GreenieValue & { hole: number };
 
+const MAX_DELEGATES = 3;
+
 export type SettingsTee = {
   id: number;
   name: string;
@@ -120,8 +125,8 @@ type RoundScoresFormProps = {
   tees: SettingsTee[];
   matchPlayers: MatchPlayer[];
   matchScoreboard: MatchScoreboard | null;
-  delegateRoundId: number | null;
-  setDelegateRoundIdAction: (next: number | null) => void;
+  delegateRoundIds: readonly number[];
+  setDelegateRoundIdsAction: (next: readonly number[]) => void;
   onShowSummaryAction: () => void;
   summaryLabel: string;
 };
@@ -137,8 +142,8 @@ export function RoundScoresForm({
   tees,
   matchPlayers,
   matchScoreboard,
-  delegateRoundId,
-  setDelegateRoundIdAction,
+  delegateRoundIds,
+  setDelegateRoundIdsAction,
   onShowSummaryAction,
   summaryLabel,
 }: RoundScoresFormProps) {
@@ -156,32 +161,53 @@ export function RoundScoresForm({
   const saveVersionRef = useRef<Record<string, number>>({});
   const greenieSaveVersionRef = useRef<Record<string, number>>({});
 
-  const delegatePlayer = useMemo(
-    () =>
-      matchPlayers.find((player) => player.roundId === delegateRoundId) ?? null,
-    [matchPlayers, delegateRoundId],
-  );
   const selfName = round.firstName ?? "You";
-  const delegateName = delegatePlayer
-    ? (delegatePlayer.firstName ?? delegatePlayer.lastName ?? "Player")
-    : null;
-  const initialDelegateScores = useMemo(
+  const delegatePlayers = useMemo(
     () =>
-      delegatePlayer ? buildInitialScores(delegatePlayer.scores, holes) : [],
-    [delegatePlayer, holes],
+      delegateRoundIds
+        .map((id) => matchPlayers.find((p) => p.roundId === id))
+        .filter((p): p is MatchPlayer => p != null),
+    [delegateRoundIds, matchPlayers],
   );
-  const [delegateScores, setDelegateScores] = useState<ScoreEntry[]>(
-    initialDelegateScores,
-  );
-  const [delegateGreenies, setDelegateGreenies] = useState<GreenieEntry[]>(
-    () => delegatePlayer?.greenies ?? [],
-  );
-  const [prevDelegateRoundId, setPrevDelegateRoundId] =
-    useState(delegateRoundId);
-  if (prevDelegateRoundId !== delegateRoundId) {
-    setPrevDelegateRoundId(delegateRoundId);
-    setDelegateScores(initialDelegateScores);
-    setDelegateGreenies(delegatePlayer?.greenies ?? []);
+  const getPlayerName = (player: MatchPlayer) =>
+    [player.firstName, player.lastName].filter(Boolean).join(" ") || "Player";
+  const [delegateScoresByRoundId, setDelegateScoresByRoundId] = useState<
+    Record<number, ScoreEntry[]>
+  >(() => {
+    const map: Record<number, ScoreEntry[]> = {};
+    for (const player of delegatePlayers) {
+      map[player.roundId] = buildInitialScores(player.scores, holes);
+    }
+    return map;
+  });
+  const [delegateGreeniesByRoundId, setDelegateGreeniesByRoundId] = useState<
+    Record<number, GreenieEntry[]>
+  >(() => {
+    const map: Record<number, GreenieEntry[]> = {};
+    for (const player of delegatePlayers) {
+      map[player.roundId] = player.greenies ?? [];
+    }
+    return map;
+  });
+  const delegateIdsKey = delegateRoundIds.join(",");
+  const [prevDelegateIdsKey, setPrevDelegateIdsKey] = useState(delegateIdsKey);
+  if (prevDelegateIdsKey !== delegateIdsKey) {
+    setPrevDelegateIdsKey(delegateIdsKey);
+    setDelegateScoresByRoundId((prev) => {
+      const next: Record<number, ScoreEntry[]> = {};
+      for (const player of delegatePlayers) {
+        next[player.roundId] =
+          prev[player.roundId] ?? buildInitialScores(player.scores, holes);
+      }
+      return next;
+    });
+    setDelegateGreeniesByRoundId((prev) => {
+      const next: Record<number, GreenieEntry[]> = {};
+      for (const player of delegatePlayers) {
+        next[player.roundId] = prev[player.roundId] ?? player.greenies ?? [];
+      }
+      return next;
+    });
   }
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
@@ -216,20 +242,57 @@ export function RoundScoresForm({
 
   const isComplete = isRoundComplete(round);
 
+  const updateScoresForRound = (
+    targetRoundId: number,
+    updater: (prev: ScoreEntry[]) => ScoreEntry[],
+  ) => {
+    if (targetRoundId === roundId) {
+      setScoresAction(updater);
+    } else {
+      setDelegateScoresByRoundId((prev) => ({
+        ...prev,
+        [targetRoundId]: updater(prev[targetRoundId] ?? []),
+      }));
+    }
+  };
+
+  const updateGreeniesForRound = (
+    targetRoundId: number,
+    updater: (prev: GreenieEntry[]) => GreenieEntry[],
+  ) => {
+    if (targetRoundId === roundId) {
+      setGreenies(updater);
+    } else {
+      setDelegateGreeniesByRoundId((prev) => ({
+        ...prev,
+        [targetRoundId]: updater(prev[targetRoundId] ?? []),
+      }));
+    }
+  };
+
+  const getScoresForRound = (targetRoundId: number): ScoreEntry[] => {
+    if (targetRoundId === roundId) return scores;
+    return delegateScoresByRoundId[targetRoundId] ?? [];
+  };
+
+  const getGreeniesForRound = (targetRoundId: number): GreenieEntry[] => {
+    if (targetRoundId === roundId) return greenies;
+    return delegateGreeniesByRoundId[targetRoundId] ?? [];
+  };
+
   const saveScore = (
     targetRoundId: number,
-    setTargetScores: Dispatch<SetStateAction<ScoreEntry[]>>,
-    currentEntries: ScoreEntry[],
     hole: number,
     patch: { strokes: number | null; putts: number | null },
   ) => {
-    const previousEntry = currentEntries.find((s) => s.hole === hole) ?? null;
+    const previousEntry =
+      getScoresForRound(targetRoundId).find((s) => s.hole === hole) ?? null;
     const versionKey = `${targetRoundId}:${hole}`;
     const saveVersion = (saveVersionRef.current[versionKey] ?? 0) + 1;
     saveVersionRef.current[versionKey] = saveVersion;
 
     setSaveError(null);
-    setTargetScores((prev) =>
+    updateScoresForRound(targetRoundId, (prev) =>
       prev.map((s) => (s.hole === hole ? { ...s, ...patch } : s)),
     );
     startSaveTransition(async () => {
@@ -241,7 +304,7 @@ export function RoundScoresForm({
       if (!result.ok) {
         if (saveVersionRef.current[versionKey] !== saveVersion) return;
         if (previousEntry) {
-          setTargetScores((prev) =>
+          updateScoresForRound(targetRoundId, (prev) =>
             prev.map((s) => (s.hole === hole ? previousEntry : s)),
           );
         }
@@ -252,18 +315,17 @@ export function RoundScoresForm({
 
   const saveGreenie = (
     targetRoundId: number,
-    setTargetGreenies: Dispatch<SetStateAction<GreenieEntry[]>>,
-    currentEntries: GreenieEntry[],
     hole: number,
     value: GreenieValue,
   ) => {
-    const previousGreenie = currentEntries.find((g) => g.hole === hole) ?? null;
+    const previousGreenie =
+      getGreeniesForRound(targetRoundId).find((g) => g.hole === hole) ?? null;
     const versionKey = `${targetRoundId}:${hole}`;
     const saveVersion = (greenieSaveVersionRef.current[versionKey] ?? 0) + 1;
     greenieSaveVersionRef.current[versionKey] = saveVersion;
 
     setSaveError(null);
-    setTargetGreenies((prev) => {
+    updateGreeniesForRound(targetRoundId, (prev) => {
       const nextGreenie = { hole, ...value };
       return prev.some((g) => g.hole === hole)
         ? prev.map((g) => (g.hole === hole ? nextGreenie : g))
@@ -277,7 +339,7 @@ export function RoundScoresForm({
       });
       if (!result.ok) {
         if (greenieSaveVersionRef.current[versionKey] !== saveVersion) return;
-        setTargetGreenies((prev) => {
+        updateGreeniesForRound(targetRoundId, (prev) => {
           const withoutCurrent = prev.filter((g) => g.hole !== hole);
           return previousGreenie
             ? [...withoutCurrent, previousGreenie].sort(
@@ -290,19 +352,17 @@ export function RoundScoresForm({
     });
   };
 
-  const removeGreenie = (
-    targetRoundId: number,
-    setTargetGreenies: Dispatch<SetStateAction<GreenieEntry[]>>,
-    currentEntries: GreenieEntry[],
-    hole: number,
-  ) => {
-    const previousGreenie = currentEntries.find((g) => g.hole === hole) ?? null;
+  const removeGreenie = (targetRoundId: number, hole: number) => {
+    const previousGreenie =
+      getGreeniesForRound(targetRoundId).find((g) => g.hole === hole) ?? null;
     const versionKey = `${targetRoundId}:${hole}`;
     const saveVersion = (greenieSaveVersionRef.current[versionKey] ?? 0) + 1;
     greenieSaveVersionRef.current[versionKey] = saveVersion;
 
     setSaveError(null);
-    setTargetGreenies((prev) => prev.filter((g) => g.hole !== hole));
+    updateGreeniesForRound(targetRoundId, (prev) =>
+      prev.filter((g) => g.hole !== hole),
+    );
     startSaveTransition(async () => {
       const result = await deleteRoundGreenie({
         roundId: targetRoundId,
@@ -311,7 +371,7 @@ export function RoundScoresForm({
       if (!result.ok) {
         if (greenieSaveVersionRef.current[versionKey] !== saveVersion) return;
         if (previousGreenie) {
-          setTargetGreenies((prev) =>
+          updateGreeniesForRound(targetRoundId, (prev) =>
             [...prev.filter((g) => g.hole !== hole), previousGreenie].sort(
               (a, b) => a.hole - b.hole,
             ),
@@ -329,21 +389,16 @@ export function RoundScoresForm({
     currentHoleNumber != null
       ? (greenies.find((g) => g.hole === currentHoleNumber) ?? null)
       : null;
-  const currentDelegateGreenie =
-    currentHoleNumber != null
-      ? (delegateGreenies.find((g) => g.hole === currentHoleNumber) ?? null)
-      : null;
   const liveMatchScoreboard = useMemo(() => {
     if (!matchScoreboard) return null;
     const rounds = matchScoreboard.rounds.map((scoreboardRound) => {
       if (scoreboardRound.id === round.id) {
         return round;
       }
-
-      if (scoreboardRound.id === delegatePlayer?.roundId) {
+      const delegateScores = delegateScoresByRoundId[scoreboardRound.id];
+      if (delegateScores) {
         return applyScoreEntriesToRound(scoreboardRound, delegateScores);
       }
-
       return scoreboardRound;
     });
     const roundsById = new Map(
@@ -360,7 +415,7 @@ export function RoundScoresForm({
         ),
       })),
     };
-  }, [delegatePlayer?.roundId, delegateScores, matchScoreboard, round]);
+  }, [delegateScoresByRoundId, matchScoreboard, round]);
 
   return (
     <div className="flex w-full min-w-0 flex-1 flex-col gap-5 p-0 sm:flex-none">
@@ -377,18 +432,14 @@ export function RoundScoresForm({
         </div>
 
         <PlayScoresOverview
-          players={
-            delegatePlayer && delegateName
-              ? [
-                  { key: `round-${roundId}`, label: "You", scores },
-                  {
-                    key: `round-${delegatePlayer.roundId}`,
-                    label: delegateName,
-                    scores: delegateScores,
-                  },
-                ]
-              : [{ key: `round-${roundId}`, label: "You", scores }]
-          }
+          players={[
+            { key: `round-${roundId}`, label: "You", scores },
+            ...delegatePlayers.map((player) => ({
+              key: `round-${player.roundId}`,
+              label: getPlayerName(player),
+              scores: delegateScoresByRoundId[player.roundId] ?? [],
+            })),
+          ]}
           currentHole={currentHoleNumber ?? 1}
         />
       </div>
@@ -429,8 +480,7 @@ export function RoundScoresForm({
 
       <Carousel setApi={setApi} className="w-full min-w-0">
         <CarouselContent>
-          {scores.map((entry, index) => {
-            const delegateEntry = delegateScores[index] ?? null;
+          {scores.map((entry) => {
             const par = entry.par ?? 4;
             return (
               <CarouselItem key={entry.hole}>
@@ -443,35 +493,28 @@ export function RoundScoresForm({
                     initialStrokes={entry.strokes}
                     initialPutts={entry.putts}
                     onScoreChangeAction={(patch) =>
-                      saveScore(
-                        roundId,
-                        setScoresAction,
-                        scores,
-                        entry.hole,
-                        patch,
-                      )
+                      saveScore(roundId, entry.hole, patch)
                     }
                   />
-                  {delegatePlayer && delegateName ? (
-                    <HoleScoreSlide
-                      key={`delegate-${delegatePlayer.roundId}-${entry.hole}`}
-                      hole={entry.hole}
-                      par={par}
-                      idPrefix={`delegate-${delegatePlayer.roundId}`}
-                      playerName={delegateName}
-                      initialStrokes={delegateEntry?.strokes ?? null}
-                      initialPutts={delegateEntry?.putts ?? null}
-                      onScoreChangeAction={(patch) =>
-                        saveScore(
-                          delegatePlayer.roundId,
-                          setDelegateScores,
-                          delegateScores,
-                          entry.hole,
-                          patch,
-                        )
-                      }
-                    />
-                  ) : null}
+                  {delegatePlayers.map((player) => {
+                    const delegateEntry = (
+                      delegateScoresByRoundId[player.roundId] ?? []
+                    ).find((s) => s.hole === entry.hole);
+                    return (
+                      <HoleScoreSlide
+                        key={`delegate-${player.roundId}-${entry.hole}`}
+                        hole={entry.hole}
+                        par={par}
+                        idPrefix={`delegate-${player.roundId}`}
+                        playerName={getPlayerName(player)}
+                        initialStrokes={delegateEntry?.strokes ?? null}
+                        initialPutts={delegateEntry?.putts ?? null}
+                        onScoreChangeAction={(patch) =>
+                          saveScore(player.roundId, entry.hole, patch)
+                        }
+                      />
+                    );
+                  })}
                 </div>
               </CarouselItem>
             );
@@ -498,51 +541,37 @@ export function RoundScoresForm({
                 : null
             }
             onSaveAction={(value) =>
-              saveGreenie(
-                roundId,
-                setGreenies,
-                greenies,
-                currentHoleNumber,
-                value,
-              )
+              saveGreenie(roundId, currentHoleNumber, value)
             }
-            onDeleteAction={() =>
-              removeGreenie(roundId, setGreenies, greenies, currentHoleNumber)
-            }
+            onDeleteAction={() => removeGreenie(roundId, currentHoleNumber)}
           />
-          {delegatePlayer && delegateName ? (
-            <HoleGreenieManager
-              key={`delegate-${delegatePlayer.roundId}-${currentHoleNumber}`}
-              hole={currentHoleNumber}
-              idPrefix={`round-${delegatePlayer.roundId}`}
-              playerName={delegateName}
-              initialGreenie={
-                currentDelegateGreenie
-                  ? {
-                      feet: currentDelegateGreenie.feet,
-                      inches: currentDelegateGreenie.inches,
-                    }
-                  : null
-              }
-              onSaveAction={(value) =>
-                saveGreenie(
-                  delegatePlayer.roundId,
-                  setDelegateGreenies,
-                  delegateGreenies,
-                  currentHoleNumber,
-                  value,
-                )
-              }
-              onDeleteAction={() =>
-                removeGreenie(
-                  delegatePlayer.roundId,
-                  setDelegateGreenies,
-                  delegateGreenies,
-                  currentHoleNumber,
-                )
-              }
-            />
-          ) : null}
+          {delegatePlayers.map((player) => {
+            const delegateGreenie = (
+              delegateGreeniesByRoundId[player.roundId] ?? []
+            ).find((g) => g.hole === currentHoleNumber);
+            return (
+              <HoleGreenieManager
+                key={`delegate-${player.roundId}-${currentHoleNumber}`}
+                hole={currentHoleNumber}
+                idPrefix={`round-${player.roundId}`}
+                playerName={getPlayerName(player)}
+                initialGreenie={
+                  delegateGreenie
+                    ? {
+                        feet: delegateGreenie.feet,
+                        inches: delegateGreenie.inches,
+                      }
+                    : null
+                }
+                onSaveAction={(value) =>
+                  saveGreenie(player.roundId, currentHoleNumber, value)
+                }
+                onDeleteAction={() =>
+                  removeGreenie(player.roundId, currentHoleNumber)
+                }
+              />
+            );
+          })}
         </div>
       ) : null}
 
@@ -552,8 +581,8 @@ export function RoundScoresForm({
           round={round}
           tees={tees}
           matchPlayers={matchPlayers}
-          delegateRoundId={delegateRoundId}
-          setDelegateRoundIdAction={setDelegateRoundIdAction}
+          delegateRoundIds={delegateRoundIds}
+          setDelegateRoundIdsAction={setDelegateRoundIdsAction}
           fullWidth={round.tournamentId == null && round.matchId == null}
         />
         {round.tournamentId != null ? (
@@ -775,16 +804,16 @@ function SettingsDialog({
   round,
   tees,
   matchPlayers,
-  delegateRoundId,
-  setDelegateRoundIdAction,
+  delegateRoundIds,
+  setDelegateRoundIdsAction,
   fullWidth,
 }: {
   roundId: number;
   round: RoundScoresTableRound;
   tees: SettingsTee[];
   matchPlayers: MatchPlayer[];
-  delegateRoundId: number | null;
-  setDelegateRoundIdAction: (next: number | null) => void;
+  delegateRoundIds: readonly number[];
+  setDelegateRoundIdsAction: (next: readonly number[]) => void;
   fullWidth: boolean;
 }) {
   const router = useRouter();
@@ -799,24 +828,7 @@ function SettingsDialog({
     defaultValues: buildSettingsFormValues(round, tees),
   });
   const serverError = form.formState.errors.root?.server?.message;
-  const showHandicapTab = round.matchId != null;
-  const [activeTab, setActiveTab] = useState<"tees" | "handicap" | "scoring">(
-    "tees",
-  );
-  const watchedTeeId = useWatch({ control: form.control, name: "teeId" });
-  const watchedHandicapOverride = useWatch({
-    control: form.control,
-    name: "handicapIndexOverride",
-  });
-  const selectedTee = tees.find((tee) => tee.id === watchedTeeId);
-  const selectedSlope = selectedTee?.slope ?? round.courseSlope ?? 113;
-  const handicapIndex =
-    typeof watchedHandicapOverride === "number" &&
-    Number.isFinite(watchedHandicapOverride)
-      ? watchedHandicapOverride
-      : 0;
-  const courseHandicap = calculateCourseHandicap(handicapIndex, selectedSlope);
-
+  const showMatchOptions = round.matchId != null;
   useEffect(() => {
     if (open) {
       form.reset(buildSettingsFormValues(round, tees));
@@ -826,7 +838,6 @@ function SettingsDialog({
   const handleOpenChange = (nextOpen: boolean) => {
     setConfirmingDelete(false);
     setDeleteError(null);
-    if (nextOpen) setActiveTab("tees");
     setOpen(nextOpen);
   };
 
@@ -873,7 +884,7 @@ function SettingsDialog({
       </DialogTrigger>
       <DialogContent className="flex h-[90dvh] max-w-[calc(100%-1.5rem)] flex-col gap-0 overflow-hidden sm:h-auto sm:max-h-[85dvh] sm:max-w-lg">
         <DialogHeader className="shrink-0">
-          <DialogTitle>Round settings</DialogTitle>
+          <DialogTitle className="text-xl">Settings</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -888,197 +899,100 @@ function SettingsDialog({
                 </p>
               ) : null}
 
-              <Tabs
-                value={activeTab}
-                onValueChange={(value) =>
-                  setActiveTab(value as "tees" | "handicap" | "scoring")
-                }
-                className="gap-3"
-              >
-                <TabsList className="w-full">
-                  <TabsTrigger value="tees" className="text-base">
-                    Tees
-                  </TabsTrigger>
-                  {showHandicapTab ? (
-                    <TabsTrigger value="handicap" className="text-base">
-                      Handicap
-                    </TabsTrigger>
-                  ) : null}
-                  {showHandicapTab ? (
-                    <TabsTrigger value="scoring" className="text-base">
-                      Scoring
-                    </TabsTrigger>
-                  ) : null}
-                </TabsList>
+              <FormField
+                control={form.control}
+                name="teeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-base">Choose Tees</FormLabel>
+                    <FormControl>
+                      <Select
+                        value={String(field.value)}
+                        onValueChange={(value) => field.onChange(Number(value))}
+                      >
+                        <SelectTrigger className="h-12 w-full px-3 text-base data-[size=default]:h-12">
+                          <SelectValue placeholder="Select tees" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {tees.map((tee) => (
+                            <SelectItem key={tee.id} value={String(tee.id)}>
+                              <span className="flex items-center gap-2">
+                                {tee.color ? (
+                                  <span
+                                    className="size-3 rounded-full border"
+                                    style={{ backgroundColor: tee.color }}
+                                  />
+                                ) : null}
+                                <span>{tee.name}</span>
+                                <span className="text-muted-foreground">
+                                  {Number(tee.rating).toFixed(1)} / {tee.slope}
+                                  {tee.totalYards != null
+                                    ? ` · ${tee.totalYards.toLocaleString()} yds`
+                                    : ""}
+                                </span>
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <TabsContent value="tees" className="flex flex-col gap-5">
-                  <FormField
-                    control={form.control}
-                    name="teeId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="sr-only">Tees</FormLabel>
-                        <FieldSet>
-                          <FormControl>
-                            <RadioGroup
-                              value={String(field.value)}
-                              onValueChange={(value) =>
-                                field.onChange(Number(value))
-                              }
-                              className="flex flex-col gap-2"
-                            >
-                              {tees.map((tee) => (
-                                <FieldLabel
-                                  key={tee.id}
-                                  htmlFor={`settings-tee-${tee.id}`}
-                                >
-                                  <Field orientation="horizontal">
-                                    <FieldContent>
-                                      <FieldTitle className="flex items-center gap-2 text-base">
-                                        {tee.color ? (
-                                          <span
-                                            className="size-3 rounded-full border"
-                                            style={{
-                                              backgroundColor: tee.color,
-                                            }}
-                                          />
-                                        ) : null}
-                                        {tee.name}
-                                      </FieldTitle>
-                                      <FieldDescription>
-                                        {Number(tee.rating).toFixed(1)} /{" "}
-                                        {tee.slope}
-                                        {tee.totalYards != null
-                                          ? ` - ${tee.totalYards.toLocaleString()} yds`
-                                          : ""}
-                                      </FieldDescription>
-                                    </FieldContent>
-                                    <RadioGroupItem
-                                      id={`settings-tee-${tee.id}`}
-                                      value={String(tee.id)}
-                                      className="size-5"
-                                    />
-                                  </Field>
-                                </FieldLabel>
-                              ))}
-                            </RadioGroup>
-                          </FormControl>
-                        </FieldSet>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </TabsContent>
-
-                {showHandicapTab ? (
-                  <TabsContent value="handicap" className="flex flex-col gap-3">
-                    <Alert variant="info">
-                      <AlertTitle>Course Handicap</AlertTitle>
-                      <AlertDescription className="tabular-nums">
-                        {handicapIndex.toFixed(1)} x {selectedSlope} / 113 ={" "}
-                        {courseHandicap.toFixed(1)}
-                      </AlertDescription>
-                    </Alert>
-
-                    <FormField
-                      control={form.control}
-                      name="handicapIndexOverride"
-                      render={({ field }) => (
-                        <FormItem className="grid grid-cols-[1fr_8rem] items-center gap-x-3 gap-y-1">
-                          <FormLabel>Handicap Index</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min={-10}
-                              max={54}
-                              step={0.1}
-                              inputMode="decimal"
-                              placeholder="Auto"
-                              className="h-10 text-right"
-                              {...field}
-                              value={field.value === "" ? "" : field.value}
-                              onChange={(e) =>
-                                field.onChange(
-                                  e.target.value === ""
-                                    ? ""
-                                    : Number(e.target.value),
+              {showMatchOptions && matchPlayers.length > 0 ? (
+                <FieldSet className="gap-2">
+                  <FieldLabel className="text-base">
+                    Choose Players
+                    <span className="ml-2 text-sm font-normal text-muted-foreground">
+                      {delegateRoundIds.length}/{MAX_DELEGATES}
+                    </span>
+                  </FieldLabel>
+                  <div className="flex flex-col gap-2">
+                    {matchPlayers.map((player) => {
+                      const name =
+                        [player.firstName, player.lastName]
+                          .filter(Boolean)
+                          .join(" ") || "Player";
+                      const checked = delegateRoundIds.includes(player.roundId);
+                      const atCap =
+                        !checked && delegateRoundIds.length >= MAX_DELEGATES;
+                      const checkboxId = `delegate-${player.roundId}`;
+                      return (
+                        <FieldLabel
+                          key={player.roundId}
+                          htmlFor={checkboxId}
+                          data-disabled={atCap || undefined}
+                        >
+                          <Field orientation="horizontal">
+                            <Checkbox
+                              id={checkboxId}
+                              checked={checked}
+                              disabled={atCap}
+                              onCheckedChange={(next) =>
+                                setDelegateRoundIdsAction(
+                                  next
+                                    ? [...delegateRoundIds, player.roundId]
+                                    : delegateRoundIds.filter(
+                                        (id) => id !== player.roundId,
+                                      ),
                                 )
                               }
-                            />
-                          </FormControl>
-                          <FormMessage className="col-span-2" />
-                        </FormItem>
-                      )}
-                    />
-                  </TabsContent>
-                ) : null}
-
-                {showHandicapTab ? (
-                  <TabsContent value="scoring" className="flex flex-col gap-3">
-                    <FieldSet>
-                      <FieldLabel className="text-sm text-muted-foreground">
-                        Record scores on behalf of another player in this match.
-                      </FieldLabel>
-                      <RadioGroup
-                        value={
-                          delegateRoundId == null
-                            ? "none"
-                            : String(delegateRoundId)
-                        }
-                        onValueChange={(value) =>
-                          setDelegateRoundIdAction(
-                            value === "none" ? null : Number(value),
-                          )
-                        }
-                        className="flex flex-col gap-2"
-                      >
-                        <FieldLabel htmlFor="delegate-none">
-                          <Field orientation="horizontal">
-                            <FieldContent>
-                              <FieldTitle className="text-base">
-                                None
-                              </FieldTitle>
-                              <FieldDescription>
-                                Only record your own scores.
-                              </FieldDescription>
-                            </FieldContent>
-                            <RadioGroupItem
-                              id="delegate-none"
-                              value="none"
                               className="size-5"
                             />
+                            <FieldContent>
+                              <FieldTitle className="text-base">
+                                {name}
+                              </FieldTitle>
+                            </FieldContent>
                           </Field>
                         </FieldLabel>
-                        {matchPlayers.map((player) => {
-                          const name =
-                            [player.firstName, player.lastName]
-                              .filter(Boolean)
-                              .join(" ") || "Player";
-                          return (
-                            <FieldLabel
-                              key={player.roundId}
-                              htmlFor={`delegate-${player.roundId}`}
-                            >
-                              <Field orientation="horizontal">
-                                <FieldContent>
-                                  <FieldTitle className="text-base">
-                                    {name}
-                                  </FieldTitle>
-                                </FieldContent>
-                                <RadioGroupItem
-                                  id={`delegate-${player.roundId}`}
-                                  value={String(player.roundId)}
-                                  className="size-5"
-                                />
-                              </Field>
-                            </FieldLabel>
-                          );
-                        })}
-                      </RadioGroup>
-                    </FieldSet>
-                  </TabsContent>
-                ) : null}
-              </Tabs>
+                      );
+                    })}
+                  </div>
+                </FieldSet>
+              ) : null}
             </div>
 
             <div className="shrink-0 pt-4">

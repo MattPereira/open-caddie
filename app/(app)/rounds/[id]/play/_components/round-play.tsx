@@ -12,7 +12,7 @@ import {
   buildLiveRound,
   type ScoreEntry,
 } from "./round-score-state";
-import { useDelegateRoundId } from "./use-delegate-round-id";
+import { useDelegateRoundIds } from "./use-delegate-round-id";
 
 export type MatchPlayer = {
   roundId: number;
@@ -70,7 +70,7 @@ export function RoundPlay({
     () => buildLiveRound(tableRound, scores),
     [tableRound, scores],
   );
-  const [delegateRoundId, setDelegateRoundId] = useDelegateRoundId(roundId);
+  const [delegateRoundIds, setDelegateRoundIds] = useDelegateRoundIds(roundId);
 
   const summary =
     tableRound.tournamentId != null
@@ -94,8 +94,8 @@ export function RoundPlay({
       tees={tees}
       matchPlayers={matchPlayers}
       matchScoreboard={matchScoreboard}
-      delegateRoundId={delegateRoundId}
-      setDelegateRoundIdAction={setDelegateRoundId}
+      delegateRoundIds={delegateRoundIds}
+      setDelegateRoundIdsAction={setDelegateRoundIds}
       onShowSummaryAction={() => router.push(summary.href)}
       summaryLabel={summary.label}
     />

@@ -1,43 +1,61 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useRef, useSyncExternalStore } from "react";
 
-const storageKey = (roundId: number) => `opencaddie:delegateRoundId:${roundId}`;
+const storageKey = (roundId: number) =>
+  `opencaddie:delegateRoundIds:${roundId}`;
 
 const subscribe = (callback: () => void) => {
   window.addEventListener("storage", callback);
   return () => window.removeEventListener("storage", callback);
 };
 
-const parse = (raw: string | null): number | null => {
-  if (raw == null) return null;
-  const parsed = Number(raw);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+const EMPTY: readonly number[] = [];
+
+const parse = (raw: string | null): readonly number[] => {
+  if (!raw) return EMPTY;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return EMPTY;
+    const ids = parsed.filter(
+      (v): v is number => Number.isInteger(v) && v > 0,
+    );
+    return ids.length === 0 ? EMPTY : ids;
+  } catch {
+    return EMPTY;
+  }
 };
 
-export function useDelegateRoundId(roundId: number) {
-  const getSnapshot = useCallback(
-    () => parse(window.localStorage.getItem(storageKey(roundId))),
-    [roundId],
-  );
+export function useDelegateRoundIds(roundId: number) {
+  const cacheRef = useRef<{ raw: string | null; value: readonly number[] }>({
+    raw: null,
+    value: EMPTY,
+  });
 
-  const delegateRoundId = useSyncExternalStore(
+  const getSnapshot = useCallback(() => {
+    const raw = window.localStorage.getItem(storageKey(roundId));
+    if (raw === cacheRef.current.raw) return cacheRef.current.value;
+    cacheRef.current = { raw, value: parse(raw) };
+    return cacheRef.current.value;
+  }, [roundId]);
+
+  const delegateRoundIds = useSyncExternalStore(
     subscribe,
     getSnapshot,
-    () => null,
+    () => EMPTY,
   );
 
-  const setDelegateRoundId = useCallback(
-    (next: number | null) => {
-      if (next == null) {
+  const setDelegateRoundIds = useCallback(
+    (next: readonly number[]) => {
+      if (next.length === 0) {
         window.localStorage.removeItem(storageKey(roundId));
       } else {
-        window.localStorage.setItem(storageKey(roundId), String(next));
+        window.localStorage.setItem(storageKey(roundId), JSON.stringify(next));
       }
       window.dispatchEvent(new StorageEvent("storage"));
     },
     [roundId],
   );
 
-  return [delegateRoundId, setDelegateRoundId] as const;
+  return [delegateRoundIds, setDelegateRoundIds] as const;
 }

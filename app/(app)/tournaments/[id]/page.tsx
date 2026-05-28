@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { GolfBatIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 
 import { CourseHero } from "@/components/course-hero";
 import { GreeniesTabContent } from "@/components/greenies-tab-content";
 import { RoundsTabContent } from "@/components/rounds-tab-content";
+import { Button } from "@/components/ui/button";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/url-tabs";
 import { getAllClubs } from "@/db/queries/clubs";
@@ -54,6 +58,11 @@ export default async function TournamentPage({
 
   if (!tournament) notFound();
   const defaultTab = getTournamentDefaultTab(resolvedSearchParams?.tab);
+  const currentUserUnfinishedRound = currentUser
+    ? tournament.rounds.find(
+        (round) => round.userId === currentUser.id && !round.isComplete,
+      )
+    : null;
 
   const [addablePlayers, clubs, courses] = currentUser?.isAdmin
     ? await Promise.all([
@@ -66,26 +75,43 @@ export default async function TournamentPage({
   return (
     <PageContent className="max-w-5xl">
       <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold tracking-normal">
-            {tournament.clubName}
-          </h1>
-          {currentUser?.isAdmin ? (
-            <EditTournamentButton
-              tournament={{
-                id: tournament.id,
-                clubHandle: tournament.clubHandle,
-                clubName: tournament.clubName,
-                date: tournament.date,
-                season: tournament.season,
-                courseHandle: tournament.courseHandle,
-                courseName: tournament.courseName,
-                courseImgUrl: tournament.courseImgUrl,
-                teeId: tournament.teeId,
-              }}
-              clubs={clubs}
-              courses={courses}
-            />
+        <div className="flex justify-between items-center gap-2">
+          <div className="flex flex-col">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-semibold tracking-normal">
+                Tournament
+              </h1>
+              {currentUser?.isAdmin ? (
+                <EditTournamentButton
+                  tournament={{
+                    id: tournament.id,
+                    clubHandle: tournament.clubHandle,
+                    clubName: tournament.clubName,
+                    date: tournament.date,
+                    season: tournament.season,
+                    courseHandle: tournament.courseHandle,
+                    courseName: tournament.courseName,
+                    courseImgUrl: tournament.courseImgUrl,
+                    teeId: tournament.teeId,
+                  }}
+                  clubs={clubs}
+                  courses={courses}
+                />
+              ) : null}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {tournament.clubName} ·{" "}
+              {tournament.season ? `Season ${tournament.season}` : null}
+            </p>
+          </div>
+
+          {currentUserUnfinishedRound ? (
+            <Button asChild size="lg">
+              <Link href={`/rounds/${currentUserUnfinishedRound.id}/play`}>
+                <HugeiconsIcon icon={GolfBatIcon} data-icon="inline-start" />
+                Play
+              </Link>
+            </Button>
           ) : null}
         </div>
         <CourseHero

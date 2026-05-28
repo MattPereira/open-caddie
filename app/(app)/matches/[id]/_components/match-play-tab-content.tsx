@@ -23,7 +23,7 @@ export function MatchPlayTabContent({
   teams?: StoredMatchPlayTeam[];
 }) {
   return (
-    <TabsContent value="match-play" className="flex flex-col gap-5">
+    <TabsContent value="match" className="flex flex-col gap-5">
       <MatchPlayContent format={format} rounds={rounds} teams={teams} />
     </TabsContent>
   );

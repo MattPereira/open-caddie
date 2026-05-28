@@ -7,7 +7,8 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { CourseHero } from "@/components/course-hero";
 import { RoundsTabContent } from "@/components/rounds-tab-content";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/url-tabs";
 import { getCoursesWithTees } from "@/db/queries/courses";
 import { getMatchById } from "@/db/queries/matches";
 import { getAllUsers, getCurrentUser } from "@/db/queries/users";
@@ -27,6 +28,8 @@ type MatchPageProps = {
 };
 
 export const dynamic = "force-dynamic";
+
+const matchTabValues = ["match", "skins", "rounds"] as const;
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -117,10 +120,14 @@ export default async function MatchPage({
         />
       </div>
 
-      <Tabs defaultValue={defaultTab} className="w-full">
+      <UrlTabs
+        defaultValue={defaultTab}
+        values={matchTabValues}
+        className="w-full"
+      >
         <TabsList className="mb-3 h-10! w-full p-1 sm:w-fit">
           <TabsTrigger
-            value="match-play"
+            value="match"
             className="flex-1 px-5 py-2 text-base sm:flex-none"
           >
             Match
@@ -157,13 +164,13 @@ export default async function MatchPage({
           teams={match.teams}
         />
         <SkinsTabContent rounds={match.rounds} />
-      </Tabs>
+      </UrlTabs>
     </PageContent>
   );
 }
 
 function getMatchDefaultTab(tab: string | undefined) {
-  return tab === "rounds" || tab === "skins" ? tab : "match-play";
+  return tab === "rounds" || tab === "skins" ? tab : "match";
 }
 
 async function getMatchFromParams(params: MatchPageProps["params"]) {

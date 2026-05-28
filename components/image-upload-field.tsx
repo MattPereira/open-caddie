@@ -133,9 +133,7 @@ export function ImageUploadField({
     await uploadImage(croppedBlob, pendingFile.name, pendingFile.size);
   };
 
-  const helperText = error ? (
-    <p className="text-sm text-destructive">{error}</p>
-  ) : null;
+  const helperText = error ? <p className="text-destructive">{error}</p> : null;
 
   if (variant === "avatar") {
     return (
@@ -196,9 +194,7 @@ export function ImageUploadField({
     <div className={cn("flex flex-col gap-4", className)}>
       {title ? (
         <div className="flex flex-col gap-1">
-          {title ? (
-            <p className="text-sm leading-none font-medium">{title}</p>
-          ) : null}
+          {title ? <p className="leading-none font-medium">{title}</p> : null}
         </div>
       ) : null}
 
@@ -250,7 +246,7 @@ export function ImageUploadField({
           <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
             <HugeiconsIcon icon={ImageUpload01Icon} size={32} />
             {fallback ? (
-              <p className="text-sm text-muted-foreground">{fallback}</p>
+              <p className="text-muted-foreground">{fallback}</p>
             ) : null}
             <Button
               type="button"

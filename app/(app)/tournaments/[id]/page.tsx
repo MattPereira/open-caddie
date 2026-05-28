@@ -4,7 +4,8 @@ import { notFound } from "next/navigation";
 import { CourseHero } from "@/components/course-hero";
 import { GreeniesTabContent } from "@/components/greenies-tab-content";
 import { RoundsTabContent } from "@/components/rounds-tab-content";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UrlTabs } from "@/components/url-tabs";
 import { getAllClubs } from "@/db/queries/clubs";
 import { getCoursesWithTees } from "@/db/queries/courses";
 import {
@@ -28,6 +29,8 @@ type TournamentPageProps = {
 };
 
 export const dynamic = "force-dynamic";
+
+const tournamentTabValues = ["rounds", "greenies", "winners"] as const;
 
 export async function generateMetadata({
   params,
@@ -92,7 +95,11 @@ export default async function TournamentPage({
         />
       </div>
 
-      <Tabs defaultValue={defaultTab} className="w-full">
+      <UrlTabs
+        defaultValue={defaultTab}
+        values={tournamentTabValues}
+        className="w-full"
+      >
         <TabsList className="w-full p-1 sm:w-fit mb-3 h-10!">
           <TabsTrigger
             value="rounds"
@@ -140,7 +147,7 @@ export default async function TournamentPage({
           rounds={tournament.rounds}
           greenies={tournament.greenies}
         />
-      </Tabs>
+      </UrlTabs>
     </PageContent>
   );
 }

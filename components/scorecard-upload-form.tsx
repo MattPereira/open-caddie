@@ -12,11 +12,7 @@ import { useFormStatus } from "react-dom";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Tick02Icon } from "@hugeicons/core-free-icons";
 
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -81,7 +77,8 @@ const parseDraft = (
           : null,
       selectedRoundIds: Array.isArray(draft.selectedRoundIds)
         ? draft.selectedRoundIds.filter(
-            (roundId) => Number.isInteger(roundId) && validRoundIds.has(roundId),
+            (roundId) =>
+              Number.isInteger(roundId) && validRoundIds.has(roundId),
           )
         : [],
       additionalContext:
@@ -160,14 +157,11 @@ export function ScorecardUploadForm({
 
       <section className="flex flex-col gap-2">
         <div className="flex flex-col gap-1">
-          <h2 className="text-sm font-medium">Who&apos;s on this card?</h2>
-          <p className="text-sm text-muted-foreground">
-            Select the players whose scores are on this scorecard.
-          </p>
+          <h2 className="font-medium">Choose players</h2>
         </div>
 
         {players.length === 0 ? (
-          <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+          <p className="rounded-md border border-dashed p-6 text-center text-muted-foreground">
             No players are attached to this round yet.
           </p>
         ) : (
@@ -185,7 +179,7 @@ export function ScorecardUploadForm({
                 >
                   <PlayerCard
                     player={{ ...player, email: null }}
-                    size="sm"
+                    size="default"
                     onClick={() => toggleRound(player.roundId)}
                   />
                   {selected ? (
@@ -218,7 +212,9 @@ export function ScorecardUploadForm({
         />
         <ImageUploadField
           value={draft.scorecardImgUrl}
-          onChange={(scorecardImgUrl) => setDraft({ ...draft, scorecardImgUrl })}
+          onChange={(scorecardImgUrl) =>
+            setDraft({ ...draft, scorecardImgUrl })
+          }
           pathPrefix={uploadPathPrefix}
           variant="freeform"
           fallback="Upload a photo of the scorecard"
@@ -230,28 +226,25 @@ export function ScorecardUploadForm({
 
       <FieldGroup>
         <Field>
-          <FieldLabel htmlFor="additional-context">
+          <FieldLabel className="text-base" htmlFor="additional-context">
             Parsing notes
           </FieldLabel>
           <Textarea
             id="additional-context"
             name="additionalContext"
             maxLength={1000}
-            placeholder="Example: Player rows are Matt, Alex, Jamie top to bottom."
+            placeholder="Player rows are Matt, Alex, Jamie top to bottom."
             rows={3}
             value={draft.additionalContext}
             onChange={(event) =>
               setDraft({ ...draft, additionalContext: event.target.value })
             }
           />
-          <FieldDescription>
-            Optional row order, nicknames, or handwriting hints for this card.
-          </FieldDescription>
         </Field>
       </FieldGroup>
 
       <div className="flex justify-end gap-2">
-        <Button asChild variant="outline">
+        <Button size="xl" asChild variant="outline">
           <Link href={cancelHref}>Cancel</Link>
         </Button>
         <SubmitButton canSubmit={canSubmit} />
@@ -264,8 +257,8 @@ function SubmitButton({ canSubmit }: { canSubmit: boolean }) {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" disabled={!canSubmit || pending}>
-      {pending ? "Parsing..." : "Upload scorecard"}
+    <Button size="xl" type="submit" disabled={!canSubmit || pending}>
+      {pending ? "Parsing..." : "Submit"}
     </Button>
   );
 }

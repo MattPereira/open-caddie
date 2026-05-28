@@ -47,10 +47,10 @@ export function WinnerCard({
       header={playerName}
       href={href}
       endSlot={
-        <div className="flex flex-col items-end leading-none gap-1">
+        <div className="flex flex-col items-end leading-none">
           <span
             className={cn(
-              "text-lg tabular-nums",
+              "text-base tabular-nums",
               primaryValueAdjusted && "text-red-600 dark:text-red-500",
               primaryValueTone === "winning" &&
                 "font-medium text-emerald-600 dark:text-emerald-500",

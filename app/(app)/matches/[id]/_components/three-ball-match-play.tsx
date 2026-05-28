@@ -1,6 +1,7 @@
 import {
   MatchPlayCardRow,
   MatchPlayRules,
+  MatchPlaySection,
   MatchPlayTable,
   type MatchPlayTeamView,
   toMatchPlayView,
@@ -31,10 +32,9 @@ export function ThreeBallMatchPlayContent({
               key={`${firstTeam.id}-${secondTeam.id}`}
               className="grid gap-3"
             >
-              <MatchPlayCardRow
-                format="singles_match_play"
-                matchPlay={matchPlay}
-              />
+              <MatchPlaySection title="Head-to-Head">
+                <MatchPlayCardRow matchPlay={matchPlay} />
+              </MatchPlaySection>
               <MatchPlayTable holes={matchPlay.holes} teams={matchPlay.teams} />
             </section>
           );

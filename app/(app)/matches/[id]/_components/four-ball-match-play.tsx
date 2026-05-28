@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import {
   MatchPlayCardRow,
   MatchPlayRules,
+  MatchPlaySection,
   MatchPlayTable,
   type MatchPlayTeamCardProps,
   type MatchPlayTeamView,
@@ -21,18 +22,19 @@ export function FourBallMatchPlayContent({
   return (
     <>
       <MatchPlayRules>
-        Four-ball match play compares each team&apos;s best net score hole by hole.
-        The lowest-handicap player gets no strokes. Other players get 90% of
-        their handicap difference, applied one stroke at a time on the hardest
-        handicap holes.
+        Four-ball match play compares each team&apos;s best net score hole by
+        hole. The lowest-handicap player gets no strokes. Other players get 90%
+        of their handicap difference, applied one stroke at a time on the
+        hardest handicap holes.
       </MatchPlayRules>
-      <MatchPlayCardRow
-        format="four_ball_match_play"
-        matchPlay={matchPlay}
-        renderTeamCard={(props) => (
-          <FourBallTeamCard key={props.team.id} {...props} />
-        )}
-      />
+      <MatchPlaySection title="Four-Ball">
+        <MatchPlayCardRow
+          matchPlay={matchPlay}
+          renderTeamCard={(props) => (
+            <FourBallTeamCard key={props.team.id} {...props} />
+          )}
+        />
+      </MatchPlaySection>
       <MatchPlayTable holes={matchPlay.holes} teams={matchPlay.teams} />
     </>
   );
@@ -41,6 +43,7 @@ export function FourBallMatchPlayContent({
 function FourBallTeamCard({
   team,
   label,
+  secondary,
   primaryValue,
   primaryLabel,
   tone,
@@ -51,18 +54,11 @@ function FourBallTeamCard({
         <FourBallTeamAvatarPair team={team} />
         <div className="flex min-w-0 flex-1 flex-col justify-center">
           <div className="truncate font-medium text-base">{label}</div>
-          <div className="flex min-w-0 flex-col">
-            {team.rounds.map((round) => (
-              <span
-                key={round.id}
-                className="truncate text-sm text-muted-foreground leading-snug"
-              >
-                {displayName({ ...round, email: null })}
-              </span>
-            ))}
+          <div className="truncate text-sm text-muted-foreground leading-snug">
+            {secondary}
           </div>
         </div>
-        <div className="flex shrink-0 flex-col items-end justify-center pr-3 leading-none gap-1">
+        <div className="flex shrink-0 flex-col items-end justify-center pr-3 leading-none">
           <span
             className={cn(
               "text-base tabular-nums",

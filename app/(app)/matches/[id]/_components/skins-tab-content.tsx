@@ -88,7 +88,7 @@ export function SkinsContent({ rounds }: { rounds: RoundScoresTableRound[] }) {
         <Accordion type="single" collapsible className="rounded-lg border px-4">
           <AccordionItem value="rules">
             <AccordionTrigger className="text-base">
-              How skins work
+              How skins game works
             </AccordionTrigger>
             <AccordionContent className="text-base text-muted-foreground">
               The skins game uses relative handicaps. The lowest handicap player

@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { evaluateMatchPlay, type MatchPlayStatus } from "@/lib/match-play";
 import { cn } from "@/lib/utils";
 import type { MatchFormat } from "../../schema";
@@ -55,6 +56,7 @@ export type TeamTone = "winning" | "losing" | "neutral";
 export type MatchPlayTeamCardProps = {
   team: MatchPlayTeamView;
   label: string;
+  secondary: ReactNode;
   primaryValue: string;
   primaryLabel?: string;
   tone: TeamTone;
@@ -78,27 +80,27 @@ export function MatchPlayRules({ children }: { children: ReactNode }) {
 }
 
 export function MatchPlayCardRow({
-  format,
   matchPlay,
   renderTeamCard,
 }: {
-  format: MatchFormat;
   matchPlay: MatchPlayView;
   renderTeamCard?: (props: MatchPlayTeamCardProps) => ReactNode;
 }) {
-  const teamCards = matchPlay.teams.map((team) => {
+  const teamCards = matchPlay.teams.map((team, teamIndex) => {
     const primaryValue = formatTeamMatchStatus(team, matchPlay.finalStatus);
     const primaryLabel = formatMatchStatusSubtext({
       team,
       status: matchPlay.finalStatus,
       holesCompleted: matchPlay.holesCompleted,
     });
+    const secondary = formatTeamSecondary(team, matchPlay.holes);
     const tone = getTeamTone(team, matchPlay.finalStatus);
 
     if (renderTeamCard) {
       return renderTeamCard({
         team,
-        label: `Team ${String.fromCharCode(65 + matchPlay.teams.indexOf(team))}`,
+        label: `Team ${String.fromCharCode(65 + teamIndex)}`,
+        secondary,
         primaryValue,
         primaryLabel,
         tone,
@@ -111,7 +113,7 @@ export function MatchPlayCardRow({
         playerName={team.name}
         initials={team.initials}
         image={team.image}
-        secondary={formatTeamSecondary(team, format)}
+        secondary={secondary}
         primaryValue={primaryValue}
         primaryLabel={primaryLabel}
         primaryValueTone={tone}
@@ -132,6 +134,21 @@ export function MatchPlayCardRow({
   );
 }
 
+export function MatchPlaySection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="grid gap-3">
+      <h3 className="font-medium text-lg">{title}</h3>
+      {children}
+    </section>
+  );
+}
+
 export function MatchPlayTable({
   holes,
   teams,
@@ -147,9 +164,23 @@ export function MatchPlayTable({
       <div className="hidden lg:block">
         <MatchPlayFullTable holes={holes} teams={teams} />
       </div>
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-3 *:w-full sm:w-fit lg:hidden">
-        <MatchPlayNineTable label="Out" holes={frontNine} teams={teams} />
-        <MatchPlayNineTable label="In" holes={backNine} teams={teams} />
+      <div className="lg:hidden">
+        <Tabs defaultValue="front" className="w-full gap-5 sm:w-fit">
+          <TabsList className="grid w-full grid-cols-2 group-data-horizontal/tabs:h-11 sm:w-72">
+            <TabsTrigger value="front" className="px-4 text-base">
+              Front
+            </TabsTrigger>
+            <TabsTrigger value="back" className="px-4 text-base">
+              Back
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="front">
+            <MatchPlayNineTable label="Out" holes={frontNine} teams={teams} />
+          </TabsContent>
+          <TabsContent value="back">
+            <MatchPlayNineTable label="In" holes={backNine} teams={teams} />
+          </TabsContent>
+        </Tabs>
       </div>
     </>
   );
@@ -454,7 +485,10 @@ function NetScore({
   );
 }
 
-export function toMatchPlayView(teams: MatchPlayTeamView[], format: MatchFormat) {
+export function toMatchPlayView(
+  teams: MatchPlayTeamView[],
+  format: MatchFormat,
+) {
   const allowance = format === "four_ball_match_play" ? 0.9 : 1;
   const result = evaluateMatchPlay(
     teams.map((team) => ({
@@ -709,19 +743,22 @@ export function getMatchPlayTeams({
   }));
 }
 
-function formatTeamSecondary(team: MatchPlayTeamView, format: MatchFormat) {
-  if (team.rounds.length === 1) {
-    const handicap = `Hcp ${formatDecimalScore(team.rounds[0].playingHandicap)}`;
-    return format === "singles_match_play"
-      ? `${handicap} · Gets ${team.receivedStrokes}`
-      : handicap;
-  }
+function formatTeamSecondary(
+  team: MatchPlayTeamView,
+  holes: MatchPlayHoleView[],
+) {
+  const holesWon = holes.reduce(
+    (count, hole) =>
+      count +
+      (hole.playerScores.some(
+        (score) => score.teamId === team.id && score.wonHole,
+      )
+        ? 1
+        : 0),
+    0,
+  );
 
-  return team.rounds.map((round) => (
-    <span key={round.id} className="truncate">
-      {displayName({ ...round, email: null })}
-    </span>
-  ));
+  return `${holesWon} ${holesWon === 1 ? "hole" : "holes"} won`;
 }
 
 function formatRoundLabel(round: MatchPlayRound) {
@@ -747,8 +784,4 @@ function formatStoredTeamName(name: string) {
 
 function formatScore(score: number | null) {
   return score == null ? "-" : score;
-}
-
-function formatDecimalScore(score: number | null) {
-  return score == null ? "-" : score.toFixed(1);
 }

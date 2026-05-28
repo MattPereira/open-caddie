@@ -11,7 +11,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getCoursesWithTees } from "@/db/queries/courses";
 import { getMatchById } from "@/db/queries/matches";
 import { getAllUsers, getCurrentUser } from "@/db/queries/users";
-import { matchFormatLabel } from "@/lib/match-play";
 import { PageContent } from "@/components/page-content";
 import { UploadScorecardButton } from "@/components/upload-scorecard-button";
 import { EditMatchButton } from "./_components/edit-match-button";
@@ -29,13 +28,9 @@ type MatchPageProps = {
 
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({
-  params,
-}: MatchPageProps): Promise<Metadata> {
-  const match = await getMatchFromParams(params);
-
+export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: matchFormatLabel(match?.format) ?? match?.courseName ?? "Match",
+    title: "Match Play",
   };
 }
 
@@ -57,7 +52,6 @@ export default async function MatchPage({
   const currentUserRound = currentUser
     ? match.rounds.find((round) => round.userId === currentUser.id)
     : null;
-  const title = matchFormatLabel(match.format) ?? "Match";
   const defaultTab = getMatchDefaultTab(resolvedSearchParams?.tab);
 
   const [courses, players] = canManage
@@ -70,7 +64,7 @@ export default async function MatchPage({
         <div className="flex justify-between items-center gap-2">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-semibold tracking-normal">
-              {title} Match
+              Match Play
             </h1>
             {canManage ? (
               <EditMatchButton

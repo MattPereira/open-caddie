@@ -1,6 +1,7 @@
 import {
   MatchPlayCardRow,
   MatchPlayRules,
+  MatchPlaySection,
   MatchPlayTable,
   type MatchPlayTeamView,
   toMatchPlayView,
@@ -21,7 +22,9 @@ export function SinglesMatchPlayContent({
         handicap difference, applied one stroke at a time on the hardest
         handicap holes.
       </MatchPlayRules>
-      <MatchPlayCardRow format="singles_match_play" matchPlay={matchPlay} />
+      <MatchPlaySection title="Head-to-Head">
+        <MatchPlayCardRow matchPlay={matchPlay} />
+      </MatchPlaySection>
       <MatchPlayTable holes={matchPlay.holes} teams={matchPlay.teams} />
     </>
   );

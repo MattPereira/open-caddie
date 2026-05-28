@@ -60,7 +60,6 @@ export function ImageUploadField({
   className,
   variant = "avatar",
   title,
-  description,
 }: ImageUploadFieldProps) {
   const effectiveAspectRatio =
     variant === "freeform" ? undefined : (aspectRatio ?? 1);
@@ -80,7 +79,11 @@ export function ImageUploadField({
     inputRef.current?.click();
   };
 
-  const uploadImage = async (blob: Blob, sourceName: string, sourceSize: number) => {
+  const uploadImage = async (
+    blob: Blob,
+    sourceName: string,
+    sourceSize: number,
+  ) => {
     setUploading(true);
     try {
       const file = new File([blob], sourceName, { type: blob.type });
@@ -187,17 +190,14 @@ export function ImageUploadField({
   const previewAspectRatio =
     variant === "wide"
       ? effectiveAspectRatio
-      : aspectRatio /* freeform with optional aspect ratio */;
+      : aspectRatio; /* freeform with optional aspect ratio */
 
   return (
     <div className={cn("flex flex-col gap-4", className)}>
-      {title || description ? (
+      {title ? (
         <div className="flex flex-col gap-1">
           {title ? (
             <p className="text-sm leading-none font-medium">{title}</p>
-          ) : null}
-          {description ? (
-            <p className="text-sm text-muted-foreground">{description}</p>
           ) : null}
         </div>
       ) : null}
@@ -254,7 +254,7 @@ export function ImageUploadField({
             ) : null}
             <Button
               type="button"
-              variant="outline"
+              variant="default"
               onClick={handlePick}
               disabled={disabled || isUploading}
             >

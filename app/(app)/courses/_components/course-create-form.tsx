@@ -70,7 +70,9 @@ export function CourseCreateForm() {
   });
   const watchedName = useWatch({ control: form.control, name: "name" });
   const courseHandle = courseHandleFromName(watchedName);
-  const uploadPathPrefix = courseHandle ? `courses/${courseHandle}` : draftPrefix;
+  const uploadPathPrefix = courseHandle
+    ? `courses/${courseHandle}`
+    : draftPrefix;
   const serverError = form.formState.errors.root?.server?.message;
 
   const finalizeAndRedirect = (
@@ -307,7 +309,7 @@ export function CourseCreateForm() {
           )}
         />
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6">
           <FormField
             control={form.control}
             name="imgUrl"

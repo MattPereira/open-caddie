@@ -695,7 +695,7 @@ export function CourseForm({ course }: CourseFormProps) {
                     <ImageUploadField
                       value={field.value || null}
                       onChange={onScorecardImageChange}
-                      pathPrefix={`courses/${course.handle}`}
+                      pathPrefix={`courses/${course.handle}/scorecards`}
                       variant="freeform"
                       skipCrop
                       fallback="Upload a photo of the scorecard"

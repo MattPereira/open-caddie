@@ -5,9 +5,9 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { getImageUploadMaxBytes } from "@/lib/image-upload-limits";
 
 const ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp"];
-const MAX_BYTES = 2 * 1024 * 1024;
 
 type UploadTarget =
   | { kind: "user"; id: string }
@@ -79,7 +79,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
         return {
           allowedContentTypes: ALLOWED_CONTENT_TYPES,
-          maximumSizeInBytes: MAX_BYTES,
+          maximumSizeInBytes: getImageUploadMaxBytes(pathname),
           addRandomSuffix: true,
         };
       },

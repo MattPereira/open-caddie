@@ -348,7 +348,7 @@ export function CourseCreateForm() {
                       trackUpload(url);
                       field.onChange(url ?? "");
                     }}
-                    pathPrefix={uploadPathPrefix}
+                    pathPrefix={`${uploadPathPrefix}/scorecards`}
                     variant="freeform"
                     fallback="Upload a photo of blank scorecard"
                     title="Scorecard image"

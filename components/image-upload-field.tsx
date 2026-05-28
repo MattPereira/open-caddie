@@ -14,6 +14,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ImageCropperDialog } from "@/components/image-cropper-dialog";
+import {
+  IMAGE_UPLOAD_MAX_BYTES,
+  getImageUploadMaxBytes,
+} from "@/lib/image-upload-limits";
 import { cn } from "@/lib/utils";
 
 type ImageUploadFieldProps = {
@@ -41,12 +45,55 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-const COMPRESSION_OPTIONS = {
-  maxSizeMB: 1,
-  useWebWorker: true,
-  fileType: "image/webp" as const,
-  initialQuality: 0.85,
-};
+function getCompressionOptions(maxUploadBytes: number, fallback = false) {
+  const isScorecardUpload = maxUploadBytes > IMAGE_UPLOAD_MAX_BYTES;
+
+  return {
+    maxSizeMB: fallback
+      ? isScorecardUpload
+        ? 1.5
+        : 0.75
+      : isScorecardUpload
+        ? 2
+        : 1,
+    maxWidthOrHeight: fallback ? 1800 : isScorecardUpload ? 3000 : 2400,
+    useWebWorker: true,
+    fileType: "image/webp" as const,
+    initialQuality: fallback ? 0.75 : 0.85,
+    maxIteration: fallback ? 25 : 20,
+  };
+}
+
+async function compressForUpload(file: File, maxUploadBytes: number) {
+  const compressed = await imageCompression(
+    file,
+    getCompressionOptions(maxUploadBytes),
+  );
+  if (compressed.size <= maxUploadBytes) return compressed;
+
+  const smaller = await imageCompression(
+    file,
+    getCompressionOptions(maxUploadBytes, true),
+  );
+  if (smaller.size <= maxUploadBytes) return smaller;
+
+  throw new Error(
+    `Image is still too large after compression (${formatBytes(smaller.size)}). Try cropping tighter or choose a smaller image.`,
+  );
+}
+
+function getUploadErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : "Upload failed";
+  const normalized = message.toLowerCase();
+  if (
+    normalized.includes("file too large") ||
+    normalized.includes("maximum allowed size") ||
+    normalized.includes("body size")
+  ) {
+    return "Image is too large to upload. Try cropping tighter or choose a smaller image.";
+  }
+  return message;
+}
 
 export function ImageUploadField({
   value,
@@ -63,6 +110,7 @@ export function ImageUploadField({
 }: ImageUploadFieldProps) {
   const effectiveAspectRatio =
     variant === "freeform" ? undefined : (aspectRatio ?? 1);
+  const maxUploadBytes = getImageUploadMaxBytes(pathPrefix);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +135,7 @@ export function ImageUploadField({
     setUploading(true);
     try {
       const file = new File([blob], sourceName, { type: blob.type });
-      const compressed = await imageCompression(file, COMPRESSION_OPTIONS);
+      const compressed = await compressForUpload(file, maxUploadBytes);
       console.log(
         `[image-upload] ${sourceName}: ${formatBytes(sourceSize)} → ${formatBytes(compressed.size)} (${Math.round((compressed.size / sourceSize) * 100)}%)`,
       );
@@ -102,7 +150,7 @@ export function ImageUploadField({
       await onChange(result.url);
     } catch (e) {
       console.error(e);
-      setError(e instanceof Error ? e.message : "Upload failed");
+      setError(getUploadErrorMessage(e));
     } finally {
       setPendingFile(null);
       setUploading(false);

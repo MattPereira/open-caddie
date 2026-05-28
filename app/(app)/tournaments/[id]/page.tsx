@@ -17,6 +17,8 @@ import {
   getTournamentById,
 } from "@/db/queries/tournaments";
 import { getCurrentUser } from "@/db/queries/users";
+import { createPageMetadata } from "@/lib/metadata";
+import { formatDate } from "@/lib/utils";
 import { PageContent } from "@/components/page-content";
 import { UploadScorecardButton } from "@/components/upload-scorecard-button";
 import { AddPlayersSheet } from "./_components/add-players-sheet";
@@ -41,9 +43,12 @@ export async function generateMetadata({
 }: TournamentPageProps): Promise<Metadata> {
   const tournament = await getTournamentFromParams(params);
 
-  return {
-    title: tournament?.courseName ?? "Tournament",
-  };
+  return createPageMetadata({
+    title: tournament?.clubName ?? "Tournament",
+    description: tournament
+      ? `${tournament.clubName} tournament at ${tournament.courseName ?? "the course"} on ${formatDate(tournament.date, "short")}.`
+      : "Tournament details on Open Caddie.",
+  });
 }
 
 export default async function TournamentPage({

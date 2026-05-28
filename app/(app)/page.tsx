@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import {
   ChampionIcon,
@@ -18,12 +19,19 @@ import { getActiveRoundForUser } from "@/db/queries/rounds";
 import { getAllTournaments } from "@/db/queries/tournaments";
 import { getAllMatches } from "@/db/queries/matches";
 import { getAllUsers, getCurrentUser } from "@/db/queries/users";
+import { createPageMetadata } from "@/lib/metadata";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { AddMatchButton } from "./matches/_components/add-match-button";
 import { AddTournamentButton } from "./tournaments/_components/add-tournament-button";
 
 const RECENT_LIMIT = 3;
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Open Caddie",
+  description:
+    "Track match play, skins games, and club tournaments with season-long standings.",
+});
 
 export default async function Home() {
   const currentUser = await getCurrentUser();

@@ -12,6 +12,9 @@ import { UrlTabs } from "@/components/url-tabs";
 import { getCoursesWithTees } from "@/db/queries/courses";
 import { getMatchById } from "@/db/queries/matches";
 import { getAllUsers, getCurrentUser } from "@/db/queries/users";
+import { createPageMetadata } from "@/lib/metadata";
+import { matchFormatLabel } from "@/lib/match-play";
+import { formatDate } from "@/lib/utils";
 import { PageContent } from "@/components/page-content";
 import { UploadScorecardButton } from "@/components/upload-scorecard-button";
 import { EditMatchButton } from "./_components/edit-match-button";
@@ -31,10 +34,18 @@ export const dynamic = "force-dynamic";
 
 const matchTabValues = ["match", "skins", "rounds"] as const;
 
-export async function generateMetadata(): Promise<Metadata> {
-  return {
-    title: "Match Play",
-  };
+export async function generateMetadata({
+  params,
+}: MatchPageProps): Promise<Metadata> {
+  const match = await getMatchFromParams(params);
+  const format = matchFormatLabel(match?.format) ?? "Match Play";
+
+  return createPageMetadata({
+    title: format,
+    description: match
+      ? `${format} at ${match.courseName ?? "the course"} on ${formatDate(match.date, "short")}.`
+      : "Match details on Open Caddie.",
+  });
 }
 
 export default async function MatchPage({

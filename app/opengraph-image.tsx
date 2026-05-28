@@ -1,10 +1,15 @@
+import {
+  openGraphImageContentType,
+  openGraphImageSize,
+} from "@/lib/og-image";
+import { siteName } from "@/lib/metadata";
 import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-export const alt = "Open Caddie — a modern golf scorekeeper";
-export const size = { width: 1200, height: 630 };
-export const contentType = "image/png";
+export const alt = `${siteName} - a modern golf scorekeeper`;
+export const size = openGraphImageSize;
+export const contentType = openGraphImageContentType;
 
 export default async function Image() {
   const [damion, bg] = await Promise.all([

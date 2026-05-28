@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { brandFont } from "@/lib/fonts";
+import { siteDescription, siteName } from "@/lib/metadata";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,27 +15,24 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const siteName = "Open Caddie";
-const description =
-  "A modern golf score keeper for singles, groups, and tournament play.";
 export const metadata: Metadata = {
   title: {
     default: siteName,
     template: `%s | ${siteName}`,
   },
-  description,
+  description: siteDescription,
   applicationName: siteName,
   openGraph: {
     type: "website",
     siteName,
     title: siteName,
-    description,
+    description: siteDescription,
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
     title: siteName,
-    description,
+    description: siteDescription,
   },
 };
 

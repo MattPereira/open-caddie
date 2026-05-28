@@ -19,7 +19,7 @@ export function RoundsTabContent({
   actions?: ReactNode;
 }) {
   return (
-    <TabsContent value="rounds" className="flex flex-col gap-3">
+    <TabsContent value="rounds" className="flex flex-col gap-5">
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
       {rounds.length === 0 ? (
         <Card className="border-dashed">

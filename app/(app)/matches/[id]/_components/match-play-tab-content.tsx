@@ -9,7 +9,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 import {
   Table,
@@ -113,22 +113,27 @@ export function MatchPlayContent({
         </Accordion>
 
         <div className="flex flex-col gap-3">
-          <h3 className="text-lg font-medium">Summary</h3>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 w-full">
-            {matchPlay.teams.map((team) =>
-              format === "four_ball_match_play" ? (
+            {matchPlay.teams.map((team) => {
+              const primaryValue = formatTeamMatchStatus(
+                team,
+                matchPlay.finalStatus,
+              );
+              const primaryLabel = formatMatchStatusSubtext({
+                team,
+                status: matchPlay.finalStatus,
+                holesCompleted: matchPlay.holesCompleted,
+              });
+              const tone = getTeamTone(team, matchPlay.finalStatus);
+
+              return format === "four_ball_match_play" ? (
                 <TeamWinnerCard
                   key={team.id}
                   team={team}
-                  secondary={formatTeamSecondary(team, format)}
-                  primaryValue={formatTeamMatchStatus(
-                    team,
-                    matchPlay.finalStatus,
-                  )}
-                  primaryValueAdjusted={isTeamBehind(
-                    team,
-                    matchPlay.finalStatus,
-                  )}
+                  label={`Team ${String.fromCharCode(65 + matchPlay.teams.indexOf(team))}`}
+                  primaryValue={primaryValue}
+                  primaryLabel={primaryLabel}
+                  tone={tone}
                 />
               ) : (
                 <WinnerCard
@@ -137,17 +142,12 @@ export function MatchPlayContent({
                   initials={team.initials}
                   image={team.image}
                   secondary={formatTeamSecondary(team, format)}
-                  primaryValue={formatTeamMatchStatus(
-                    team,
-                    matchPlay.finalStatus,
-                  )}
-                  primaryValueAdjusted={isTeamBehind(
-                    team,
-                    matchPlay.finalStatus,
-                  )}
+                  primaryValue={primaryValue}
+                  primaryLabel={primaryLabel}
+                  primaryValueTone={tone}
                 />
-              ),
-            )}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -172,19 +172,9 @@ function MatchPlayTable({
       <div className="hidden lg:block">
         <MatchPlayFullTable holes={holes} teams={teams} />
       </div>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-3 *:w-full sm:w-fit lg:hidden">
-        <MatchPlayNineTable
-          title="Front"
-          label="Out"
-          holes={frontNine}
-          teams={teams}
-        />
-        <MatchPlayNineTable
-          title="Back"
-          label="In"
-          holes={backNine}
-          teams={teams}
-        />
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-3 *:w-full sm:w-fit lg:hidden">
+        <MatchPlayNineTable label="Out" holes={frontNine} teams={teams} />
+        <MatchPlayNineTable label="In" holes={backNine} teams={teams} />
       </div>
     </>
   );
@@ -267,7 +257,7 @@ function MatchPlayFullTable({
                 className={cn(
                   isTeamDivider &&
                     roundIndex === team.rounds.length - 1 &&
-                    "[&>td]:border-b-2 [&>td]:border-b-foreground/40",
+                    "[&>td]:border-b [&>td]:border-b-foreground/20",
                 )}
               >
                 <TableCell className="sticky left-0 z-10 bg-card font-medium">
@@ -295,7 +285,7 @@ function MatchPlayFullTable({
                     rowSpan={team.rounds.length}
                     className={cn(
                       "w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums",
-                      isTeamDivider && "border-b-2 border-b-foreground/40",
+                      isTeamDivider && "border-b border-b-foreground/20",
                     )}
                   >
                     {`+${teamOut}`}
@@ -323,7 +313,7 @@ function MatchPlayFullTable({
                     rowSpan={team.rounds.length}
                     className={cn(
                       "w-12 border-x bg-muted/20 px-1 py-2 text-center font-medium tabular-nums",
-                      isTeamDivider && "border-b-2 border-b-foreground/40",
+                      isTeamDivider && "border-b border-b-foreground/20",
                     )}
                   >
                     {`+${teamIn}`}
@@ -334,7 +324,7 @@ function MatchPlayFullTable({
                     rowSpan={team.rounds.length}
                     className={cn(
                       "w-12 border-x bg-muted/30 px-1 py-2 text-center font-semibold tabular-nums",
-                      isTeamDivider && "border-b-2 border-b-foreground/40",
+                      isTeamDivider && "border-b border-b-foreground/20",
                     )}
                   >
                     {`+${teamTotal}`}
@@ -350,12 +340,10 @@ function MatchPlayFullTable({
 }
 
 function MatchPlayNineTable({
-  title,
   label,
   holes,
   teams,
 }: {
-  title: string;
   label: string;
   holes: MatchPlayHoleView[];
   teams: MatchPlayTeamView[];
@@ -375,7 +363,6 @@ function MatchPlayNineTable({
 
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-lg font-medium">{title}</h3>
       <TableFrame className="w-full sm:w-fit">
         <Table className="w-full sm:w-max">
           <TableHeader className="bg-muted/50">
@@ -391,7 +378,7 @@ function MatchPlayNineTable({
                       "w-14 px-1 text-center sm:w-16",
                       teamIndex > 0 &&
                         roundIndex === 0 &&
-                        "border-l-2 border-l-foreground/40",
+                        "border-l border-l-foreground/20",
                     )}
                   >
                     <span className="block truncate">
@@ -421,7 +408,7 @@ function MatchPlayNineTable({
                           "px-1 text-center text-base tabular-nums",
                           teamIndex > 0 &&
                             roundIndex === 0 &&
-                            "border-l-2 border-l-foreground/40",
+                            "border-l border-l-foreground/20",
                         )}
                       >
                         <NetScore
@@ -455,7 +442,7 @@ function MatchPlayNineTable({
                     colSpan={team.rounds.length}
                     className={cn(
                       "px-1 text-center text-base font-medium tabular-nums",
-                      teamIndex > 0 && "border-l-2 border-l-foreground/40",
+                      teamIndex > 0 && "border-l border-l-foreground/20",
                     )}
                   >
                     {`+${teamTotal}`}
@@ -472,36 +459,50 @@ function MatchPlayNineTable({
 
 function TeamWinnerCard({
   team,
-  secondary,
+  label,
   primaryValue,
-  primaryValueAdjusted,
+  primaryLabel,
+  tone,
 }: {
   team: MatchPlayTeamView;
-  secondary: string;
+  label: string;
   primaryValue: string;
-  primaryValueAdjusted: boolean;
+  primaryLabel?: string;
+  tone: TeamTone;
 }) {
   return (
     <Card className="overflow-hidden py-0">
       <CardContent className="flex min-h-20 items-center gap-3 px-0">
         <TeamAvatarPair team={team} />
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-1 py-3">
-          <div className="truncate text-base font-medium sm:text-lg">
-            {team.name}
+        <div className="flex min-w-0 flex-1 flex-col justify-center">
+          <div className="truncate font-medium text-base">{label}</div>
+          <div className="flex min-w-0 flex-col">
+            {team.rounds.map((round) => (
+              <span
+                key={round.id}
+                className="truncate text-sm text-muted-foreground leading-snug"
+              >
+                {displayName({ ...round, email: null })}
+              </span>
+            ))}
           </div>
-          <CardDescription className="truncate text-sm leading-snug">
-            {secondary}
-          </CardDescription>
         </div>
-        <div className="flex shrink-0 flex-col items-end justify-center pr-3 leading-none">
+        <div className="flex shrink-0 flex-col items-end justify-center pr-3 leading-none gap-1">
           <span
             className={cn(
-              "text-lg  tabular-nums",
-              primaryValueAdjusted && "text-red-600 dark:text-red-500",
+              "text-base tabular-nums",
+              tone === "winning" &&
+                "font-medium text-emerald-600 dark:text-emerald-500",
+              tone === "losing" && "font-medium text-red-600 dark:text-red-500",
             )}
           >
             {primaryValue}
           </span>
+          {primaryLabel ? (
+            <span className="text-sm text-muted-foreground">
+              {primaryLabel}
+            </span>
+          ) : null}
         </div>
       </CardContent>
     </Card>
@@ -511,13 +512,26 @@ function TeamWinnerCard({
 function TeamAvatarPair({ team }: { team: MatchPlayTeamView }) {
   return (
     <div className="flex h-20 shrink-0">
-      {team.rounds.slice(0, 2).map((round) => {
+      {team.rounds.slice(0, 2).map((round, i, arr) => {
         const name = displayName({ ...round, email: null });
+        const isFirst = i === 0;
+        const isLast = i === arr.length - 1;
         return (
-          <div key={round.id} className="size-20">
-            <Avatar className="size-full rounded-none">
+          <div
+            key={round.id}
+            className={cn(
+              "size-20 overflow-hidden",
+              isFirst && "rounded-tl-xl rounded-bl-xl",
+              isLast && "rounded-tr-xl rounded-br-xl",
+            )}
+          >
+            <Avatar className="size-full rounded-none after:hidden">
               {round.image ? (
-                <AvatarImage src={round.image} alt={name} />
+                <AvatarImage
+                  src={round.image}
+                  alt={name}
+                  className="rounded-none"
+                />
               ) : null}
               <AvatarFallback className="rounded-none text-base">
                 {getInitials({ ...round, email: null })}
@@ -618,11 +632,53 @@ function toMatchPlayView(teams: MatchPlayTeamView[], format: MatchFormat) {
     };
   });
 
+  const holesCompleted = result.holes.filter((hole) =>
+    hole.teams.every((team) => team.netScore != null),
+  ).length;
+
   return {
     teams: teamsWithStrokes,
     holes: holesWithPlayerScores,
     finalStatus: result.finalStatus,
+    holesCompleted,
   };
+}
+
+type TeamTone = "winning" | "losing" | "neutral";
+
+function getTeamTone(
+  team: MatchPlayTeamView,
+  status: MatchPlayStatus,
+): TeamTone {
+  if (status.leadingTeamId == null || status.holesUp === 0) return "neutral";
+  return status.leadingTeamId === team.id ? "winning" : "losing";
+}
+
+function formatMatchStatusSubtext({
+  team,
+  status,
+  holesCompleted,
+}: {
+  team: MatchPlayTeamView;
+  status: MatchPlayStatus;
+  holesCompleted: number;
+}) {
+  if (holesCompleted === 0) return undefined;
+
+  const holesRemaining = 18 - holesCompleted;
+  const isTied = status.leadingTeamId == null || status.holesUp === 0;
+
+  if (holesRemaining === 0) {
+    return isTied ? "Final" : "Final";
+  }
+
+  if (!isTied && status.holesUp > holesRemaining) {
+    return team.id === status.leadingTeamId
+      ? `${status.holesUp} & ${holesRemaining}`
+      : `Thru ${holesCompleted}`;
+  }
+
+  return `Thru ${holesCompleted}`;
 }
 
 function getMatchPlayExplanation(format: MatchFormat) {
@@ -637,12 +693,8 @@ function formatTeamMatchStatus(
   team: MatchPlayTeamView,
   status: MatchPlayStatus,
 ) {
-  if (status.leadingTeamId == null || status.holesUp === 0) return "Tied";
-  return `${status.leadingTeamId === team.id ? "+" : "-"}${status.holesUp}`;
-}
-
-function isTeamBehind(team: MatchPlayTeamView, status: MatchPlayStatus) {
-  return status.leadingTeamId != null && status.leadingTeamId !== team.id;
+  if (status.leadingTeamId == null || status.holesUp === 0) return "AS";
+  return `${status.holesUp} ${status.leadingTeamId === team.id ? "UP" : "DN"}`;
 }
 
 function isMatchPlayRound(
@@ -786,7 +838,11 @@ function formatTeamSecondary(team: MatchPlayTeamView, format: MatchFormat) {
       : handicap;
   }
 
-  return team.rounds.map((round) => formatRoundLabel(round)).join(" · ");
+  return team.rounds.map((round) => (
+    <span key={round.id} className="truncate">
+      {displayName({ ...round, email: null })}
+    </span>
+  ));
 }
 
 function formatRoundLabel(round: MatchPlayRound) {

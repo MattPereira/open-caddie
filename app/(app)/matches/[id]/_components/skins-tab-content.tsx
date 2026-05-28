@@ -100,7 +100,6 @@ export function SkinsContent({ rounds }: { rounds: RoundScoresTableRound[] }) {
         </Accordion>
 
         <div className="flex flex-col gap-3">
-          <h3 className="text-lg font-medium">Summary</h3>
           <div className="grid gap-3 md:grid-cols-2">
             {skins.players.map((player) => (
               <WinnerCard
@@ -108,7 +107,14 @@ export function SkinsContent({ rounds }: { rounds: RoundScoresTableRound[] }) {
                 playerName={player.name}
                 initials={player.initials}
                 image={player.image}
-                secondary={`Hcp ${formatDecimalScore(player.playingHandicap)} · Gets ${player.receivedStrokes}`}
+                secondary={
+                  <span className="flex flex-col">
+                    <span>
+                      Handicap {formatDecimalScore(player.playingHandicap)}
+                    </span>
+                    <span>Gets {player.receivedStrokes}</span>
+                  </span>
+                }
                 primaryLabel="Skins"
                 primaryValue={player.skinsWon.toString()}
               />
@@ -138,17 +144,11 @@ function SkinsTable({
       </div>
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-5 *:w-full sm:w-fit lg:hidden">
         <SkinsNineTable
-          title="Front"
           label="Out"
           holes={holes.slice(0, 9)}
           players={players}
         />
-        <SkinsNineTable
-          title="Back"
-          label="In"
-          holes={holes.slice(9)}
-          players={players}
-        />
+        <SkinsNineTable label="In" holes={holes.slice(9)} players={players} />
       </div>
     </>
   );
@@ -267,12 +267,10 @@ function SkinsFullTable({
 }
 
 function SkinsNineTable({
-  title,
   label,
   holes,
   players,
 }: {
-  title: string;
   label: string;
   holes: SkinHoleRow[];
   players: SkinPlayerView[];
@@ -289,7 +287,6 @@ function SkinsNineTable({
   );
   return (
     <div className="flex flex-col gap-3">
-      <h3 className="text-lg font-medium">{title}</h3>
       <TableFrame className="w-full sm:w-fit">
         <Table className="w-full sm:w-max">
           <TableHeader className="bg-muted/50">

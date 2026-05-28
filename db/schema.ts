@@ -17,7 +17,11 @@ import {
 } from "drizzle-orm/pg-core";
 import type { AdapterAccountType } from "next-auth/adapters";
 
-export const matchFormats = ["singles_match_play", "four_ball_match_play"] as const;
+export const matchFormats = [
+  "singles_match_play",
+  "three_ball_match_play",
+  "four_ball_match_play",
+] as const;
 export type MatchFormat = (typeof matchFormats)[number];
 
 export const roundScorecardUploadStatuses = ["parsed", "failed"] as const;
@@ -143,7 +147,7 @@ export const matches = pgTable(
   (m) => [
     check(
       "matches_format_check",
-      sql`${m.format} in ('singles_match_play', 'four_ball_match_play')`,
+      sql`${m.format} in ('singles_match_play', 'three_ball_match_play', 'four_ball_match_play')`,
     ),
   ],
 );

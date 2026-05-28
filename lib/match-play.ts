@@ -2,6 +2,7 @@ import type { MatchFormat } from "@/db/schema";
 
 const FORMAT_LABELS: Record<MatchFormat, string> = {
   singles_match_play: "Head-to-Head",
+  three_ball_match_play: "Three-Ball",
   four_ball_match_play: "Four-Ball",
 };
 

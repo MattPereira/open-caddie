@@ -45,6 +45,7 @@ import {
 import { cn, formatDate } from "@/lib/utils";
 import { createMatch, deleteMatch, updateMatch } from "../actions";
 import {
+  getRequiredPlayerCount,
   MatchCreateSchema,
   MatchFormSchema,
   type MatchCreateValues,
@@ -244,8 +245,7 @@ export function MatchSheet({
     () => filterPlayers(players, playerQuery.trim().toLowerCase()),
     [players, playerQuery],
   );
-  const requiredPlayerCount =
-    selectedFormat === "singles_match_play" ? 2 : 4;
+  const requiredPlayerCount = getRequiredPlayerCount(selectedFormat);
   const existingMatchUserIds = useMemo(
     () => new Set(match?.rounds.map((round) => round.userId) ?? []),
     [match],
@@ -514,7 +514,7 @@ export function MatchSheet({
                     const formatLocked =
                       mode === "edit" &&
                       (match?.roundCount ?? 0) > 0 &&
-                      ![2, 4].includes(match?.roundCount ?? 0);
+                      ![2, 3, 4].includes(match?.roundCount ?? 0);
 
                     return (
                       <FormItem>
@@ -534,6 +534,9 @@ export function MatchSheet({
                             <option value="singles_match_play">
                               Singles match play
                             </option>
+                            <option value="three_ball_match_play">
+                              Three-ball match play
+                            </option>
                             <option value="four_ball_match_play">
                               Four-ball match play
                             </option>
@@ -541,8 +544,8 @@ export function MatchSheet({
                         </FormControl>
                         {formatLocked ? (
                           <FormDescription>
-                            Format can only be changed for 2-player or 4-player
-                            matches.
+                            Format can only be changed for 2-player,
+                            3-player, or 4-player matches.
                           </FormDescription>
                         ) : null}
                         <FormMessage />

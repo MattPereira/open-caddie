@@ -1,0 +1,2 @@
+ALTER TABLE "matches" DROP CONSTRAINT "matches_format_check";--> statement-breakpoint
+ALTER TABLE "matches" ADD CONSTRAINT "matches_format_check" CHECK ("matches"."format" in ('singles_match_play', 'three_ball_match_play', 'four_ball_match_play'));

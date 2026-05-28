@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const MatchFormatSchema = z.enum([
   "singles_match_play",
+  "three_ball_match_play",
   "four_ball_match_play",
 ]);
 
@@ -21,8 +22,7 @@ export const MatchFormSchema = MatchBaseSchema.extend({
 });
 
 export const MatchCreateSchema = MatchFormSchema.superRefine((value, ctx) => {
-  const requiredPlayerCount =
-    value.format === "singles_match_play" ? 2 : 4;
+  const requiredPlayerCount = getRequiredPlayerCount(value.format);
   const uniquePlayerIds = new Set(value.playerUserIds);
 
   if (value.teeId <= 0) {
@@ -42,12 +42,14 @@ export const MatchCreateSchema = MatchFormSchema.superRefine((value, ctx) => {
       message:
         value.format === "singles_match_play"
           ? "Singles match play requires exactly 2 players."
-          : "Four-ball match play requires exactly 4 players.",
+          : value.format === "three_ball_match_play"
+            ? "Three-ball match play requires exactly 3 players."
+            : "Four-ball match play requires exactly 4 players.",
       path: ["playerUserIds"],
     });
   }
 
-  if (value.format === "singles_match_play") return;
+  if (value.format !== "four_ball_match_play") return;
 
   const teamOneIds = new Set(value.teamOneUserIds);
   const teamTwoIds = new Set(value.teamTwoUserIds);
@@ -85,3 +87,9 @@ export type MatchUpdateFormValues = z.input<typeof MatchBaseSchema>;
 export type MatchFormat = z.infer<typeof MatchFormatSchema>;
 export type MatchCreateValues = z.infer<typeof MatchCreateSchema>;
 export type MatchUpdateValues = z.infer<typeof MatchUpdateSchema>;
+
+export function getRequiredPlayerCount(format: MatchFormat) {
+  if (format === "singles_match_play") return 2;
+  if (format === "three_ball_match_play") return 3;
+  return 4;
+}

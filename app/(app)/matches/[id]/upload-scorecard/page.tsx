@@ -6,7 +6,7 @@ import { ScorecardUploadForm } from "@/components/scorecard-upload-form";
 import { getMatchById } from "@/db/queries/matches";
 import { getCurrentUser } from "@/db/queries/users";
 import { uploadMatchRoundScorecard } from "@/lib/actions/upload-round-scorecard";
-import { matchFormatLabel } from "@/lib/match-play";
+import { formatDate } from "@/lib/utils";
 
 type UploadScorecardPageProps = {
   params: Promise<{ id: string }>;
@@ -32,10 +32,12 @@ export default async function MatchUploadScorecardPage({
 
   if (!match) notFound();
 
-  const canManage =
+  const canUpload =
     currentUser != null &&
-    (currentUser.isAdmin || currentUser.id === match.createdByUserId);
-  if (!canManage) redirect(`/matches/${matchId}`);
+    (currentUser.isAdmin ||
+      currentUser.id === match.createdByUserId ||
+      match.rounds.some((round) => round.userId === currentUser.id));
+  if (!canUpload) redirect(`/matches/${matchId}`);
 
   const players = match.rounds.map((round) => ({
     roundId: round.id,
@@ -54,7 +56,9 @@ export default async function MatchUploadScorecardPage({
           Upload scorecard
         </h1>
         <p className="text-base text-muted-foreground">
-          {matchFormatLabel(match.format) ?? "Match"}
+          {[match.courseName, formatDate(match.date, "shorter")]
+            .filter(Boolean)
+            .join(" · ")}
         </p>
       </div>
 

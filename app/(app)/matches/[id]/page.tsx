@@ -66,6 +66,7 @@ export default async function MatchPage({
   const currentUserRound = currentUser
     ? match.rounds.find((round) => round.userId === currentUser.id)
     : null;
+  const canUploadScorecard = canManage || currentUserRound != null;
   const defaultTab = getMatchDefaultTab(resolvedSearchParams?.tab);
 
   const [courses, players] = canManage
@@ -162,7 +163,7 @@ export default async function MatchPage({
           emptyMessage="No rounds have been recorded for this match."
           rounds={match.rounds}
           actions={
-            canManage ? (
+            canUploadScorecard ? (
               <UploadScorecardButton
                 href={`/matches/${match.id}/upload-scorecard`}
               />

@@ -6,6 +6,7 @@ import { ScorecardUploadForm } from "@/components/scorecard-upload-form";
 import { getTournamentById } from "@/db/queries/tournaments";
 import { getCurrentUser } from "@/db/queries/users";
 import { uploadTournamentRoundScorecard } from "@/lib/actions/upload-round-scorecard";
+import { formatDate } from "@/lib/utils";
 
 type UploadScorecardPageProps = {
   params: Promise<{ id: string }>;
@@ -50,7 +51,9 @@ export default async function TournamentUploadScorecardPage({
           Upload scorecard
         </h1>
         <p className="text-base text-muted-foreground">
-          {tournament.clubName}
+          {[tournament.courseName, formatDate(tournament.date, "shorter")]
+            .filter(Boolean)
+            .join(" · ")}
         </p>
       </div>
 

@@ -413,11 +413,24 @@ async function getWritableEvent({
     .from(matches)
     .where(eq(matches.id, eventId))
     .limit(1);
-  if (
-    !match ||
-    (!currentUser.isAdmin && match.createdByUserId !== sessionUserId)
-  ) {
+  if (!match) {
     return { ok: false, error: "Match not found." };
+  }
+
+  if (
+    !currentUser.isAdmin &&
+    match.createdByUserId !== sessionUserId
+  ) {
+    const [participant] = await db
+      .select({ id: rounds.id })
+      .from(rounds)
+      .where(
+        and(eq(rounds.matchId, eventId), eq(rounds.userId, sessionUserId)),
+      )
+      .limit(1);
+    if (!participant) {
+      return { ok: false, error: "Match not found." };
+    }
   }
 
   return { ok: true, courseId: match.courseId };

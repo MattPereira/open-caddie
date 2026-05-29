@@ -72,6 +72,7 @@ export function CourseCreateForm() {
   });
   const watchedName = useWatch({ control: form.control, name: "name" });
   const courseHandle = courseHandleFromName(watchedName);
+  const hasCourseHandle = courseHandle.length > 0;
   const uploadPathPrefix = courseHandle
     ? `courses/${courseHandle}`
     : draftPrefix;
@@ -346,8 +347,13 @@ export function CourseCreateForm() {
                     aspectRatio={16 / 9}
                     variant="wide"
                     title="Course image"
-                    description="Choose a nice landscape photo"
+                    description={
+                      hasCourseHandle
+                        ? "Choose a nice landscape photo"
+                        : "Enter a course name first so the image is saved under the course handle"
+                    }
                     fallback="Upload a photo of the course"
+                    disabled={!hasCourseHandle}
                     onUploadingChange={setIsUploadingImg}
                   />
                 </FormControl>
@@ -372,7 +378,12 @@ export function CourseCreateForm() {
                     variant="freeform"
                     fallback="Upload a photo of blank scorecard"
                     title="Scorecard image"
-                    description="Crop to show only the table"
+                    description={
+                      hasCourseHandle
+                        ? "Crop to show only the table"
+                        : "Enter a course name first so the scorecard is saved under the course handle"
+                    }
+                    disabled={!hasCourseHandle}
                     onUploadingChange={setIsUploadingScorecard}
                   />
                 </FormControl>

@@ -107,6 +107,7 @@ export function ImageUploadField({
   className,
   variant = "avatar",
   title,
+  description,
 }: ImageUploadFieldProps) {
   const effectiveAspectRatio =
     variant === "freeform" ? undefined : (aspectRatio ?? 1);
@@ -242,7 +243,10 @@ export function ImageUploadField({
     <div className={cn("flex flex-col gap-4", className)}>
       {title ? (
         <div className="flex flex-col gap-1">
-          {title ? <p className="leading-none font-medium">{title}</p> : null}
+          <p className="leading-none font-medium">{title}</p>
+          {description ? (
+            <p className="text-sm text-muted-foreground">{description}</p>
+          ) : null}
         </div>
       ) : null}
 

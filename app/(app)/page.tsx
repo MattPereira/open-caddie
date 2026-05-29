@@ -2,15 +2,12 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import {
-  ChampionIcon,
-  GolfBallIcon,
-  GolfBatIcon,
-} from "@hugeicons/core-free-icons";
+import { ChampionIcon, GolfBallIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
 import { EventCard } from "@/components/event-card";
 import { PageContent } from "@/components/page-content";
+import { PlayRoundButton } from "@/components/play-round-button";
 import { matchFormatLabel } from "@/lib/match-play";
 import { brandFont } from "@/lib/fonts";
 import { getAllClubs } from "@/db/queries/clubs";
@@ -20,8 +17,7 @@ import { getAllTournaments } from "@/db/queries/tournaments";
 import { getAllMatches } from "@/db/queries/matches";
 import { getAllUsers, getCurrentUser } from "@/db/queries/users";
 import { createPageMetadata } from "@/lib/metadata";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { cn, toIsoDate } from "@/lib/utils";
 import { AddMatchButton } from "./matches/_components/add-match-button";
 import { AddTournamentButton } from "./tournaments/_components/add-tournament-button";
 
@@ -45,6 +41,14 @@ export default async function Home() {
       currentUser ? getAllUsers() : [],
       currentUser?.isAdmin ? getAllClubs() : [],
     ]);
+
+  const today = getLocalDateKey(new Date());
+  const recentTournaments = tournaments
+    .filter((tournament) => toIsoDate(tournament.date) <= today)
+    .slice(0, RECENT_LIMIT);
+  const recentMatches = matches
+    .filter((match) => toIsoDate(match.date) <= today)
+    .slice(0, RECENT_LIMIT);
 
   return (
     <PageContent className="max-w-4xl gap-10">
@@ -83,20 +87,15 @@ export default async function Home() {
       <div className="flex w-full flex-col gap-8">
         {activeRound ? (
           <div className="flex flex-col items-center gap-2">
-            <Button asChild size="xl" className="w-full md:w-1/2">
-              <Link href={`/rounds/${activeRound.roundId}`}>
-                <HugeiconsIcon icon={GolfBatIcon} size={20} aria-hidden />
-                Play round
-              </Link>
-            </Button>
+            <PlayRoundButton href={`/rounds/${activeRound.roundId}`} />
             <p className="text-sm text-muted-foreground">
               In progress at {activeRound.courseName}
             </p>
           </div>
         ) : null}
         <RecentEventsSections
-          tournaments={tournaments.slice(0, RECENT_LIMIT)}
-          matches={matches.slice(0, RECENT_LIMIT)}
+          tournaments={recentTournaments}
+          matches={recentMatches}
           tournamentAction={
             currentUser?.isAdmin ? (
               <AddTournamentButton
@@ -119,6 +118,14 @@ export default async function Home() {
       </div>
     </PageContent>
   );
+}
+
+function getLocalDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 type RecentTournament = Awaited<ReturnType<typeof getAllTournaments>>[number];

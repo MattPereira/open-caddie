@@ -1,13 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { GolfBatIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-
 import { CourseHero } from "@/components/course-hero";
 import { GreeniesTabContent } from "@/components/greenies-tab-content";
+import { PlayRoundButton } from "@/components/play-round-button";
 import { RoundsTabContent } from "@/components/rounds-tab-content";
-import { Button } from "@/components/ui/button";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/url-tabs";
 import { getAllClubs } from "@/db/queries/clubs";
@@ -110,20 +106,15 @@ export default async function TournamentPage({
             </p>
           </div>
 
-          {currentUserUnfinishedRound ? (
-            <Button asChild size="lg">
-              <Link href={`/rounds/${currentUserUnfinishedRound.id}/play`}>
-                <HugeiconsIcon icon={GolfBatIcon} data-icon="inline-start" />
-                Play
-              </Link>
-            </Button>
-          ) : null}
         </div>
         <CourseHero
           courseName={tournament.courseName}
           courseImgUrl={tournament.courseImgUrl}
           date={tournament.date}
         />
+        {currentUserUnfinishedRound ? (
+          <PlayRoundButton href={`/rounds/${currentUserUnfinishedRound.id}/play`} />
+        ) : null}
       </div>
 
       <UrlTabs

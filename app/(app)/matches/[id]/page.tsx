@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { GolfBatIcon } from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-
 import { CourseHero } from "@/components/course-hero";
+import { PlayRoundButton } from "@/components/play-round-button";
 import { RoundsTabContent } from "@/components/rounds-tab-content";
-import { Button } from "@/components/ui/button";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/url-tabs";
 import { getCoursesWithTees } from "@/db/queries/courses";
@@ -75,61 +71,57 @@ export default async function MatchPage({
 
   return (
     <PageContent className="max-w-5xl">
-      <div className="flex flex-col gap-3">
-        <div className="flex justify-between items-center gap-2">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-semibold tracking-normal">
-              Match Play
-            </h1>
-            {canManage ? (
-              <EditMatchButton
-                match={{
-                  id: match.id,
-                  date: match.date,
-                  courseHandle: match.courseHandle,
-                  courseName: match.courseName,
-                  courseImgUrl: match.courseImgUrl,
-                  format: match.format,
-                  roundCount: match.rounds.length,
-                  rounds: match.rounds.map((round) => ({
-                    id: round.id,
-                    userId: round.userId,
-                    teeId: round.teeId,
-                    email: null,
-                    firstName: round.firstName,
-                    lastName: round.lastName,
-                    username: round.username,
-                    image: round.image,
-                  })),
-                  teams: match.teams.map((team) => ({
-                    id: team.id,
-                    name: team.name,
-                    rounds: team.rounds.map((round) => ({
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-3">
+          <div className="flex justify-between items-center gap-2">
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-semibold tracking-normal">
+                Match Play
+              </h1>
+              {canManage ? (
+                <EditMatchButton
+                  match={{
+                    id: match.id,
+                    date: match.date,
+                    courseHandle: match.courseHandle,
+                    courseName: match.courseName,
+                    courseImgUrl: match.courseImgUrl,
+                    format: match.format,
+                    roundCount: match.rounds.length,
+                    rounds: match.rounds.map((round) => ({
                       id: round.id,
                       userId: round.userId,
+                      teeId: round.teeId,
+                      email: null,
+                      firstName: round.firstName,
+                      lastName: round.lastName,
+                      username: round.username,
+                      image: round.image,
                     })),
-                  })),
-                }}
-                courses={courses}
-                players={players}
-              />
-            ) : null}
+                    teams: match.teams.map((team) => ({
+                      id: team.id,
+                      name: team.name,
+                      rounds: team.rounds.map((round) => ({
+                        id: round.id,
+                        userId: round.userId,
+                      })),
+                    })),
+                  }}
+                  courses={courses}
+                  players={players}
+                />
+              ) : null}
+            </div>
           </div>
-
-          {currentUserRound ? (
-            <Button asChild size="lg">
-              <Link href={`/rounds/${currentUserRound.id}/play`}>
-                <HugeiconsIcon icon={GolfBatIcon} data-icon="inline-start" />
-                Play
-              </Link>
-            </Button>
-          ) : null}
+          <CourseHero
+            courseName={match.courseName}
+            courseImgUrl={match.courseImgUrl}
+            date={match.date}
+          />
         </div>
-        <CourseHero
-          courseName={match.courseName}
-          courseImgUrl={match.courseImgUrl}
-          date={match.date}
-        />
+        {currentUserRound ? (
+          <PlayRoundButton href={`/rounds/${currentUserRound.id}/play`} />
+        ) : null}
       </div>
 
       <UrlTabs

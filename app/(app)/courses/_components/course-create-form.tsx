@@ -15,7 +15,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
+import { Spinner } from "@/components/ui/spinner";
 import { ImageUploadField } from "@/components/image-upload-field";
+import { ParsingOverlay } from "@/components/parsing-overlay";
 import { Input } from "@/components/ui/input";
 import { courseHandleFromName } from "@/lib/course-handle";
 import {
@@ -276,7 +278,14 @@ export function CourseCreateForm() {
             onClick={onSubmitTeeMeta}
             className="flex-1 sm:flex-none"
           >
-            {isPending ? "Submitting…" : "Finish creating course"}
+            {isPending ? (
+              <>
+                <Spinner />
+                Submitting…
+              </>
+            ) : (
+              "Finish creating course"
+            )}
           </Button>
         </div>
       </div>
@@ -289,6 +298,8 @@ export function CourseCreateForm() {
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-col gap-6"
       >
+        <ParsingOverlay active={isPending} />
+
         {serverError ? (
           <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {serverError}
@@ -366,7 +377,7 @@ export function CourseCreateForm() {
           <Button
             type="button"
             variant="outline"
-            size="lg"
+            size="xl"
             disabled={isPending}
             onClick={onCancel}
             className="flex-1 sm:flex-none"
@@ -375,11 +386,18 @@ export function CourseCreateForm() {
           </Button>
           <Button
             type="submit"
-            size="lg"
+            size="xl"
             disabled={isPending || isUploading}
             className="flex-1 sm:flex-none"
           >
-            {isPending ? "Submitting…" : "Submit"}
+            {isPending ? (
+              <>
+                <Spinner />
+                Submitting…
+              </>
+            ) : (
+              "Submit"
+            )}
           </Button>
         </div>
       </form>

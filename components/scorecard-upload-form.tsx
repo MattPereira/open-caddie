@@ -19,8 +19,10 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
+import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUploadField } from "@/components/image-upload-field";
+import { ParsingOverlay } from "@/components/parsing-overlay";
 import { PlayerCard } from "@/components/player-card";
 import type { UploadRoundScorecardState } from "@/lib/actions/upload-round-scorecard";
 
@@ -147,6 +149,8 @@ export function ScorecardUploadForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
+      <FormPendingOverlay />
+
       {state.error ? (
         <Alert variant="error">
           <AlertTitle>Upload failed</AlertTitle>
@@ -257,7 +261,19 @@ function SubmitButton({ canSubmit }: { canSubmit: boolean }) {
 
   return (
     <Button size="xl" type="submit" disabled={!canSubmit || pending}>
-      {pending ? "Parsing..." : "Submit"}
+      {pending ? (
+        <>
+          <Spinner />
+          Parsing…
+        </>
+      ) : (
+        "Submit"
+      )}
     </Button>
   );
+}
+
+function FormPendingOverlay() {
+  const { pending } = useFormStatus();
+  return <ParsingOverlay active={pending} />;
 }

@@ -275,5 +275,16 @@ function SubmitButton({ canSubmit }: { canSubmit: boolean }) {
 
 function FormPendingOverlay() {
   const { pending } = useFormStatus();
-  return <ParsingOverlay active={pending} />;
+  return (
+    <ParsingOverlay
+      active={pending}
+      title="Reading your scorecard"
+      messages={[
+        "Reading your scorecard…",
+        "Recognizing the handwriting…",
+        "Matching players to their rows…",
+        "Tallying up the numbers…",
+      ]}
+    />
+  );
 }

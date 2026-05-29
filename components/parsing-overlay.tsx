@@ -4,17 +4,10 @@ import { useEffect, useState } from "react";
 
 import { Spinner } from "@/components/ui/spinner";
 
-const DEFAULT_PARSING_MESSAGES = [
-  "Reading your scorecard…",
-  "Recognizing the score table…",
-  "Matching players to their rows…",
-  "Tallying up the numbers…",
-];
-
 type ParsingOverlayProps = {
   active: boolean;
-  title?: string;
-  messages?: string[];
+  title: string;
+  messages: string[];
 };
 
 /**
@@ -23,8 +16,8 @@ type ParsingOverlayProps = {
  */
 export function ParsingOverlay({
   active,
-  title = "Reading your scorecard",
-  messages = DEFAULT_PARSING_MESSAGES,
+  title,
+  messages,
 }: ParsingOverlayProps) {
   const [messageIndex, setMessageIndex] = useState(0);
 

@@ -298,7 +298,16 @@ export function CourseCreateForm() {
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex flex-col gap-6"
       >
-        <ParsingOverlay active={isPending} />
+        <ParsingOverlay
+          active={isPending}
+          title="Setting up your course"
+          messages={[
+            "Reading the scorecard…",
+            "Mapping out the tees…",
+            "Measuring hole yardages…",
+            "Noting pars and handicaps…",
+          ]}
+        />
 
         {serverError ? (
           <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">

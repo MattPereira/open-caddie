@@ -1,49 +1,13 @@
-# Repository Guidelines
+## Agent skills
 
-## Instructions
+### Issue tracker
 
-- After making changes, do not attempt to run a dev server for validation. Just doing `pnpm run check` is sufficient.
+Issues use GitHub; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
 
-### Next.js Rules
+### Triage labels
 
-- Before Next.js work, find and read the relevant doc in `node_modules/next/dist/docs/`. Your training data is outdated — the docs are the source of truth.
+Canonical triage labels use their default names. See `docs/agents/triage-labels.md`.
 
-### Database Migrations
+### Domain docs
 
-- Drizzle migrations are the source of truth for schema changes.
-- For schema changes, update `db/schema.ts`, run `pnpm run db:generate`, inspect the generated SQL in `drizzle/`, then run `pnpm run db:migrate` 
-- Commit `db/schema.ts` changes and generated `drizzle/` migration files together.
-- Do not use `drizzle-kit push` or add `db:push` scripts for normal schema changes
-
-### Coding Conventions
-
-- Write TypeScript and React with strict types enabled.
-- Prefer writing concise code with fewer lines when possible while also preserving readability.
-- Prefer named exports for shared helpers and colocate route-specific components under the route’s `_components/` directory.
-- Prioritize building shared re-usable components as much as possible.
-- Use `kebab-case` filenames for components and route helpers, and keep schema/action files named by purpose, such as `schema.ts` and `actions.ts`.
-- Use shadcn components and tailwind to build and style all UI components.
-- Prioritize mobile first designs without compromising the quality of tablet and desktop experiences.
-- Use Hugeicons for all app icons.
-- Use React Hook Form for forms.
-- Use Zod schemas for validation.
-- Keep commit messages concise and to the point.
-
-## Project Architecture
-
-- Open Caddie is a Next.js App Router application.
-- Route groups, pages, layouts, Server Actions, and route handlers live in `app/`, including the authenticated app under `app/(app)/` and auth under `app/api/auth/[...nextauth]/`
-- Shared React components are in `components/`, with shadcn primitives in `components/ui/`
-- Database schema and access code live in `db/`, with the canonical schema in `db/schema.ts` and query helpers in `db/queries/`
-- Shared hooks, utilities, and types live in `hooks/`, `lib/`, and `types/`
-- Static assets are in `public/` directory
-
-## CLI Commands
-
-- `pnpm run dev`: start the local Next development server.
-- `pnpm run build`: build the production app.
-- `pnpm run start`: run the production build.
-- `pnpm run lint`: run ESLint with Next core-web-vitals and TypeScript rules.
-- `pnpm run typecheck`: generate Next types, then run `tsc --noEmit`.
-- `pnpm run check`: run linting and typechecking together.
-- `pnpm run db:generate`, `pnpm run db:migrate`, `pnpm run db:studio`: manage Drizzle migrations and inspect the database.
+Single-context layout. See `docs/agents/domain.md`.

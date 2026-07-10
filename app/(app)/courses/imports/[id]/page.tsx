@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { PageContent } from "@/components/page-content";
-import { inspectNewCourseScorecardImport } from "../../actions";
+import { inspectCourseScorecardImport } from "../../actions";
 import { CourseImportReview } from "../../_components/course-import-review";
 
 export default async function CourseImportPage({
@@ -10,7 +10,7 @@ export default async function CourseImportPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const result = await inspectNewCourseScorecardImport(id);
+  const result = await inspectCourseScorecardImport(id);
   if (result.outcome === "published") redirect(`/courses/${result.handle}`);
   if (result.outcome !== "paused") redirect("/courses");
 

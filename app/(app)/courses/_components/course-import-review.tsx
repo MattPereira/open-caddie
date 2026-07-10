@@ -10,10 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import type { CourseScorecardImportView } from "@/lib/course-scorecard-import";
 import {
-  cancelNewCourseScorecardImport,
-  continueNewCourseScorecardImport,
-  retryNewCourseScorecardImport,
-  replaceNewCourseScorecardImport,
+  cancelCourseScorecardImport,
+  continueCourseScorecardImport,
+  retryCourseScorecardImport,
+  replaceCourseScorecardImport,
 } from "../actions";
 
 function selectedExistingTeeId(value: { kind: "new" } | { kind: "existing"; teeId: number } | undefined) {
@@ -89,7 +89,7 @@ export function CourseImportReview({
       return Object.keys(correction).length ? [[hole.id, correction]] : [];
     }));
     startTransition(async () => {
-      const result = await continueNewCourseScorecardImport({
+      const result = await continueCourseScorecardImport({
         importId: initialImport.id,
         expectedRevision: initialImport.revision,
         teeMetadata,
@@ -114,7 +114,7 @@ export function CourseImportReview({
 
   const cancel = () => {
     startTransition(async () => {
-      const result = await cancelNewCourseScorecardImport({
+      const result = await cancelCourseScorecardImport({
         importId: initialImport.id,
         expectedRevision: initialImport.revision,
       });
@@ -125,7 +125,7 @@ export function CourseImportReview({
 
   const retryParsing = () => {
     startTransition(async () => {
-      const result = await retryNewCourseScorecardImport({
+      const result = await retryCourseScorecardImport({
         importId: initialImport.id,
         expectedRevision: initialImport.revision,
       });
@@ -144,7 +144,7 @@ export function CourseImportReview({
   const replaceScorecardImage = (stagedScorecardImageHandle: string | null) => {
     if (!stagedScorecardImageHandle) return;
     startTransition(async () => {
-      const result = await replaceNewCourseScorecardImport({
+      const result = await replaceCourseScorecardImport({
         importId: initialImport.id,
         expectedRevision: initialImport.revision,
         stagedScorecardImageHandle,

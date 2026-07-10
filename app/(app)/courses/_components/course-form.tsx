@@ -33,13 +33,9 @@ import {
 } from "@/components/ui/form";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   startExistingCourseScorecardImport,
   deleteCourse,
-  finalizeExistingCourseScorecardTeeMeta,
-  type FinalizedScorecardDraft,
-  replacePlaceholderTeeWithExistingTee,
   updateCourse,
 } from "../actions";
 import {
@@ -52,8 +48,6 @@ import type { CourseForEdit, CourseForEditTee } from "@/db/queries/courses";
 type CourseFormProps = {
   course: CourseForEdit;
 };
-
-type TeeMetaInputs = Array<{ rating: string; slope: string }>;
 
 const defaultHoles: CourseFormValues["holes"] = Array.from(
   { length: 18 },
@@ -124,15 +118,6 @@ function sumYardages(
     if (typeof y === "number") total += y;
   }
   return total;
-}
-
-function isPlaceholderTeeName(value: string) {
-  const normalized = value.trim().toLowerCase();
-  return normalized === "unknown" || normalized === "unkown";
-}
-
-function hasCompleteYardages(tee: TeeFormValues) {
-  return tee.yardages.every((yardage) => typeof yardage === "number");
 }
 
 type ScorecardTableProps = {
@@ -400,17 +385,10 @@ export function CourseForm({ course }: CourseFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
-  const [isReplacingTee, startReplaceTeeTransition] = useTransition();
-  const [isFinalizingTeeMeta, startFinalizeTeeMetaTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [selectedTeeIndex, setSelectedTeeIndex] = useState(0);
-  const [replacementSourceTeeId, setReplacementSourceTeeId] = useState("");
-  const [pendingTeeMetaDraft, setPendingTeeMetaDraft] =
-    useState<FinalizedScorecardDraft | null>(null);
-  const [teeMetaInputs, setTeeMetaInputs] = useState<TeeMetaInputs>([]);
-  const [teeMetaError, setTeeMetaError] = useState<string | null>(null);
   const [isDesktop, setIsDesktop] = useState(false);
 
   const form = useForm<CourseFormValues>({
@@ -441,48 +419,6 @@ export function CourseForm({ course }: CourseFormProps) {
     ? selectedTeeIndex
     : 0;
   const selectedTee = teeFields[effectiveSelectedTeeIndex];
-  const placeholderTee = watchedTees.find(
-    (tee) =>
-      tee.id &&
-      isPlaceholderTeeName(tee.name) &&
-      !tee.yardages.some((yardage) => typeof yardage === "number"),
-  );
-  const replacementSourceTees = watchedTees.filter(
-    (tee) =>
-      tee.id && tee.id !== placeholderTee?.id && hasCompleteYardages(tee),
-  );
-  const suggestedReplacementMatches =
-    placeholderTee == null
-      ? []
-      : replacementSourceTees.filter(
-          (tee) =>
-            Number(tee.rating) === Number(placeholderTee.rating) &&
-            tee.slope === placeholderTee.slope,
-        );
-  const suggestedReplacementTee =
-    suggestedReplacementMatches.length === 1
-      ? suggestedReplacementMatches[0]
-      : undefined;
-  const selectedReplacementSourceTeeId =
-    replacementSourceTeeId ||
-    (suggestedReplacementTee?.id ? String(suggestedReplacementTee.id) : "");
-
-  const resetSyncedTees = (
-    tees: CourseForEditTee[],
-    scorecardImgUrl?: string,
-  ) => {
-    const currentValues = form.getValues();
-    form.reset(
-      {
-        ...currentValues,
-        scorecardImgUrl: scorecardImgUrl ?? currentValues.scorecardImgUrl,
-        tees: tees.map(teeToFormValues),
-      },
-      { keepDirty: true },
-    );
-    setSelectedTeeIndex(0);
-  };
-
   const onSubmit = (values: CourseFormValues) => {
     form.clearErrors("root.server");
     startTransition(async () => {
@@ -534,75 +470,6 @@ export function CourseForm({ course }: CourseFormProps) {
     }
     if (result.outcome === "paused") router.push(`/courses/imports/${result.import.id}`);
     if (result.outcome === "published") router.push(`/courses/${result.handle}`);
-  };
-
-  const onSubmitTeeMeta = () => {
-    if (!pendingTeeMetaDraft) return;
-    setTeeMetaError(null);
-
-    const finalizedTees = pendingTeeMetaDraft.tees.map((tee, i) => {
-      const rating = Number(teeMetaInputs[i]?.rating);
-      const slope = Number(teeMetaInputs[i]?.slope);
-      return { tee, rating, slope };
-    });
-
-    for (const { tee, rating, slope } of finalizedTees) {
-      if (!Number.isFinite(rating) || rating <= 0) {
-        setTeeMetaError(`Enter a valid rating for ${tee.name}.`);
-        return;
-      }
-      if (!Number.isInteger(slope) || slope < 55 || slope > 155) {
-        setTeeMetaError(`Slope for ${tee.name} must be between 55 and 155.`);
-        return;
-      }
-    }
-
-    startFinalizeTeeMetaTransition(async () => {
-      const result = await finalizeExistingCourseScorecardTeeMeta({
-        courseId: course.id,
-        tees: finalizedTees.map(({ tee, rating, slope }) => ({
-          name: tee.name,
-          color: tee.color,
-          rating,
-          slope,
-          yardages: tee.yardages,
-        })),
-      });
-      if (!result.ok) {
-        setTeeMetaError(result.error);
-        return;
-      }
-
-      setPendingTeeMetaDraft(null);
-      setTeeMetaInputs([]);
-      setTeeMetaError(null);
-      resetSyncedTees(result.tees);
-      router.refresh();
-    });
-  };
-
-  const onReplaceUnknownTee = () => {
-    if (!placeholderTee?.id || !selectedReplacementSourceTeeId) return;
-
-    form.clearErrors("root.server");
-    startReplaceTeeTransition(async () => {
-      const result = await replacePlaceholderTeeWithExistingTee({
-        courseId: course.id,
-        placeholderTeeId: placeholderTee.id!,
-        sourceTeeId: Number(selectedReplacementSourceTeeId),
-      });
-      if (!result.ok) {
-        form.setError("root.server", {
-          type: "server",
-          message: result.error,
-        });
-        return;
-      }
-
-      setReplacementSourceTeeId("");
-      resetSyncedTees(result.tees);
-      router.refresh();
-    });
   };
 
   return (
@@ -703,121 +570,6 @@ export function CourseForm({ course }: CourseFormProps) {
             <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
               {teesError}
             </p>
-          ) : null}
-
-          {pendingTeeMetaDraft ? (
-            <div className="flex flex-col gap-3 rounded-md border border-amber-400/50 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-              <p>
-                We couldn&apos;t find rating and slope values for every new tee.
-                Enter them to save those tee yardages.
-              </p>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {pendingTeeMetaDraft.tees.map((tee, i) => {
-                  const meta = teeMetaInputs[i] ?? { rating: "", slope: "" };
-                  return (
-                    <div
-                      key={`${tee.name}-${i}`}
-                      className="flex flex-col gap-3 rounded-md border bg-background p-3 text-foreground"
-                    >
-                      <div className="text-sm font-medium">{tee.name}</div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="flex flex-col gap-1.5">
-                          <Label htmlFor={`edit-tee-${i}-rating`}>Rating</Label>
-                          <Input
-                            id={`edit-tee-${i}-rating`}
-                            type="number"
-                            inputMode="decimal"
-                            min="0.1"
-                            step="0.1"
-                            placeholder="68.9"
-                            value={meta.rating}
-                            onChange={(e) =>
-                              setTeeMetaInputs((prev) => {
-                                const next = [...prev];
-                                next[i] = {
-                                  ...(next[i] ?? { rating: "", slope: "" }),
-                                  rating: e.target.value,
-                                };
-                                return next;
-                              })
-                            }
-                          />
-                        </div>
-                        <div className="flex flex-col gap-1.5">
-                          <Label htmlFor={`edit-tee-${i}-slope`}>Slope</Label>
-                          <Input
-                            id={`edit-tee-${i}-slope`}
-                            type="number"
-                            min={55}
-                            max={155}
-                            step={1}
-                            placeholder="122"
-                            value={meta.slope}
-                            onChange={(e) =>
-                              setTeeMetaInputs((prev) => {
-                                const next = [...prev];
-                                next[i] = {
-                                  ...(next[i] ?? { rating: "", slope: "" }),
-                                  slope: e.target.value,
-                                };
-                                return next;
-                              })
-                            }
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              {teeMetaError ? (
-                <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {teeMetaError}
-                </p>
-              ) : null}
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  disabled={isFinalizingTeeMeta}
-                  onClick={onSubmitTeeMeta}
-                >
-                  {isFinalizingTeeMeta ? "Saving tees…" : "Save tee ratings"}
-                </Button>
-              </div>
-            </div>
-          ) : null}
-
-          {placeholderTee?.id && replacementSourceTees.length > 0 ? (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-              <div className="flex flex-col gap-2 sm:w-72">
-                <Label>Replace Unknown with</Label>
-                <Select
-                  value={selectedReplacementSourceTeeId}
-                  onValueChange={setReplacementSourceTeeId}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select tee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {replacementSourceTees.map((tee) => (
-                        <SelectItem key={tee.id} value={String(tee.id)}>
-                          {tee.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={!selectedReplacementSourceTeeId || isReplacingTee}
-                onClick={onReplaceUnknownTee}
-              >
-                {isReplacingTee ? "Replacing…" : "Replace Unknown"}
-              </Button>
-            </div>
           ) : null}
 
           {isDesktop ? (

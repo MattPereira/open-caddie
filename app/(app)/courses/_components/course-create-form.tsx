@@ -19,7 +19,7 @@ import { ImageUploadField } from "@/components/image-upload-field";
 import { ParsingOverlay } from "@/components/parsing-overlay";
 import { Input } from "@/components/ui/input";
 import { courseHandleFromName } from "@/lib/course-handle";
-import { deleteDraftBlobs, startNewCourseScorecardImport } from "../actions";
+import { startCourseScorecardImport } from "../actions";
 import {
   CourseCreateInputSchema,
   type CourseCreateInputValues,
@@ -30,22 +30,6 @@ export function CourseCreateForm() {
   const [isPending, startTransition] = useTransition();
   const [isUploadingImg, setIsUploadingImg] = useState(false);
   const [isUploadingScorecard, setIsUploadingScorecard] = useState(false);
-  // Tracks every blob URL uploaded during this session — including ones the
-  // user replaced — so we can clean them up on cancel / after submit.
-  const [uploadedUrls, setUploadedUrls] = useState<Set<string>>(
-    () => new Set(),
-  );
-
-  const trackUpload = (url: string | null) => {
-    if (!url) return;
-    setUploadedUrls((prev) => {
-      if (prev.has(url)) return prev;
-      const next = new Set(prev);
-      next.add(url);
-      return next;
-    });
-  };
-
   // Stable draft prefix for both blob uploads. The blob URL persists, so the
   // prefix is internal organization only — never user-visible.
   const draftPrefix = useMemo(() => `courses/draft-${crypto.randomUUID()}`, []);
@@ -62,15 +46,7 @@ export function CourseCreateForm() {
     : draftPrefix;
   const serverError = form.formState.errors.root?.server?.message;
 
-  const finalizeAndRedirect = (
-    values: { imgUrl: string; scorecardImgUrl: string },
-    handle: string,
-  ) => {
-    const keep = new Set([values.imgUrl, values.scorecardImgUrl]);
-    const stale = [...uploadedUrls].filter((url) => !keep.has(url));
-    if (stale.length) {
-      deleteDraftBlobs(stale).catch(() => {});
-    }
+  const finalizeAndRedirect = (handle: string) => {
     router.push(`/courses/${handle}`);
     router.refresh();
   };
@@ -78,9 +54,9 @@ export function CourseCreateForm() {
   const onSubmit = (values: CourseCreateInputValues) => {
     form.clearErrors("root.server");
     startTransition(async () => {
-      const result = await startNewCourseScorecardImport(values);
+      const result = await startCourseScorecardImport(values);
       if (result.outcome === "published") {
-        finalizeAndRedirect(values, result.handle);
+        finalizeAndRedirect(result.handle);
         return;
       }
       if (result.outcome === "paused") {
@@ -95,10 +71,6 @@ export function CourseCreateForm() {
   };
 
   const onCancel = () => {
-    const stale = [...uploadedUrls];
-    if (stale.length) {
-      deleteDraftBlobs(stale).catch(() => {});
-    }
     router.push("/courses");
   };
 
@@ -151,7 +123,6 @@ export function CourseCreateForm() {
                   <ImageUploadField
                     value={field.value || null}
                     onChange={(url) => {
-                      trackUpload(url);
                       field.onChange(url ?? "");
                     }}
                     pathPrefix={uploadPathPrefix}
@@ -182,7 +153,6 @@ export function CourseCreateForm() {
                   <ImageUploadField
                     value={field.value || null}
                     onChange={(url) => {
-                      trackUpload(url);
                       field.onChange(url ?? "");
                     }}
                     pathPrefix={`${uploadPathPrefix}/scorecards`}

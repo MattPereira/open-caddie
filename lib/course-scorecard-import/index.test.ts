@@ -87,15 +87,27 @@ describe("Course Scorecard Import", async () => {
     expect(keptPlaceholder[0]?.name).toBe("Unknown");
   });
 
+  it("defaults an unmatched parsed tee to new and publishes without pausing", async () => {
+    const [course] = await db.insert(schema.courses).values({ name: `Auto New Course ${actorId}`, handle: `auto-new-${actorId}` }).returning({ id: schema.courses.id });
+    await db.insert(schema.courseTees).values({ courseId: course.id, name: "Championship", rating: "69", slope: 115 });
+    const autoNewImports = createCourseScorecardImport({ async parseScorecardImage() { return { scorecard: { tees: [{ name: "Tips", rating: 71.2, slope: 128, yardages: Array.from({ length: 18 }, () => 400) }], holes: [] }, warnings: [] }; } });
+    const published = await autoNewImports.start({ actorId, target: { kind: "existing", courseId: course.id }, stagedScorecardImageHandle: "auto-new-image" });
+    expect(published.outcome).toBe("published");
+    const tees = await db.select().from(schema.courseTees).where(eq(schema.courseTees.courseId, course.id));
+    expect(tees.map((tee) => tee.name).sort()).toEqual(["Championship", "Tips"]);
+  });
+
   it("allows an unmatched parsed tee to be explicitly renamed onto an existing tee", async () => {
     const [course] = await db.insert(schema.courses).values({ name: `Rename Course ${actorId}`, handle: `rename-${actorId}` }).returning({ id: schema.courses.id });
     const [existing] = await db.insert(schema.courseTees).values({ courseId: course.id, name: "Championship", rating: "69", slope: 115 }).returning({ id: schema.courseTees.id });
+    const [placeholder] = await db.insert(schema.courseTees).values({ courseId: course.id, name: "Unknown", rating: "68", slope: 110 }).returning({ id: schema.courseTees.id });
     const renameImports = createCourseScorecardImport({ async parseScorecardImage() { return { scorecard: { tees: [{ name: "Tips", rating: 71.2, slope: 128, yardages: Array.from({ length: 18 }, () => 400) }], holes: [] }, warnings: [] }; } });
     const paused = await renameImports.start({ actorId, target: { kind: "existing", courseId: course.id }, stagedScorecardImageHandle: "rename-image" });
     expect(paused.outcome).toBe("paused");
     if (paused.outcome !== "paused") return;
     expect(paused.import.proposedMatches[0]).toMatchObject({ kind: "new" });
-    const published = await renameImports.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "resolve", teeResolutions: { "tee:0": { kind: "existing", teeId: existing.id } } } });
+    expect(paused.import.prompts).toContainEqual(expect.objectContaining({ kind: "placeholder_tee", teeId: placeholder.id }));
+    const published = await renameImports.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "resolve", placeholderResolutions: { [String(placeholder.id)]: { kind: "keep" } }, teeResolutions: { "tee:0": { kind: "existing", teeId: existing.id } } } });
     expect(published.outcome).toBe("published");
     const tees = await db.select().from(schema.courseTees).where(eq(schema.courseTees.id, existing.id));
     expect(tees[0]?.name).toBe("Tips");
@@ -506,12 +518,12 @@ describe("Course Scorecard Import", async () => {
 
   it("marks an existing-course import stale when its starting fingerprint changes", async () => {
     const [course] = await db.insert(schema.courses).values({ name: `Stale ${actorId}`, handle: `stale-${actorId}` }).returning({ id: schema.courses.id });
-    const staleImports = createCourseScorecardImport({ async parseScorecardImage() { return { scorecard: { tees: [{ name: "Blue", rating: 71, slope: 125, yardages: Array.from({ length: 18 }, () => 400) }], holes: [] }, warnings: [] }; } });
+    const staleImports = createCourseScorecardImport({ async parseScorecardImage() { return { scorecard: { tees: [{ name: "Blue", yardages: Array.from({ length: 18 }, () => 400) }], holes: [] }, warnings: [] }; } });
     const paused = await staleImports.start({ actorId, target: { kind: "existing", courseId: course.id }, stagedScorecardImageHandle: "stale-image" });
     expect(paused.outcome).toBe("paused");
     if (paused.outcome !== "paused") return;
     await db.update(schema.courses).set({ scorecardImgUrl: "changed-by-another-admin" }).where(eq(schema.courses.id, course.id));
-    const continued = await staleImports.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "resolve", teeResolutions: { "tee:0": { kind: "new" } } } });
+    const continued = await staleImports.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "resolve", teeMetadata: { "tee:0:metadata": { rating: 71, slope: 125 } } } });
     expect(continued).toMatchObject({ outcome: "stale", import: { id: paused.import.id, status: "stale" } });
     const inspected = await staleImports.inspect({ actorId: secondActorId, importId: paused.import.id });
     expect(inspected).toMatchObject({ outcome: "stale", import: { id: paused.import.id, status: "stale" } });

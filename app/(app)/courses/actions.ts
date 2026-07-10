@@ -114,13 +114,6 @@ const courseScorecardImports = createCourseScorecardImport({
 });
 
 /** Authenticated maintenance entrypoint; invoke daily from the scheduler. */
-export async function cleanupExpiredCourseScorecardImports() {
-  const actor = await getCurrentUser();
-  if (!actor) return { outcome: "rejected" as const, error: "forbidden" };
-  const result = await courseScorecardImports.cleanup({ actorId: actor.id });
-  return result.outcome === "cleaned" ? result : { outcome: "rejected" as const, error: result.reason };
-}
-
 export async function cleanupExpiredCourseScorecardImportsFromScheduler() {
   return courseScorecardImports.cleanupSystem();
 }

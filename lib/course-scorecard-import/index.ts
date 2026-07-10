@@ -158,6 +158,7 @@ function defaultTeeResolutions(document: ImportDocument, tees: ParsedTee[]): Imp
   for (const [index, tee] of tees.entries()) {
     const matches = exactMatches(document, tee);
     if (matches.length === 1) resolutions[teeIdFor(index)] = { kind: "existing", teeId: matches[0].id };
+    else if (matches.length === 0) resolutions[teeIdFor(index)] = { kind: "new" };
   }
   return resolutions;
 }

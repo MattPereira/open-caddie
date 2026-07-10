@@ -25,6 +25,8 @@ import { parseScorecardImage } from "@/lib/ai/course-scorecard-parser";
 import {
   createCourseScorecardImport,
   type CourseScorecardImportView,
+  type HoleCorrection,
+  type TeeCorrection,
 } from "@/lib/course-scorecard-import";
 import {
   CourseCreateFinalizeSchema,
@@ -409,6 +411,11 @@ export async function continueNewCourseScorecardImport(input: {
   expectedRevision: number;
   teeMetadata?: Record<string, { rating: number; slope: number }>;
   acknowledgeWarnings?: string[];
+  corrections?: {
+    tees?: Record<string, TeeCorrection>;
+    holes?: Record<string, HoleCorrection>;
+  };
+  excludeTees?: string[];
 }): Promise<NewCourseImportResult> {
   const actor = await getCurrentUser();
   if (!actor) return { outcome: "rejected", error: "forbidden" };
@@ -420,6 +427,8 @@ export async function continueNewCourseScorecardImport(input: {
       kind: "resolve",
       teeMetadata: input.teeMetadata,
       acknowledgeWarnings: input.acknowledgeWarnings,
+      corrections: input.corrections,
+      excludeTees: input.excludeTees,
     },
   });
   if (result.outcome === "published") return { outcome: "published", handle: result.handle };

@@ -22,6 +22,10 @@ export function CourseImportReview({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [metadata, setMetadata] = useState<Record<string, { rating: string; slope: string }>>({});
+  const [teeNames, setTeeNames] = useState<Record<string, string>>({});
+  const [teeYardages, setTeeYardages] = useState<Record<string, string>>({});
+  const [holes, setHoles] = useState<Record<string, { hole: string; par: string; handicap: string }>>({});
+  const [excludedTees, setExcludedTees] = useState<Set<string>>(() => new Set());
   const [error, setError] = useState<string | null>(null);
   const teePrompts = initialImport.prompts.filter(
     (prompt): prompt is Extract<typeof prompt, { kind: "tee_metadata" }> => prompt.kind === "tee_metadata",
@@ -37,6 +41,7 @@ export function CourseImportReview({
     const teeMetadata: Record<string, { rating: number; slope: number }> = {};
     for (const prompt of teePrompts) {
       const answer = metadata[prompt.id];
+      if (!answer?.rating && !answer?.slope) continue;
       const rating = Number(answer?.rating);
       const slope = Number(answer?.slope);
       if (!Number.isFinite(rating) || rating <= 0 || !Number.isInteger(slope) || slope < 55 || slope > 155) {
@@ -45,12 +50,34 @@ export function CourseImportReview({
       }
       teeMetadata[prompt.id] = { rating, slope };
     }
+    const teeCorrections = Object.fromEntries(
+      initialImport.parsed.tees.flatMap((tee) => {
+        const name = teeNames[tee.id];
+        const yardages = teeYardages[tee.id];
+        const correction = {
+          ...(name != null && name !== tee.name ? { name } : {}),
+          ...(yardages != null && yardages !== tee.yardages.join(", ") ? { yardages: yardages.split(",").map((value) => Number(value.trim())) } : {}),
+        };
+        return Object.keys(correction).length ? [[tee.id, correction]] : [];
+      }),
+    );
+    const holeCorrections = Object.fromEntries(initialImport.parsed.holes.flatMap((hole) => {
+      const value = holes[hole.id];
+      const correction = {
+        ...(value?.hole != null && Number(value.hole) !== hole.hole ? { hole: Number(value.hole) } : {}),
+        ...(value?.par != null && Number(value.par) !== hole.par ? { par: Number(value.par) } : {}),
+        ...(value?.handicap != null && Number(value.handicap) !== hole.handicap ? { handicap: Number(value.handicap) } : {}),
+      };
+      return Object.keys(correction).length ? [[hole.id, correction]] : [];
+    }));
     startTransition(async () => {
       const result = await continueNewCourseScorecardImport({
         importId: initialImport.id,
         expectedRevision: initialImport.revision,
         teeMetadata,
-        acknowledgeWarnings: warningPrompts.map((prompt) => prompt.warning),
+        acknowledgeWarnings: warningPrompts.map((prompt) => prompt.id),
+        corrections: Object.keys(teeCorrections).length || Object.keys(holeCorrections).length ? { tees: teeCorrections, holes: holeCorrections } : undefined,
+        excludeTees: [...excludedTees],
       });
       if (result.outcome === "published") {
         router.push(`/courses/${result.handle}`);
@@ -96,6 +123,28 @@ export function CourseImportReview({
 
   return (
     <div className="mt-6 flex max-w-xl flex-col gap-6">
+      <section className="rounded-md border p-4">
+        <h2 className="font-medium">Parsed tees</h2>
+        <div className="mt-3 flex flex-col gap-3">
+          {initialImport.parsed.tees.map((tee) => (
+            <div key={tee.id} className="flex flex-wrap items-center gap-2">
+              <Input aria-label={`${tee.name} tee name`} className="max-w-48" value={teeNames[tee.id] ?? tee.name} onChange={(event) => setTeeNames((current) => ({ ...current, [tee.id]: event.target.value }))} disabled={tee.excluded} />
+              <Input aria-label={`${tee.name} yardages`} className="min-w-64 flex-1" value={teeYardages[tee.id] ?? tee.yardages.join(", ")} onChange={(event) => setTeeYardages((current) => ({ ...current, [tee.id]: event.target.value }))} disabled={tee.excluded} />
+              <Button type="button" variant="outline" size="sm" disabled={tee.excluded || isPending} onClick={() => setExcludedTees((current) => new Set(current).add(tee.id))}>{tee.excluded || excludedTees.has(tee.id) ? "Excluded" : "Exclude"}</Button>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-muted-foreground">Correct names and comma-separated yardages here. Excluded tees will not be published.</p>
+      </section>
+      <section className="rounded-md border p-4">
+        <h2 className="font-medium">Parsed holes</h2>
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {initialImport.parsed.holes.map((hole) => {
+            const value = holes[hole.id] ?? { hole: String(hole.hole), par: String(hole.par), handicap: String(hole.handicap) };
+            return <div key={hole.id} className="flex items-center gap-2 text-sm"><Input aria-label={`Hole ${hole.hole} number`} className="w-16" type="number" value={value.hole} onChange={(event) => setHoles((current) => ({ ...current, [hole.id]: { ...value, hole: event.target.value } }))} /><Input aria-label={`Hole ${hole.hole} par`} className="w-16" type="number" value={value.par} onChange={(event) => setHoles((current) => ({ ...current, [hole.id]: { ...value, par: event.target.value } }))} /><Input aria-label={`Hole ${hole.hole} handicap`} className="w-16" type="number" value={value.handicap} onChange={(event) => setHoles((current) => ({ ...current, [hole.id]: { ...value, handicap: event.target.value } }))} /></div>;
+          })}
+        </div>
+      </section>
       {teePrompts.map((prompt) => {
         const answer = metadata[prompt.id] ?? { rating: "", slope: "" };
         return (

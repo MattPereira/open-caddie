@@ -291,7 +291,7 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
       const document = readDocument(row.document);
       if (input.intent.kind === "cancel") {
         const cancelled = { ...document, audit: [...document.audit, { event: "cancelled" as const, actorId: input.actorId, at: now().toISOString() }] };
-        const result = await db.update(courseScorecardImports).set({ status: "cancelled", document: cancelled, revision: row.revision + 1, expiresAt: null, updatedAt: now(), lastEditedByUserId: input.actorId }).where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.revision, row.revision))).returning();
+        const result = await db.update(courseScorecardImports).set({ status: "cancelled", document: cancelled, revision: row.revision + 1, expiresAt: null, updatedAt: now(), lastEditedByUserId: input.actorId }).where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.status, "paused"), eq(courseScorecardImports.revision, row.revision))).returning();
         if (!result[0]) return { outcome: "rejected", reason: "revision_conflict" };
         return { outcome: "cancelled", import: toView({ ...row, status: "cancelled", document: cancelled, revision: row.revision + 1, expiresAt: null }) };
       }
@@ -308,7 +308,7 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
             parseFailed: false,
             audit: [...document.audit, { event: "retried", actorId: input.actorId, at: now().toISOString() }],
           };
-          const result = await db.update(courseScorecardImports).set({ document: retried, revision: row.revision + 1, expiresAt: new Date(now().getTime() + IMPORT_LIFETIME_MS), updatedAt: now(), lastEditedByUserId: input.actorId }).where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.revision, row.revision))).returning();
+          const result = await db.update(courseScorecardImports).set({ document: retried, revision: row.revision + 1, expiresAt: new Date(now().getTime() + IMPORT_LIFETIME_MS), updatedAt: now(), lastEditedByUserId: input.actorId }).where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.status, "paused"), eq(courseScorecardImports.revision, row.revision))).returning();
           if (!result[0]) return { outcome: "rejected", reason: "revision_conflict" };
           if (await publishNewCourse(result[0])) {
             const [published] = await db.select().from(courseScorecardImports).where(eq(courseScorecardImports.id, row.id)).limit(1);
@@ -320,7 +320,7 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
             ...document,
             audit: [...document.audit, { event: "retry_failed", actorId: input.actorId, at: now().toISOString() }],
           };
-          const result = await db.update(courseScorecardImports).set({ document: failedRetry, revision: row.revision + 1, expiresAt: new Date(now().getTime() + IMPORT_LIFETIME_MS), updatedAt: now(), lastEditedByUserId: input.actorId }).where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.revision, row.revision))).returning();
+          const result = await db.update(courseScorecardImports).set({ document: failedRetry, revision: row.revision + 1, expiresAt: new Date(now().getTime() + IMPORT_LIFETIME_MS), updatedAt: now(), lastEditedByUserId: input.actorId }).where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.status, "paused"), eq(courseScorecardImports.revision, row.revision))).returning();
           if (!result[0]) return { outcome: "rejected", reason: "revision_conflict" };
           return { outcome: "paused", import: toView(result[0]) };
         }
@@ -332,7 +332,7 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
       });
       const updated: ImportDocument = { ...document, tees, acknowledgedWarnings: [...new Set([...(document.acknowledgedWarnings ?? []), ...(resolution.acknowledgeWarnings ?? [])])], audit: [...document.audit, { event: "resolved", actorId: input.actorId, at: now().toISOString() }] };
       const expiresAt = new Date(now().getTime() + IMPORT_LIFETIME_MS);
-      const result = await db.update(courseScorecardImports).set({ document: updated, revision: row.revision + 1, expiresAt, updatedAt: now(), lastEditedByUserId: input.actorId }).where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.revision, row.revision))).returning();
+      const result = await db.update(courseScorecardImports).set({ document: updated, revision: row.revision + 1, expiresAt, updatedAt: now(), lastEditedByUserId: input.actorId }).where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.status, "paused"), eq(courseScorecardImports.revision, row.revision))).returning();
       if (!result[0]) return { outcome: "rejected", reason: "revision_conflict" };
       const updatedRow = result[0];
       if (await publishNewCourse(updatedRow)) {

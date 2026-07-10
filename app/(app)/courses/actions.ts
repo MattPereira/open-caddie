@@ -404,6 +404,22 @@ export async function startNewCourseScorecardImport(
   return { outcome: "rejected", error: result.reason };
 }
 
+export async function startExistingCourseScorecardImport(input: {
+  courseId: number;
+  stagedScorecardImageHandle: string;
+}): Promise<NewCourseImportResult> {
+  const actor = await getCurrentUser();
+  if (!actor) return { outcome: "rejected", error: "forbidden" };
+  const result = await courseScorecardImports.start({
+    actorId: actor.id,
+    target: { kind: "existing", courseId: input.courseId },
+    stagedScorecardImageHandle: input.stagedScorecardImageHandle,
+  });
+  if (result.outcome === "published") return { outcome: "published", handle: result.handle };
+  if (result.outcome === "paused" || result.outcome === "cancelled") return result;
+  return { outcome: "rejected", error: result.reason };
+}
+
 export async function cancelNewCourseScorecardImport(input: {
   importId: string;
   expectedRevision: number;
@@ -431,6 +447,8 @@ export async function continueNewCourseScorecardImport(input: {
     holes?: Record<string, HoleCorrection>;
   };
   excludeTees?: string[];
+  teeResolutions?: Record<string, { kind: "new" } | { kind: "existing"; teeId: number }>;
+  placeholderResolutions?: Record<string, { kind: "keep" } | { kind: "map"; teeId: string }>;
 }): Promise<NewCourseImportResult> {
   const actor = await getCurrentUser();
   if (!actor) return { outcome: "rejected", error: "forbidden" };
@@ -444,6 +462,8 @@ export async function continueNewCourseScorecardImport(input: {
       acknowledgeWarnings: input.acknowledgeWarnings,
       corrections: input.corrections,
       excludeTees: input.excludeTees,
+      teeResolutions: input.teeResolutions,
+      placeholderResolutions: input.placeholderResolutions,
     },
   });
   if (result.outcome === "published") return { outcome: "published", handle: result.handle };

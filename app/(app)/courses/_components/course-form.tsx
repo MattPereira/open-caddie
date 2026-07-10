@@ -35,7 +35,7 @@ import { ImageUploadField } from "@/components/image-upload-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  applyScorecardImageToExistingCourse,
+  startExistingCourseScorecardImport,
   deleteCourse,
   finalizeExistingCourseScorecardTeeMeta,
   type FinalizedScorecardDraft,
@@ -521,34 +521,19 @@ export function CourseForm({ course }: CourseFormProps) {
 
     if (!url) return;
 
-    const result = await applyScorecardImageToExistingCourse({
+    const result = await startExistingCourseScorecardImport({
       courseId: course.id,
-      scorecardImgUrl: url,
+      stagedScorecardImageHandle: url,
     });
-    if (!result.ok) {
+    if (result.outcome === "rejected") {
       form.setError("root.server", {
         type: "server",
         message: result.error,
       });
       return;
     }
-
-    resetSyncedTees(result.tees, result.scorecardImgUrl);
-    if ("needsTeeMeta" in result && result.needsTeeMeta) {
-      setPendingTeeMetaDraft(result.draft);
-      setTeeMetaInputs(
-        result.draft.tees.map((tee) => ({
-          rating: tee.rating != null ? String(tee.rating) : "",
-          slope: tee.slope != null ? String(tee.slope) : "",
-        })),
-      );
-      setTeeMetaError(null);
-    } else {
-      setPendingTeeMetaDraft(null);
-      setTeeMetaInputs([]);
-      setTeeMetaError(null);
-    }
-    router.refresh();
+    if (result.outcome === "paused") router.push(`/courses/imports/${result.import.id}`);
+    if (result.outcome === "published") router.push(`/courses/${result.handle}`);
   };
 
   const onSubmitTeeMeta = () => {

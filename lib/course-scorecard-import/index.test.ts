@@ -68,6 +68,74 @@ describe("Course Scorecard Import", async () => {
     expect(outcome.outcome).toBe("published");
   });
 
+  it("reconciles existing tees by exact name and preserves a kept Placeholder Tee", async () => {
+    const [course] = await db.insert(schema.courses).values({ name: `Existing Course ${actorId}`, handle: `existing-${actorId}` }).returning({ id: schema.courses.id });
+    const [blue] = await db.insert(schema.courseTees).values({ courseId: course.id, name: "Blue", rating: "69", slope: 115 }).returning({ id: schema.courseTees.id });
+    const [placeholder] = await db.insert(schema.courseTees).values({ courseId: course.id, name: "Unknown", rating: "68", slope: 110 }).returning({ id: schema.courseTees.id });
+    const paused = await imports.start({ actorId, target: { kind: "existing", courseId: course.id }, stagedScorecardImageHandle: "existing-image" });
+    expect(paused.outcome).toBe("paused");
+    if (paused.outcome !== "paused") return;
+    expect(paused.import.proposedMatches).toContainEqual(expect.objectContaining({ teeId: "tee:0", kind: "exact", existingTeeIds: [blue.id] }));
+    expect(paused.import.prompts).toContainEqual(expect.objectContaining({ kind: "placeholder_tee", teeId: placeholder.id }));
+    const published = await imports.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "resolve", placeholderResolutions: { [String(placeholder.id)]: { kind: "keep" } } } });
+    expect(published.outcome).toBe("published");
+    const [updatedBlue, keptPlaceholder] = await Promise.all([
+      db.select().from(schema.courseTees).where(eq(schema.courseTees.id, blue.id)),
+      db.select().from(schema.courseTees).where(eq(schema.courseTees.id, placeholder.id)),
+    ]);
+    expect(updatedBlue[0]?.name).toBe("Blue");
+    expect(keptPlaceholder[0]?.name).toBe("Unknown");
+  });
+
+  it("allows an unmatched parsed tee to be explicitly renamed onto an existing tee", async () => {
+    const [course] = await db.insert(schema.courses).values({ name: `Rename Course ${actorId}`, handle: `rename-${actorId}` }).returning({ id: schema.courses.id });
+    const [existing] = await db.insert(schema.courseTees).values({ courseId: course.id, name: "Championship", rating: "69", slope: 115 }).returning({ id: schema.courseTees.id });
+    const renameImports = createCourseScorecardImport({ async parseScorecardImage() { return { scorecard: { tees: [{ name: "Tips", rating: 71.2, slope: 128, yardages: Array.from({ length: 18 }, () => 400) }], holes: [] }, warnings: [] }; } });
+    const paused = await renameImports.start({ actorId, target: { kind: "existing", courseId: course.id }, stagedScorecardImageHandle: "rename-image" });
+    expect(paused.outcome).toBe("paused");
+    if (paused.outcome !== "paused") return;
+    expect(paused.import.proposedMatches[0]).toMatchObject({ kind: "new" });
+    const published = await renameImports.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "resolve", teeResolutions: { "tee:0": { kind: "existing", teeId: existing.id } } } });
+    expect(published.outcome).toBe("published");
+    const tees = await db.select().from(schema.courseTees).where(eq(schema.courseTees.id, existing.id));
+    expect(tees[0]?.name).toBe("Tips");
+  });
+
+  it("uses an exact tee's saved rating and slope when parsing omits them", async () => {
+    const [course] = await db.insert(schema.courses).values({ name: `Metadata Course ${actorId}`, handle: `metadata-${actorId}` }).returning({ id: schema.courses.id });
+    const [blue] = await db.insert(schema.courseTees).values({ courseId: course.id, name: "Blue", rating: "69.4", slope: 117 }).returning({ id: schema.courseTees.id });
+    const metadataImports = createCourseScorecardImport({ async parseScorecardImage() { return { scorecard: { tees: [{ name: "blue", yardages: Array.from({ length: 18 }, () => 400) }], holes: [] }, warnings: [] }; } });
+    const published = await metadataImports.start({ actorId, target: { kind: "existing", courseId: course.id }, stagedScorecardImageHandle: "metadata-image" });
+    expect(published.outcome).toBe("published");
+    const tees = await db.select().from(schema.courseTees).where(eq(schema.courseTees.id, blue.id));
+    expect(tees[0]).toMatchObject({ rating: "69.4", slope: 117 });
+  });
+
+  it("requires explicit resolution for ambiguous names and permits excluding a bad tee", async () => {
+    const [course] = await db.insert(schema.courses).values({ name: `Ambiguous Course ${actorId}`, handle: `ambiguous-${actorId}` }).returning({ id: schema.courses.id });
+    await db.insert(schema.courseTees).values([{ courseId: course.id, name: "Blue", rating: "69", slope: 115 }, { courseId: course.id, name: "blue", rating: "70", slope: 120 }]);
+    const ambiguousImports = createCourseScorecardImport({ async parseScorecardImage() { return { scorecard: { tees: [{ name: "BLUE", rating: 71, slope: 125, yardages: Array.from({ length: 18 }, () => 400) }], holes: [] }, warnings: [] }; } });
+    const ambiguous = await ambiguousImports.start({ actorId, target: { kind: "existing", courseId: course.id }, stagedScorecardImageHandle: "ambiguous-image" });
+    expect(ambiguous.outcome).toBe("paused");
+    if (ambiguous.outcome !== "paused") return;
+    expect(ambiguous.import.prompts).toContainEqual(expect.objectContaining({ kind: "tee_match", teeName: "BLUE" }));
+    const excluded = await ambiguousImports.continue({ actorId, importId: ambiguous.import.id, expectedRevision: ambiguous.import.revision, intent: { kind: "resolve", excludeTees: ["tee:0"] } });
+    expect(excluded.outcome).toBe("published");
+  });
+
+  it("maps a parsed new tee onto the Placeholder Tee without replacing its identity", async () => {
+    const [course] = await db.insert(schema.courses).values({ name: `Map Course ${actorId}`, handle: `map-${actorId}` }).returning({ id: schema.courses.id });
+    const [placeholder] = await db.insert(schema.courseTees).values({ courseId: course.id, name: "Unknown", rating: "68", slope: 110 }).returning({ id: schema.courseTees.id });
+    const mapImports = createCourseScorecardImport({ async parseScorecardImage() { return { scorecard: { tees: [{ name: "Gold", rating: 71, slope: 125, yardages: Array.from({ length: 18 }, () => 400) }], holes: [] }, warnings: [] }; } });
+    const paused = await mapImports.start({ actorId, target: { kind: "existing", courseId: course.id }, stagedScorecardImageHandle: "map-image" });
+    expect(paused.outcome).toBe("paused");
+    if (paused.outcome !== "paused") return;
+    const published = await mapImports.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "resolve", placeholderResolutions: { [String(placeholder.id)]: { kind: "map", teeId: "tee:0" } } } });
+    expect(published.outcome).toBe("published");
+    const tees = await db.select().from(schema.courseTees).where(eq(schema.courseTees.id, placeholder.id));
+    expect(tees[0]).toMatchObject({ id: placeholder.id, name: "Gold" });
+  });
+
   it("pauses missing tee metadata and publishes after resolution", async () => {
     const missingMetadataImport = createCourseScorecardImport({
       async parseScorecardImage() {

@@ -16,6 +16,14 @@ import {
   replaceNewCourseScorecardImport,
 } from "../actions";
 
+function selectedExistingTeeId(value: { kind: "new" } | { kind: "existing"; teeId: number } | undefined) {
+  return value?.kind === "existing" ? String(value.teeId) : "new";
+}
+
+function selectedPlaceholderTeeId(value: { kind: "keep" } | { kind: "map"; teeId: string } | undefined) {
+  return value?.kind === "map" ? value.teeId : "keep";
+}
+
 export function CourseImportReview({
   initialImport,
 }: {
@@ -28,6 +36,8 @@ export function CourseImportReview({
   const [teeYardages, setTeeYardages] = useState<Record<string, string>>({});
   const [holes, setHoles] = useState<Record<string, { hole: string; par: string; handicap: string }>>({});
   const [excludedTees, setExcludedTees] = useState<Set<string>>(() => new Set());
+  const [teeResolutions, setTeeResolutions] = useState<Record<string, { kind: "new" } | { kind: "existing"; teeId: number }>>({});
+  const [placeholderResolutions, setPlaceholderResolutions] = useState<Record<string, { kind: "keep" } | { kind: "map"; teeId: string }>>({});
   const [error, setError] = useState<string | null>(null);
   const teePrompts = initialImport.prompts.filter(
     (prompt): prompt is Extract<typeof prompt, { kind: "tee_metadata" }> => prompt.kind === "tee_metadata",
@@ -37,6 +47,12 @@ export function CourseImportReview({
   );
   const needsParseRetry = initialImport.prompts.some(
     (prompt) => prompt.kind === "retry_parsing",
+  );
+  const matchPrompts = initialImport.prompts.filter(
+    (prompt): prompt is Extract<typeof prompt, { kind: "tee_match" }> => prompt.kind === "tee_match",
+  );
+  const placeholderPrompts = initialImport.prompts.filter(
+    (prompt): prompt is Extract<typeof prompt, { kind: "placeholder_tee" }> => prompt.kind === "placeholder_tee",
   );
 
   const submit = () => {
@@ -80,6 +96,8 @@ export function CourseImportReview({
         acknowledgeWarnings: warningPrompts.map((prompt) => prompt.id),
         corrections: Object.keys(teeCorrections).length || Object.keys(holeCorrections).length ? { tees: teeCorrections, holes: holeCorrections } : undefined,
         excludeTees: [...excludedTees],
+        teeResolutions,
+        placeholderResolutions,
       });
       if (result.outcome === "published") {
         router.push(`/courses/${result.handle}`);
@@ -158,6 +176,24 @@ export function CourseImportReview({
         </div>
         <p className="mt-3 text-xs text-muted-foreground">Correct names and comma-separated yardages here. Excluded tees will not be published.</p>
       </section>
+      {matchPrompts.map((prompt) => (
+        <section key={prompt.id} className="rounded-md border p-4">
+          <Label htmlFor={prompt.id}>Match {prompt.teeName}</Label>
+          <select id={prompt.id} className="mt-2 h-9 w-full rounded-md border bg-background px-3 text-sm" value={selectedExistingTeeId(teeResolutions[`tee:${prompt.teeIndex}`])} onChange={(event) => setTeeResolutions((current) => ({ ...current, [`tee:${prompt.teeIndex}`]: event.target.value === "new" ? { kind: "new" } : { kind: "existing", teeId: Number(event.target.value) } }))}>
+            <option value="new">Create new tee</option>
+            {prompt.existingTeeIds.map((id) => <option key={id} value={id}>Existing tee #{id}</option>)}
+          </select>
+        </section>
+      ))}
+      {placeholderPrompts.map((prompt) => (
+        <section key={prompt.id} className="rounded-md border p-4">
+          <Label htmlFor={prompt.id}>Placeholder Tee #{prompt.teeId}</Label>
+          <select id={prompt.id} className="mt-2 h-9 w-full rounded-md border bg-background px-3 text-sm" value={selectedPlaceholderTeeId(placeholderResolutions[String(prompt.teeId)])} onChange={(event) => setPlaceholderResolutions((current) => ({ ...current, [String(prompt.teeId)]: event.target.value === "keep" ? { kind: "keep" } : { kind: "map", teeId: event.target.value } }))}>
+            <option value="keep">Keep unchanged</option>
+            {initialImport.parsed.tees.filter((tee) => !tee.excluded).map((tee) => <option key={tee.id} value={tee.id}>Map to {tee.name}</option>)}
+          </select>
+        </section>
+      ))}
       <section className="rounded-md border p-4">
         <h2 className="font-medium">Parsed holes</h2>
         <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">

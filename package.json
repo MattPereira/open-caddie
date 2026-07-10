@@ -10,7 +10,7 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "test:integration": "dotenv -e .env.test -- pnpm db:migrate && vitest run",
+    "test:integration": "dotenv -e .env.test -- bash -c 'pnpm db:migrate && vitest run'",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",

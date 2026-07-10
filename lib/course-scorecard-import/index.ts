@@ -25,6 +25,7 @@ type ImportDocument = {
   holes: ParsedHole[];
   warnings: string[];
   acknowledgedWarnings: string[];
+  parseFailed: boolean;
   audit: Array<{ event: "started" | "resolved" | "published" | "cancelled"; actorId: string; at: string }>;
 };
 
@@ -37,6 +38,7 @@ export type CourseScorecardImportView = {
   prompts: Array<
     | { id: string; kind: "tee_metadata"; teeIndex: number; teeName: string }
     | { id: string; kind: "warning_acknowledgement"; warning: string }
+    | { id: "retry:parsing"; kind: "retry_parsing" }
   >;
 };
 
@@ -59,6 +61,7 @@ export type ContinueCourseScorecardImportInput = {
   expectedRevision: number;
   intent:
     | { kind: "cancel" }
+    | { kind: "retry_parsing" }
     | {
         kind: "resolve";
         teeMetadata?: Record<string, { rating: number; slope: number }>;
@@ -99,7 +102,13 @@ function promptsFor(document: ImportDocument): CourseScorecardImportView["prompt
       kind: "warning_acknowledgement" as const,
       warning,
     }));
-  return [...metadata, ...warnings];
+  return [
+    ...metadata,
+    ...warnings,
+    ...(document.parseFailed
+      ? [{ id: "retry:parsing" as const, kind: "retry_parsing" as const }]
+      : []),
+  ];
 }
 
 function toView(row: {
@@ -233,7 +242,7 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
       }
       const id = crypto.randomUUID();
       const expiresAt = new Date(now().getTime() + IMPORT_LIFETIME_MS);
-      const initialDocument: ImportDocument = { version: IMPORT_DOCUMENT_VERSION, name, tees: [], holes: [], warnings: [], acknowledgedWarnings: [], audit: [{ event: "started", actorId: input.actorId, at: now().toISOString() }] };
+      const initialDocument: ImportDocument = { version: IMPORT_DOCUMENT_VERSION, name, tees: [], holes: [], warnings: [], acknowledgedWarnings: [], parseFailed: false, audit: [{ event: "started", actorId: input.actorId, at: now().toISOString() }] };
       try {
         await db.insert(courseScorecardImports).values({ id, targetKind: "new", reservedHandle: handle, stagedScorecardImageHandle: input.stagedScorecardImageHandle, stagedCourseImageHandle: input.stagedCourseImageHandle ?? null, status: "paused", revision: 0, document: initialDocument, createdByUserId: input.actorId, lastEditedByUserId: input.actorId, expiresAt });
       } catch (error) {
@@ -246,6 +255,7 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
         await db.update(courseScorecardImports).set({ document, revision: 1, updatedAt: now(), expiresAt }).where(eq(courseScorecardImports.id, id));
       } catch {
         // The persisted empty draft is intentionally inspectable and retryable.
+        await db.update(courseScorecardImports).set({ document: { ...initialDocument, parseFailed: true }, revision: 1, updatedAt: now(), expiresAt }).where(eq(courseScorecardImports.id, id));
       }
       const [row] = await db.select().from(courseScorecardImports).where(eq(courseScorecardImports.id, id)).limit(1);
       if (!row) throw new Error("Course Scorecard Import disappeared after creation");
@@ -278,6 +288,28 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
         const result = await db.update(courseScorecardImports).set({ status: "cancelled", document: cancelled, revision: row.revision + 1, expiresAt: null, updatedAt: now(), lastEditedByUserId: input.actorId }).where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.revision, row.revision))).returning();
         if (!result[0]) return { outcome: "rejected", reason: "revision_conflict" };
         return { outcome: "cancelled", import: toView({ ...row, status: "cancelled", document: cancelled, revision: row.revision + 1, expiresAt: null }) };
+      }
+      if (input.intent.kind === "retry_parsing") {
+        try {
+          const parsed = await deps.parseScorecardImage(row.stagedScorecardImageHandle);
+          const retried: ImportDocument = {
+            ...document,
+            tees: parsed.scorecard.tees.map(({ name, color, rating, slope, yardages }) => ({ name, color, rating, slope, yardages })),
+            holes: parsed.scorecard.holes,
+            warnings: parsed.warnings,
+            acknowledgedWarnings: [],
+            parseFailed: false,
+          };
+          const result = await db.update(courseScorecardImports).set({ document: retried, revision: row.revision + 1, expiresAt: new Date(now().getTime() + IMPORT_LIFETIME_MS), updatedAt: now(), lastEditedByUserId: input.actorId }).where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.revision, row.revision))).returning();
+          if (!result[0]) return { outcome: "rejected", reason: "revision_conflict" };
+          if (await publishNewCourse(result[0])) {
+            const [published] = await db.select().from(courseScorecardImports).where(eq(courseScorecardImports.id, row.id)).limit(1);
+            return { outcome: "published", import: toView(published!), handle: row.reservedHandle! };
+          }
+          return { outcome: "paused", import: toView(result[0]) };
+        } catch {
+          return { outcome: "paused", import: toView(row) };
+        }
       }
       const resolution = input.intent;
       const tees = document.tees.map((tee, index) => {

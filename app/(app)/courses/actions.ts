@@ -428,6 +428,23 @@ export async function continueNewCourseScorecardImport(input: {
   return { outcome: "rejected", error: result.reason };
 }
 
+export async function retryNewCourseScorecardImport(input: {
+  importId: string;
+  expectedRevision: number;
+}): Promise<NewCourseImportResult> {
+  const actor = await getCurrentUser();
+  if (!actor) return { outcome: "rejected", error: "forbidden" };
+  const result = await courseScorecardImports.continue({
+    actorId: actor.id,
+    importId: input.importId,
+    expectedRevision: input.expectedRevision,
+    intent: { kind: "retry_parsing" },
+  });
+  if (result.outcome === "published") return { outcome: "published", handle: result.handle };
+  if (result.outcome === "paused" || result.outcome === "cancelled") return result;
+  return { outcome: "rejected", error: result.reason };
+}
+
 export async function inspectNewCourseScorecardImport(
   importId: string,
 ): Promise<NewCourseImportResult> {

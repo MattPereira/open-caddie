@@ -11,6 +11,7 @@ import type { CourseScorecardImportView } from "@/lib/course-scorecard-import";
 import {
   cancelNewCourseScorecardImport,
   continueNewCourseScorecardImport,
+  retryNewCourseScorecardImport,
 } from "../actions";
 
 export function CourseImportReview({
@@ -27,6 +28,9 @@ export function CourseImportReview({
   );
   const warningPrompts = initialImport.prompts.filter(
     (prompt): prompt is Extract<typeof prompt, { kind: "warning_acknowledgement" }> => prompt.kind === "warning_acknowledgement",
+  );
+  const needsParseRetry = initialImport.prompts.some(
+    (prompt) => prompt.kind === "retry_parsing",
   );
 
   const submit = () => {
@@ -72,6 +76,24 @@ export function CourseImportReview({
     });
   };
 
+  const retryParsing = () => {
+    startTransition(async () => {
+      const result = await retryNewCourseScorecardImport({
+        importId: initialImport.id,
+        expectedRevision: initialImport.revision,
+      });
+      if (result.outcome === "published") {
+        router.push(`/courses/${result.handle}`);
+        return;
+      }
+      if (result.outcome === "paused") {
+        router.refresh();
+        return;
+      }
+      setError(result.outcome === "rejected" ? result.error : "Could not retry parsing.");
+    });
+  };
+
   return (
     <div className="mt-6 flex max-w-xl flex-col gap-6">
       {teePrompts.map((prompt) => {
@@ -87,8 +109,9 @@ export function CourseImportReview({
         );
       })}
       {warningPrompts.length > 0 ? <p className="rounded-md border border-amber-400/50 bg-amber-50 p-3 text-sm text-amber-900">Submitting acknowledges {warningPrompts.length} scorecard warning(s).</p> : null}
+      {needsParseRetry ? <p className="rounded-md border border-amber-400/50 bg-amber-50 p-3 text-sm text-amber-900">The scorecard could not be parsed. Retry after confirming the image is available.</p> : null}
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <div className="flex gap-3"><Button onClick={submit} disabled={isPending}>{isPending ? <><Spinner /> Saving…</> : "Publish course"}</Button><Button variant="outline" onClick={cancel} disabled={isPending}>Cancel import</Button></div>
+      <div className="flex gap-3">{needsParseRetry ? <Button onClick={retryParsing} disabled={isPending}>{isPending ? <><Spinner /> Retrying…</> : "Retry parsing"}</Button> : <Button onClick={submit} disabled={isPending}>{isPending ? <><Spinner /> Saving…</> : "Publish course"}</Button>}<Button variant="outline" onClick={cancel} disabled={isPending}>Cancel import</Button></div>
     </div>
   );
 }

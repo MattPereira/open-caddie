@@ -26,7 +26,7 @@ type ImportDocument = {
   warnings: string[];
   acknowledgedWarnings: string[];
   parseFailed: boolean;
-  audit: Array<{ event: "started" | "resolved" | "published" | "cancelled"; actorId: string; at: string }>;
+  audit: Array<{ event: "started" | "resolved" | "retried" | "retry_failed" | "published" | "cancelled"; actorId: string; at: string }>;
 };
 
 export type CourseScorecardImportView = {
@@ -168,7 +168,13 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
   }) {
     const document = readDocument(row.document);
     if (!row.reservedHandle || promptsFor(document).length || !validNewCourseScorecard(document)) return false;
-    await db.transaction(async (tx) => {
+    return db.transaction(async (tx) => {
+      const [lockedImport] = await tx
+        .select({ status: courseScorecardImports.status })
+        .from(courseScorecardImports)
+        .where(eq(courseScorecardImports.id, row.id))
+        .for("update");
+      if (lockedImport?.status !== "paused") return false;
       const [course] = await tx
         .insert(courses)
         .values({
@@ -202,9 +208,9 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
       await tx
         .update(courseScorecardImports)
         .set({ status: "published", expiresAt: null, publishedAt: now(), updatedAt: now(), document: { ...document, audit: [...document.audit, { event: "published", actorId: "system", at: now().toISOString() }] } })
-        .where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.status, "paused")));
+        .where(eq(courseScorecardImports.id, row.id));
+      return true;
     });
-    return true;
   }
 
   async function expireIfInactive(row: {
@@ -290,6 +296,7 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
         return { outcome: "cancelled", import: toView({ ...row, status: "cancelled", document: cancelled, revision: row.revision + 1, expiresAt: null }) };
       }
       if (input.intent.kind === "retry_parsing") {
+        if (!document.parseFailed) return { outcome: "rejected", reason: "invalid_resolution" };
         try {
           const parsed = await deps.parseScorecardImage(row.stagedScorecardImageHandle);
           const retried: ImportDocument = {
@@ -299,6 +306,7 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
             warnings: parsed.warnings,
             acknowledgedWarnings: [],
             parseFailed: false,
+            audit: [...document.audit, { event: "retried", actorId: input.actorId, at: now().toISOString() }],
           };
           const result = await db.update(courseScorecardImports).set({ document: retried, revision: row.revision + 1, expiresAt: new Date(now().getTime() + IMPORT_LIFETIME_MS), updatedAt: now(), lastEditedByUserId: input.actorId }).where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.revision, row.revision))).returning();
           if (!result[0]) return { outcome: "rejected", reason: "revision_conflict" };
@@ -308,7 +316,13 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
           }
           return { outcome: "paused", import: toView(result[0]) };
         } catch {
-          return { outcome: "paused", import: toView(row) };
+          const failedRetry: ImportDocument = {
+            ...document,
+            audit: [...document.audit, { event: "retry_failed", actorId: input.actorId, at: now().toISOString() }],
+          };
+          const result = await db.update(courseScorecardImports).set({ document: failedRetry, revision: row.revision + 1, expiresAt: new Date(now().getTime() + IMPORT_LIFETIME_MS), updatedAt: now(), lastEditedByUserId: input.actorId }).where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.revision, row.revision))).returning();
+          if (!result[0]) return { outcome: "rejected", reason: "revision_conflict" };
+          return { outcome: "paused", import: toView(result[0]) };
         }
       }
       const resolution = input.intent;

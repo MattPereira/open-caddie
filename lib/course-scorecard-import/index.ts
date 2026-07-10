@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, lte } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
@@ -35,7 +35,7 @@ type ImportDocument = {
   acknowledgedWarnings: string[];
   excludedTeeIndexes: number[];
   parseFailed: boolean;
-  audit: Array<{ event: "started" | "resolved" | "retried" | "retry_failed" | "published" | "cancelled"; actorId: string; at: string }>;
+  audit: Array<{ event: "started" | "resolved" | "retried" | "retry_failed" | "replaced_image" | "published" | "cancelled"; actorId: string; at: string }>;
 };
 
 export type CourseScorecardImportView = {
@@ -49,7 +49,7 @@ export type CourseScorecardImportView = {
     holes: Array<ParsedHole & { id: string }>;
   };
   proposedMatches: [];
-  allowedIntents: Array<"resolve" | "cancel" | "retry_parsing">;
+  allowedIntents: Array<"resolve" | "cancel" | "retry_parsing" | "replace_scorecard_image">;
   prompts: Array<
     | { id: string; kind: "tee_metadata"; teeIndex: number; teeName: string }
     | { id: string; kind: "tee_validation"; teeIndex: number; teeName: string }
@@ -57,6 +57,7 @@ export type CourseScorecardImportView = {
     | { id: "course:holes:validation"; kind: "course_holes_validation" }
     | { id: string; kind: "warning_acknowledgement"; warning: string }
     | { id: "retry:parsing"; kind: "retry_parsing" }
+    | { id: "replace:scorecard-image"; kind: "replace_scorecard_image" }
   >;
 };
 
@@ -80,6 +81,7 @@ export type ContinueCourseScorecardImportInput = {
   intent:
     | { kind: "cancel" }
     | { kind: "retry_parsing" }
+    | { kind: "replace_scorecard_image"; stagedScorecardImageHandle: string }
     | {
         kind: "resolve";
         teeMetadata?: Record<string, { rating: number; slope: number }>;
@@ -98,6 +100,7 @@ export type ScorecardImportDependencies = {
     warnings: string[];
   }>;
   now?: () => Date;
+  deleteStagedImage?: (handle: string) => Promise<boolean>;
 };
 
 function promptIdForTee(index: number) {
@@ -159,7 +162,10 @@ function promptsFor(document: ImportDocument): CourseScorecardImportView["prompt
     ...courseHoleValidation,
     ...warnings,
     ...(document.parseFailed
-      ? [{ id: "retry:parsing" as const, kind: "retry_parsing" as const }]
+      ? [
+          { id: "retry:parsing" as const, kind: "retry_parsing" as const },
+          { id: "replace:scorecard-image" as const, kind: "replace_scorecard_image" as const },
+        ]
       : []),
   ];
 }
@@ -184,7 +190,11 @@ function toView(row: {
       holes: document.holes.map((hole, index) => ({ ...hole, id: holeIdFor(index) })),
     },
     proposedMatches: [],
-    allowedIntents: row.status === "paused" ? ["resolve", "cancel", ...(document.parseFailed ? ["retry_parsing" as const] : [])] : [],
+    allowedIntents: row.status !== "paused"
+      ? []
+      : document.parseFailed
+        ? ["cancel", "retry_parsing", "replace_scorecard_image"]
+        : ["resolve", "cancel"],
     prompts: row.status === "paused" ? promptsFor(document) : [],
   };
 }
@@ -239,6 +249,7 @@ function validNewCourseScorecard(document: ImportDocument) {
 
 export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
   const now = deps.now ?? (() => new Date());
+  const deleteStagedImage = deps.deleteStagedImage ?? (async () => true);
 
   async function administrator(actorId: string) {
     const [actor] = await db
@@ -247,6 +258,24 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
       .where(and(eq(users.id, actorId), eq(users.isAdmin, true)))
       .limit(1);
     return actor != null;
+  }
+
+  function cancellationUpdate(document: ImportDocument, actorId: string, handles: Array<string | null>, pendingHandles: string[]) {
+    return {
+      document: {
+        ...document,
+        tees: [],
+        holes: [],
+        warnings: [],
+        acknowledgedWarnings: [],
+        excludedTeeIndexes: [],
+        parseFailed: false,
+        audit: [...document.audit, { event: "cancelled" as const, actorId, at: now().toISOString() }],
+      } satisfies ImportDocument,
+      stagedImageDeletionHandles: [...pendingHandles, ...handles.filter((handle): handle is string => Boolean(handle))],
+      stagedScorecardImageHandle: "",
+      stagedCourseImageHandle: null,
+    };
   }
 
   async function publishNewCourse(row: {
@@ -309,24 +338,45 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
     id: string;
     status: "paused" | "published" | "cancelled";
     expiresAt: Date | null;
+    stagedScorecardImageHandle: string;
+    stagedCourseImageHandle: string | null;
+    stagedImageDeletionHandles: string[];
     document: unknown;
   }) {
     if (row.status !== "paused" || !row.expiresAt || row.expiresAt > now()) return false;
     const document = readDocument(row.document);
-    const expired = {
-      ...document,
-      audit: [...document.audit, { event: "cancelled" as const, actorId: "system", at: now().toISOString() }],
-    };
+    const cancellation = cancellationUpdate(document, "system", [row.stagedScorecardImageHandle, row.stagedCourseImageHandle], row.stagedImageDeletionHandles ?? []);
     await db
       .update(courseScorecardImports)
-      .set({ status: "cancelled", document: expired, expiresAt: null, updatedAt: now() })
+      .set({ status: "cancelled", ...cancellation, expiresAt: null, updatedAt: now() })
       .where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.status, "paused"), eq(courseScorecardImports.expiresAt, row.expiresAt)));
     return true;
+  }
+
+  async function cleanupExpiredAndStagedImages() {
+    const expired = await db.select().from(courseScorecardImports).where(and(eq(courseScorecardImports.status, "paused"), lte(courseScorecardImports.expiresAt, now())));
+    for (const row of expired) await expireIfInactive(row);
+
+    const imports = await db.select().from(courseScorecardImports);
+    for (const row of imports) {
+      const pending = row.stagedImageDeletionHandles ?? [];
+      if (!pending.length) continue;
+      const remaining: string[] = [];
+      for (const handle of pending) {
+        try {
+          if (!(await deleteStagedImage(handle))) remaining.push(handle);
+        } catch {
+          remaining.push(handle);
+        }
+      }
+      await db.update(courseScorecardImports).set({ stagedImageDeletionHandles: remaining, updatedAt: now() }).where(eq(courseScorecardImports.id, row.id));
+    }
   }
 
   return {
     async start(input: StartCourseScorecardImportInput): Promise<ImportOutcome> {
       if (!(await administrator(input.actorId))) return { outcome: "rejected", reason: "forbidden" };
+      await cleanupExpiredAndStagedImages();
       const name = input.target.name.trim();
       const handle = courseHandleFromName(name);
       if (!name || !handle || !input.stagedScorecardImageHandle) return { outcome: "rejected", reason: "invalid_input" };
@@ -366,6 +416,7 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
 
     async inspect({ actorId, importId }: { actorId: string; importId: string }): Promise<ImportOutcome> {
       if (!(await administrator(actorId))) return { outcome: "rejected", reason: "forbidden" };
+      await cleanupExpiredAndStagedImages();
       const [row] = await db.select().from(courseScorecardImports).where(eq(courseScorecardImports.id, importId)).limit(1);
       if (!row || row.status !== "paused" || !row.expiresAt) return { outcome: "rejected", reason: "missing_or_expired_import" };
       if (await expireIfInactive(row)) return { outcome: "rejected", reason: "missing_or_expired_import" };
@@ -376,16 +427,18 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
 
     async continue(input: ContinueCourseScorecardImportInput): Promise<ImportOutcome> {
       if (!(await administrator(input.actorId))) return { outcome: "rejected", reason: "forbidden" };
+      await cleanupExpiredAndStagedImages();
       const [row] = await db.select().from(courseScorecardImports).where(eq(courseScorecardImports.id, input.importId)).limit(1);
       if (!row || row.status !== "paused" || !row.expiresAt) return { outcome: "rejected", reason: "missing_or_expired_import" };
       if (await expireIfInactive(row)) return { outcome: "rejected", reason: "missing_or_expired_import" };
       if (row.revision !== input.expectedRevision) return { outcome: "rejected", reason: "revision_conflict" };
       const document = readDocument(row.document);
       if (input.intent.kind === "cancel") {
-        const cancelled = { ...document, audit: [...document.audit, { event: "cancelled" as const, actorId: input.actorId, at: now().toISOString() }] };
-        const result = await db.update(courseScorecardImports).set({ status: "cancelled", document: cancelled, revision: row.revision + 1, expiresAt: null, updatedAt: now(), lastEditedByUserId: input.actorId }).where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.status, "paused"), eq(courseScorecardImports.revision, row.revision))).returning();
+        const cancellation = cancellationUpdate(document, input.actorId, [row.stagedScorecardImageHandle, row.stagedCourseImageHandle], row.stagedImageDeletionHandles ?? []);
+        const result = await db.update(courseScorecardImports).set({ status: "cancelled", ...cancellation, revision: row.revision + 1, expiresAt: null, updatedAt: now(), lastEditedByUserId: input.actorId }).where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.status, "paused"), eq(courseScorecardImports.revision, row.revision))).returning();
         if (!result[0]) return { outcome: "rejected", reason: "revision_conflict" };
-        return { outcome: "cancelled", import: toView({ ...row, status: "cancelled", document: cancelled, revision: row.revision + 1, expiresAt: null }) };
+        await cleanupExpiredAndStagedImages();
+        return { outcome: "cancelled", import: toView({ ...row, status: "cancelled", document: cancellation.document, revision: row.revision + 1, expiresAt: null }) };
       }
       if (input.intent.kind === "retry_parsing") {
         if (!document.parseFailed) return { outcome: "rejected", reason: "invalid_resolution" };
@@ -417,6 +470,44 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
           return { outcome: "paused", import: toView(result[0]) };
         }
       }
+      if (input.intent.kind === "replace_scorecard_image") {
+        if (!document.parseFailed || !input.intent.stagedScorecardImageHandle) return { outcome: "rejected", reason: "invalid_resolution" };
+        try {
+          const parsed = await deps.parseScorecardImage(input.intent.stagedScorecardImageHandle);
+          const replaced: ImportDocument = {
+            ...document,
+            tees: parsed.scorecard.tees.map(({ name, color, rating, slope, yardages }) => ({ name, color, rating, slope, yardages })),
+            holes: parsed.scorecard.holes,
+            warnings: parsed.warnings,
+            acknowledgedWarnings: [],
+            excludedTeeIndexes: [],
+            parseFailed: false,
+            audit: [...document.audit, { event: "replaced_image", actorId: input.actorId, at: now().toISOString() }],
+          };
+          const result = await db.update(courseScorecardImports).set({ stagedScorecardImageHandle: input.intent.stagedScorecardImageHandle, stagedImageDeletionHandles: [...(row.stagedImageDeletionHandles ?? []), row.stagedScorecardImageHandle], document: replaced, revision: row.revision + 1, expiresAt: new Date(now().getTime() + IMPORT_LIFETIME_MS), updatedAt: now(), lastEditedByUserId: input.actorId }).where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.status, "paused"), eq(courseScorecardImports.revision, row.revision))).returning();
+          if (!result[0]) return { outcome: "rejected", reason: "revision_conflict" };
+          if (await publishNewCourse(result[0])) {
+            const [published] = await db.select().from(courseScorecardImports).where(eq(courseScorecardImports.id, row.id)).limit(1);
+            return { outcome: "published", import: toView(published!), handle: row.reservedHandle! };
+          }
+          return { outcome: "paused", import: toView(result[0]) };
+        } catch {
+          const failedReplacement: ImportDocument = {
+            ...document,
+            tees: [],
+            holes: [],
+            warnings: [],
+            acknowledgedWarnings: [],
+            excludedTeeIndexes: [],
+            parseFailed: true,
+            audit: [...document.audit, { event: "replaced_image", actorId: input.actorId, at: now().toISOString() }],
+          };
+          const result = await db.update(courseScorecardImports).set({ stagedScorecardImageHandle: input.intent.stagedScorecardImageHandle, stagedImageDeletionHandles: [...(row.stagedImageDeletionHandles ?? []), row.stagedScorecardImageHandle], document: failedReplacement, revision: row.revision + 1, expiresAt: new Date(now().getTime() + IMPORT_LIFETIME_MS), updatedAt: now(), lastEditedByUserId: input.actorId }).where(and(eq(courseScorecardImports.id, row.id), eq(courseScorecardImports.status, "paused"), eq(courseScorecardImports.revision, row.revision))).returning();
+          if (!result[0]) return { outcome: "rejected", reason: "revision_conflict" };
+          return { outcome: "paused", import: toView(result[0]) };
+        }
+      }
+      if (document.parseFailed) return { outcome: "rejected", reason: "invalid_resolution" };
       const resolution = input.intent;
       const teeCorrections = resolution.corrections?.tees ?? {};
       const holeCorrections = resolution.corrections?.holes ?? {};
@@ -455,6 +546,17 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
         return { outcome: "published", import: toView(published!), handle: row.reservedHandle! };
       }
       return { outcome: "paused", import: toView(updatedRow) };
+    },
+
+    async cleanup({ actorId }: { actorId: string }) {
+      if (!(await administrator(actorId))) return { outcome: "rejected" as const, reason: "forbidden" };
+      await cleanupExpiredAndStagedImages();
+      return { outcome: "cleaned" as const };
+    },
+
+    async cleanupSystem() {
+      await cleanupExpiredAndStagedImages();
+      return { outcome: "cleaned" as const };
     },
   };
 }

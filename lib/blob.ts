@@ -11,10 +11,12 @@ export function isVercelBlobUrl(url: string | null | undefined): url is string {
 }
 
 export async function safeDeleteBlob(url: string | null | undefined) {
-  if (!isVercelBlobUrl(url)) return;
+  if (!isVercelBlobUrl(url)) return true;
   try {
     await del(url);
+    return true;
   } catch (error) {
     console.error("safeDeleteBlob failed", { url, error });
+    return false;
   }
 }

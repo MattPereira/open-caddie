@@ -366,7 +366,22 @@ const courseScorecardImports = createCourseScorecardImport({
     const parsed = await parseScorecardImage(image.buffer, image.mediaType);
     return { scorecard: parsed.parsed, warnings: parsed.sumChecks };
   },
+  async deleteStagedImage(handle) {
+    return safeDeleteBlob(handle);
+  },
 });
+
+/** Authenticated maintenance entrypoint; invoke daily from the scheduler. */
+export async function cleanupExpiredCourseScorecardImports() {
+  const actor = await getCurrentUser();
+  if (!actor) return { outcome: "rejected" as const, error: "forbidden" };
+  const result = await courseScorecardImports.cleanup({ actorId: actor.id });
+  return result.outcome === "cleaned" ? result : { outcome: "rejected" as const, error: result.reason };
+}
+
+export async function cleanupExpiredCourseScorecardImportsFromScheduler() {
+  return courseScorecardImports.cleanupSystem();
+}
 
 export async function startNewCourseScorecardImport(
   values: CourseCreateInputValues,
@@ -448,6 +463,24 @@ export async function retryNewCourseScorecardImport(input: {
     importId: input.importId,
     expectedRevision: input.expectedRevision,
     intent: { kind: "retry_parsing" },
+  });
+  if (result.outcome === "published") return { outcome: "published", handle: result.handle };
+  if (result.outcome === "paused" || result.outcome === "cancelled") return result;
+  return { outcome: "rejected", error: result.reason };
+}
+
+export async function replaceNewCourseScorecardImport(input: {
+  importId: string;
+  expectedRevision: number;
+  stagedScorecardImageHandle: string;
+}): Promise<NewCourseImportResult> {
+  const actor = await getCurrentUser();
+  if (!actor) return { outcome: "rejected", error: "forbidden" };
+  const result = await courseScorecardImports.continue({
+    actorId: actor.id,
+    importId: input.importId,
+    expectedRevision: input.expectedRevision,
+    intent: { kind: "replace_scorecard_image", stagedScorecardImageHandle: input.stagedScorecardImageHandle },
   });
   if (result.outcome === "published") return { outcome: "published", handle: result.handle };
   if (result.outcome === "paused" || result.outcome === "cancelled") return result;

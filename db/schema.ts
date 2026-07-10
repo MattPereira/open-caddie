@@ -148,6 +148,10 @@ export const courseScorecardImports = pgTable(
     }),
     stagedScorecardImageHandle: text("staged_scorecard_image_handle").notNull(),
     stagedCourseImageHandle: text("staged_course_image_handle"),
+    stagedImageDeletionHandles: jsonb("staged_image_deletion_handles")
+      .$type<string[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
     status: text("status").$type<CourseScorecardImportStatus>().notNull(),
     revision: integer("revision").notNull().default(0),
     document: jsonb("document").notNull(),

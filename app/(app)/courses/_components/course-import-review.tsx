@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { ImageUploadField } from "@/components/image-upload-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
@@ -12,6 +13,7 @@ import {
   cancelNewCourseScorecardImport,
   continueNewCourseScorecardImport,
   retryNewCourseScorecardImport,
+  replaceNewCourseScorecardImport,
 } from "../actions";
 
 export function CourseImportReview({
@@ -121,6 +123,26 @@ export function CourseImportReview({
     });
   };
 
+  const replaceScorecardImage = (stagedScorecardImageHandle: string | null) => {
+    if (!stagedScorecardImageHandle) return;
+    startTransition(async () => {
+      const result = await replaceNewCourseScorecardImport({
+        importId: initialImport.id,
+        expectedRevision: initialImport.revision,
+        stagedScorecardImageHandle,
+      });
+      if (result.outcome === "published") {
+        router.push(`/courses/${result.handle}`);
+        return;
+      }
+      if (result.outcome === "paused") {
+        router.refresh();
+        return;
+      }
+      setError(result.outcome === "rejected" ? result.error : "Could not replace scorecard image.");
+    });
+  };
+
   return (
     <div className="mt-6 flex max-w-xl flex-col gap-6">
       <section className="rounded-md border p-4">
@@ -158,7 +180,7 @@ export function CourseImportReview({
         );
       })}
       {warningPrompts.length > 0 ? <p className="rounded-md border border-amber-400/50 bg-amber-50 p-3 text-sm text-amber-900">Submitting acknowledges {warningPrompts.length} scorecard warning(s).</p> : null}
-      {needsParseRetry ? <p className="rounded-md border border-amber-400/50 bg-amber-50 p-3 text-sm text-amber-900">The scorecard could not be parsed. Retry after confirming the image is available.</p> : null}
+      {needsParseRetry ? <><p className="rounded-md border border-amber-400/50 bg-amber-50 p-3 text-sm text-amber-900">The scorecard could not be parsed. Retry after confirming the image is available, or replace it.</p><ImageUploadField value={null} onChange={replaceScorecardImage} pathPrefix={`courses/${initialImport.target.handle}/scorecards`} variant="freeform" title="Replace scorecard image" disabled={isPending} /></> : null}
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <div className="flex gap-3">{needsParseRetry ? <Button onClick={retryParsing} disabled={isPending}>{isPending ? <><Spinner /> Retrying…</> : "Retry parsing"}</Button> : <Button onClick={submit} disabled={isPending}>{isPending ? <><Spinner /> Saving…</> : "Publish course"}</Button>}<Button variant="outline" onClick={cancel} disabled={isPending}>Cancel import</Button></div>
     </div>

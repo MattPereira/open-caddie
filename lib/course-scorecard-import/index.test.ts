@@ -271,10 +271,126 @@ describe("Course Scorecard Import", async () => {
     const paused = await retryableImports.start({ actorId, target: { kind: "new", name: `Retry Course ${actorId}` }, stagedScorecardImageHandle: "retry-image" });
     expect(paused.outcome).toBe("paused");
     if (paused.outcome !== "paused") return;
+    expect(paused.import.allowedIntents).toEqual(["cancel", "retry_parsing", "replace_scorecard_image"]);
     expect(paused.import.prompts).toContainEqual({ id: "retry:parsing", kind: "retry_parsing" });
 
     const published = await retryableImports.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "retry_parsing" } });
     expect(published.outcome).toBe("published");
+  });
+
+  it("replaces a failed scorecard image while retaining the import target", async () => {
+    const replacementImport = createCourseScorecardImport({
+      async parseScorecardImage(handle) {
+        if (handle === "bad-image") throw new Error("unreadable image");
+        return {
+          scorecard: {
+            tees: [{ name: "Blue", rating: 71, slope: 125, yardages: Array.from({ length: 18 }, () => 400) }],
+            holes: Array.from({ length: 18 }, (_, index) => ({ hole: index + 1, par: 4, handicap: index + 1 })),
+          },
+          warnings: [],
+        };
+      },
+    });
+    const paused = await replacementImport.start({ actorId, target: { kind: "new", name: `Replacement Course ${actorId}` }, stagedScorecardImageHandle: "bad-image" });
+    expect(paused.outcome).toBe("paused");
+    if (paused.outcome !== "paused") return;
+
+    const replaced = await replacementImport.continue({
+      actorId,
+      importId: paused.import.id,
+      expectedRevision: paused.import.revision,
+      intent: { kind: "replace_scorecard_image", stagedScorecardImageHandle: "good-image" },
+    });
+    expect(replaced.outcome).toBe("published");
+    if (replaced.outcome !== "published") return;
+    expect(replaced.handle).toBe(paused.import.target.handle);
+  });
+
+  it("keeps a failed replacement as the retryable image and retains the previous image for cleanup", async () => {
+    const replacementImport = createCourseScorecardImport({
+      async parseScorecardImage() { throw new Error("unreadable image"); },
+    });
+    const paused = await replacementImport.start({ actorId, target: { kind: "new", name: `Failed Replacement ${actorId}` }, stagedScorecardImageHandle: "first-image" });
+    expect(paused.outcome).toBe("paused");
+    if (paused.outcome !== "paused") return;
+
+    const replaced = await replacementImport.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "replace_scorecard_image", stagedScorecardImageHandle: "replacement-image" } });
+    expect(replaced.outcome).toBe("paused");
+    if (replaced.outcome !== "paused") return;
+    expect(replaced.import.allowedIntents).toEqual(["cancel", "retry_parsing", "replace_scorecard_image"]);
+    const [row] = await db.select().from(schema.courseScorecardImports).where(eq(schema.courseScorecardImports.id, paused.import.id));
+    expect(row.stagedScorecardImageHandle).toBe("replacement-image");
+    expect(row.stagedImageDeletionHandles).toEqual(["first-image"]);
+  });
+
+  it("cancels immediately, clears draft data, and retries failed staged-image deletion", async () => {
+    const deleted: string[] = [];
+    let failDeletion = true;
+    const cancellable = createCourseScorecardImport({
+      async parseScorecardImage() { throw new Error("unreadable image"); },
+      async deleteStagedImage(handle) {
+        deleted.push(handle);
+        return !failDeletion;
+      },
+    });
+    const paused = await cancellable.start({ actorId, target: { kind: "new", name: `Cancel Cleanup ${actorId}` }, stagedScorecardImageHandle: "staged-scorecard", stagedCourseImageHandle: "staged-course" });
+    expect(paused.outcome).toBe("paused");
+    if (paused.outcome !== "paused") return;
+    await db.update(schema.courseScorecardImports).set({ stagedImageDeletionHandles: ["older-staged-image"] }).where(eq(schema.courseScorecardImports.id, paused.import.id));
+
+    const cancelled = await cancellable.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "cancel" } });
+    expect(cancelled.outcome).toBe("cancelled");
+    expect(deleted).toEqual(["older-staged-image", "older-staged-image", "staged-scorecard", "staged-course"]);
+    const [tombstone] = await db.select().from(schema.courseScorecardImports).where(eq(schema.courseScorecardImports.id, paused.import.id));
+    expect(tombstone.stagedScorecardImageHandle).toBe("");
+    expect(tombstone.stagedImageDeletionHandles).toEqual(["older-staged-image", "staged-scorecard", "staged-course"]);
+    expect(tombstone.document).toMatchObject({ tees: [], holes: [], warnings: [] });
+
+    failDeletion = false;
+    await cancellable.cleanup({ actorId });
+    const [cleaned] = await db.select().from(schema.courseScorecardImports).where(eq(schema.courseScorecardImports.id, paused.import.id));
+    expect(cleaned.stagedImageDeletionHandles).toEqual([]);
+  });
+
+  it("extends expiry when inspected and expires inactive imports during authenticated cleanup", async () => {
+    let clock = new Date("2026-01-01T00:00:00.000Z");
+    const expiring = createCourseScorecardImport({
+      now: () => clock,
+      async parseScorecardImage() { throw new Error("unreadable image"); },
+    });
+    const paused = await expiring.start({ actorId, target: { kind: "new", name: `Expiry ${actorId}` }, stagedScorecardImageHandle: "expiry-image" });
+    expect(paused.outcome).toBe("paused");
+    if (paused.outcome !== "paused") return;
+    const originalExpiry = paused.import.expiresAt!;
+
+    clock = new Date(clock.getTime() + 24 * 60 * 60 * 1000);
+    const inspected = await expiring.inspect({ actorId, importId: paused.import.id });
+    expect(inspected.outcome).toBe("paused");
+    if (inspected.outcome !== "paused") return;
+    expect(inspected.import.expiresAt!.getTime()).toBeGreaterThan(originalExpiry.getTime());
+
+    clock = new Date(inspected.import.expiresAt!.getTime() + 1);
+    await expiring.cleanup({ actorId });
+    const [expired] = await db.select().from(schema.courseScorecardImports).where(eq(schema.courseScorecardImports.id, paused.import.id));
+    expect(expired.status).toBe("cancelled");
+    expect(expired.stagedImageDeletionHandles).toEqual([]);
+  });
+
+  it("never queues published course images for import cleanup", async () => {
+    const deleted: string[] = [];
+    const publishable = createCourseScorecardImport({
+      async parseScorecardImage() {
+        return {
+          scorecard: { tees: [{ name: "Blue", rating: 71, slope: 125, yardages: Array.from({ length: 18 }, () => 400) }], holes: Array.from({ length: 18 }, (_, index) => ({ hole: index + 1, par: 4, handicap: index + 1 })) },
+          warnings: [],
+        };
+      },
+      async deleteStagedImage(handle) { deleted.push(handle); return true; },
+    });
+    const published = await publishable.start({ actorId, target: { kind: "new", name: `Published Images ${actorId}` }, stagedScorecardImageHandle: "course-owned-scorecard", stagedCourseImageHandle: "course-owned-image" });
+    expect(published.outcome).toBe("published");
+    await publishable.cleanup({ actorId });
+    expect(deleted).toEqual([]);
   });
 });
 }

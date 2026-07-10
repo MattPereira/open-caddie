@@ -23,6 +23,10 @@ import { isVercelBlobUrl, safeDeleteBlob } from "@/lib/blob";
 import { courseHandleFromName } from "@/lib/course-handle";
 import { parseScorecardImage } from "@/lib/ai/course-scorecard-parser";
 import {
+  createCourseScorecardImport,
+  type CourseScorecardImportView,
+} from "@/lib/course-scorecard-import";
+import {
   CourseCreateFinalizeSchema,
   CourseCreateInputSchema,
   CourseUpdateSchema,
@@ -43,6 +47,12 @@ export type CreateResult =
       draft: FinalizedScorecardDraft;
       sumCheckIssues: string[];
     };
+
+export type NewCourseImportResult =
+  | { outcome: "published"; handle: string }
+  | { outcome: "paused"; import: CourseScorecardImportView }
+  | { outcome: "cancelled" }
+  | { outcome: "rejected"; error: string };
 
 // Parser output reshaped for the client: rating/slope present when the parser
 // found them, undefined when it didn't. Yardages are kept as numbers.
@@ -345,6 +355,89 @@ async function fetchImageBytes(
   } catch {
     return null;
   }
+}
+
+const courseScorecardImports = createCourseScorecardImport({
+  async parseScorecardImage(stagedImageHandle) {
+    const image = await fetchImageBytes(stagedImageHandle);
+    if (!image) throw new Error("Could not retrieve staged scorecard image");
+    const parsed = await parseScorecardImage(image.buffer, image.mediaType);
+    return { scorecard: parsed.parsed, warnings: parsed.sumChecks };
+  },
+});
+
+export async function startNewCourseScorecardImport(
+  values: CourseCreateInputValues,
+): Promise<NewCourseImportResult> {
+  const actor = await getCurrentUser();
+  if (!actor) return { outcome: "rejected", error: "forbidden" };
+  const parsed = CourseCreateInputSchema.safeParse(values);
+  if (!parsed.success) {
+    return { outcome: "rejected", error: parsed.error.issues[0].message };
+  }
+  const result = await courseScorecardImports.start({
+    actorId: actor.id,
+    target: { kind: "new", name: parsed.data.name },
+    stagedCourseImageHandle: parsed.data.imgUrl,
+    stagedScorecardImageHandle: parsed.data.scorecardImgUrl,
+  });
+  if (result.outcome === "published") return { outcome: "published", handle: result.handle };
+  if (result.outcome === "paused") return result;
+  if (result.outcome === "cancelled") return result;
+  return { outcome: "rejected", error: result.reason };
+}
+
+export async function cancelNewCourseScorecardImport(input: {
+  importId: string;
+  expectedRevision: number;
+}): Promise<NewCourseImportResult> {
+  const actor = await getCurrentUser();
+  if (!actor) return { outcome: "rejected", error: "forbidden" };
+  const result = await courseScorecardImports.continue({
+    actorId: actor.id,
+    importId: input.importId,
+    expectedRevision: input.expectedRevision,
+    intent: { kind: "cancel" },
+  });
+  if (result.outcome === "published") return { outcome: "published", handle: result.handle };
+  if (result.outcome === "paused" || result.outcome === "cancelled") return result;
+  return { outcome: "rejected", error: result.reason };
+}
+
+export async function continueNewCourseScorecardImport(input: {
+  importId: string;
+  expectedRevision: number;
+  teeMetadata?: Record<string, { rating: number; slope: number }>;
+  acknowledgeWarnings?: string[];
+}): Promise<NewCourseImportResult> {
+  const actor = await getCurrentUser();
+  if (!actor) return { outcome: "rejected", error: "forbidden" };
+  const result = await courseScorecardImports.continue({
+    actorId: actor.id,
+    importId: input.importId,
+    expectedRevision: input.expectedRevision,
+    intent: {
+      kind: "resolve",
+      teeMetadata: input.teeMetadata,
+      acknowledgeWarnings: input.acknowledgeWarnings,
+    },
+  });
+  if (result.outcome === "published") return { outcome: "published", handle: result.handle };
+  if (result.outcome === "paused") return result;
+  if (result.outcome === "cancelled") return result;
+  return { outcome: "rejected", error: result.reason };
+}
+
+export async function inspectNewCourseScorecardImport(
+  importId: string,
+): Promise<NewCourseImportResult> {
+  const actor = await getCurrentUser();
+  if (!actor) return { outcome: "rejected", error: "forbidden" };
+  const result = await courseScorecardImports.inspect({ actorId: actor.id, importId });
+  if (result.outcome === "paused") return result;
+  if (result.outcome === "published") return { outcome: "published", handle: result.handle };
+  if (result.outcome === "cancelled") return result;
+  return { outcome: "rejected", error: result.reason };
 }
 
 type CreateCourseArgs =

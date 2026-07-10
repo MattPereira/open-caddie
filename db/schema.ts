@@ -28,6 +28,14 @@ export const roundScorecardUploadStatuses = ["parsed", "failed"] as const;
 export type RoundScorecardUploadStatus =
   (typeof roundScorecardUploadStatuses)[number];
 
+export const courseScorecardImportStatuses = [
+  "paused",
+  "published",
+  "cancelled",
+] as const;
+export type CourseScorecardImportStatus =
+  (typeof courseScorecardImportStatuses)[number];
+
 export const users = pgTable("user", {
   id: text("id")
     .primaryKey()
@@ -126,6 +134,56 @@ export const courses = pgTable("courses", {
   imgUrl: text("img_url"),
   scorecardImgUrl: text("scorecard_img_url"),
 });
+
+// Lifecycle data is relational so active-target constraints remain enforceable;
+// the versioned review document deliberately stays behind the import module.
+export const courseScorecardImports = pgTable(
+  "course_scorecard_imports",
+  {
+    id: text("id").primaryKey(),
+    targetKind: text("target_kind").$type<"new" | "existing">().notNull(),
+    reservedHandle: text("reserved_handle"),
+    courseId: integer("course_id").references(() => courses.id, {
+      onDelete: "restrict",
+    }),
+    stagedScorecardImageHandle: text("staged_scorecard_image_handle").notNull(),
+    stagedCourseImageHandle: text("staged_course_image_handle"),
+    status: text("status").$type<CourseScorecardImportStatus>().notNull(),
+    revision: integer("revision").notNull().default(0),
+    document: jsonb("document").notNull(),
+    createdByUserId: text("created_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    lastEditedByUserId: text("last_edited_by_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
+    expiresAt: timestamp("expires_at", { mode: "date" }),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+    publishedAt: timestamp("published_at", { mode: "date" }),
+  },
+  (importRow) => [
+    uniqueIndex("course_scorecard_imports_active_new_handle_unique")
+      .on(importRow.reservedHandle)
+      .where(sql`${importRow.status} = 'paused' and ${importRow.targetKind} = 'new'`),
+    uniqueIndex("course_scorecard_imports_active_course_unique")
+      .on(importRow.courseId)
+      .where(sql`${importRow.status} = 'paused' and ${importRow.targetKind} = 'existing'`),
+    uniqueIndex("course_scorecard_imports_target_image_unique").on(
+      importRow.reservedHandle,
+      importRow.courseId,
+      importRow.stagedScorecardImageHandle,
+    ).where(sql`${importRow.status} in ('paused', 'published')`),
+    check(
+      "course_scorecard_imports_target_check",
+      sql`(${importRow.targetKind} = 'new' and ${importRow.reservedHandle} is not null and ${importRow.courseId} is null) or (${importRow.targetKind} = 'existing' and ${importRow.courseId} is not null and ${importRow.reservedHandle} is null)`,
+    ),
+    check(
+      "course_scorecard_imports_status_check",
+      sql`${importRow.status} in ('paused', 'published', 'cancelled')`,
+    ),
+  ],
+);
 
 export const matches = pgTable(
   "matches",

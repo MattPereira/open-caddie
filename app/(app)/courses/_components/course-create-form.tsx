@@ -21,20 +21,15 @@ import { ParsingOverlay } from "@/components/parsing-overlay";
 import { Input } from "@/components/ui/input";
 import { courseHandleFromName } from "@/lib/course-handle";
 import {
-  createCourse,
+  continueNewCourseScorecardImport,
   deleteDraftBlobs,
-  type FinalizedScorecardDraft,
+  startNewCourseScorecardImport,
+  type NewCourseImportResult,
 } from "../actions";
 import {
   CourseCreateInputSchema,
   type CourseCreateInputValues,
 } from "../schema";
-
-type PendingDraft = {
-  input: CourseCreateInputValues;
-  draft: FinalizedScorecardDraft;
-  sumCheckIssues: string[];
-};
 
 type TeeMetaInputs = Array<{ rating: string; slope: string }>;
 
@@ -43,7 +38,7 @@ export function CourseCreateForm() {
   const [isPending, startTransition] = useTransition();
   const [isUploadingImg, setIsUploadingImg] = useState(false);
   const [isUploadingScorecard, setIsUploadingScorecard] = useState(false);
-  const [pendingDraft, setPendingDraft] = useState<PendingDraft | null>(null);
+  const [pendingImport, setPendingImport] = useState<Extract<NewCourseImportResult, { outcome: "paused" }> | null>(null);
   const [teeMetaInputs, setTeeMetaInputs] = useState<TeeMetaInputs>([]);
   const [teeMetaError, setTeeMetaError] = useState<string | null>(null);
   // Tracks every blob URL uploaded during this session — including ones the
@@ -81,100 +76,80 @@ export function CourseCreateForm() {
   const finalizeAndRedirect = (
     values: { imgUrl: string; scorecardImgUrl: string },
     handle: string,
-    sumCheckIssues: string[],
   ) => {
     const keep = new Set([values.imgUrl, values.scorecardImgUrl]);
     const stale = [...uploadedUrls].filter((url) => !keep.has(url));
     if (stale.length) {
       deleteDraftBlobs(stale).catch(() => {});
     }
-    const target = sumCheckIssues.length
-      ? `/courses/${handle}/edit`
-      : `/courses/${handle}`;
-    router.push(target);
+    router.push(`/courses/${handle}`);
     router.refresh();
   };
 
   const onSubmit = (values: CourseCreateInputValues) => {
     form.clearErrors("root.server");
     startTransition(async () => {
-      const result = await createCourse(values);
-      if (result.ok) {
-        finalizeAndRedirect(values, result.handle, result.sumCheckIssues);
+      const result = await startNewCourseScorecardImport(values);
+      if (result.outcome === "published") {
+        finalizeAndRedirect(values, result.handle);
         return;
       }
-      if ("needsTeeMeta" in result) {
-        setPendingDraft({
-          input: result.input,
-          draft: result.draft,
-          sumCheckIssues: result.sumCheckIssues,
-        });
-        setTeeMetaInputs(
-          result.draft.tees.map((tee) => ({
-            rating: tee.rating != null ? String(tee.rating) : "",
-            slope: tee.slope != null ? String(tee.slope) : "",
-          })),
-        );
-        setTeeMetaError(null);
+      if (result.outcome === "paused") {
+        router.push(`/courses/imports/${result.import.id}`);
         return;
       }
       form.setError("root.server", {
         type: "server",
-        message: result.error,
+        message: result.outcome === "rejected" ? result.error : "Course import was cancelled.",
       });
     });
   };
 
   const onSubmitTeeMeta = () => {
-    if (!pendingDraft) return;
+    if (!pendingImport) return;
     setTeeMetaError(null);
 
-    const finalizedTees = pendingDraft.draft.tees.map((tee, i) => {
+    const metadataPrompts = pendingImport.import.prompts.filter(
+      (prompt): prompt is Extract<typeof prompt, { kind: "tee_metadata" }> => prompt.kind === "tee_metadata",
+    );
+    const finalizedTees = metadataPrompts.map((prompt, i) => {
       const rating = Number(teeMetaInputs[i]?.rating);
       const slope = Number(teeMetaInputs[i]?.slope);
-      return { tee, rating, slope };
+      return { prompt, rating, slope };
     });
 
     for (let i = 0; i < finalizedTees.length; i++) {
-      const { tee, rating, slope } = finalizedTees[i];
+      const { prompt, rating, slope } = finalizedTees[i];
       if (!Number.isFinite(rating) || rating <= 0) {
-        setTeeMetaError(`Enter a valid rating for ${tee.name}.`);
+        setTeeMetaError(`Enter a valid rating for ${prompt.teeName}.`);
         return;
       }
       if (!Number.isInteger(slope) || slope < 55 || slope > 155) {
-        setTeeMetaError(`Slope for ${tee.name} must be between 55 and 155.`);
+        setTeeMetaError(`Slope for ${prompt.teeName} must be between 55 and 155.`);
         return;
       }
     }
 
     startTransition(async () => {
-      const result = await createCourse({
-        ...pendingDraft.input,
-        scorecardData: {
-          tees: finalizedTees.map(({ tee, rating, slope }) => ({
-            name: tee.name,
-            color: tee.color,
-            rating,
-            slope,
-            yardages: tee.yardages,
-          })),
-          holes: pendingDraft.draft.holes,
-        },
+      const result = await continueNewCourseScorecardImport({
+        importId: pendingImport.import.id,
+        expectedRevision: pendingImport.import.revision,
+        teeMetadata: Object.fromEntries(
+          finalizedTees.map(({ prompt, rating, slope }) => [prompt.id, { rating, slope }]),
+        ),
+        acknowledgeWarnings: pendingImport.import.prompts
+          .filter((prompt) => prompt.kind === "warning_acknowledgement")
+          .map((prompt) => prompt.warning),
       });
-      if (result.ok) {
-        finalizeAndRedirect(
-          pendingDraft.input,
-          result.handle,
-          pendingDraft.sumCheckIssues,
-        );
+      if (result.outcome === "published") {
+        finalizeAndRedirect(form.getValues(), result.handle);
         return;
       }
-      if ("needsTeeMeta" in result) {
-        // Shouldn't happen on a finalize call, but handle defensively.
-        setTeeMetaError("Server still needs more info. Please try again.");
+      if (result.outcome === "paused") {
+        setPendingImport(result);
         return;
       }
-      setTeeMetaError(result.error);
+      setTeeMetaError(result.outcome === "rejected" ? result.error : "Course import was cancelled.");
     });
   };
 
@@ -188,7 +163,7 @@ export function CourseCreateForm() {
 
   const isUploading = isUploadingImg || isUploadingScorecard;
 
-  if (pendingDraft) {
+  if (pendingImport) {
     return (
       <div className="flex flex-col gap-6">
         <div className="rounded-md border border-amber-400/50 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
@@ -198,14 +173,16 @@ export function CourseCreateForm() {
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {pendingDraft.draft.tees.map((tee, i) => {
+          {pendingImport.import.prompts
+            .filter((prompt) => prompt.kind === "tee_metadata")
+            .map((tee, i) => {
             const meta = teeMetaInputs[i] ?? { rating: "", slope: "" };
             return (
               <div
-                key={`${tee.name}-${i}`}
+                key={tee.id}
                 className="flex flex-col gap-3 rounded-md border p-3"
               >
-                <div className="text-sm font-medium">{tee.name}</div>
+                <div className="text-sm font-medium">{tee.teeName}</div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">
                     <Label htmlFor={`tee-${i}-rating`}>Rating</Label>
@@ -264,7 +241,7 @@ export function CourseCreateForm() {
             size="lg"
             disabled={isPending}
             onClick={() => {
-              setPendingDraft(null);
+              setPendingImport(null);
               setTeeMetaInputs([]);
               setTeeMetaError(null);
             }}

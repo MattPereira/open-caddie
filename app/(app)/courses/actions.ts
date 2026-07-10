@@ -278,15 +278,13 @@ export async function updateCourse(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  const { id, handle, name, imgUrl, scorecardImgUrl, tees, holes } =
-    parsed.data;
+  const { id, handle, name, imgUrl, tees, holes } = parsed.data;
 
   const [current] = await db
     .select({
       id: courses.id,
       handle: courses.handle,
       imgUrl: courses.imgUrl,
-      scorecardImgUrl: courses.scorecardImgUrl,
     })
     .from(courses)
     .where(eq(courses.id, id))
@@ -341,7 +339,6 @@ export async function updateCourse(
   }
 
   const newImgUrl = normalizeImgUrl(imgUrl);
-  const newScorecardImgUrl = normalizeImgUrl(scorecardImgUrl);
 
   try {
     await db.transaction(async (tx) => {
@@ -351,7 +348,6 @@ export async function updateCourse(
           handle,
           name,
           imgUrl: newImgUrl,
-          scorecardImgUrl: newScorecardImgUrl,
         })
         .where(eq(courses.id, id));
 
@@ -431,10 +427,6 @@ export async function updateCourse(
   if (current.imgUrl !== newImgUrl) {
     await safeDeleteBlob(current.imgUrl);
   }
-  if (current.scorecardImgUrl !== newScorecardImgUrl) {
-    await safeDeleteBlob(current.scorecardImgUrl);
-  }
-
   const renamed = current.handle !== handle;
   revalidateCoursePaths(renamed ? [current.handle, handle] : [handle]);
   return { ok: true, handle, renamed };

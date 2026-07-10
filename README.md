@@ -6,3 +6,5 @@
 - Track match play, skins games, and tournament rounds 
 - Organize clubs with customizable point scoring and season-long standings
 - Use AI workflows to parse course data from scorecard images and upload round scores
+
+Course scorecard images are imported through a persisted **Course Scorecard Import**. Imports may pause for review; only the import can publish parsed tees, scorecard images, and **Placeholder Tee** decisions.

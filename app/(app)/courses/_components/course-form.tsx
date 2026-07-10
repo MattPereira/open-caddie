@@ -449,10 +449,6 @@ export function CourseForm({ course }: CourseFormProps) {
   };
 
   const onScorecardImageChange = async (url: string | null) => {
-    form.setValue("scorecardImgUrl", url ?? "", {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
     form.clearErrors("root.server");
 
     if (!url) return;
@@ -470,6 +466,12 @@ export function CourseForm({ course }: CourseFormProps) {
     }
     if (result.outcome === "paused") router.push(`/courses/imports/${result.import.id}`);
     if (result.outcome === "published") router.push(`/courses/${result.handle}`);
+    if (result.outcome === "stale" || result.outcome === "cancelled") {
+      form.setError("root.server", {
+        type: "server",
+        message: "The scorecard import is no longer active. Start a new import.",
+      });
+    }
   };
 
   return (

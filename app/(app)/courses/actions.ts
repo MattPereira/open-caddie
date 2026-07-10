@@ -19,6 +19,7 @@ import {
   createCourseScorecardImport,
   type CourseScorecardImportView,
   type HoleCorrection,
+  type ImportOutcome,
   type TeeCorrection,
 } from "@/lib/course-scorecard-import";
 import {
@@ -74,6 +75,13 @@ function pgCode(e: unknown): string | undefined {
     (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
     (e as { code?: string })?.code
   );
+}
+
+function toActionResult(result: ImportOutcome): CourseScorecardImportResult {
+  if (result.outcome === "published") return { outcome: "published", handle: result.handle };
+  if (result.outcome === "paused" || result.outcome === "cancelled") return result;
+  if (result.outcome === "stale") return result;
+  return { outcome: "rejected", error: result.reason };
 }
 
 function revalidateCoursePaths(handles: string[]) {
@@ -133,11 +141,7 @@ export async function startCourseScorecardImport(
     stagedCourseImageHandle: parsed.data.imgUrl,
     stagedScorecardImageHandle: parsed.data.scorecardImgUrl,
   });
-  if (result.outcome === "published") return { outcome: "published", handle: result.handle };
-  if (result.outcome === "paused") return result;
-  if (result.outcome === "cancelled") return result;
-  if (result.outcome === "stale") return result;
-  return { outcome: "rejected", error: result.reason };
+  return toActionResult(result);
 }
 
 export async function startExistingCourseScorecardImport(input: {
@@ -151,10 +155,7 @@ export async function startExistingCourseScorecardImport(input: {
     target: { kind: "existing", courseId: input.courseId },
     stagedScorecardImageHandle: input.stagedScorecardImageHandle,
   });
-  if (result.outcome === "published") return { outcome: "published", handle: result.handle };
-  if (result.outcome === "paused" || result.outcome === "cancelled") return result;
-  if (result.outcome === "stale") return result;
-  return { outcome: "rejected", error: result.reason };
+  return toActionResult(result);
 }
 
 export async function cancelCourseScorecardImport(input: {
@@ -169,10 +170,7 @@ export async function cancelCourseScorecardImport(input: {
     expectedRevision: input.expectedRevision,
     intent: { kind: "cancel" },
   });
-  if (result.outcome === "published") return { outcome: "published", handle: result.handle };
-  if (result.outcome === "paused" || result.outcome === "cancelled") return result;
-  if (result.outcome === "stale") return result;
-  return { outcome: "rejected", error: result.reason };
+  return toActionResult(result);
 }
 
 export async function continueCourseScorecardImport(input: {
@@ -204,11 +202,7 @@ export async function continueCourseScorecardImport(input: {
       placeholderResolutions: input.placeholderResolutions,
     },
   });
-  if (result.outcome === "published") return { outcome: "published", handle: result.handle };
-  if (result.outcome === "paused") return result;
-  if (result.outcome === "cancelled") return result;
-  if (result.outcome === "stale") return result;
-  return { outcome: "rejected", error: result.reason };
+  return toActionResult(result);
 }
 
 export async function retryCourseScorecardImport(input: {
@@ -223,10 +217,7 @@ export async function retryCourseScorecardImport(input: {
     expectedRevision: input.expectedRevision,
     intent: { kind: "retry_parsing" },
   });
-  if (result.outcome === "published") return { outcome: "published", handle: result.handle };
-  if (result.outcome === "paused" || result.outcome === "cancelled") return result;
-  if (result.outcome === "stale") return result;
-  return { outcome: "rejected", error: result.reason };
+  return toActionResult(result);
 }
 
 export async function replaceCourseScorecardImport(input: {
@@ -242,10 +233,7 @@ export async function replaceCourseScorecardImport(input: {
     expectedRevision: input.expectedRevision,
     intent: { kind: "replace_scorecard_image", stagedScorecardImageHandle: input.stagedScorecardImageHandle },
   });
-  if (result.outcome === "published") return { outcome: "published", handle: result.handle };
-  if (result.outcome === "paused" || result.outcome === "cancelled") return result;
-  if (result.outcome === "stale") return result;
-  return { outcome: "rejected", error: result.reason };
+  return toActionResult(result);
 }
 
 export async function inspectCourseScorecardImport(
@@ -254,11 +242,7 @@ export async function inspectCourseScorecardImport(
   const actor = await getCurrentUser();
   if (!actor) return { outcome: "rejected", error: "forbidden" };
   const result = await courseScorecardImports.inspect({ actorId: actor.id, importId });
-  if (result.outcome === "paused") return result;
-  if (result.outcome === "published") return { outcome: "published", handle: result.handle };
-  if (result.outcome === "cancelled") return result;
-  if (result.outcome === "stale") return result;
-  return { outcome: "rejected", error: result.reason };
+  return toActionResult(result);
 }
 
 export async function updateCourse(

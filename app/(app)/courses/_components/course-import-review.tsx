@@ -8,7 +8,12 @@ import { ImageUploadField } from "@/components/image-upload-field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
-import type { CourseScorecardImportView } from "@/lib/course-scorecard-import";
+import {
+  TEE_RATING_MIN,
+  TEE_SLOPE_MIN,
+  TEE_SLOPE_MAX,
+  type CourseScorecardImportView,
+} from "@/lib/course-scorecard-import";
 import {
   cancelCourseScorecardImport,
   continueCourseScorecardImport,
@@ -62,7 +67,7 @@ export function CourseImportReview({
       if (!answer?.rating && !answer?.slope) continue;
       const rating = Number(answer?.rating);
       const slope = Number(answer?.slope);
-      if (!Number.isFinite(rating) || rating <= 0 || !Number.isInteger(slope) || slope < 55 || slope > 155) {
+      if (!Number.isFinite(rating) || rating <= TEE_RATING_MIN || !Number.isInteger(slope) || slope < TEE_SLOPE_MIN || slope > TEE_SLOPE_MAX) {
         setError(`Enter a valid rating and slope for ${prompt.teeName}.`);
         return;
       }

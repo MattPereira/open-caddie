@@ -15,6 +15,10 @@ import { courseHandleFromName } from "@/lib/course-handle";
 const IMPORT_DOCUMENT_VERSION = 1;
 const IMPORT_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 
+export const TEE_RATING_MIN = 0;
+export const TEE_SLOPE_MIN = 55;
+export const TEE_SLOPE_MAX = 155;
+
 type ParsedTee = Pick<Scorecard["tees"][number], "name" | "color" | "rating" | "slope" | "yardages">;
 type ParsedHole = Scorecard["holes"][number];
 export type TeeCorrection = {
@@ -278,7 +282,7 @@ function toView(row: {
 }
 
 function validTee(tee: ParsedTee) {
-  return Boolean(tee.name.trim()) && tee.rating != null && tee.rating > 0 && tee.slope != null && tee.slope >= 55 && tee.slope <= 155 && tee.yardages.length === 18 && tee.yardages.every((yards) => Number.isInteger(yards) && yards >= 50 && yards <= 800);
+  return Boolean(tee.name.trim()) && tee.rating != null && tee.rating > TEE_RATING_MIN && tee.slope != null && tee.slope >= TEE_SLOPE_MIN && tee.slope <= TEE_SLOPE_MAX && tee.yardages.length === 18 && tee.yardages.every((yards) => Number.isInteger(yards) && yards >= 50 && yards <= 800);
 }
 
 function validTeeForCourse(tee: ParsedTee, document: ImportDocument, excluded: Set<number>, teeIndex?: number) {

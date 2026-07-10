@@ -68,7 +68,7 @@ describe("Course Scorecard Import", async () => {
     expect(outcome.outcome).toBe("published");
   });
 
-  it("reconciles existing tees by exact name and preserves a kept Placeholder Tee", async () => {
+  it("matches existing tees by exact name and preserves a kept Placeholder Tee", async () => {
     const [course] = await db.insert(schema.courses).values({ name: `Existing Course ${actorId}`, handle: `existing-${actorId}` }).returning({ id: schema.courses.id });
     const [blue] = await db.insert(schema.courseTees).values({ courseId: course.id, name: "Blue", rating: "69", slope: 115 }).returning({ id: schema.courseTees.id });
     const [placeholder] = await db.insert(schema.courseTees).values({ courseId: course.id, name: "Unknown", rating: "68", slope: 110 }).returning({ id: schema.courseTees.id });

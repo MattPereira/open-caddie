@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // `pg` is only used by the integration test suite (DATABASE_DRIVER=node-postgres
+  // against a local Postgres). Dev/prod use neon-serverless, so keep pg out of the
+  // Next bundle graph — otherwise Turbopack tries to bundle its Node built-ins
+  // (dns/fs/net/tls) and the build fails.
+  serverExternalPackages: ["pg"],
   images: {
     remotePatterns: [
       {

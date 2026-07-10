@@ -12,12 +12,11 @@ import {
 import type { Scorecard, ScorecardWarning } from "@/lib/ai/course-scorecard-parser";
 import { courseHandleFromName } from "@/lib/course-handle";
 
+export { TEE_RATING_MIN, TEE_SLOPE_MIN, TEE_SLOPE_MAX } from "./constants";
+import { TEE_RATING_MIN, TEE_SLOPE_MIN, TEE_SLOPE_MAX } from "./constants";
+
 const IMPORT_DOCUMENT_VERSION = 1;
 const IMPORT_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
-
-export const TEE_RATING_MIN = 0;
-export const TEE_SLOPE_MIN = 55;
-export const TEE_SLOPE_MAX = 155;
 
 type ParsedTee = Pick<Scorecard["tees"][number], "name" | "color" | "rating" | "slope" | "yardages">;
 type ParsedHole = Scorecard["holes"][number];

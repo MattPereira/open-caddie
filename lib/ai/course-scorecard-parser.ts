@@ -116,45 +116,51 @@ function sum(ns: number[]) {
   return ns.reduce((a, b) => a + b, 0);
 }
 
-export function verifySums(parsed: Scorecard): string[] {
-  const issues: string[] = [];
+export type ScorecardWarning = { scope: "hole" | "tee"; message: string };
+
+export function verifySums(parsed: Scorecard): ScorecardWarning[] {
+  const issues: ScorecardWarning[] = [];
   const pars = parsed.holes.map((h) => h.par);
   const outPar = sum(pars.slice(0, 9));
   const inPar = sum(pars.slice(9, 18));
   if (outPar !== parsed.printedOutPar)
-    issues.push(`par OUT: summed ${outPar} vs printed ${parsed.printedOutPar}`);
+    issues.push({ scope: "hole", message: `par OUT: summed ${outPar} vs printed ${parsed.printedOutPar}` });
   if (inPar !== parsed.printedInPar)
-    issues.push(`par IN: summed ${inPar} vs printed ${parsed.printedInPar}`);
+    issues.push({ scope: "hole", message: `par IN: summed ${inPar} vs printed ${parsed.printedInPar}` });
   if (outPar + inPar !== parsed.printedTotalPar)
-    issues.push(
-      `par TOT: summed ${outPar + inPar} vs printed ${parsed.printedTotalPar}`,
-    );
+    issues.push({
+      scope: "hole",
+      message: `par TOT: summed ${outPar + inPar} vs printed ${parsed.printedTotalPar}`,
+    });
   for (const tee of parsed.tees) {
     const out = sum(tee.yardages.slice(0, 9));
     const i = sum(tee.yardages.slice(9, 18));
     if (out !== tee.printedOutYards)
-      issues.push(
-        `${tee.name} OUT yards: summed ${out} vs printed ${tee.printedOutYards}`,
-      );
+      issues.push({
+        scope: "tee",
+        message: `${tee.name} OUT yards: summed ${out} vs printed ${tee.printedOutYards}`,
+      });
     if (i !== tee.printedInYards)
-      issues.push(
-        `${tee.name} IN yards: summed ${i} vs printed ${tee.printedInYards}`,
-      );
+      issues.push({
+        scope: "tee",
+        message: `${tee.name} IN yards: summed ${i} vs printed ${tee.printedInYards}`,
+      });
     if (out + i !== tee.printedTotalYards)
-      issues.push(
-        `${tee.name} TOT yards: summed ${out + i} vs printed ${tee.printedTotalYards}`,
-      );
+      issues.push({
+        scope: "tee",
+        message: `${tee.name} TOT yards: summed ${out + i} vs printed ${tee.printedTotalYards}`,
+      });
   }
   const sis = parsed.holes.map((h) => h.handicap).sort((a, b) => a - b);
   const expected = Array.from({ length: 18 }, (_, i) => i + 1);
   if (sis.join(",") !== expected.join(","))
-    issues.push(`handicap not 1-18 unique: got [${sis.join(",")}]`);
+    issues.push({ scope: "hole", message: `handicap not 1-18 unique: got [${sis.join(",")}]` });
   return issues;
 }
 
 export type ParseScorecardResult = {
   parsed: Scorecard;
-  sumChecks: string[];
+  sumChecks: ScorecardWarning[];
   usage: LanguageModelUsage;
   finishReason: string;
 };

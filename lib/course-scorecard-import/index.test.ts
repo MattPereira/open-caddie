@@ -87,6 +87,30 @@ describe("Course Scorecard Import", async () => {
     expect(keptPlaceholder[0]?.name).toBe("Unknown");
   });
 
+  it("ignores hole warnings but still requires acknowledging tee warnings for an existing course", async () => {
+    const [course] = await db.insert(schema.courses).values({ name: `Existing Warnings ${actorId}`, handle: `existing-warnings-${actorId}` }).returning({ id: schema.courses.id });
+    await db.insert(schema.courseTees).values({ courseId: course.id, name: "Blue", rating: "69", slope: 115 });
+    const existingWarningImports = createCourseScorecardImport({
+      async parseScorecardImage() {
+        return {
+          scorecard: { tees: [{ name: "Blue", rating: 71, slope: 125, yardages: Array.from({ length: 18 }, () => 400) }], holes: [] },
+          warnings: [
+            { scope: "hole" as const, message: "par OUT: summed 34 vs printed 35" },
+            { scope: "tee" as const, message: "Blue OUT yards: summed 3600 vs printed 3601" },
+          ],
+        };
+      },
+    });
+    const paused = await existingWarningImports.start({ actorId, target: { kind: "existing", courseId: course.id }, stagedScorecardImageHandle: "existing-warnings-image" });
+    expect(paused.outcome).toBe("paused");
+    if (paused.outcome !== "paused") return;
+    expect(paused.import.prompts).toEqual([
+      expect.objectContaining({ kind: "warning_acknowledgement", warning: "Blue OUT yards: summed 3600 vs printed 3601" }),
+    ]);
+    const published = await existingWarningImports.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "resolve", acknowledgeWarnings: ["warning:1"] } });
+    expect(published.outcome).toBe("published");
+  });
+
   it("defaults an unmatched parsed tee to new and publishes without pausing", async () => {
     const [course] = await db.insert(schema.courses).values({ name: `Auto New Course ${actorId}`, handle: `auto-new-${actorId}` }).returning({ id: schema.courses.id });
     await db.insert(schema.courseTees).values({ courseId: course.id, name: "Championship", rating: "69", slope: 115 });
@@ -246,7 +270,7 @@ describe("Course Scorecard Import", async () => {
       async parseScorecardImage() {
         return {
           scorecard: { tees: [{ name: "Blue", rating: 71, slope: 125, yardages: Array.from({ length: 18 }, () => 400) }], holes: Array.from({ length: 18 }, (_, index) => ({ hole: index + 1, par: 4, handicap: index + 1 })) },
-          warnings: ["Blue total does not match the card"],
+          warnings: [{ scope: "tee" as const, message: "Blue total does not match the card" }],
         };
       },
     });
@@ -432,6 +456,25 @@ describe("Course Scorecard Import", async () => {
     expect(cleaned.stagedImageDeletionHandles).toEqual([]);
   });
 
+  it("fully tombstones a cancelled existing-course import", async () => {
+    const [course] = await db.insert(schema.courses).values({ name: `Existing Cancel ${actorId}`, handle: `existing-cancel-${actorId}` }).returning({ id: schema.courses.id });
+    await db.insert(schema.courseTees).values({ courseId: course.id, name: "Blue", rating: "69", slope: 115 });
+    const existingCancelImports = createCourseScorecardImport({
+      async parseScorecardImage() {
+        return { scorecard: { tees: [{ name: "Gold", yardages: Array.from({ length: 18 }, () => 400) }], holes: [] }, warnings: [] };
+      },
+    });
+    const paused = await existingCancelImports.start({ actorId, target: { kind: "existing", courseId: course.id }, stagedScorecardImageHandle: "existing-cancel-image" });
+    expect(paused.outcome).toBe("paused");
+    if (paused.outcome !== "paused") return;
+    const cancelled = await existingCancelImports.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "cancel" } });
+    expect(cancelled.outcome).toBe("cancelled");
+    const [tombstone] = await db.select().from(schema.courseScorecardImports).where(eq(schema.courseScorecardImports.id, paused.import.id));
+    expect(tombstone.document).toMatchObject({ tees: [], holes: [], warnings: [], teeResolutions: {}, placeholderResolutions: {} });
+    expect(tombstone.document).not.toHaveProperty("existingTees");
+    expect(tombstone.document).not.toHaveProperty("existingCourseFingerprint");
+  });
+
   it("extends expiry when inspected and expires inactive imports during authenticated cleanup", async () => {
     let clock = new Date("2026-01-01T00:00:00.000Z");
     const expiring = createCourseScorecardImport({
@@ -532,7 +575,7 @@ describe("Course Scorecard Import", async () => {
   it("keeps a published import's parser, decisions, warnings, actors, and timestamps inspectable", async () => {
     const audited = createCourseScorecardImport({
       async parseScorecardImage() {
-        return { scorecard: { tees: [{ name: "Blue", rating: 71, slope: 125, yardages: Array.from({ length: 18 }, () => 400) }], holes: Array.from({ length: 18 }, (_, index) => ({ hole: index + 1, par: 4, handicap: index + 1 })) }, warnings: ["parser warning"], parserModel: "test-model" };
+        return { scorecard: { tees: [{ name: "Blue", rating: 71, slope: 125, yardages: Array.from({ length: 18 }, () => 400) }], holes: Array.from({ length: 18 }, (_, index) => ({ hole: index + 1, par: 4, handicap: index + 1 })) }, warnings: [{ scope: "tee" as const, message: "parser warning" }], parserModel: "test-model" };
       },
     });
     const paused = await audited.start({ actorId, target: { kind: "new", name: `Audit ${actorId}` }, stagedScorecardImageHandle: "audit-image" });

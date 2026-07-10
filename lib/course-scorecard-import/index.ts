@@ -9,7 +9,7 @@ import {
   teeYardages,
   users,
 } from "@/db/schema";
-import type { Scorecard } from "@/lib/ai/course-scorecard-parser";
+import type { Scorecard, ScorecardWarning } from "@/lib/ai/course-scorecard-parser";
 import { courseHandleFromName } from "@/lib/course-handle";
 
 const IMPORT_DOCUMENT_VERSION = 1;
@@ -40,7 +40,7 @@ type ImportDocument = {
   parserModel?: string;
   tees: ParsedTee[];
   holes: ParsedHole[];
-  warnings: string[];
+  warnings: ScorecardWarning[];
   acknowledgedWarnings: string[];
   excludedTeeIndexes: number[];
   teeResolutions: Record<string, { kind: "new" } | { kind: "existing"; teeId: number }>;
@@ -121,7 +121,7 @@ export type ContinueCourseScorecardImportInput = {
 export type ScorecardImportDependencies = {
   parseScorecardImage: (stagedImageHandle: string) => Promise<{
     scorecard: { tees: ParsedTee[]; holes: ParsedHole[] };
-    warnings: string[];
+    warnings: ScorecardWarning[];
     parserModel?: string;
   }>;
   now?: () => Date;
@@ -206,13 +206,14 @@ function promptsFor(document: ImportDocument): CourseScorecardImportView["prompt
   const courseHoleValidation = document.existingTees ? [] : document.holes.length === 18
     ? []
     : [{ id: "course:holes:validation" as const, kind: "course_holes_validation" as const }];
-  const warnings = (document.existingTees ? [] : document.warnings)
+  const warnings = document.warnings
     .map((warning, index) => ({ warning, id: warningIdFor(index) }))
+    .filter(({ warning }) => !document.existingTees || warning.scope === "tee")
     .filter(({ id }) => !document.acknowledgedWarnings.includes(id))
     .map(({ warning, id }) => ({
       id,
       kind: "warning_acknowledgement" as const,
-      warning,
+      warning: warning.message,
     }));
   const placeholders = (document.existingTees ?? []).flatMap((tee) =>
     isPlaceholderTee(tee.name) && !document.placeholderResolutions?.[String(tee.id)]
@@ -251,7 +252,7 @@ function toView(row: {
     creatorId: row.createdByUserId,
     lastEditorId: row.lastEditedByUserId,
     parserModel: document.parserModel,
-    warnings: document.warnings,
+    warnings: document.warnings.map((warning) => warning.message),
     decisions: document.audit.flatMap((event) => event.decision ? [{ actorId: event.actorId, at: event.at, decision: event.decision }] : []),
     events: document.audit,
   };
@@ -382,6 +383,10 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
         warnings: [],
         acknowledgedWarnings: [],
         excludedTeeIndexes: [],
+        existingTees: undefined,
+        existingCourseFingerprint: undefined,
+        teeResolutions: {},
+        placeholderResolutions: {},
         parseFailed: false,
         audit: [...document.audit, { event: "cancelled" as const, actorId, at: now().toISOString() }],
       } satisfies ImportDocument,

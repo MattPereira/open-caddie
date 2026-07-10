@@ -137,7 +137,7 @@ async function parseOne(
     console.error(`  sums: OK`);
   } else {
     console.error(`  sums: ${checks.length} mismatch(es)`);
-    for (const c of checks) console.error(`    - ${c}`);
+    for (const c of checks) console.error(`    - [${c.scope}] ${c.message}`);
   }
 
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");

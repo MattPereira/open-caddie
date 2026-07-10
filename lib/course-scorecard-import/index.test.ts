@@ -316,7 +316,7 @@ describe("Course Scorecard Import", async () => {
 
     const importsWithMissingMetadata = createCourseScorecardImport({ async parseScorecardImage() { throw new Error("unused"); } });
     const conflict = await importsWithMissingMetadata.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision - 1, intent: { kind: "cancel" } });
-    expect(conflict).toEqual({ outcome: "rejected", reason: "revision_conflict" });
+    expect(conflict).toMatchObject({ outcome: "rejected", reason: "revision_conflict", import: { id: paused.import.id } });
     const cancelled = await importsWithMissingMetadata.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "cancel" } });
     expect(cancelled.outcome).toBe("cancelled");
   });
@@ -459,6 +459,77 @@ describe("Course Scorecard Import", async () => {
     expect(published.outcome).toBe("published");
     await publishable.cleanup({ actorId });
     expect(deleted).toEqual([]);
+  });
+
+  it("reserves active targets, rejects live handle conflicts, and makes an identical start idempotent", async () => {
+    const pausedImports = createCourseScorecardImport({
+      async parseScorecardImage() {
+        return { scorecard: { tees: [{ name: "Blue", yardages: Array.from({ length: 18 }, () => 400) }], holes: Array.from({ length: 18 }, (_, index) => ({ hole: index + 1, par: 4, handicap: index + 1 })) }, warnings: [] };
+      },
+    });
+    const name = `Reserved Course ${actorId}`;
+    const first = await pausedImports.start({ actorId, target: { kind: "new", name }, stagedScorecardImageHandle: "reserved-image" });
+    expect(first.outcome).toBe("paused");
+    const repeated = await pausedImports.start({ actorId: secondActorId, target: { kind: "new", name }, stagedScorecardImageHandle: "reserved-image" });
+    expect(repeated).toMatchObject({ outcome: "paused", import: { id: first.outcome === "paused" ? first.import.id : "" } });
+    const conflicting = await pausedImports.start({ actorId: secondActorId, target: { kind: "new", name }, stagedScorecardImageHandle: "other-image" });
+    expect(conflicting).toEqual({ outcome: "rejected", reason: "active_import_conflict" });
+
+    await db.insert(schema.courses).values({ name: `Live Handle ${actorId}`, handle: `live-handle-${actorId}` });
+    const liveConflict = await pausedImports.start({ actorId, target: { kind: "new", name: `Live Handle ${actorId}` }, stagedScorecardImageHandle: "live-image" });
+    expect(liveConflict).toEqual({ outcome: "rejected", reason: "target_exists" });
+  });
+
+  it("serializes concurrent starts and rejects non-administrators through the module interface", async () => {
+    const outsiderId = crypto.randomUUID();
+    await db.insert(schema.users).values({ id: outsiderId, isAdmin: false });
+    const guarded = createCourseScorecardImport({ async parseScorecardImage() { return { scorecard: { tees: [{ name: "Blue", yardages: Array.from({ length: 18 }, () => 400) }], holes: Array.from({ length: 18 }, (_, index) => ({ hole: index + 1, par: 4, handicap: index + 1 })) }, warnings: [] }; } });
+    const target = { kind: "new" as const, name: `Concurrent ${actorId}` };
+    const [first, second] = await Promise.all([
+      guarded.start({ actorId, target, stagedScorecardImageHandle: "concurrent-one" }),
+      guarded.start({ actorId: secondActorId, target, stagedScorecardImageHandle: "concurrent-two" }),
+    ]);
+    expect([first.outcome, second.outcome].sort()).toEqual(["paused", "rejected"]);
+    expect(await guarded.start({ actorId: outsiderId, target: { kind: "new", name: `Forbidden ${actorId}` }, stagedScorecardImageHandle: "forbidden" })).toEqual({ outcome: "rejected", reason: "forbidden" });
+    await db.delete(schema.users).where(eq(schema.users.id, outsiderId));
+  });
+
+  it("returns the current view on a revision conflict without merging the intent", async () => {
+    const paused = await createCourseScorecardImport({ async parseScorecardImage() { return { scorecard: { tees: [{ name: "Blue", yardages: Array.from({ length: 18 }, () => 400) }], holes: Array.from({ length: 18 }, (_, index) => ({ hole: index + 1, par: 4, handicap: index + 1 })) }, warnings: [] }; } }).start({ actorId, target: { kind: "new", name: `Revision ${actorId}` }, stagedScorecardImageHandle: "revision-image" });
+    expect(paused.outcome).toBe("paused");
+    if (paused.outcome !== "paused") return;
+    const advanced = await imports.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "resolve", teeMetadata: { "tee:0:metadata": { rating: 70, slope: 120 } } } });
+    expect(advanced.outcome).toBe("published");
+    const conflict = await imports.continue({ actorId: secondActorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "cancel" } });
+    expect(conflict).toMatchObject({ outcome: "rejected", reason: "revision_conflict", import: { id: paused.import.id, status: "published" } });
+  });
+
+  it("marks an existing-course import stale when its starting fingerprint changes", async () => {
+    const [course] = await db.insert(schema.courses).values({ name: `Stale ${actorId}`, handle: `stale-${actorId}` }).returning({ id: schema.courses.id });
+    const staleImports = createCourseScorecardImport({ async parseScorecardImage() { return { scorecard: { tees: [{ name: "Blue", rating: 71, slope: 125, yardages: Array.from({ length: 18 }, () => 400) }], holes: [] }, warnings: [] }; } });
+    const paused = await staleImports.start({ actorId, target: { kind: "existing", courseId: course.id }, stagedScorecardImageHandle: "stale-image" });
+    expect(paused.outcome).toBe("paused");
+    if (paused.outcome !== "paused") return;
+    await db.update(schema.courses).set({ scorecardImgUrl: "changed-by-another-admin" }).where(eq(schema.courses.id, course.id));
+    const continued = await staleImports.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "resolve", teeResolutions: { "tee:0": { kind: "new" } } } });
+    expect(continued).toMatchObject({ outcome: "stale", import: { id: paused.import.id, status: "stale" } });
+    const inspected = await staleImports.inspect({ actorId: secondActorId, importId: paused.import.id });
+    expect(inspected).toMatchObject({ outcome: "stale", import: { id: paused.import.id, status: "stale" } });
+  });
+
+  it("keeps a published import's parser, decisions, warnings, actors, and timestamps inspectable", async () => {
+    const audited = createCourseScorecardImport({
+      async parseScorecardImage() {
+        return { scorecard: { tees: [{ name: "Blue", rating: 71, slope: 125, yardages: Array.from({ length: 18 }, () => 400) }], holes: Array.from({ length: 18 }, (_, index) => ({ hole: index + 1, par: 4, handicap: index + 1 })) }, warnings: ["parser warning"], parserModel: "test-model" };
+      },
+    });
+    const paused = await audited.start({ actorId, target: { kind: "new", name: `Audit ${actorId}` }, stagedScorecardImageHandle: "audit-image" });
+    expect(paused.outcome).toBe("paused");
+    if (paused.outcome !== "paused") return;
+    const published = await audited.continue({ actorId: secondActorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "resolve", acknowledgeWarnings: ["warning:0"] } });
+    expect(published.outcome).toBe("published");
+    const inspected = await audited.inspect({ actorId, importId: paused.import.id });
+    expect(inspected).toMatchObject({ outcome: "published", import: { audit: { creatorId: actorId, lastEditorId: secondActorId, parserModel: "test-model", warnings: ["parser warning"], decisions: [expect.objectContaining({ actorId: secondActorId, decision: { kind: "resolve", acknowledgeWarnings: ["warning:0"] } })], events: expect.arrayContaining([expect.objectContaining({ event: "started", actorId, at: expect.any(String) }), expect.objectContaining({ event: "published", at: expect.any(String) })]) } } });
   });
 });
 }

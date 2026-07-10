@@ -22,6 +22,7 @@ import { getCurrentUser } from "@/db/queries/users";
 import { isVercelBlobUrl, safeDeleteBlob } from "@/lib/blob";
 import { courseHandleFromName } from "@/lib/course-handle";
 import { parseScorecardImage } from "@/lib/ai/course-scorecard-parser";
+import { DEFAULT_SCORECARD_MODEL } from "@/lib/ai/scorecard";
 import {
   createCourseScorecardImport,
   type CourseScorecardImportView,
@@ -53,6 +54,7 @@ export type CreateResult =
 export type NewCourseImportResult =
   | { outcome: "published"; handle: string }
   | { outcome: "paused"; import: CourseScorecardImportView }
+  | { outcome: "stale"; import: CourseScorecardImportView }
   | { outcome: "cancelled" }
   | { outcome: "rejected"; error: string };
 
@@ -364,7 +366,7 @@ const courseScorecardImports = createCourseScorecardImport({
     const image = await fetchImageBytes(stagedImageHandle);
     if (!image) throw new Error("Could not retrieve staged scorecard image");
     const parsed = await parseScorecardImage(image.buffer, image.mediaType);
-    return { scorecard: parsed.parsed, warnings: parsed.sumChecks };
+    return { scorecard: parsed.parsed, warnings: parsed.sumChecks, parserModel: DEFAULT_SCORECARD_MODEL };
   },
   async deleteStagedImage(handle) {
     return safeDeleteBlob(handle);
@@ -401,6 +403,7 @@ export async function startNewCourseScorecardImport(
   if (result.outcome === "published") return { outcome: "published", handle: result.handle };
   if (result.outcome === "paused") return result;
   if (result.outcome === "cancelled") return result;
+  if (result.outcome === "stale") return result;
   return { outcome: "rejected", error: result.reason };
 }
 
@@ -417,6 +420,7 @@ export async function startExistingCourseScorecardImport(input: {
   });
   if (result.outcome === "published") return { outcome: "published", handle: result.handle };
   if (result.outcome === "paused" || result.outcome === "cancelled") return result;
+  if (result.outcome === "stale") return result;
   return { outcome: "rejected", error: result.reason };
 }
 
@@ -434,6 +438,7 @@ export async function cancelNewCourseScorecardImport(input: {
   });
   if (result.outcome === "published") return { outcome: "published", handle: result.handle };
   if (result.outcome === "paused" || result.outcome === "cancelled") return result;
+  if (result.outcome === "stale") return result;
   return { outcome: "rejected", error: result.reason };
 }
 
@@ -469,6 +474,7 @@ export async function continueNewCourseScorecardImport(input: {
   if (result.outcome === "published") return { outcome: "published", handle: result.handle };
   if (result.outcome === "paused") return result;
   if (result.outcome === "cancelled") return result;
+  if (result.outcome === "stale") return result;
   return { outcome: "rejected", error: result.reason };
 }
 
@@ -486,6 +492,7 @@ export async function retryNewCourseScorecardImport(input: {
   });
   if (result.outcome === "published") return { outcome: "published", handle: result.handle };
   if (result.outcome === "paused" || result.outcome === "cancelled") return result;
+  if (result.outcome === "stale") return result;
   return { outcome: "rejected", error: result.reason };
 }
 
@@ -504,6 +511,7 @@ export async function replaceNewCourseScorecardImport(input: {
   });
   if (result.outcome === "published") return { outcome: "published", handle: result.handle };
   if (result.outcome === "paused" || result.outcome === "cancelled") return result;
+  if (result.outcome === "stale") return result;
   return { outcome: "rejected", error: result.reason };
 }
 
@@ -516,6 +524,7 @@ export async function inspectNewCourseScorecardImport(
   if (result.outcome === "paused") return result;
   if (result.outcome === "published") return { outcome: "published", handle: result.handle };
   if (result.outcome === "cancelled") return result;
+  if (result.outcome === "stale") return result;
   return { outcome: "rejected", error: result.reason };
 }
 

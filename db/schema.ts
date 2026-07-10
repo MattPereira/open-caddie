@@ -31,6 +31,7 @@ export type RoundScorecardUploadStatus =
 export const courseScorecardImportStatuses = [
   "paused",
   "published",
+  "stale",
   "cancelled",
 ] as const;
 export type CourseScorecardImportStatus =
@@ -173,18 +174,19 @@ export const courseScorecardImports = pgTable(
     uniqueIndex("course_scorecard_imports_active_course_unique")
       .on(importRow.courseId)
       .where(sql`${importRow.status} = 'paused' and ${importRow.targetKind} = 'existing'`),
-    uniqueIndex("course_scorecard_imports_target_image_unique").on(
-      importRow.reservedHandle,
-      importRow.courseId,
-      importRow.stagedScorecardImageHandle,
-    ).where(sql`${importRow.status} in ('paused', 'published')`),
+    uniqueIndex("course_scorecard_imports_new_target_image_unique")
+      .on(importRow.reservedHandle, importRow.stagedScorecardImageHandle)
+      .where(sql`${importRow.status} in ('paused', 'published') and ${importRow.targetKind} = 'new'`),
+    uniqueIndex("course_scorecard_imports_existing_target_image_unique")
+      .on(importRow.courseId, importRow.stagedScorecardImageHandle)
+      .where(sql`${importRow.status} in ('paused', 'published') and ${importRow.targetKind} = 'existing'`),
     check(
       "course_scorecard_imports_target_check",
       sql`(${importRow.targetKind} = 'new' and ${importRow.reservedHandle} is not null and ${importRow.courseId} is null) or (${importRow.targetKind} = 'existing' and ${importRow.courseId} is not null and ${importRow.reservedHandle} is null)`,
     ),
     check(
       "course_scorecard_imports_status_check",
-      sql`${importRow.status} in ('paused', 'published', 'cancelled')`,
+      sql`${importRow.status} in ('paused', 'published', 'stale', 'cancelled')`,
     ),
   ],
 );

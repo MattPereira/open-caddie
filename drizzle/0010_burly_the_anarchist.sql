@@ -1,0 +1,3 @@
+DROP INDEX "course_scorecard_imports_target_image_unique";--> statement-breakpoint
+CREATE UNIQUE INDEX "course_scorecard_imports_new_target_image_unique" ON "course_scorecard_imports" USING btree ("reserved_handle","staged_scorecard_image_handle") WHERE "course_scorecard_imports"."status" in ('paused', 'published') and "course_scorecard_imports"."target_kind" = 'new';--> statement-breakpoint
+CREATE UNIQUE INDEX "course_scorecard_imports_existing_target_image_unique" ON "course_scorecard_imports" USING btree ("course_id","staged_scorecard_image_handle") WHERE "course_scorecard_imports"."status" in ('paused', 'published') and "course_scorecard_imports"."target_kind" = 'existing';

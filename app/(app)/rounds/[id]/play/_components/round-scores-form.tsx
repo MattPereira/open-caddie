@@ -793,10 +793,10 @@ function buildSettingsFormValues(
   return {
     roundId: round.id,
     teeId: round.teeId ?? fallbackTeeId,
-    handicapIndexOverride:
-      round.handicapIndexOverride == null
+    playerIndexOverride:
+      round.playerIndexOverride == null
         ? ""
-        : Number(round.handicapIndexOverride),
+        : Number(round.playerIndexOverride),
     scores: Array.from({ length: 18 }, (_, index) => {
       const hole = index + 1;
       const existing = round.scores.find((s) => s.hole === hole);

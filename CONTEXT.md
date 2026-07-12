@@ -24,7 +24,6 @@ _Avoid_: handicap index, GHIN
 **Player Index Override**:
 A Player Index entered by hand on a round — used for casual match play instead of a computed one. Scaled by course slope into a Course Handicap like any Player Index; it is not applied to net strokes directly.
 _Avoid_: handicap index override, playing handicap override
-_Note_: persisted as the legacy column `handicapIndexOverride` (rename pending).
 
 **Course Handicap**:
 A Player Index scaled to one course's slope — the strokes received on that course. This codebase applies no allowance or rounding.

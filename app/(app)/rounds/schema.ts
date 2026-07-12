@@ -105,7 +105,7 @@ const roundGreenieFormEntrySchema = z
 export const RoundScoresUpdateSchema = z.object({
   roundId: z.number().int().positive(),
   teeId: z.number().int().positive("Tees are required"),
-  handicapIndexOverride: optionalHandicapIndex,
+  playerIndexOverride: optionalHandicapIndex,
   scores: z
     .array(roundScoreFormEntrySchema)
     .length(18, "Rounds must have 18 holes")

@@ -408,7 +408,7 @@ export async function updateRoundScores(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  const { handicapIndexOverride, roundId, scores, teeId } = parsed.data;
+  const { playerIndexOverride, roundId, scores, teeId } = parsed.data;
 
   const [currentUser] = await db
     .select({ isAdmin: users.isAdmin })
@@ -468,10 +468,10 @@ export async function updateRoundScores(
         await tx
           .update(rounds)
           .set({
-            handicapIndexOverride:
-              handicapIndexOverride === ""
+            playerIndexOverride:
+              playerIndexOverride === ""
                 ? null
-                : handicapIndexOverride.toFixed(1),
+                : playerIndexOverride.toFixed(1),
           })
           .where(eq(rounds.id, roundId));
       }

@@ -98,7 +98,7 @@ export const getMatchById = cache(async (matchId: number) => {
           courseImgUrl: courses.imgUrl,
           courseRating: roundSummaries.courseRating,
           courseSlope: roundSummaries.courseSlope,
-          handicapIndexOverride: roundSummaries.handicapIndexOverride,
+          playerIndexOverride: roundSummaries.playerIndexOverride,
           recordedStrokesCount: roundSummaries.recordedStrokesCount,
           recordedPuttsCount: roundSummaries.recordedPuttsCount,
           totalStrokes: roundSummaries.totalStrokes,
@@ -225,9 +225,9 @@ export const getMatchById = cache(async (matchId: number) => {
         source: {
           kind: "override",
           playerIndex:
-            round.handicapIndexOverride == null
+            round.playerIndexOverride == null
               ? 0
-              : Number(round.handicapIndexOverride),
+              : Number(round.playerIndexOverride),
         },
         slope: round.courseSlope,
         totalStrokes: round.totalStrokes,

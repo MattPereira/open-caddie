@@ -318,7 +318,7 @@ function toEditableRound(round: RoundScoresTableRound): EditableRound | null {
     userId: round.userId,
     firstName: round.firstName,
     courseSlope: round.courseSlope,
-    handicapIndexOverride: round.handicapIndexOverride ?? null,
+    playerIndexOverride: round.playerIndexOverride ?? null,
     holes: round.holes,
     tees: round.tees,
     scores: round.scores,

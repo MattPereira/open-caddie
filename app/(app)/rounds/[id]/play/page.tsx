@@ -68,7 +68,7 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
     recordedPuttsCount: round.recordedPuttsCount,
     totalStrokes: round.totalStrokes,
     totalPutts: round.totalPutts,
-    handicapIndexOverride: round.handicapIndexOverride,
+    playerIndexOverride: round.playerIndexOverride,
     playingHandicap: round.playingHandicap,
     netStrokes: round.netStrokes,
     scores: round.scores.map((score) => ({
@@ -106,7 +106,7 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
       recordedPuttsCount: matchRound.recordedPuttsCount,
       totalStrokes: matchRound.totalStrokes,
       totalPutts: matchRound.totalPutts,
-      handicapIndexOverride: matchRound.handicapIndexOverride,
+      playerIndexOverride: matchRound.playerIndexOverride,
       playingHandicap: matchRound.playingHandicap,
       netStrokes: matchRound.netStrokes,
       scores: matchRound.scores,

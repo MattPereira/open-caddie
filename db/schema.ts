@@ -299,7 +299,7 @@ export const rounds = pgTable(
       .notNull()
       .references(() => courseTees.id, { onDelete: "restrict" }),
     date: date("date", { mode: "date" }).notNull(),
-    handicapIndexOverride: decimal("handicap_index_override", {
+    playerIndexOverride: decimal("player_index_override", {
       precision: 4,
       scale: 1,
     }),
@@ -416,7 +416,7 @@ export const roundSummaries = pgView("round_summaries").as((qb) =>
       userId: rounds.userId,
       courseId: rounds.courseId,
       date: rounds.date,
-      handicapIndexOverride: rounds.handicapIndexOverride,
+      playerIndexOverride: rounds.playerIndexOverride,
       courseRating: courseTees.rating,
       courseSlope: courseTees.slope,
       recordedStrokesCount:
@@ -455,7 +455,7 @@ export const roundSummaries = pgView("round_summaries").as((qb) =>
       rounds.userId,
       rounds.courseId,
       rounds.date,
-      rounds.handicapIndexOverride,
+      rounds.playerIndexOverride,
       courseTees.rating,
       courseTees.slope,
     ),

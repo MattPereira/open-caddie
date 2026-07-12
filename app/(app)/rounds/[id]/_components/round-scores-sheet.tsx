@@ -55,7 +55,7 @@ export type EditableRound = {
   userId: string;
   firstName: string | null;
   courseSlope: number;
-  handicapIndexOverride: string | number | null;
+  playerIndexOverride: string | number | null;
   tees: {
     id: number;
     name: string;
@@ -104,10 +104,10 @@ function toFormValues(round: EditableRound): RoundScoresUpdateValues {
   return {
     roundId: round.id,
     teeId: round.teeId,
-    handicapIndexOverride:
-      round.handicapIndexOverride == null
+    playerIndexOverride:
+      round.playerIndexOverride == null
         ? ""
-        : Number(round.handicapIndexOverride),
+        : Number(round.playerIndexOverride),
     scores: holeNumbers.map((hole) => {
       const score = scoresByHole.get(hole);
       return {
@@ -166,21 +166,21 @@ export function RoundScoresSheet({
   const greenieRows =
     useWatch({ control: form.control, name: "greenies" }) ?? [];
   const teeId = useWatch({ control: form.control, name: "teeId" });
-  const handicapIndexOverride = useWatch({
+  const playerIndexOverride = useWatch({
     control: form.control,
-    name: "handicapIndexOverride",
+    name: "playerIndexOverride",
   });
   const existingGreenieHoles = new Set(
     round.greenies.map((greenie) => greenie.hole),
   );
   const isDirty = form.formState.isDirty;
-  const canEditHandicapIndexOverride = round.matchId != null;
+  const canEditPlayerIndexOverride = round.matchId != null;
   const selectedTee = round.tees.find((tee) => tee.id === teeId);
   const selectedSlope = selectedTee?.slope ?? round.courseSlope;
   const handicapIndex =
-    typeof handicapIndexOverride === "number" &&
-    Number.isFinite(handicapIndexOverride)
-      ? handicapIndexOverride
+    typeof playerIndexOverride === "number" &&
+    Number.isFinite(playerIndexOverride)
+      ? playerIndexOverride
       : 0;
   const courseHandicap = calculateCourseHandicap(handicapIndex, selectedSlope);
 
@@ -348,7 +348,7 @@ export function RoundScoresSheet({
                       )}
                     />
 
-                    {canEditHandicapIndexOverride ? (
+                    {canEditPlayerIndexOverride ? (
                       <div className="flex flex-col gap-3">
                         <Alert variant="info">
                           <AlertTitle>Course Handicap</AlertTitle>
@@ -360,7 +360,7 @@ export function RoundScoresSheet({
 
                         <FormField
                           control={form.control}
-                          name="handicapIndexOverride"
+                          name="playerIndexOverride"
                           render={({ field }) => (
                             <FormItem className="grid grid-cols-[1fr_8rem] items-center gap-x-3 gap-y-1">
                               <FormLabel>Handicap Index</FormLabel>

@@ -14,11 +14,8 @@ import {
   tournaments,
   users,
 } from "@/db/schema";
-import {
-  calculateNetStrokes,
-  calculatePlayerIndex,
-  calculateCourseHandicap,
-} from "@/lib/scoring";
+import { assessHandicap } from "@/lib/handicap";
+import { calculateNetStrokes } from "@/lib/scoring";
 
 type PriorClubScoreDifferentialsParams = {
   userId: string;
@@ -216,28 +213,35 @@ export const getRoundById = cache(async (roundId: number) => {
   const priorScoreDifferentials = priorHandicapRounds.map(
     (priorRound) => priorRound.scoreDifferential,
   );
-  const playerIndex = calculatePlayerIndex(priorScoreDifferentials);
+  const computed = assessHandicap({
+    source: { kind: "computed", priorDifferentials: priorScoreDifferentials },
+    slope: round.courseSlope,
+    totalStrokes: round.totalStrokes,
+    isComplete: round.isComplete,
+  });
+  const override = assessHandicap({
+    source: {
+      kind: "override",
+      playerIndex:
+        round.handicapIndexOverride == null
+          ? 0
+          : Number(round.handicapIndexOverride),
+    },
+    slope: round.courseSlope,
+    totalStrokes: round.totalStrokes,
+    isComplete: round.isComplete,
+  });
+  const playerIndex = computed.playerIndex;
   const tournamentHandicap =
-    round.clubId == null
-      ? null
-      : calculateCourseHandicap(playerIndex, round.courseSlope);
-  const matchHandicap =
-    round.matchId == null
-      ? null
-      : calculateCourseHandicap(
-          round.handicapIndexOverride == null
-            ? 0
-            : Number(round.handicapIndexOverride),
-          round.courseSlope,
-        );
+    round.clubId == null ? null : computed.courseHandicap;
+  const matchHandicap = round.matchId == null ? null : override.courseHandicap;
+  // A Player Index Override's Course Handicap takes precedence over the
+  // computed one when resolving this round's Playing Handicap.
   const playingHandicap = matchHandicap ?? tournamentHandicap;
   const usedPriorRoundIds = new Set(
-    playerIndex == null
-      ? []
-      : [...priorHandicapRounds]
-          .sort((a, b) => a.scoreDifferential - b.scoreDifferential)
-          .slice(0, 2)
-          .map((priorRound) => priorRound.id),
+    computed.usedDifferentialIndexes.map(
+      (index) => priorHandicapRounds[index].id,
+    ),
   );
 
   return {

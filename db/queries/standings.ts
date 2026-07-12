@@ -21,11 +21,7 @@ import {
   type GreenieForPoints,
   type RoundScoreForPoints,
 } from "@/lib/points";
-import {
-  calculateNetStrokes,
-  calculatePlayerIndex,
-  calculateCourseHandicap,
-} from "@/lib/scoring";
+import { assessHandicap } from "@/lib/handicap";
 
 type SeasonStandingsParams = {
   clubId: number;
@@ -294,15 +290,19 @@ export const getSeasonStandings = cache(
         .sort(compareMostRecentDifferentialRounds)
         .slice(0, 4)
         .map((priorRound) => priorRound.scoreDifferential);
-      const playerIndex = calculatePlayerIndex(priorScoreDifferentials);
-      const tournamentHandicap = calculateCourseHandicap(
+      const {
         playerIndex,
-        round.courseSlope,
-      );
-      const netStrokes = calculateNetStrokes(
-        round.isComplete ? round.totalStrokes : null,
-        tournamentHandicap,
-      );
+        courseHandicap: tournamentHandicap,
+        netStrokes,
+      } = assessHandicap({
+        source: {
+          kind: "computed",
+          priorDifferentials: priorScoreDifferentials,
+        },
+        slope: round.courseSlope,
+        totalStrokes: round.totalStrokes,
+        isComplete: round.isComplete,
+      });
 
       return {
         ...round,

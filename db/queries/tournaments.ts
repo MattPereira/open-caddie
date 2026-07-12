@@ -15,11 +15,7 @@ import {
   tournaments,
   users,
 } from "@/db/schema";
-import {
-  calculateNetStrokes,
-  calculatePlayerIndex,
-  calculateCourseHandicap,
-} from "@/lib/scoring";
+import { assessHandicap } from "@/lib/handicap";
 import { getPriorClubScoreDifferentials } from "./rounds";
 
 export const getAllTournaments = cache(async () => {
@@ -230,15 +226,16 @@ export const getTournamentById = cache(async (tournamentId: number) => {
           clubId: tournament.clubId,
           beforeDate: tournament.date,
         });
-        const playerIndex = calculatePlayerIndex(priorScoreDifferentials);
-        const tournamentHandicap = calculateCourseHandicap(
-          playerIndex,
-          round.courseSlope,
-        );
-        const netStrokes = calculateNetStrokes(
-          round.isComplete ? round.totalStrokes : null,
-          tournamentHandicap,
-        );
+        const { courseHandicap: tournamentHandicap, netStrokes } =
+          assessHandicap({
+            source: {
+              kind: "computed",
+              priorDifferentials: priorScoreDifferentials,
+            },
+            slope: round.courseSlope,
+            totalStrokes: round.totalStrokes,
+            isComplete: round.isComplete,
+          });
 
         return {
           ...round,

@@ -16,10 +16,7 @@ import {
   teeYardages,
   users,
 } from "@/db/schema";
-import {
-  calculateNetStrokes,
-  calculateCourseHandicap,
-} from "@/lib/scoring";
+import { assessHandicap } from "@/lib/handicap";
 
 export const getAllMatches = cache(async () => {
   return db
@@ -224,22 +221,23 @@ export const getMatchById = cache(async (matchId: number) => {
 
   const roundsWithScores = matchRounds
     .map((round) => {
-      const handicapIndex =
-        round.handicapIndexOverride == null
-          ? 0
-          : Number(round.handicapIndexOverride);
-      const playingHandicap = calculateCourseHandicap(
-        handicapIndex,
-        round.courseSlope,
-      );
+      const { courseHandicap: playingHandicap, netStrokes } = assessHandicap({
+        source: {
+          kind: "override",
+          playerIndex:
+            round.handicapIndexOverride == null
+              ? 0
+              : Number(round.handicapIndexOverride),
+        },
+        slope: round.courseSlope,
+        totalStrokes: round.totalStrokes,
+        isComplete: round.isComplete,
+      });
 
       return {
         ...round,
         playingHandicap,
-        netStrokes: calculateNetStrokes(
-          round.isComplete ? round.totalStrokes : null,
-          playingHandicap,
-        ),
+        netStrokes,
         scores: scoresByRoundId.get(round.id) ?? [],
         holes: matchHoles,
         tees: matchTees,

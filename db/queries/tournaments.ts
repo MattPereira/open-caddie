@@ -226,21 +226,19 @@ export const getTournamentById = cache(async (tournamentId: number) => {
           clubId: tournament.clubId,
           beforeDate: tournament.date,
         });
-        const { courseHandicap: tournamentHandicap, netStrokes } =
-          assessHandicap({
-            source: {
-              kind: "computed",
-              priorDifferentials: priorScoreDifferentials,
-            },
-            slope: round.courseSlope,
-            totalStrokes: round.totalStrokes,
-            isComplete: round.isComplete,
-          });
+        const { courseHandicap, netStrokes } = assessHandicap({
+          source: {
+            kind: "computed",
+            priorDifferentials: priorScoreDifferentials,
+          },
+          slope: round.courseSlope,
+          totalStrokes: round.totalStrokes,
+          isComplete: round.isComplete,
+        });
 
         return {
           ...round,
-          tournamentHandicap,
-          playingHandicap: tournamentHandicap,
+          playingHandicap: courseHandicap,
           netStrokes,
           scores: scoresByRoundId.get(round.id) ?? [],
           holes: tournamentHoles,

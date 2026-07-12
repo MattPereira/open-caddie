@@ -211,7 +211,7 @@ function toWinnerRows(
       secondaryLabel: metric === "strokes" ? "Hcp" : "Net",
       secondaryValue:
         metric === "strokes"
-          ? formatDecimalScore(round.tournamentHandicap)
+          ? formatDecimalScore(round.playingHandicap)
           : net,
       primaryLabel: metric === "strokes" ? "Net" : "Putts",
       primaryValue: metric === "strokes" ? net : putts,
@@ -246,7 +246,7 @@ function toSkinWinnerRows(rounds: TournamentRound[]): SkinWinnerRow[] {
       const adjustedStrokes = getAdjustedSkinsStrokes({
         strokes: score.strokes,
         holeHandicap: score.handicap,
-        tournamentHandicap: round.tournamentHandicap,
+        playingHandicap: round.playingHandicap,
       });
 
       return [
@@ -315,15 +315,15 @@ function isEligibleSkinsScore(
 function getAdjustedSkinsStrokes({
   strokes,
   holeHandicap,
-  tournamentHandicap,
+  playingHandicap,
 }: {
   strokes: number;
   holeHandicap: number;
-  tournamentHandicap: number;
+  playingHandicap: number;
 }) {
   const strokedHoleCount = Math.min(
     18,
-    Math.max(0, Math.floor(tournamentHandicap / 2)),
+    Math.max(0, Math.floor(playingHandicap / 2)),
   );
 
   return holeHandicap <= strokedHoleCount ? strokes - 1 : strokes;
@@ -346,7 +346,7 @@ function comparePuttsWinners(a: TournamentRound, b: TournamentRound) {
   const netCompare = compareNullableNumbers(a.netStrokes, b.netStrokes);
   if (netCompare !== 0) return netCompare;
 
-  const handicapCompare = b.tournamentHandicap - a.tournamentHandicap;
+  const handicapCompare = b.playingHandicap - a.playingHandicap;
   if (handicapCompare !== 0) return handicapCompare;
 
   return comparePlayers(a, b);

@@ -232,12 +232,12 @@ export const getRoundById = cache(async (roundId: number) => {
     isComplete: round.isComplete,
   });
   const playerIndex = computed.playerIndex;
-  const tournamentHandicap =
+  const courseHandicap =
     round.clubId == null ? null : computed.courseHandicap;
   const matchHandicap = round.matchId == null ? null : override.courseHandicap;
   // A Player Index Override's Course Handicap takes precedence over the
   // computed one when resolving this round's Playing Handicap.
-  const playingHandicap = matchHandicap ?? tournamentHandicap;
+  const playingHandicap = matchHandicap ?? courseHandicap;
   const usedPriorRoundIds = new Set(
     computed.usedDifferentialIndexes.map(
       (index) => priorHandicapRounds[index].id,
@@ -246,7 +246,7 @@ export const getRoundById = cache(async (roundId: number) => {
 
   return {
     ...round,
-    tournamentHandicap,
+    courseHandicap,
     playingHandicap,
     netStrokes:
       playingHandicap == null
@@ -259,7 +259,7 @@ export const getRoundById = cache(async (roundId: number) => {
     holes,
     tees,
     greenies: roundGreenies,
-    tournamentHandicapDetails:
+    handicapDetails:
       round.tournamentId == null || round.clubId == null
         ? null
         : {
@@ -268,7 +268,7 @@ export const getRoundById = cache(async (roundId: number) => {
               usedForPlayerIndex: usedPriorRoundIds.has(priorRound.id),
             })),
             playerIndex,
-            tournamentHandicap,
+            courseHandicap,
           },
   };
 });

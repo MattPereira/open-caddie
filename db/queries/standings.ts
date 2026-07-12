@@ -64,7 +64,7 @@ export type StandingsRound = {
   recordedPuttsCount: number;
   isComplete: boolean;
   playerIndex: number | null;
-  tournamentHandicap: number;
+  courseHandicap: number;
   netStrokes: number | null;
   scores: RoundScoreForPoints[];
   greenies: GreenieForPoints[];
@@ -290,11 +290,7 @@ export const getSeasonStandings = cache(
         .sort(compareMostRecentDifferentialRounds)
         .slice(0, 4)
         .map((priorRound) => priorRound.scoreDifferential);
-      const {
-        playerIndex,
-        courseHandicap: tournamentHandicap,
-        netStrokes,
-      } = assessHandicap({
+      const { playerIndex, courseHandicap, netStrokes } = assessHandicap({
         source: {
           kind: "computed",
           priorDifferentials: priorScoreDifferentials,
@@ -308,7 +304,7 @@ export const getSeasonStandings = cache(
         ...round,
         tournamentId: round.tournamentId,
         playerIndex,
-        tournamentHandicap,
+        courseHandicap,
         netStrokes,
         user: {
           id: round.userId,
@@ -355,7 +351,7 @@ export const getSeasonStandings = cache(
             recordedPuttsCount: round.recordedPuttsCount,
             isComplete: round.isComplete,
             playerIndex: round.playerIndex,
-            tournamentHandicap: round.tournamentHandicap,
+            courseHandicap: round.courseHandicap,
             netStrokes: round.netStrokes,
             scores: round.scores,
             greenies: round.greenies,

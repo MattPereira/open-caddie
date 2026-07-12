@@ -124,8 +124,8 @@ export default async function RoundPage({ params }: RoundPageProps) {
         </section>
       </div>
 
-      {round.tournamentHandicapDetails ? (
-        <TournamentHandicapSection round={round} />
+      {round.handicapDetails ? (
+        <HandicapSection round={round} />
       ) : null}
     </PageContent>
   );
@@ -144,8 +144,8 @@ async function getRoundFromParams(params: RoundPageProps["params"]) {
 
 type Round = NonNullable<Awaited<ReturnType<typeof getRoundById>>>;
 
-function TournamentHandicapSection({ round }: { round: Round }) {
-  const handicap = round.tournamentHandicapDetails;
+function HandicapSection({ round }: { round: Round }) {
+  const handicap = round.handicapDetails;
 
   if (!handicap) return null;
 
@@ -185,7 +185,7 @@ function TournamentHandicapSection({ round }: { round: Round }) {
 }
 
 type PriorHandicapRound =
-  NonNullable<Round["tournamentHandicapDetails"]> extends {
+  NonNullable<Round["handicapDetails"]> extends {
     priorRounds: (infer PriorRound)[];
   }
     ? PriorRound

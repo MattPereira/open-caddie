@@ -177,12 +177,12 @@ export function RoundScoresSheet({
   const canEditPlayerIndexOverride = round.matchId != null;
   const selectedTee = round.tees.find((tee) => tee.id === teeId);
   const selectedSlope = selectedTee?.slope ?? round.courseSlope;
-  const handicapIndex =
+  const playerIndex =
     typeof playerIndexOverride === "number" &&
     Number.isFinite(playerIndexOverride)
       ? playerIndexOverride
       : 0;
-  const courseHandicap = calculateCourseHandicap(handicapIndex, selectedSlope);
+  const courseHandicap = calculateCourseHandicap(playerIndex, selectedSlope);
 
   useEffect(() => {
     if (open) {
@@ -353,7 +353,7 @@ export function RoundScoresSheet({
                         <Alert variant="info">
                           <AlertTitle>Course Handicap</AlertTitle>
                           <AlertDescription className="tabular-nums">
-                            {handicapIndex.toFixed(1)} x {selectedSlope} / 113 ={" "}
+                            {playerIndex.toFixed(1)} x {selectedSlope} / 113 ={" "}
                             {courseHandicap.toFixed(1)}
                           </AlertDescription>
                         </Alert>
@@ -363,7 +363,7 @@ export function RoundScoresSheet({
                           name="playerIndexOverride"
                           render={({ field }) => (
                             <FormItem className="grid grid-cols-[1fr_8rem] items-center gap-x-3 gap-y-1">
-                              <FormLabel>Handicap Index</FormLabel>
+                              <FormLabel>Player Index</FormLabel>
                               <FormControl>
                                 <Input
                                   type="number"

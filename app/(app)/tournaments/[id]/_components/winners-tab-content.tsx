@@ -2,7 +2,7 @@ import { displayName, getInitials } from "@/lib/players/player-name";
 import { GreenieCard } from "@/components/domain/greenie-card";
 import { WinnerCard } from "@/components/domain/winner-card";
 import { TabsContent } from "@/components/ui/tabs";
-import type { getTournamentById } from "@/db/queries/tournaments";
+import type { getTournamentById } from "@/lib/tournaments/queries";
 
 type Tournament = NonNullable<Awaited<ReturnType<typeof getTournamentById>>>;
 type TournamentRound = Tournament["rounds"][number];

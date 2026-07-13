@@ -10,9 +10,9 @@ import { PointRulesSummary } from "@/app/(app)/clubs/[handle]/_components/point-
 import { appPageIcons } from "@/components/layout/app-nav-items";
 import { StandingsTable } from "@/components/features/standings/standings-table";
 import { Badge } from "@/components/ui/badge";
-import { getClubByHandle, getClubMembersByHandle } from "@/db/queries/clubs";
-import { getClubSeasons, getSeasonStandings } from "@/db/queries/standings";
-import { getCurrentUser } from "@/db/queries/users";
+import { getClubByHandle, getClubMembersByHandle } from "@/lib/clubs/queries";
+import { getClubSeasons, getSeasonStandings } from "@/lib/clubs/standings/queries";
+import { getCurrentUser } from "@/lib/users/queries";
 import { PageContent } from "@/components/layout/page-content";
 import { EditClubButton } from "../_components/edit-club-button";
 

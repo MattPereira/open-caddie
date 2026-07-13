@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { PageContent } from "@/components/layout/page-content";
-import { getCourseForEdit } from "@/db/queries/courses";
-import { getCurrentUser } from "@/db/queries/users";
+import { getCourseForEdit } from "@/lib/courses/queries";
+import { getCurrentUser } from "@/lib/users/queries";
 import { CourseForm } from "../../_components/course-form";
 
 type EditCoursePageProps = {

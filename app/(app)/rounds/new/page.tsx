@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
-import { getAllCourses, getCoursesWithTees } from "@/db/queries/courses";
-import { getUpcomingTournamentsForUser } from "@/db/queries/tournaments";
+import { getAllCourses, getCoursesWithTees } from "@/lib/courses/queries";
+import { getUpcomingTournamentsForUser } from "@/lib/tournaments/queries";
 import { toIsoDate } from "@/lib/dates";
 import { RoundSetupForm } from "./_components/round-setup-form";
 

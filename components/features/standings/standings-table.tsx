@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { SeasonStandings } from "@/db/queries/standings";
+import type { SeasonStandings } from "@/lib/clubs/standings/queries";
 import { cn } from "@/lib/utils";
 
 type Standing = SeasonStandings["players"][number];

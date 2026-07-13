@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { appPageIcons } from "@/components/layout/app-nav-items";
 import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
-import { getClosestGreenies } from "@/db/queries/greenies";
-import { getLowestRounds } from "@/db/queries/rounds";
+import { getClosestGreenies } from "@/lib/rounds/greenies";
+import { getLowestRounds } from "@/lib/rounds/queries";
 import { RecordsBrowser } from "./_components/records-browser";
 
 export const dynamic = "force-dynamic";

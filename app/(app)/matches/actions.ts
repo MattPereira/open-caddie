@@ -14,7 +14,7 @@ import {
   rounds,
   users,
 } from "@/db/schema";
-import { getCurrentUser } from "@/db/queries/users";
+import { getCurrentUser } from "@/lib/users/queries";
 import {
   MatchCreateSchema,
   MatchUpdateSchema,

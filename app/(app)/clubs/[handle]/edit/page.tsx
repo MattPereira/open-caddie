@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { appPageIcons } from "@/components/layout/app-nav-items";
 import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
-import { getClubByHandle } from "@/db/queries/clubs";
+import { getClubByHandle } from "@/lib/clubs/queries";
 import { ClubForm } from "../../_components/club-form";
 
 type EditClubPageProps = {

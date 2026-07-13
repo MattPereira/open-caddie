@@ -10,7 +10,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { getCurrentUser } from "@/db/queries/users";
+import { getCurrentUser } from "@/lib/users/queries";
 
 export const dynamic = "force-dynamic";
 

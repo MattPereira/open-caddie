@@ -11,7 +11,7 @@ import {
   teeYardages,
   tournaments,
 } from "@/db/schema";
-import { getCurrentUser } from "@/db/queries/users";
+import { getCurrentUser } from "@/lib/users/queries";
 import { safeDeleteBlob } from "@/lib/images/blob";
 import {
   DEFAULT_COURSE_SCORECARD_MODEL,

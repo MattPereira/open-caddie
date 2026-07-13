@@ -1,9 +1,9 @@
 import { notFound } from "next/navigation";
 
-import { getMatchById } from "@/db/queries/matches";
-import { getRoundById } from "@/db/queries/rounds";
-import { getTournamentById } from "@/db/queries/tournaments";
-import { getCurrentUser } from "@/db/queries/users";
+import { getMatchById } from "@/lib/matches/queries";
+import { getRoundById } from "@/lib/rounds/queries";
+import { getTournamentById } from "@/lib/tournaments/queries";
+import { getCurrentUser } from "@/lib/users/queries";
 import { RoundPlay } from "./_components/round-play";
 
 type PlayPageProps = {

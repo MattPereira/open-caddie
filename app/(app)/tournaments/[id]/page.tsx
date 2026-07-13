@@ -6,13 +6,13 @@ import { PlayRoundButton } from "@/components/domain/play-round-button";
 import { RoundsTabContent } from "@/components/features/scores/rounds-tab-content";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/shared/url-tabs";
-import { getAllClubs } from "@/db/queries/clubs";
-import { getCoursesWithTees } from "@/db/queries/courses";
+import { getAllClubs } from "@/lib/clubs/queries";
+import { getCoursesWithTees } from "@/lib/courses/queries";
 import {
   getAddablePlayersForTournament,
   getTournamentById,
-} from "@/db/queries/tournaments";
-import { getCurrentUser } from "@/db/queries/users";
+} from "@/lib/tournaments/queries";
+import { getCurrentUser } from "@/lib/users/queries";
 import { createPageMetadata } from "@/app/metadata";
 import { formatDate } from "@/lib/dates";
 import { PageContent } from "@/components/layout/page-content";

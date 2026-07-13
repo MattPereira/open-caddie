@@ -16,7 +16,7 @@ import {
   users,
 } from "@/db/schema";
 import { assessHandicap } from "@/lib/handicap";
-import { getPriorClubScoreDifferentials } from "./rounds";
+import { getPriorClubScoreDifferentials } from "@/lib/rounds/queries";
 
 export const getAllTournaments = cache(async () => {
   return db

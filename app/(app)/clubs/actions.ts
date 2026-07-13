@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { clubs } from "@/db/schema";
-import { getCurrentUser } from "@/db/queries/users";
+import { getCurrentUser } from "@/lib/users/queries";
 import {
   ClubCreateSchema,
   ClubUpdateSchema,

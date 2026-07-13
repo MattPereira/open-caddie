@@ -10,7 +10,7 @@ import {
   getUserById,
   getUserPlayingStatsById,
   getUserRoundsById,
-} from "@/db/queries/users";
+} from "@/lib/users/queries";
 import { PageContent } from "@/components/layout/page-content";
 import { PlayerProfileActions } from "./_components/player-profile-actions";
 import { PlayerRoundsBrowser } from "./_components/player-rounds-browser";

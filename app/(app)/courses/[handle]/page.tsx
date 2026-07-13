@@ -12,8 +12,8 @@ import {
   getCourseByHandle,
   getFewestPuttsRoundsByCourseId,
   getLowestRoundsByCourseId,
-} from "@/db/queries/courses";
-import { getCurrentUser } from "@/db/queries/users";
+} from "@/lib/courses/queries";
+import { getCurrentUser } from "@/lib/users/queries";
 import { PageContent } from "@/components/layout/page-content";
 import { EditCourseButton } from "./_components/edit-course-button";
 

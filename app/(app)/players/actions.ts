@@ -5,7 +5,7 @@ import { and, count, eq, ne, sql } from "drizzle-orm";
 import { signIn } from "@/auth";
 import { db } from "@/db";
 import { greenies, rounds, users } from "@/db/schema";
-import { getCurrentUser } from "@/db/queries/users";
+import { getCurrentUser } from "@/lib/users/queries";
 import { safeDeleteBlob } from "@/lib/images/blob";
 import {
   UserCreateSchema,

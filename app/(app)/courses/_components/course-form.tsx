@@ -43,7 +43,7 @@ import {
   type CourseFormValues,
   type TeeFormValues,
 } from "../schema";
-import type { CourseForEdit, CourseForEditTee } from "@/db/queries/courses";
+import type { CourseForEdit, CourseForEditTee } from "@/lib/courses/queries";
 
 type CourseFormProps = {
   course: CourseForEdit;

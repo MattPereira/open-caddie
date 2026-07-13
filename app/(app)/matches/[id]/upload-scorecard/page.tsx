@@ -3,8 +3,8 @@ import { notFound, redirect } from "next/navigation";
 
 import { PageContent } from "@/components/layout/page-content";
 import { ScorecardUploadForm } from "@/components/features/scorecard-import/scorecard-upload-form";
-import { getMatchById } from "@/db/queries/matches";
-import { getCurrentUser } from "@/db/queries/users";
+import { getMatchById } from "@/lib/matches/queries";
+import { getCurrentUser } from "@/lib/users/queries";
 import { uploadMatchRoundScorecard } from "@/lib/rounds/scorecard-import";
 import { formatDate } from "@/lib/dates";
 

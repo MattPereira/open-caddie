@@ -9,6 +9,7 @@ date: 2026-07-13
 
 - `db/index.ts` — the drizzle client (connection).
 - `db/schema.ts` — table, enum, and view definitions.
+- `db/migrations/` — generated migration SQL and the drizzle-kit journal (`out` in `drizzle.config.ts`). Kept here rather than the drizzle-kit default root `drizzle/` so the connection, schema, and migrations — the complete Drizzle surface — live in one folder.
 
 It is off-limits to feature work unless you are changing the connection or a table definition. All application data logic lives elsewhere, placed by a single rule:
 

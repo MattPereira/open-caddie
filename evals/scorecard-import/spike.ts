@@ -2,7 +2,7 @@
  * Spike: parse a printed course scorecard image with a vision LLM.
  *
  * Usage:
- *   pnpm tsx scripts/spike-parse-scorecard.ts <path-to-image> [--model <id>]
+ *   pnpm tsx evals/scorecard-import/spike.ts <path-to-image> [--model <id>]
  *
  * Routes through the Vercel AI Gateway. Requires VERCEL_OIDC_TOKEN in
  * .env.local (run `vercel env pull` to refresh — token lives ~24h).
@@ -12,7 +12,7 @@ config({ path: ".env.local", override: true });
 
 import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
-import { parseScorecardImage } from "../lib/courses/scorecard-import/parser";
+import { parseScorecardImage } from "../../lib/courses/scorecard-import/parser";
 
 const DEFAULT_MODEL = "anthropic/claude-haiku-4-5";
 
@@ -54,7 +54,7 @@ function parseArgs() {
   const args = process.argv.slice(2);
   if (args.length === 0) {
     console.error(
-      "Usage: pnpm tsx scripts/spike-parse-scorecard.ts <path-to-image-or-dir> [--model <id>]",
+      "Usage: pnpm tsx evals/scorecard-import/spike.ts <path-to-image-or-dir> [--model <id>]",
     );
     process.exit(1);
   }
@@ -178,7 +178,7 @@ async function main() {
   }
 
   const modelSlug = model.replace(/[^a-z0-9-_]+/gi, "_");
-  const runsDir = resolve(`scorecards/runs/${modelSlug}`);
+  const runsDir = resolve(`evals/scorecard-import/runs/${modelSlug}`);
   await mkdir(runsDir, { recursive: true });
 
   console.error(`Parsing ${imagePaths.length} image(s) with ${model}...`);

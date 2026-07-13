@@ -1,10 +1,10 @@
 /**
- * Compare model runs in `scorecards/runs/<model>/` against the verified
- * truth files in `scorecards/expected/`. Prints per-card and per-model
+ * Compare model runs in `evals/scorecard-import/runs/<model>/` against the verified
+ * truth files in `evals/scorecard-import/expected/`. Prints per-card and per-model
  * accuracy.
  *
  * Usage:
- *   pnpm tsx scripts/eval-scorecard-runs.ts
+ *   pnpm tsx evals/scorecard-import/score.ts
  */
 import { readFile, readdir, stat } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
@@ -143,8 +143,8 @@ async function latestRunPerImage(modelDir: string): Promise<Map<string, string>>
 }
 
 async function main() {
-  const expectedDir = resolve("scorecards/expected");
-  const runsRoot = resolve("scorecards/runs");
+  const expectedDir = resolve("evals/scorecard-import/expected");
+  const runsRoot = resolve("evals/scorecard-import/runs");
 
   const expectedFiles = (await readdir(expectedDir)).filter((f) => f.endsWith(".json"));
   if (expectedFiles.length === 0) {

@@ -9,8 +9,8 @@ import {
   teeYardages,
   users,
 } from "@/db/schema";
-import type { Scorecard, ScorecardWarning } from "@/lib/ai/course-scorecard-parser";
-import { courseHandleFromName } from "@/lib/course-handle";
+import type { Scorecard, ScorecardWarning } from "./parser";
+import { courseHandleFromName } from "@/lib/courses/handle";
 
 export { TEE_RATING_MIN, TEE_SLOPE_MIN, TEE_SLOPE_MAX } from "./constants";
 import { TEE_RATING_MIN, TEE_SLOPE_MIN, TEE_SLOPE_MAX } from "./constants";

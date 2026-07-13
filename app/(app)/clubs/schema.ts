@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   PointRulesSchema,
   type PointRules,
-} from "@/lib/point-rules-schema";
+} from "@/lib/clubs/standings/point-rules";
 
 export const ClubFormSchema = z.object({
   handle: z

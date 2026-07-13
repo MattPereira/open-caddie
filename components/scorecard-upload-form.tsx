@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { ParsingOverlay } from "@/components/parsing-overlay";
 import { PlayerCard } from "@/components/player-card";
-import type { UploadRoundScorecardState } from "@/lib/actions/upload-round-scorecard";
+import type { UploadRoundScorecardState } from "@/lib/rounds/scorecard-import";
 
 export type ScorecardPlayer = {
   roundId: number;

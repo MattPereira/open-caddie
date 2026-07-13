@@ -1,6 +1,6 @@
 import { CardDescription } from "@/components/ui/card";
 import { MediaCard } from "@/components/media-card";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
 
 export type RoundCardRound = {
   date: Date | string;

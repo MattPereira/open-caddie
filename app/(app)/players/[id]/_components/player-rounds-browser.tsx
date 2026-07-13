@@ -9,7 +9,7 @@ import { RoundCard } from "@/components/round-card";
 import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
 
 type Round = {
   id: number;

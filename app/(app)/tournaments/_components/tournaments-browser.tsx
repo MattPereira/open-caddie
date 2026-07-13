@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SearchInput } from "@/components/search-input";
 import { TournamentCard } from "@/components/tournament-card";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
 
 type Tournament = {
   id: number;

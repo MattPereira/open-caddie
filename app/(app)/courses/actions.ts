@@ -12,16 +12,18 @@ import {
   tournaments,
 } from "@/db/schema";
 import { getCurrentUser } from "@/db/queries/users";
-import { safeDeleteBlob } from "@/lib/blob";
-import { parseScorecardImage } from "@/lib/ai/course-scorecard-parser";
-import { DEFAULT_SCORECARD_MODEL } from "@/lib/ai/scorecard";
+import { safeDeleteBlob } from "@/lib/images/blob";
+import {
+  DEFAULT_COURSE_SCORECARD_MODEL,
+  parseScorecardImage,
+} from "@/lib/courses/scorecard-import/parser";
 import {
   createCourseScorecardImport,
   type CourseScorecardImportView,
   type HoleCorrection,
   type ImportOutcome,
   type TeeCorrection,
-} from "@/lib/course-scorecard-import";
+} from "@/lib/courses/scorecard-import";
 import {
   CourseCreateInputSchema,
   CourseUpdateSchema,
@@ -114,7 +116,7 @@ const courseScorecardImports = createCourseScorecardImport({
     const image = await fetchImageBytes(stagedImageHandle);
     if (!image) throw new Error("Could not retrieve staged scorecard image");
     const parsed = await parseScorecardImage(image.buffer, image.mediaType);
-    return { scorecard: parsed.parsed, warnings: parsed.sumChecks, parserModel: DEFAULT_SCORECARD_MODEL };
+    return { scorecard: parsed.parsed, warnings: parsed.sumChecks, parserModel: DEFAULT_COURSE_SCORECARD_MODEL };
   },
   async deleteStagedImage(handle) {
     return safeDeleteBlob(handle);

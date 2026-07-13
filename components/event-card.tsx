@@ -1,5 +1,5 @@
 import { MediaCard } from "@/components/media-card";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
 
 export type EventCardEvent = {
   date: Date | string;

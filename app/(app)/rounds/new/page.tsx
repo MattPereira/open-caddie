@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { getAllCourses, getCoursesWithTees } from "@/db/queries/courses";
 import { getUpcomingTournamentsForUser } from "@/db/queries/tournaments";
-import { toIsoDate } from "@/lib/utils";
+import { toIsoDate } from "@/lib/dates";
 import { RoundSetupForm } from "./_components/round-setup-form";
 
 export default async function NewRoundPage() {

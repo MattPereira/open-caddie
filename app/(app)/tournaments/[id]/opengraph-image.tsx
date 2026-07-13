@@ -2,9 +2,9 @@ import {
   createOpenCaddieOgImage,
   openGraphImageContentType,
   openGraphImageSize,
-} from "@/lib/og-image";
+} from "@/app/og-image";
 import { getTournamentById } from "@/db/queries/tournaments";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
 
 type TournamentImageProps = {
   params: Promise<{ id: string }>;

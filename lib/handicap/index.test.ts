@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { assessHandicap } from "./handicap";
+import { assessHandicap } from "./index";
 
 describe("assessHandicap", () => {
   it("derives a Course Handicap and net strokes from a Player Index Override", () => {

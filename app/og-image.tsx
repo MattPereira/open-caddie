@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { siteName } from "@/lib/metadata";
+import { siteName } from "@/app/metadata";
 
 export const openGraphImageSize = { width: 1200, height: 630 };
 export const openGraphImageContentType = "image/png";

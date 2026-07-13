@@ -5,8 +5,8 @@ import { PageContent } from "@/components/page-content";
 import { ScorecardUploadForm } from "@/components/scorecard-upload-form";
 import { getTournamentById } from "@/db/queries/tournaments";
 import { getCurrentUser } from "@/db/queries/users";
-import { uploadTournamentRoundScorecard } from "@/lib/actions/upload-round-scorecard";
-import { formatDate } from "@/lib/utils";
+import { uploadTournamentRoundScorecard } from "@/lib/rounds/scorecard-import";
+import { formatDate } from "@/lib/dates";
 
 type UploadScorecardPageProps = {
   params: Promise<{ id: string }>;

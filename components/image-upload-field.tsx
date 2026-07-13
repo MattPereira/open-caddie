@@ -17,7 +17,7 @@ import { ImageCropperDialog } from "@/components/image-cropper-dialog";
 import {
   IMAGE_UPLOAD_MAX_BYTES,
   getImageUploadMaxBytes,
-} from "@/lib/image-upload-limits";
+} from "@/lib/images/upload-limits";
 import { cn } from "@/lib/utils";
 
 type ImageUploadFieldProps = {

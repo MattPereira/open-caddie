@@ -13,14 +13,14 @@ import {
   tournaments,
   users,
 } from "@/db/schema";
-import type { PointRules } from "@/lib/point-rules-schema";
+import type { PointRules } from "@/lib/clubs/standings/point-rules";
 import {
   assignPositionPoints,
   buildPlayerStandings,
   buildRoundPoints,
   type GreenieForPoints,
   type RoundScoreForPoints,
-} from "@/lib/points";
+} from "@/lib/clubs/standings/points";
 import { assessHandicap } from "@/lib/handicap";
 
 type SeasonStandingsParams = {

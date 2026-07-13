@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
-import { getCroppedBlob } from "@/lib/crop-image";
+import { getCroppedBlob } from "@/lib/images/crop";
 
 type ImageCropperDialogProps = {
   file: File | null;

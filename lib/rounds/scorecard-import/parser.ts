@@ -1,11 +1,10 @@
+import { google } from "@ai-sdk/google";
 import { generateText, Output, type LanguageModelUsage } from "ai";
 import { z } from "zod";
 
-import {
-  DEFAULT_SCORECARD_MODEL,
-  getGoogleGenerativeAIScorecardModel,
-  withGoogleGenerativeAIScorecardFallback,
-} from "@/lib/ai/scorecard";
+import { withGatewayFallback } from "@/lib/ai/gateway-fallback";
+
+export const DEFAULT_ROUND_SCORECARD_MODEL = "google/gemini-3.1-flash-lite";
 
 const HoleScoreSchema = z.object({
   hole: z.number().int().min(1).max(18),
@@ -130,32 +129,14 @@ export async function parseRoundScorecardImage(
   buffer: Uint8Array | Buffer,
   mediaType: string,
   context: RoundScorecardContext,
-  model: string = DEFAULT_SCORECARD_MODEL,
+  model: string = DEFAULT_ROUND_SCORECARD_MODEL,
 ): Promise<ParseRoundScorecardResult> {
-  const result = await withGoogleGenerativeAIScorecardFallback(
-    () =>
-      generateText({
-        model,
-        output: Output.object({
-          schema: RoundScorecardSchema,
-          name: "RoundScorecard",
-          description:
-            "Handwritten golf scores for existing player rounds on a scorecard.",
-        }),
-        system: ROUND_SCORECARD_SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: buildRoundScorecardUserPrompt(context) },
-              { type: "file", data: buffer, mediaType },
-            ],
-          },
-        ],
-      }),
-    () =>
-      generateText({
-        model: getGoogleGenerativeAIScorecardModel(model),
+  const directModel = google(
+    model.startsWith("google/") ? model.slice("google/".length) : model,
+  );
+  const result = await withGatewayFallback(model, directModel, (selectedModel) =>
+    generateText({
+        model: selectedModel,
         output: Output.object({
           schema: RoundScorecardSchema,
           name: "RoundScorecard",

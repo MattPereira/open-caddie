@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { GreenieCard } from "@/components/greenie-card";
 import { displayName, getInitials } from "@/components/player-card";
 import { WinnerCard } from "@/components/winner-card";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
 
 type Round = {
   roundId: number;

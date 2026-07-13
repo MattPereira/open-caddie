@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getRoundById } from "@/db/queries/rounds";
 import { getCurrentUser } from "@/db/queries/users";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
 import { PageContent } from "@/components/page-content";
 import { RoundActions } from "./_components/round-actions";
 import { StatTile } from "@/components/stat-tile";

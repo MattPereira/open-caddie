@@ -42,7 +42,8 @@ import {
   SheetDiscardConfirm,
   SheetFooterActions,
 } from "@/components/sheet-actions";
-import { cn, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
+import { cn } from "@/lib/utils";
 import { createMatch, deleteMatch, updateMatch } from "../actions";
 import {
   getRequiredPlayerCount,

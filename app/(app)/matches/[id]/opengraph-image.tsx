@@ -2,10 +2,10 @@ import {
   createOpenCaddieOgImage,
   openGraphImageContentType,
   openGraphImageSize,
-} from "@/lib/og-image";
+} from "@/app/og-image";
 import { getMatchById } from "@/db/queries/matches";
-import { matchFormatLabel } from "@/lib/match-play";
-import { formatDate } from "@/lib/utils";
+import { matchFormatLabel } from "@/lib/matches";
+import { formatDate } from "@/lib/dates";
 
 type MatchImageProps = {
   params: Promise<{ id: string }>;

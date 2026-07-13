@@ -42,7 +42,8 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CourseCard } from "@/components/course-card";
 import { TournamentCard } from "@/components/tournament-card";
-import { cn, formatDate, toIsoDate, fromIsoDate } from "@/lib/utils";
+import { formatDate, toIsoDate, fromIsoDate } from "@/lib/dates";
+import { cn } from "@/lib/utils";
 import { createRound } from "../../actions";
 import { RoundConfigSchema, type RoundConfigValues } from "../../schema";
 

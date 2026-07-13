@@ -6,7 +6,7 @@ import { signIn } from "@/auth";
 import { db } from "@/db";
 import { greenies, rounds, users } from "@/db/schema";
 import { getCurrentUser } from "@/db/queries/users";
-import { safeDeleteBlob } from "@/lib/blob";
+import { safeDeleteBlob } from "@/lib/images/blob";
 import {
   UserCreateSchema,
   UserUpdateSchema,

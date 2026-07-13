@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { WinnerCard } from "@/components/winner-card";
-import { evaluateMatchPlay } from "@/lib/match-play";
+import { evaluateMatchPlay } from "@/lib/matches";
 import { cn } from "@/lib/utils";
 
 type SkinsRound = RoundScoresTableRound & {

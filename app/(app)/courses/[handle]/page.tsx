@@ -6,7 +6,7 @@ import { CourseHolesTable } from "@/components/course-holes-table";
 import { GreenieCard } from "@/components/greenie-card";
 import { displayName, getInitials } from "@/components/player-card";
 import { WinnerCard } from "@/components/winner-card";
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
 import {
   getClosestGreeniesByCourseId,
   getCourseByHandle,

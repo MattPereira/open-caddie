@@ -46,7 +46,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { calculateCourseHandicap } from "@/lib/scoring";
+import { calculateCourseHandicap } from "@/lib/handicap";
 
 export type EditableRound = {
   id: number;

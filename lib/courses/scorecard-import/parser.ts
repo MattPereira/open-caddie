@@ -1,11 +1,10 @@
+import { google } from "@ai-sdk/google";
 import { generateText, Output, type LanguageModelUsage } from "ai";
 import { z } from "zod";
 
-import {
-  DEFAULT_SCORECARD_MODEL,
-  getGoogleGenerativeAIScorecardModel,
-  withGoogleGenerativeAIScorecardFallback,
-} from "@/lib/ai/scorecard";
+import { withGatewayFallback } from "@/lib/ai/gateway-fallback";
+
+export const DEFAULT_COURSE_SCORECARD_MODEL = "google/gemini-3.1-flash-lite";
 
 export const ScorecardSchema = z.object({
   tees: z
@@ -168,32 +167,14 @@ export type ParseScorecardResult = {
 export async function parseScorecardImage(
   buffer: Uint8Array | Buffer,
   mediaType: string,
-  model: string = DEFAULT_SCORECARD_MODEL,
+  model: string = DEFAULT_COURSE_SCORECARD_MODEL,
 ): Promise<ParseScorecardResult> {
-  const result = await withGoogleGenerativeAIScorecardFallback(
-    () =>
-      generateText({
-        model,
-        output: Output.object({
-          schema: ScorecardSchema,
-          name: "Scorecard",
-          description:
-            "Structured contents of a printed golf scorecard: tee sets and per-hole par/handicap.",
-        }),
-        system: SYSTEM_PROMPT,
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: USER_PROMPT },
-              { type: "file", data: buffer, mediaType },
-            ],
-          },
-        ],
-      }),
-    () =>
-      generateText({
-        model: getGoogleGenerativeAIScorecardModel(model),
+  const directModel = google(
+    model.startsWith("google/") ? model.slice("google/".length) : model,
+  );
+  const result = await withGatewayFallback(model, directModel, (selectedModel) =>
+    generateText({
+        model: selectedModel,
         output: Output.object({
           schema: ScorecardSchema,
           name: "Scorecard",

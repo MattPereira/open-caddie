@@ -1,5 +1,5 @@
 import type { RoundScoresTableRound } from "@/components/round-scores-card";
-import { calculateNetStrokes } from "@/lib/scoring";
+import { calculateNetStrokes } from "@/lib/handicap";
 
 export type ScoreEntry = {
   hole: number;

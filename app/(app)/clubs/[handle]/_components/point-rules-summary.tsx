@@ -9,7 +9,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import type { PointRules } from "@/lib/point-rules-schema";
+import type { PointRules } from "@/lib/clubs/standings/point-rules";
 
 export function PointRulesSummary({ pointRules }: { pointRules: PointRules }) {
   return (

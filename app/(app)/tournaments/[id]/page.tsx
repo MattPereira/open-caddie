@@ -13,8 +13,8 @@ import {
   getTournamentById,
 } from "@/db/queries/tournaments";
 import { getCurrentUser } from "@/db/queries/users";
-import { createPageMetadata } from "@/lib/metadata";
-import { formatDate } from "@/lib/utils";
+import { createPageMetadata } from "@/app/metadata";
+import { formatDate } from "@/lib/dates";
 import { PageContent } from "@/components/page-content";
 import { UploadScorecardButton } from "@/components/upload-scorecard-button";
 import { AddPlayersSheet } from "./_components/add-players-sheet";

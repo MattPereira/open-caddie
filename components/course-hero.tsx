@@ -2,7 +2,7 @@ import Image from "next/image";
 import { GolfHoleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import { formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/dates";
 
 export function CourseHero({
   courseName,

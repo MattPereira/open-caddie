@@ -18,7 +18,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { ParsingOverlay } from "@/components/parsing-overlay";
 import { Input } from "@/components/ui/input";
-import { courseHandleFromName } from "@/lib/course-handle";
+import { courseHandleFromName } from "@/lib/courses/handle";
 import { startCourseScorecardImport } from "../actions";
 import {
   CourseCreateInputSchema,

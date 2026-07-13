@@ -10,8 +10,8 @@ import { EventCard } from "@/components/event-card";
 import { SearchInput } from "@/components/search-input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { matchFormatLabel } from "@/lib/match-play";
-import { formatDate } from "@/lib/utils";
+import { matchFormatLabel } from "@/lib/matches";
+import { formatDate } from "@/lib/dates";
 
 type Match = {
   id: number;

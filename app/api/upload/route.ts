@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { getImageUploadMaxBytes } from "@/lib/image-upload-limits";
+import { getImageUploadMaxBytes } from "@/lib/images/upload-limits";
 
 const ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp"];
 

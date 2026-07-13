@@ -15,7 +15,7 @@ import {
   users,
 } from "@/db/schema";
 import { assessHandicap } from "@/lib/handicap";
-import { calculateNetStrokes } from "@/lib/scoring";
+import { calculateNetStrokes } from "@/lib/handicap";
 
 type PriorClubScoreDifferentialsParams = {
   userId: string;

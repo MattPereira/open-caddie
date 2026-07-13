@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 
-import { CardGrid } from "@/components/card-grid";
+import { CardGrid } from "@/components/shared/card-grid";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ClubCard, type ClubCardClub } from "@/components/club-card";
-import { SearchInput } from "@/components/search-input";
+import { ClubCard, type ClubCardClub } from "@/components/domain/club-card";
+import { SearchInput } from "@/components/shared/search-input";
 
 export function ClubsBrowser({ clubs }: { clubs: ClubCardClub[] }) {
   const [query, setQuery] = useState("");

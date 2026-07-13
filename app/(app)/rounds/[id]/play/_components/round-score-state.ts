@@ -1,4 +1,4 @@
-import type { RoundScoresTableRound } from "@/components/round-scores-card";
+import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
 import { calculateNetStrokes } from "@/lib/handicap";
 
 export type ScoreEntry = {

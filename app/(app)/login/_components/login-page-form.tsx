@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { LoginForm, type LoginFormValues } from "@/components/login-form";
+import { LoginForm, type LoginFormValues } from "./login-form";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { signInWithEmail, signInWithGoogle } from "../actions";

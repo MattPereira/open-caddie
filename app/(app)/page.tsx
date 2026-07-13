@@ -5,9 +5,9 @@ import type { ReactNode } from "react";
 import { ChampionIcon, GolfBallIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
-import { EventCard } from "@/components/event-card";
-import { PageContent } from "@/components/page-content";
-import { PlayRoundButton } from "@/components/play-round-button";
+import { EventCard } from "@/components/domain/event-card";
+import { PageContent } from "@/components/layout/page-content";
+import { PlayRoundButton } from "@/components/domain/play-round-button";
 import { matchFormatLabel } from "@/lib/matches";
 import { brandFont } from "@/app/fonts";
 import { getAllClubs } from "@/db/queries/clubs";

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-import { ResponsiveTable, TableFrame } from "@/components/responsive-table";
+import { ResponsiveTable, TableFrame } from "@/components/shared/responsive-table";
 import {
   Select,
   SelectContent,

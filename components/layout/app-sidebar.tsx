@@ -38,7 +38,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { signOutAction } from "@/app/(app)/login/actions";
-import { appNavItems } from "@/components/app-nav-items";
+import { appNavItems } from "@/components/layout/app-nav-items";
 
 type SidebarUser = {
   name: string;

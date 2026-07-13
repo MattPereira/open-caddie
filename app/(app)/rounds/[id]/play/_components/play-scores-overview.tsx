@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
-import { HoleScore } from "@/components/round-scores-card";
+import { HoleScore } from "@/components/features/scores/round-scores-card";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import type { ScoreEntry } from "./round-score-state";

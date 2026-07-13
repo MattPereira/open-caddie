@@ -7,13 +7,13 @@ import { GolfBatIcon, UserMultipleIcon } from "@hugeicons/core-free-icons";
 import { ClubStandingsSeasonSelect } from "@/app/(app)/clubs/[handle]/_components/club-standings-season-select";
 import { ClubMembersBrowser } from "@/app/(app)/clubs/[handle]/_components/club-members-browser";
 import { PointRulesSummary } from "@/app/(app)/clubs/[handle]/_components/point-rules-summary";
-import { appPageIcons } from "@/components/app-nav-items";
-import { StandingsTable } from "@/components/standings-table";
+import { appPageIcons } from "@/components/layout/app-nav-items";
+import { StandingsTable } from "@/components/features/standings/standings-table";
 import { Badge } from "@/components/ui/badge";
 import { getClubByHandle, getClubMembersByHandle } from "@/db/queries/clubs";
 import { getClubSeasons, getSeasonStandings } from "@/db/queries/standings";
 import { getCurrentUser } from "@/db/queries/users";
-import { PageContent } from "@/components/page-content";
+import { PageContent } from "@/components/layout/page-content";
 import { EditClubButton } from "../_components/edit-club-button";
 
 type ClubPageProps = {

@@ -4,8 +4,8 @@ import { useState } from "react";
 import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import { displayName, getInitials } from "@/components/player-card";
-import { StatTile } from "@/components/stat-tile";
+import { displayName, getInitials } from "@/lib/players/player-name";
+import { StatTile } from "@/components/shared/stat-tile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,7 +13,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import type { PointKey, PointSummaryColumn } from "@/components/standings-table";
+import type { PointKey, PointSummaryColumn } from "@/components/features/standings/standings-table";
 
 export type MobileStanding = {
   userId: string;

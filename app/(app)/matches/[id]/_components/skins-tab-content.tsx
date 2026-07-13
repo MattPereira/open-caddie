@@ -1,6 +1,6 @@
-import { displayName, getInitials } from "@/components/player-card";
-import { TableFrame } from "@/components/responsive-table";
-import type { RoundScoresTableRound } from "@/components/round-scores-table";
+import { displayName, getInitials } from "@/lib/players/player-name";
+import { TableFrame } from "@/components/shared/responsive-table";
+import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-table";
 import {
   Accordion,
   AccordionContent,
@@ -18,7 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { WinnerCard } from "@/components/winner-card";
+import { WinnerCard } from "@/components/domain/winner-card";
 import { evaluateMatchPlay } from "@/lib/matches";
 import { cn } from "@/lib/utils";
 

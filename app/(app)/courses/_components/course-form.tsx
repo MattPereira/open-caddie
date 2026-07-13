@@ -31,7 +31,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { ImageUploadField } from "@/components/image-upload-field";
+import { ImageUploadField } from "@/components/shared/image-upload-field";
 import { Input } from "@/components/ui/input";
 import {
   startExistingCourseScorecardImport,

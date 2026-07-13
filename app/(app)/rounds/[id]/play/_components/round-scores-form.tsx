@@ -21,7 +21,7 @@ import {
 } from "@hugeicons/core-free-icons";
 
 import { Button } from "@/components/ui/button";
-import { HoldToConfirmButton } from "@/components/hold-to-confirm-button";
+import { HoldToConfirmButton } from "@/components/shared/hold-to-confirm-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Field,
@@ -84,10 +84,10 @@ import { HoleScoreSlide } from "./hole-score-slide";
 import {
   formatScore,
   type RoundScoresTableRound,
-} from "@/components/round-scores-card";
+} from "@/components/features/scores/round-scores-card";
 import { MatchPlayContent } from "@/app/(app)/matches/[id]/_components/match-play-tab-content";
 import { SkinsContent } from "@/app/(app)/matches/[id]/_components/skins-tab-content";
-import { toRoundScoreRow } from "@/components/round-scores-card-row";
+import { toRoundScoreRow } from "@/components/features/scores/round-scores";
 import { PlayScoresOverview } from "./play-scores-overview";
 import {
   type ScoreEntry,

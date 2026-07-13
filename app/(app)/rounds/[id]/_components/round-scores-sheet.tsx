@@ -18,7 +18,7 @@ import {
   SheetDeleteConfirm,
   SheetDiscardConfirm,
   SheetFooterActions,
-} from "@/components/sheet-actions";
+} from "@/components/shared/sheet-actions";
 import {
   Field,
   FieldContent,

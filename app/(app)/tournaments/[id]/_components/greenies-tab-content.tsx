@@ -1,7 +1,7 @@
 import {
   GreenieCard,
   type GreenieCardGreenie,
-} from "@/components/greenie-card";
+} from "@/components/domain/greenie-card";
 import { TabsContent } from "@/components/ui/tabs";
 
 export function GreeniesTabContent({

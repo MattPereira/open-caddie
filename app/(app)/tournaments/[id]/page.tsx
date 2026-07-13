@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { CourseHero } from "@/components/course-hero";
-import { GreeniesTabContent } from "@/components/greenies-tab-content";
-import { PlayRoundButton } from "@/components/play-round-button";
-import { RoundsTabContent } from "@/components/rounds-tab-content";
+import { CourseHero } from "@/components/domain/course-hero";
+import { GreeniesTabContent } from "./_components/greenies-tab-content";
+import { PlayRoundButton } from "@/components/domain/play-round-button";
+import { RoundsTabContent } from "@/components/features/scores/rounds-tab-content";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UrlTabs } from "@/components/url-tabs";
+import { UrlTabs } from "@/components/shared/url-tabs";
 import { getAllClubs } from "@/db/queries/clubs";
 import { getCoursesWithTees } from "@/db/queries/courses";
 import {
@@ -15,8 +15,8 @@ import {
 import { getCurrentUser } from "@/db/queries/users";
 import { createPageMetadata } from "@/app/metadata";
 import { formatDate } from "@/lib/dates";
-import { PageContent } from "@/components/page-content";
-import { UploadScorecardButton } from "@/components/upload-scorecard-button";
+import { PageContent } from "@/components/layout/page-content";
+import { UploadScorecardButton } from "@/components/features/scorecard-import/upload-scorecard-button";
 import { AddPlayersSheet } from "./_components/add-players-sheet";
 import { EditTournamentButton } from "./_components/edit-tournament-button";
 import { WinnersTabContent } from "./_components/winners-tab-content";

@@ -1,4 +1,4 @@
-import type { RoundScoresTableRound } from "@/components/round-scores-table";
+import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-table";
 import { Card, CardContent } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 import type { MatchFormat } from "../../schema";

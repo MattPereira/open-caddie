@@ -15,9 +15,9 @@ import {
   type RoundScoreRow,
   type RoundScoresTableRound,
   type ScoreMetric,
-} from "@/components/round-scores-card";
-import { toRoundScoreRow } from "@/components/round-scores-card-row";
-import { ResponsiveTable, TableFrame } from "@/components/responsive-table";
+} from "@/components/features/scores/round-scores-card";
+import { toRoundScoreRow } from "@/components/features/scores/round-scores";
+import { ResponsiveTable, TableFrame } from "@/components/shared/responsive-table";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -39,7 +39,7 @@ import {
   type EditableRound,
 } from "@/app/(app)/rounds/[id]/_components/round-scores-sheet";
 
-export type { RoundScoresTableRound } from "@/components/round-scores-card";
+export type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
 
 const holes = Array.from({ length: 18 }, (_, index) => index + 1);
 

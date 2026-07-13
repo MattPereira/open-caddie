@@ -1,13 +1,13 @@
-import { displayName } from "@/components/player-card";
-import { ResponsiveTable, TableFrame } from "@/components/responsive-table";
+import { displayName } from "@/lib/players/player-name";
+import { ResponsiveTable, TableFrame } from "@/components/shared/responsive-table";
 import {
   StandingsDesktopRowGroup,
   type DesktopStanding,
-} from "@/components/standings-desktop-row";
+} from "@/components/features/standings/standings-desktop-row";
 import {
   StandingsMobileRow,
   type MobileStanding,
-} from "@/components/standings-mobile-row";
+} from "@/components/features/standings/standings-mobile-row";
 import {
   Table,
   TableHead,

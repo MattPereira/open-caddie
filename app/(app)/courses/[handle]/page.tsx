@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { CourseHero } from "@/components/course-hero";
-import { CourseHolesTable } from "@/components/course-holes-table";
-import { GreenieCard } from "@/components/greenie-card";
-import { displayName, getInitials } from "@/components/player-card";
-import { WinnerCard } from "@/components/winner-card";
+import { CourseHero } from "@/components/domain/course-hero";
+import { CourseHolesTable } from "./_components/course-holes-table";
+import { GreenieCard } from "@/components/domain/greenie-card";
+import { displayName, getInitials } from "@/lib/players/player-name";
+import { WinnerCard } from "@/components/domain/winner-card";
 import { formatDate } from "@/lib/dates";
 import {
   getClosestGreeniesByCourseId,
@@ -14,7 +14,7 @@ import {
   getLowestRoundsByCourseId,
 } from "@/db/queries/courses";
 import { getCurrentUser } from "@/db/queries/users";
-import { PageContent } from "@/components/page-content";
+import { PageContent } from "@/components/layout/page-content";
 import { EditCourseButton } from "./_components/edit-course-button";
 
 type CoursePageProps = {

@@ -1,4 +1,4 @@
-import { EventCard } from "@/components/event-card";
+import { EventCard } from "@/components/domain/event-card";
 
 export type TournamentCardTournament = {
   clubName: string;

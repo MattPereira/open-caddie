@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import { GolfHoleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import { CardGrid } from "@/components/card-grid";
-import { RoundCard } from "@/components/round-card";
-import { SearchInput } from "@/components/search-input";
+import { CardGrid } from "@/components/shared/card-grid";
+import { RoundCard } from "@/components/domain/round-card";
+import { SearchInput } from "@/components/shared/search-input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatDate } from "@/lib/dates";

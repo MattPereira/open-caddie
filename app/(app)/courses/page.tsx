@@ -3,9 +3,9 @@ import Link from "next/link";
 import { Add01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import { appPageIcons } from "@/components/app-nav-items";
-import { PageContent } from "@/components/page-content";
-import { PageHeading } from "@/components/page-heading";
+import { appPageIcons } from "@/components/layout/app-nav-items";
+import { PageContent } from "@/components/layout/page-content";
+import { PageHeading } from "@/components/layout/page-heading";
 import { Button } from "@/components/ui/button";
 import { getAllCourses } from "@/db/queries/courses";
 import { getCurrentUser } from "@/db/queries/users";

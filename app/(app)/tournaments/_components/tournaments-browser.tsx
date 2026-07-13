@@ -4,11 +4,11 @@ import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { GolfHoleIcon } from "@hugeicons/core-free-icons";
 
-import { CardGrid } from "@/components/card-grid";
+import { CardGrid } from "@/components/shared/card-grid";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { SearchInput } from "@/components/search-input";
-import { TournamentCard } from "@/components/tournament-card";
+import { SearchInput } from "@/components/shared/search-input";
+import { TournamentCard } from "@/components/domain/tournament-card";
 import { formatDate } from "@/lib/dates";
 
 type Tournament = {

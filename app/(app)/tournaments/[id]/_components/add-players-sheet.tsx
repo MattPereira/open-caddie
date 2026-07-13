@@ -14,12 +14,12 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { PlayerCard } from "@/components/domain/player-card";
 import {
-  PlayerCard,
   displayName,
   type PlayerCardPlayer,
-} from "@/components/player-card";
-import { SearchInput } from "@/components/search-input";
+} from "@/lib/players/player-name";
+import { SearchInput } from "@/components/shared/search-input";
 import { addPlayersToTournament } from "../../actions";
 
 export type AddablePlayer = PlayerCardPlayer & { id: string };

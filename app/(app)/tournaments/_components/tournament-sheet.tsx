@@ -36,7 +36,7 @@ import {
   SheetDeleteConfirm,
   SheetDiscardConfirm,
   SheetFooterActions,
-} from "@/components/sheet-actions";
+} from "@/components/shared/sheet-actions";
 import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import {

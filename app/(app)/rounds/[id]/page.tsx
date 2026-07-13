@@ -5,20 +5,20 @@ import { notFound } from "next/navigation";
 import { PlayCircleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import { CourseHero } from "@/components/course-hero";
-import { GreenieCard } from "@/components/greenie-card";
-import { displayName } from "@/components/player-card";
+import { CourseHero } from "@/components/domain/course-hero";
+import { GreenieCard } from "@/components/domain/greenie-card";
+import { displayName } from "@/lib/players/player-name";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getRoundById } from "@/db/queries/rounds";
 import { getCurrentUser } from "@/db/queries/users";
 import { formatDate } from "@/lib/dates";
-import { PageContent } from "@/components/page-content";
+import { PageContent } from "@/components/layout/page-content";
 import { RoundActions } from "./_components/round-actions";
-import { StatTile } from "@/components/stat-tile";
-import { RoundScoresCard } from "@/components/round-scores-card";
-import { toRoundScoreRow } from "@/components/round-scores-card-row";
+import { StatTile } from "@/components/shared/stat-tile";
+import { RoundScoresCard } from "@/components/features/scores/round-scores-card";
+import { toRoundScoreRow } from "@/components/features/scores/round-scores";
 
 type RoundPageProps = {
   params: Promise<{

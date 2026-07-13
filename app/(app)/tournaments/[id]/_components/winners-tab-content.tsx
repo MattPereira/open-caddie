@@ -1,6 +1,6 @@
-import { displayName, getInitials } from "@/components/player-card";
-import { GreenieCard } from "@/components/greenie-card";
-import { WinnerCard } from "@/components/winner-card";
+import { displayName, getInitials } from "@/lib/players/player-name";
+import { GreenieCard } from "@/components/domain/greenie-card";
+import { WinnerCard } from "@/components/domain/winner-card";
 import { TabsContent } from "@/components/ui/tabs";
 import type { getTournamentById } from "@/db/queries/tournaments";
 

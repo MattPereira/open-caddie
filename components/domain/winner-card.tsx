@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CardDescription } from "@/components/ui/card";
-import { MediaCard } from "@/components/media-card";
+import { MediaCard } from "@/components/shared/media-card";
 import { cn } from "@/lib/utils";
 
 export function WinnerCard({

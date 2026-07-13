@@ -1,8 +1,8 @@
-import { displayName, getInitials } from "@/components/player-card";
+import { displayName, getInitials } from "@/lib/players/player-name";
 import type { ReactNode } from "react";
-import { TableFrame } from "@/components/responsive-table";
-import type { RoundScoresTableRound } from "@/components/round-scores-table";
-import { WinnerCard } from "@/components/winner-card";
+import { TableFrame } from "@/components/shared/responsive-table";
+import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-table";
+import { WinnerCard } from "@/components/domain/winner-card";
 import {
   Accordion,
   AccordionContent,

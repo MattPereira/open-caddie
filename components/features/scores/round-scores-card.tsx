@@ -10,15 +10,15 @@ import { cn } from "@/lib/utils";
 import type {
   RoundScoreRow,
   ScoreMetric,
-} from "@/components/round-scores-card-row";
+} from "@/components/features/scores/round-scores";
 
 export type {
   MetricValues,
   RoundScoreRow,
   RoundScoresTableRound,
   ScoreMetric,
-} from "@/components/round-scores-card-row";
-import { StatTile } from "./stat-tile";
+} from "@/components/features/scores/round-scores";
+import { StatTile } from "@/components/shared/stat-tile";
 
 const holes = Array.from({ length: 18 }, (_, index) => index + 1);
 const frontNine = holes.slice(0, 9);

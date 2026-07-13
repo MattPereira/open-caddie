@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import type { RoundScoresTableRound } from "@/components/round-scores-card";
+import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
 import type { StoredMatchPlayTeam } from "@/app/(app)/matches/[id]/_components/match-play-tab-content";
 import type { MatchFormat } from "@/app/(app)/matches/schema";
 import { RoundScoresForm, type SettingsTee } from "./round-scores-form";

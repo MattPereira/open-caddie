@@ -1,4 +1,4 @@
-import { displayName, getInitials } from "@/components/player-card";
+import { displayName, getInitials } from "@/lib/players/player-name";
 
 const holes = Array.from({ length: 18 }, (_, index) => index + 1);
 

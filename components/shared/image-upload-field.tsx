@@ -13,7 +13,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ImageCropperDialog } from "@/components/image-cropper-dialog";
+import { ImageCropperDialog } from "@/components/shared/image-cropper-dialog";
 import {
   IMAGE_UPLOAD_MAX_BYTES,
   getImageUploadMaxBytes,

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-import { appPageIcons } from "@/components/app-nav-items";
-import { PageContent } from "@/components/page-content";
-import { PageHeading } from "@/components/page-heading";
+import { appPageIcons } from "@/components/layout/app-nav-items";
+import { PageContent } from "@/components/layout/page-content";
+import { PageHeading } from "@/components/layout/page-heading";
 import { getAllClubsFull } from "@/db/queries/clubs";
 import { getCurrentUser } from "@/db/queries/users";
 import { AddClubButton } from "./_components/add-club-button";

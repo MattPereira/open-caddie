@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 import { auth } from "@/auth";
-import { AppSidebar } from "@/components/app-sidebar";
-import { HeaderWordmark } from "@/components/header-wordmark";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { AppSidebar } from "@/components/layout/app-sidebar";
+import { HeaderWordmark } from "@/components/layout/header-wordmark";
+import { ThemeToggle } from "@/components/layout/theme-toggle";
 import { Button } from "@/components/ui/button";
 import {
   SidebarInset,

@@ -11,7 +11,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
-import type { PointKey, PointSummaryColumn } from "@/components/standings-table";
+import type { PointKey, PointSummaryColumn } from "@/components/features/standings/standings-table";
 import { cn } from "@/lib/utils";
 
 export type DesktopStanding = {

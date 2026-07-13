@@ -7,12 +7,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Calendar01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
+import { PlayerCard } from "@/components/domain/player-card";
 import {
-  PlayerCard,
   displayName,
   type PlayerCardPlayer,
-} from "@/components/player-card";
-import { SearchInput } from "@/components/search-input";
+} from "@/lib/players/player-name";
+import { SearchInput } from "@/components/shared/search-input";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -41,7 +41,7 @@ import {
   SheetDeleteConfirm,
   SheetDiscardConfirm,
   SheetFooterActions,
-} from "@/components/sheet-actions";
+} from "@/components/shared/sheet-actions";
 import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import { createMatch, deleteMatch, updateMatch } from "../actions";

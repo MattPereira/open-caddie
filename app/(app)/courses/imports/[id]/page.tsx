@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { PageContent } from "@/components/page-content";
+import { PageContent } from "@/components/layout/page-content";
 import { inspectCourseScorecardImport } from "../../actions";
 import { CourseImportReview } from "../../_components/course-import-review";
 

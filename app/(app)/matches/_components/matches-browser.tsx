@@ -5,9 +5,9 @@ import { GolfHoleIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import type { MatchFormat } from "@/db/schema";
-import { CardGrid } from "@/components/card-grid";
-import { EventCard } from "@/components/event-card";
-import { SearchInput } from "@/components/search-input";
+import { CardGrid } from "@/components/shared/card-grid";
+import { EventCard } from "@/components/domain/event-card";
+import { SearchInput } from "@/components/shared/search-input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { matchFormatLabel } from "@/lib/matches";

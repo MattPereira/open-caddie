@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
-import { PageContent } from "@/components/page-content";
-import { ScorecardUploadForm } from "@/components/scorecard-upload-form";
+import { PageContent } from "@/components/layout/page-content";
+import { ScorecardUploadForm } from "@/components/features/scorecard-import/scorecard-upload-form";
 import { getMatchById } from "@/db/queries/matches";
 import { getCurrentUser } from "@/db/queries/users";
 import { uploadMatchRoundScorecard } from "@/lib/rounds/scorecard-import";

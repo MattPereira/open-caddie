@@ -5,7 +5,7 @@ import { TabsContent } from "@/components/ui/tabs";
 import {
   RoundScoresTable,
   type RoundScoresTableRound,
-} from "@/components/round-scores-table";
+} from "@/components/features/scores/round-scores-table";
 
 export function RoundsTabContent({
   currentUser,

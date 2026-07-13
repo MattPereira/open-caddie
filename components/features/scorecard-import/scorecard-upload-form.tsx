@@ -21,9 +21,9 @@ import {
 } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { ImageUploadField } from "@/components/image-upload-field";
-import { ParsingOverlay } from "@/components/parsing-overlay";
-import { PlayerCard } from "@/components/player-card";
+import { ImageUploadField } from "@/components/shared/image-upload-field";
+import { ParsingOverlay } from "@/components/shared/parsing-overlay";
+import { PlayerCard } from "@/components/domain/player-card";
 import type { UploadRoundScorecardState } from "@/lib/rounds/scorecard-import";
 
 export type ScorecardPlayer = {

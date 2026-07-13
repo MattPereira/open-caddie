@@ -1,4 +1,4 @@
-import { displayName, getInitials } from "@/components/player-card";
+import { displayName, getInitials } from "@/lib/players/player-name";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";

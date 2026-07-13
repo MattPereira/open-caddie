@@ -2,7 +2,7 @@ import Image from "next/image";
 
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { CardDescription } from "@/components/ui/card";
-import { MediaCard } from "@/components/media-card";
+import { MediaCard } from "@/components/shared/media-card";
 
 export type ClubCardClub = {
   handle: string;

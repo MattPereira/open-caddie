@@ -40,8 +40,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CourseCard } from "@/components/course-card";
-import { TournamentCard } from "@/components/tournament-card";
+import { CourseCard } from "@/components/domain/course-card";
+import { TournamentCard } from "@/components/domain/tournament-card";
 import { formatDate, toIsoDate, fromIsoDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import { createRound } from "../../actions";

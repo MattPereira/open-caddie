@@ -4,11 +4,11 @@ import { useMemo, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { GolfHoleIcon } from "@hugeicons/core-free-icons";
 
-import { CardGrid } from "@/components/card-grid";
+import { CardGrid } from "@/components/shared/card-grid";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { CourseCard } from "@/components/course-card";
-import { SearchInput } from "@/components/search-input";
+import { CourseCard } from "@/components/domain/course-card";
+import { SearchInput } from "@/components/shared/search-input";
 
 type Course = {
   id: number;

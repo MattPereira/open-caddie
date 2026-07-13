@@ -4,7 +4,7 @@ import { type ReactNode } from "react";
 import { Delete02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import { HoldToConfirmButton } from "@/components/hold-to-confirm-button";
+import { HoldToConfirmButton } from "@/components/shared/hold-to-confirm-button";
 import { Button } from "@/components/ui/button";
 import { SheetClose } from "@/components/ui/sheet";
 

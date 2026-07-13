@@ -13,8 +13,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { ImageUploadField } from "@/components/image-upload-field";
-import { getInitials } from "@/components/player-card";
+import { ImageUploadField } from "@/components/shared/image-upload-field";
+import { getInitials } from "@/lib/players/player-name";
 import { Input } from "@/components/ui/input";
 import {
   Sheet,
@@ -28,7 +28,7 @@ import {
   SheetDeleteConfirm,
   SheetDiscardConfirm,
   SheetFooterActions,
-} from "@/components/sheet-actions";
+} from "@/components/shared/sheet-actions";
 import { Switch } from "@/components/ui/switch";
 import { createUser, deleteUser, updateUser } from "../actions";
 import { UserFormSchema, type UserFormValues } from "../schema";

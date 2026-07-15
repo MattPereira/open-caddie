@@ -32,6 +32,14 @@ export type MatchPlayTeamHoleResult = {
   grossScore: number | null;
   receivedStrokes: number;
   netScore: number | null;
+  players: MatchPlayPlayerHoleResult[];
+};
+
+export type MatchPlayPlayerHoleResult = {
+  playerId: MatchPlayPlayer["id"];
+  grossScore: number | null;
+  receivedStrokes: number;
+  netScore: number | null;
 };
 
 export type MatchPlayHoleResult = {
@@ -89,6 +97,7 @@ export function evaluateMatchPlay(
           grossScore: result.grossScore,
           receivedStrokes: result.receivedStrokes,
           netScore: result.netScore,
+          players: result.players,
         };
       }),
       winningTeamId,
@@ -139,6 +148,7 @@ function getTeamHoleResult(
     });
 
     return {
+      playerId: player.id,
       holeHandicap: score?.handicap ?? null,
       grossScore,
       receivedStrokes,
@@ -163,6 +173,14 @@ function getTeamHoleResult(
     grossScore: bestResult?.grossScore ?? null,
     receivedStrokes: bestResult?.receivedStrokes ?? 0,
     netScore: bestResult?.netScore ?? null,
+    players: playerResults.map(
+      ({ playerId, grossScore, receivedStrokes, netScore }) => ({
+        playerId,
+        grossScore,
+        receivedStrokes,
+        netScore,
+      }),
+    ),
   };
 }
 

@@ -35,3 +35,11 @@ A Player Index scaled to one course's slope — the strokes received on that cou
 **Playing Handicap**:
 The Course Handicap actually applied to compute a round's net strokes. Resolved per round: a Player Index Override's Course Handicap takes precedence over a computed one.
 _Avoid_: tournament handicap (a legacy field name for the computed Course Handicap — not a general term; it also appears outside tournaments).
+
+## Match scoring
+
+**Match Play**:
+A per-hole game in which the unique lowest net team score wins the hole. Singles and Three-Ball use 100% relative Playing Handicaps; Four-Ball uses 90% relative Playing Handicaps.
+
+**Skins**:
+A per-hole game using relative Playing Handicaps. A unique low net score wins the hole; tied completed holes carry their skins forward until a later unique low net score wins them.

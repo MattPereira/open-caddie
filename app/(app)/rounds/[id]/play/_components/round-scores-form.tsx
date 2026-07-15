@@ -86,7 +86,7 @@ import {
   type RoundScoresTableRound,
 } from "@/components/features/scores/round-scores-card";
 import { MatchPlayContent } from "@/app/(app)/matches/[id]/_components/match-play-tab-content";
-import { SkinsContent } from "@/app/(app)/matches/[id]/_components/skins-tab-content";
+import { SkinsContent } from "@/components/features/scores/skins-content";
 import { toRoundScoreRow } from "@/components/features/scores/round-scores";
 import { PlayScoresOverview } from "./play-scores-overview";
 import {

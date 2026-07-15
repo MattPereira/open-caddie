@@ -503,37 +503,34 @@ export function toMatchPlayView(
       allowance,
     },
   );
-  const roundAllowances = getRoundAllowances(teams, allowance);
   const holesWithPlayerScores = result.holes.map((hole) => ({
     ...hole,
     playerScores: teams.flatMap((team) => {
       const teamResult = hole.teams.find(
         (candidate) => candidate.teamId === team.id,
       );
-      const playersData = team.rounds.map((round) => ({
-        round,
-        playerScore: getRoundHoleScore({
-          round,
-          hole: hole.hole,
-          totalReceivedStrokes: roundAllowances.get(round.id) ?? 0,
-        }),
-      }));
       const winningRoundId =
         hole.winningTeamId === team.id
-          ? (playersData.find(
-              ({ playerScore }) =>
-                playerScore.netScore != null &&
-                playerScore.netScore === teamResult?.netScore,
-            )?.round.id ?? null)
+          ? (teamResult?.players.find(
+              (player) =>
+                player.netScore != null &&
+                player.netScore === teamResult.netScore,
+            )?.playerId ?? null)
           : null;
 
-      return playersData.map(({ round, playerScore }) => ({
-        roundId: round.id,
-        teamId: team.id,
-        netScore: playerScore.netScore,
-        receivedStrokes: playerScore.receivedStrokes,
-        wonHole: round.id === winningRoundId,
-      }));
+      return team.rounds.map((round) => {
+        const playerResult = teamResult?.players.find(
+          (candidate) => candidate.playerId === round.id,
+        );
+
+        return {
+          roundId: round.id,
+          teamId: team.id,
+          netScore: playerResult?.netScore ?? null,
+          receivedStrokes: playerResult?.receivedStrokes ?? 0,
+          wonHole: round.id === winningRoundId,
+        };
+      });
     }),
   }));
   const teamsWithStrokes = teams.map((team) => {
@@ -633,63 +630,6 @@ function toMatchPlayScores(round: MatchPlayRound) {
       strokes: score?.strokes ?? null,
     };
   });
-}
-
-function getRoundAllowances(teams: MatchPlayTeamView[], allowance: number) {
-  const rounds = teams.flatMap((team) => team.rounds);
-  if (rounds.length === 0) return new Map<MatchPlayRound["id"], number>();
-
-  const lowestHandicap = Math.min(
-    ...rounds.map((round) => round.playingHandicap ?? 0),
-  );
-
-  return new Map(
-    rounds.map((round) => [
-      round.id,
-      Math.max(
-        0,
-        Math.round(((round.playingHandicap ?? 0) - lowestHandicap) * allowance),
-      ),
-    ]),
-  );
-}
-
-function getRoundHoleScore({
-  round,
-  hole,
-  totalReceivedStrokes,
-}: {
-  round: MatchPlayRound;
-  hole: number;
-  totalReceivedStrokes: number;
-}) {
-  const score = round.scores.find((candidate) => candidate.hole === hole);
-  const holeHandicap =
-    round.holes.find((candidate) => candidate.hole === hole)?.handicap ?? null;
-  const receivedStrokes = getReceivedStrokesOnHole({
-    totalReceivedStrokes,
-    holeHandicap,
-  });
-
-  return {
-    netScore: score?.strokes == null ? null : score.strokes - receivedStrokes,
-    receivedStrokes,
-  };
-}
-
-function getReceivedStrokesOnHole({
-  totalReceivedStrokes,
-  holeHandicap,
-}: {
-  totalReceivedStrokes: number;
-  holeHandicap: number | null;
-}) {
-  if (holeHandicap == null || totalReceivedStrokes <= 0) return 0;
-
-  return (
-    Math.floor(totalReceivedStrokes / 18) +
-    (holeHandicap <= totalReceivedStrokes % 18 ? 1 : 0)
-  );
 }
 
 export function getMatchPlayTeams({

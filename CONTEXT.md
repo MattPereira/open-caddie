@@ -4,6 +4,17 @@ Open Caddie records golf courses, rounds, matches, tournaments, and club standin
 
 ## Language
 
+**Season**:
+A numbered, Club-owned collection of Tournaments whose results contribute to one standings table. Numbers begin at 1 and have no calendar meaning; every Tournament belongs to exactly one Season.
+_Avoid_: Tournament group, date range
+
+**Current Season**:
+The Season selected by default for new Tournaments in a Club. A Club has at most one Current Season.
+
+**Past Season**:
+Any non-current Season. Past Seasons remain editable and may receive Tournaments.
+_Avoid_: Archived Season
+
 **Course Scorecard Import**:
 A resumable process for turning a course scorecard image into data for either a new or existing course. A new-course import creates tees and holes; an existing-course import preserves historical hole data and the identities of tees referenced by past play, and requires an explicit disposition for every Placeholder Tee.
 _Avoid_: Scorecard reconciliation, scorecard sync

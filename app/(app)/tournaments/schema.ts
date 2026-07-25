@@ -7,7 +7,7 @@ export const TournamentFormSchema = z.object({
     z
       .number({ message: "Season must be a number" })
       .int("Season must be a whole number")
-      .nonnegative("Season cannot be negative"),
+      .positive("Season must be at least 1"),
     z.literal(""),
   ]),
   courseHandle: z.string().trim().min(1, "Course is required"),

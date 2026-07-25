@@ -32,8 +32,12 @@ export function computeSeasonBackfill(
 
   const records: SeasonBackfillRecord[] = [];
 
-  for (const clubId of Array.from(numbersByClub.keys()).sort((a, b) => a - b)) {
-    const numbers = Array.from(numbersByClub.get(clubId)!).sort((a, b) => a - b);
+  const clubsInOrder = Array.from(numbersByClub.entries()).sort(
+    ([a], [b]) => a - b,
+  );
+
+  for (const [clubId, numberSet] of clubsInOrder) {
+    const numbers = Array.from(numberSet).sort((a, b) => a - b);
     const highest = numbers[numbers.length - 1];
 
     for (const number of numbers) {

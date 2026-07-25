@@ -113,6 +113,29 @@ export const clubMembers = pgTable(
   (cm) => [primaryKey({ columns: [cm.clubId, cm.userId] })],
 );
 
+// Club-owned Season records (ADR 0004). Numbers are Club-relative and begin at
+// 1; at most one Season per Club may be current. Tournaments still carry their
+// legacy `season` number as a temporary compatibility path until a later
+// migration references these records directly.
+export const seasons = pgTable(
+  "seasons",
+  {
+    id: serial("id").primaryKey(),
+    clubId: integer("club_id")
+      .notNull()
+      .references(() => clubs.id, { onDelete: "cascade" }),
+    number: integer("number").notNull(),
+    isCurrent: boolean("is_current").notNull().default(false),
+  },
+  (s) => [
+    uniqueIndex("seasons_club_number_unique").on(s.clubId, s.number),
+    uniqueIndex("seasons_club_current_unique")
+      .on(s.clubId)
+      .where(sql`${s.isCurrent}`),
+    check("seasons_number_check", sql`${s.number} >= 1`),
+  ],
+);
+
 export const tournaments = pgTable("tournaments", {
   id: serial("id").primaryKey(),
   clubId: integer("club_id")

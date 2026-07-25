@@ -3,13 +3,8 @@ import { z } from "zod";
 export const TournamentFormSchema = z.object({
   clubHandle: z.string().trim().min(1, "Club is required"),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date is required"),
-  season: z.union([
-    z
-      .number({ message: "Season must be a number" })
-      .int("Season must be a whole number")
-      .positive("Season must be at least 1"),
-    z.literal(""),
-  ]),
+  seasonId: z.union([z.number().int().positive(), z.literal("")]),
+  startNextSeason: z.boolean(),
   courseHandle: z.string().trim().min(1, "Course is required"),
   teeId: z
     .union([z.number().int().positive(), z.literal("")])
@@ -19,7 +14,7 @@ export const TournamentFormSchema = z.object({
 export const TournamentCreateSchema = TournamentFormSchema;
 export const TournamentUpdateSchema = TournamentFormSchema.extend({
   id: z.number().int().positive(),
-});
+}).refine(({ seasonId }) => seasonId !== "", { message: "Season is required", path: ["seasonId"] });
 
 export type TournamentFormValues = z.input<typeof TournamentFormSchema>;
 export type TournamentCreateValues = z.infer<typeof TournamentCreateSchema>;

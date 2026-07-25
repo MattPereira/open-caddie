@@ -6,6 +6,7 @@ import {
   clubs,
   greenies,
   rounds,
+  seasons,
   tournaments,
   users,
 } from "@/db/schema";
@@ -16,6 +17,17 @@ export const getAllClubs = cache(async () => {
     .select({ id: clubs.id, handle: clubs.handle, name: clubs.name })
     .from(clubs)
     .orderBy(asc(clubs.name));
+});
+
+export const getAllClubsWithSeasons = cache(async () => {
+  const [clubRows, seasonRows] = await Promise.all([
+    getAllClubs(),
+    db.select().from(seasons).orderBy(asc(seasons.number)),
+  ]);
+  return clubRows.map((club) => ({
+    ...club,
+    seasons: seasonRows.filter((season) => season.clubId === club.id),
+  }));
 });
 
 export const getAllClubsFull = cache(async () => {

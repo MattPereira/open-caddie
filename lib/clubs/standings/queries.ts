@@ -10,6 +10,7 @@ import {
   roundScores,
   roundSummaries,
   rounds,
+  seasons,
   tournaments,
   users,
 } from "@/db/schema";
@@ -98,17 +99,18 @@ export const getLatestSeasonStandings = cache(
   async ({ clubHandle, roundLimit = 10 }: LatestSeasonStandingsParams = {}) => {
     const [latest] = await db
       .select({
-        clubId: clubs.id,
-        season: tournaments.season,
+        clubId: seasons.clubId,
+        season: seasons.number,
       })
       .from(tournaments)
-      .innerJoin(clubs, eq(tournaments.clubId, clubs.id))
+      .innerJoin(seasons, eq(tournaments.seasonId, seasons.id))
+      .innerJoin(clubs, eq(seasons.clubId, clubs.id))
       .where(
         clubHandle
-          ? and(eq(clubs.handle, clubHandle), isNotNull(tournaments.season))
-          : isNotNull(tournaments.season),
+          ? eq(clubs.handle, clubHandle)
+          : undefined,
       )
-      .orderBy(desc(tournaments.season), desc(tournaments.date))
+      .orderBy(desc(seasons.number), desc(tournaments.date))
       .limit(1);
 
     if (!latest || latest.season == null) return null;
@@ -123,10 +125,11 @@ export const getLatestSeasonStandings = cache(
 
 export const getClubSeasons = cache(async (clubId: number) => {
   const rows = await db
-    .selectDistinct({ season: tournaments.season })
+    .selectDistinct({ season: seasons.number })
     .from(tournaments)
-    .where(and(eq(tournaments.clubId, clubId), isNotNull(tournaments.season)))
-    .orderBy(desc(tournaments.season));
+    .innerJoin(seasons, eq(tournaments.seasonId, seasons.id))
+    .where(eq(seasons.clubId, clubId))
+    .orderBy(desc(seasons.number));
 
   return rows.filter((row): row is { season: number } => row.season != null);
 });
@@ -152,15 +155,16 @@ export const getSeasonStandings = cache(
         .select({
           id: tournaments.id,
           date: tournaments.date,
-          season: tournaments.season,
+          season: seasons.number,
           courseId: tournaments.courseId,
           courseHandle: courses.handle,
           courseName: courses.name,
         })
         .from(tournaments)
+        .innerJoin(seasons, eq(tournaments.seasonId, seasons.id))
         .innerJoin(courses, eq(tournaments.courseId, courses.id))
         .where(
-          and(eq(tournaments.clubId, clubId), eq(tournaments.season, season)),
+          and(eq(seasons.clubId, clubId), eq(seasons.number, season)),
         )
         .orderBy(desc(tournaments.date), desc(tournaments.id)),
     ]);

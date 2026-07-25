@@ -11,6 +11,7 @@ import {
   roundScores,
   roundSummaries,
   rounds,
+  seasons,
   teeYardages,
   tournaments,
   users,
@@ -22,11 +23,12 @@ export const getAllTournaments = cache(async () => {
   return db
     .select({
       id: tournaments.id,
-      clubId: tournaments.clubId,
+      clubId: seasons.clubId,
       clubHandle: clubs.handle,
       clubName: clubs.name,
       date: tournaments.date,
-      season: tournaments.season,
+      season: seasons.number,
+      seasonId: seasons.id,
       courseId: tournaments.courseId,
       courseHandle: courses.handle,
       courseName: courses.name,
@@ -34,10 +36,11 @@ export const getAllTournaments = cache(async () => {
       playerCount: count(rounds.id).mapWith(Number),
     })
     .from(tournaments)
-    .innerJoin(clubs, eq(tournaments.clubId, clubs.id))
+    .innerJoin(seasons, eq(tournaments.seasonId, seasons.id))
+    .innerJoin(clubs, eq(seasons.clubId, clubs.id))
     .leftJoin(courses, eq(tournaments.courseId, courses.id))
     .leftJoin(rounds, eq(rounds.tournamentId, tournaments.id))
-    .groupBy(tournaments.id, clubs.handle, clubs.name, courses.handle, courses.name, courses.imgUrl)
+    .groupBy(tournaments.id, seasons.id, clubs.handle, clubs.name, courses.handle, courses.name, courses.imgUrl)
     .orderBy(desc(tournaments.date), desc(tournaments.id));
 });
 
@@ -45,11 +48,12 @@ export const getTournamentsByClubHandle = cache(async (clubHandle: string) => {
   return db
     .select({
       id: tournaments.id,
-      clubId: tournaments.clubId,
+      clubId: seasons.clubId,
       clubHandle: clubs.handle,
       clubName: clubs.name,
       date: tournaments.date,
-      season: tournaments.season,
+      season: seasons.number,
+      seasonId: seasons.id,
       courseId: tournaments.courseId,
       courseHandle: courses.handle,
       courseName: courses.name,
@@ -57,11 +61,12 @@ export const getTournamentsByClubHandle = cache(async (clubHandle: string) => {
       playerCount: count(rounds.id).mapWith(Number),
     })
     .from(tournaments)
-    .innerJoin(clubs, eq(tournaments.clubId, clubs.id))
+    .innerJoin(seasons, eq(tournaments.seasonId, seasons.id))
+    .innerJoin(clubs, eq(seasons.clubId, clubs.id))
     .leftJoin(courses, eq(tournaments.courseId, courses.id))
     .leftJoin(rounds, eq(rounds.tournamentId, tournaments.id))
     .where(eq(clubs.handle, clubHandle))
-    .groupBy(tournaments.id, clubs.handle, clubs.name, courses.handle, courses.name, courses.imgUrl)
+    .groupBy(tournaments.id, seasons.id, clubs.handle, clubs.name, courses.handle, courses.name, courses.imgUrl)
     .orderBy(desc(tournaments.date), desc(tournaments.id));
 });
 
@@ -69,11 +74,12 @@ export const getTournamentById = cache(async (tournamentId: number) => {
   const [tournament] = await db
     .select({
       id: tournaments.id,
-      clubId: tournaments.clubId,
+      clubId: seasons.clubId,
       clubHandle: clubs.handle,
       clubName: clubs.name,
       date: tournaments.date,
-      season: tournaments.season,
+      season: seasons.number,
+      seasonId: seasons.id,
       courseId: tournaments.courseId,
       courseHandle: courses.handle,
       courseName: courses.name,
@@ -81,7 +87,8 @@ export const getTournamentById = cache(async (tournamentId: number) => {
       teeId: tournaments.teeId,
     })
     .from(tournaments)
-    .innerJoin(clubs, eq(tournaments.clubId, clubs.id))
+    .innerJoin(seasons, eq(tournaments.seasonId, seasons.id))
+    .innerJoin(clubs, eq(seasons.clubId, clubs.id))
     .leftJoin(courses, eq(tournaments.courseId, courses.id))
     .where(eq(tournaments.id, tournamentId))
     .limit(1);
@@ -264,8 +271,8 @@ export const getUpcomingTournamentsForUser = cache(async (userId: string) => {
     .select({
       id: tournaments.id,
       date: tournaments.date,
-      season: tournaments.season,
-      clubId: tournaments.clubId,
+      season: seasons.number,
+      clubId: seasons.clubId,
       clubName: clubs.name,
       courseId: tournaments.courseId,
       courseHandle: courses.handle,
@@ -273,12 +280,13 @@ export const getUpcomingTournamentsForUser = cache(async (userId: string) => {
       courseImgUrl: courses.imgUrl,
     })
     .from(tournaments)
-    .innerJoin(clubs, eq(tournaments.clubId, clubs.id))
+    .innerJoin(seasons, eq(tournaments.seasonId, seasons.id))
+    .innerJoin(clubs, eq(seasons.clubId, clubs.id))
     .innerJoin(courses, eq(tournaments.courseId, courses.id))
     .innerJoin(
       clubMembers,
       and(
-        eq(clubMembers.clubId, tournaments.clubId),
+        eq(clubMembers.clubId, seasons.clubId),
         eq(clubMembers.userId, userId),
       ),
     )

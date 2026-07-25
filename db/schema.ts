@@ -115,8 +115,8 @@ export const clubMembers = pgTable(
 
 // Club-owned Season records (ADR 0004). Numbers are Club-relative and begin at
 // 1; at most one Season per Club may be current. Tournaments still carry their
-// legacy `season` number as a temporary compatibility path until a later
-// migration references these records directly.
+// legacy `season` number as a temporary compatibility path until #22 removes
+// the old Tournament Club and Season columns.
 export const seasons = pgTable(
   "seasons",
   {
@@ -143,6 +143,9 @@ export const tournaments = pgTable("tournaments", {
     .references(() => clubs.id, { onDelete: "restrict" }),
   date: date("date", { mode: "date" }).notNull(),
   season: integer("season"),
+  seasonId: integer("season_id")
+    .notNull()
+    .references(() => seasons.id, { onDelete: "restrict" }),
   courseId: integer("course_id")
     .notNull()
     .references(() => courses.id, { onDelete: "restrict" }),
@@ -435,7 +438,7 @@ export const roundSummaries = pgView("round_summaries").as((qb) =>
       roundId: rounds.id,
       tournamentId: rounds.tournamentId,
       matchId: rounds.matchId,
-      clubId: tournaments.clubId,
+      clubId: seasons.clubId,
       userId: rounds.userId,
       courseId: rounds.courseId,
       date: rounds.date,
@@ -469,12 +472,13 @@ export const roundSummaries = pgView("round_summaries").as((qb) =>
     .from(rounds)
     .innerJoin(courseTees, eq(rounds.teeId, courseTees.id))
     .leftJoin(tournaments, eq(rounds.tournamentId, tournaments.id))
+    .leftJoin(seasons, eq(tournaments.seasonId, seasons.id))
     .leftJoin(roundScores, eq(rounds.id, roundScores.roundId))
     .groupBy(
       rounds.id,
       rounds.tournamentId,
       rounds.matchId,
-      tournaments.clubId,
+      seasons.clubId,
       rounds.userId,
       rounds.courseId,
       rounds.date,

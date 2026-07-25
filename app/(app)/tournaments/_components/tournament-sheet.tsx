@@ -18,7 +18,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -41,6 +40,7 @@ import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import {
   createTournament,
+  deleteSeason,
   deleteTournament,
   updateTournament,
 } from "../actions";
@@ -57,13 +57,18 @@ export type TournamentSheetTournament = {
   clubName: string;
   date: Date;
   season: number | null;
+  seasonId: number;
   courseHandle: string | null;
   courseName: string | null;
   courseImgUrl: string | null;
   teeId: number | null;
 };
 
-export type ClubOption = { handle: string; name: string };
+export type ClubOption = {
+  handle: string;
+  name: string;
+  seasons: Array<{ id: number; number: number; isCurrent: boolean }>;
+};
 export type TeeOption = {
   id: number;
   name: string;
@@ -88,7 +93,8 @@ type TournamentSheetProps = {
 const emptyDefaults: TournamentFormValues = {
   clubHandle: "",
   date: "",
-  season: "",
+  seasonId: "",
+  startNextSeason: false,
   courseHandle: "",
   teeId: "",
 };
@@ -146,19 +152,23 @@ function DatePickerField({
   );
 }
 
-function toFormValues(t?: TournamentSheetTournament): TournamentFormValues {
-  if (!t) return emptyDefaults;
+function toFormValues(t: TournamentSheetTournament | undefined, clubs: ClubOption[]): TournamentFormValues {
+  if (!t) {
+    const club = clubs.length === 1 ? clubs[0] : undefined;
+    return {
+      ...emptyDefaults,
+      clubHandle: club?.handle ?? "",
+      seasonId: club?.seasons.find((season) => season.isCurrent)?.id ?? "",
+    };
+  }
   return {
     clubHandle: t.clubHandle,
     date: toIsoDate(t.date),
-    season: t.season ?? "",
+    seasonId: t.seasonId,
+    startNextSeason: false,
     courseHandle: t.courseHandle ?? "",
     teeId: t.teeId ?? "",
   };
-}
-
-function toNumberInputValue(value: number | "") {
-  return value === "" ? "" : value;
 }
 
 const selectClass =
@@ -176,13 +186,14 @@ export function TournamentSheet({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
+  const [isDeletingSeason, startDeleteSeasonTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
 
   const form = useForm<TournamentFormValues, unknown, TournamentFormOutput>({
     resolver: zodResolver(TournamentFormSchema),
-    defaultValues: toFormValues(tournament),
+    defaultValues: toFormValues(tournament, clubs),
   });
   const serverError = form.formState.errors.root?.server?.message;
   const isDirty = form.formState.isDirty;
@@ -190,12 +201,15 @@ export function TournamentSheet({
     control: form.control,
     name: "courseHandle",
   });
+  const selectedClubHandle = useWatch({ control: form.control, name: "clubHandle" });
+  const selectedSeasonId = useWatch({ control: form.control, name: "seasonId" });
+  const startsNextSeason = useWatch({ control: form.control, name: "startNextSeason" });
 
   useEffect(() => {
     if (open) {
-      form.reset(toFormValues(tournament));
+      form.reset(toFormValues(tournament, clubs));
     }
-  }, [open, tournament, form]);
+  }, [open, tournament, clubs, form]);
 
   const closeSheet = () => {
     form.clearErrors("root.server");
@@ -236,6 +250,7 @@ export function TournamentSheet({
   };
 
   const onSubmit = (values: TournamentFormOutput) => {
+    if (values.startNextSeason && !window.confirm("Start the next Season and create this Tournament?")) return;
     form.clearErrors("root.server");
     startTransition(async () => {
       const result =
@@ -286,65 +301,72 @@ export function TournamentSheet({
 
                 <FormField
                   control={form.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Date</FormLabel>
-                      <FormControl>
-                        <DatePickerField
-                          value={field.value}
-                          onChange={field.onChange}
-                          placeholder="Pick a date"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="season"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Season</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          inputMode="numeric"
-                          min={0}
-                          step={1}
-                          {...field}
-                          value={toNumberInputValue(field.value)}
-                          onChange={(e) =>
-                            field.onChange(
-                              e.target.value === ""
-                                ? ""
-                                : Number(e.target.value),
-                            )
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="clubHandle"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Club</FormLabel>
                       <FormControl>
-                        <select className={selectClass} {...field}>
+                        <select className={selectClass} {...field} onChange={(event) => {
+                          field.onChange(event);
+                          const club = clubs.find((option) => option.handle === event.target.value);
+                          form.setValue("seasonId", club?.seasons.find((season) => season.isCurrent)?.id ?? "");
+                          form.setValue("startNextSeason", false);
+                        }}>
                           <option value="">Select a club…</option>
-                          {clubs.map((c) => (
-                            <option key={c.handle} value={c.handle}>
-                              {c.name}
-                            </option>
-                          ))}
+                          {clubs.map((club) => <option key={club.handle} value={club.handle}>{club.name}</option>)}
                         </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {mode === "create" && typeof selectedSeasonId === "number" ? (
+                  <Button type="button" variant="outline" disabled={isDeletingSeason} onClick={() => {
+                    if (!window.confirm("Delete this empty highest-numbered Season?")) return;
+                    startDeleteSeasonTransition(async () => {
+                      const result = await deleteSeason(selectedSeasonId);
+                      if (!result.ok) {
+                        form.setError("root.server", { type: "server", message: result.error });
+                        return;
+                      }
+                      router.refresh();
+                      closeSheet();
+                    });
+                  }}>Delete selected Season</Button>
+                ) : null}
+
+                <FormField
+                  control={form.control}
+                  name="seasonId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Season</FormLabel>
+                      <FormControl>
+                        <select className={selectClass} value={startsNextSeason ? "next" : field.value} onBlur={field.onBlur} ref={field.ref} name={field.name} onChange={(event) => {
+                          const startNext = event.target.value === "next";
+                          form.setValue("startNextSeason", startNext);
+                          field.onChange(startNext || event.target.value === "" ? "" : Number(event.target.value));
+                        }}>
+                          <option value="">Select a Season…</option>
+                          {clubs.find((club) => club.handle === selectedClubHandle)?.seasons.map((season) => (
+                            <option key={season.id} value={season.id}>Season {season.number}{season.isCurrent ? " (Current)" : ""}</option>
+                          ))}
+                          {mode === "create" && selectedClubHandle ? <option value="next">Start next Season…</option> : null}
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="date"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date</FormLabel>
+                      <FormControl>
+                        <DatePickerField value={field.value} onChange={field.onChange} placeholder="Pick a date" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -440,7 +462,7 @@ export function TournamentSheet({
                   isPending={isPending}
                   onKeepEditingAction={() => setConfirmingDiscard(false)}
                   onDiscardAction={() => {
-                    form.reset(toFormValues(tournament));
+                    form.reset(toFormValues(tournament, clubs));
                     closeSheet();
                   }}
                 />

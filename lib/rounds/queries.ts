@@ -10,6 +10,7 @@ import {
   roundScores,
   roundSummaries,
   rounds,
+  seasons,
   teeYardages,
   tournaments,
   users,
@@ -50,7 +51,7 @@ export const getActiveRoundForUser = cache(async (userId: string) => {
     .select({
       roundId: roundSummaries.roundId,
       tournamentId: roundSummaries.tournamentId,
-      tournamentSeason: tournaments.season,
+      tournamentSeason: seasons.number,
       courseId: roundSummaries.courseId,
       courseHandle: courses.handle,
       courseName: courses.name,
@@ -60,6 +61,7 @@ export const getActiveRoundForUser = cache(async (userId: string) => {
     .from(roundSummaries)
     .innerJoin(courses, eq(roundSummaries.courseId, courses.id))
     .leftJoin(tournaments, eq(roundSummaries.tournamentId, tournaments.id))
+    .leftJoin(seasons, eq(tournaments.seasonId, seasons.id))
     .where(
       and(
         eq(roundSummaries.userId, userId),
@@ -88,7 +90,7 @@ export const getRoundById = cache(async (roundId: number) => {
       matchId: roundSummaries.matchId,
       clubId: roundSummaries.clubId,
       clubName: clubs.name,
-      tournamentSeason: tournaments.season,
+      tournamentSeason: seasons.number,
       userId: roundSummaries.userId,
       date: roundSummaries.date,
       firstName: users.firstName,
@@ -115,7 +117,8 @@ export const getRoundById = cache(async (roundId: number) => {
     .innerJoin(users, eq(roundSummaries.userId, users.id))
     .innerJoin(courses, eq(roundSummaries.courseId, courses.id))
     .leftJoin(tournaments, eq(roundSummaries.tournamentId, tournaments.id))
-    .leftJoin(clubs, eq(tournaments.clubId, clubs.id))
+    .leftJoin(seasons, eq(tournaments.seasonId, seasons.id))
+    .leftJoin(clubs, eq(seasons.clubId, clubs.id))
     .where(eq(roundSummaries.roundId, roundId))
     .limit(1);
 

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, count, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { auth } from "@/auth";
@@ -11,6 +11,7 @@ import {
   courseTees,
   courses,
   rounds,
+  seasons,
   tournaments,
   users,
 } from "@/db/schema";
@@ -75,7 +76,6 @@ export async function createTournament(
 
   const { clubHandle } = parsed.data;
   const date = parseDateOnly(parsed.data.date);
-  const season = parsed.data.season === "" ? null : parsed.data.season;
   const courseHandle = parsed.data.courseHandle;
   const clubId = await getClubIdByHandle(clubHandle);
   const courseId = await getCourseIdByHandle(courseHandle);
@@ -91,16 +91,14 @@ export async function createTournament(
   }
 
   try {
-    const [tournament] = await db
-      .insert(tournaments)
-      .values({
-        clubId,
-        date,
-        season,
-        courseId,
-        teeId,
-      })
-      .returning({ id: tournaments.id });
+    const tournament = await createTournamentRecord({
+      clubId,
+      seasonId: parsed.data.seasonId === "" ? null : parsed.data.seasonId,
+      startNextSeason: parsed.data.startNextSeason,
+      date,
+      courseId,
+      teeId,
+    });
 
     revalidatePath("/");
     revalidatePath("/tournaments");
@@ -113,7 +111,7 @@ export async function createTournament(
     if (code === "23503") {
       return { ok: false, error: "Selected club or course does not exist." };
     }
-    throw e;
+    return { ok: false, error: e instanceof Error ? e.message : "Could not create Tournament." };
   }
 }
 
@@ -129,7 +127,6 @@ export async function updateTournament(
 
   const { id, clubHandle } = parsed.data;
   const date = parseDateOnly(parsed.data.date);
-  const season = parsed.data.season === "" ? null : parsed.data.season;
   const courseHandle = parsed.data.courseHandle;
   const clubId = await getClubIdByHandle(clubHandle);
   const courseId = await getCourseIdByHandle(courseHandle);
@@ -154,10 +151,7 @@ export async function updateTournament(
   }
 
   try {
-    await db
-      .update(tournaments)
-      .set({ clubId, date, season, courseId, teeId })
-      .where(eq(tournaments.id, id));
+    await updateTournamentRecord({ id, clubId, seasonId: parsed.data.seasonId as number, date, courseId, teeId });
   } catch (e: unknown) {
     const code =
       (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
@@ -165,13 +159,97 @@ export async function updateTournament(
     if (code === "23503") {
       return { ok: false, error: "Selected club or course does not exist." };
     }
-    throw e;
+    return { ok: false, error: e instanceof Error ? e.message : "Could not update Tournament." };
   }
 
   revalidatePath("/tournaments");
   revalidatePath(`/tournaments/${id}`);
   revalidatePath("/clubs/[handle]", "page");
   return { ok: true };
+}
+
+export async function deleteSeason(id: number): Promise<ActionResult> {
+  await requireAdmin();
+  try {
+    await deleteSeasonRecord(id);
+    revalidatePath("/tournaments");
+    revalidatePath("/clubs/[handle]", "page");
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Could not delete Season." };
+  }
+}
+
+type TournamentFields = {
+  clubId: number;
+  seasonId: number | null;
+  date: Date;
+  courseId: number;
+  teeId: number;
+};
+
+async function createTournamentRecord(values: TournamentFields & { startNextSeason: boolean }) {
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select id from clubs where id = ${values.clubId} for update`);
+    let season = values.seasonId == null ? null : await getSeason(tx, values.seasonId, values.clubId);
+
+    if (values.startNextSeason) {
+      const [highest] = await tx.select({ number: seasons.number }).from(seasons).where(eq(seasons.clubId, values.clubId)).orderBy(desc(seasons.number)).limit(1);
+      await tx.update(seasons).set({ isCurrent: false }).where(and(eq(seasons.clubId, values.clubId), eq(seasons.isCurrent, true)));
+      [season] = await tx.insert(seasons).values({ clubId: values.clubId, number: (highest?.number ?? 0) + 1, isCurrent: true }).returning();
+    } else if (!season) {
+      [season] = await tx.select().from(seasons).where(and(eq(seasons.clubId, values.clubId), eq(seasons.isCurrent, true))).limit(1);
+      if (!season) [season] = await tx.insert(seasons).values({ clubId: values.clubId, number: 1, isCurrent: true }).returning();
+    }
+
+    const [tournament] = await tx.insert(tournaments).values({
+      clubId: season.clubId,
+      seasonId: season.id,
+      season: season.number,
+      date: values.date,
+      courseId: values.courseId,
+      teeId: values.teeId,
+    }).returning({ id: tournaments.id });
+    return { id: tournament.id };
+  });
+}
+
+async function updateTournamentRecord(values: TournamentFields & { id: number }) {
+  if (values.seasonId == null) throw new Error("Season is required.");
+  const season = await getSeason(db, values.seasonId, values.clubId);
+  await db.update(tournaments).set({
+    clubId: season.clubId,
+    seasonId: season.id,
+    season: season.number,
+    date: values.date,
+    courseId: values.courseId,
+    teeId: values.teeId,
+  }).where(eq(tournaments.id, values.id));
+}
+
+async function deleteSeasonRecord(seasonId: number) {
+  return db.transaction(async (tx) => {
+    const [season] = await tx.select().from(seasons).where(eq(seasons.id, seasonId)).limit(1);
+    if (!season) throw new Error("Season not found.");
+    await tx.execute(sql`select id from clubs where id = ${season.clubId} for update`);
+    const [[highest], [{ value: tournamentCount }]] = await Promise.all([
+      tx.select({ id: seasons.id }).from(seasons).where(eq(seasons.clubId, season.clubId)).orderBy(desc(seasons.number)).limit(1),
+      tx.select({ value: count() }).from(tournaments).where(eq(tournaments.seasonId, seasonId)),
+    ]);
+    if (highest?.id !== seasonId) throw new Error("Only the highest-numbered Season can be deleted.");
+    if (tournamentCount > 0) throw new Error("Only an empty Season can be deleted.");
+    await tx.delete(seasons).where(eq(seasons.id, seasonId));
+    const [previous] = await tx.select({ id: seasons.id }).from(seasons).where(eq(seasons.clubId, season.clubId)).orderBy(desc(seasons.number)).limit(1);
+    if (previous) await tx.update(seasons).set({ isCurrent: true }).where(eq(seasons.id, previous.id));
+  });
+}
+
+type SeasonReader = Pick<typeof db, "select">;
+
+async function getSeason(reader: SeasonReader, seasonId: number, clubId: number) {
+  const [season] = await reader.select().from(seasons).where(and(eq(seasons.id, seasonId), eq(seasons.clubId, clubId))).limit(1);
+  if (!season) throw new Error("Selected Season does not belong to this Club.");
+  return season;
 }
 
 export async function deleteTournament(id: number): Promise<ActionResult> {

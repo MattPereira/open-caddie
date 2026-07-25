@@ -8,6 +8,7 @@ import {
   greenies,
   roundSummaries,
   rounds,
+  seasons,
   tournaments,
   users,
 } from "@/db/schema";
@@ -69,7 +70,7 @@ export const getUserRoundsById = cache(async (userId: string) => {
       courseName: courses.name,
       courseImgUrl: courses.imgUrl,
       tournamentId: roundSummaries.tournamentId,
-      tournamentSeason: tournaments.season,
+      tournamentSeason: seasons.number,
       clubName: clubs.handle,
       totalStrokes: roundSummaries.totalStrokes,
       totalPutts: roundSummaries.totalPutts,
@@ -77,7 +78,8 @@ export const getUserRoundsById = cache(async (userId: string) => {
     .from(roundSummaries)
     .innerJoin(courses, eq(roundSummaries.courseId, courses.id))
     .leftJoin(tournaments, eq(roundSummaries.tournamentId, tournaments.id))
-    .leftJoin(clubs, eq(tournaments.clubId, clubs.id))
+    .leftJoin(seasons, eq(tournaments.seasonId, seasons.id))
+    .leftJoin(clubs, eq(seasons.clubId, clubs.id))
     .where(eq(roundSummaries.userId, userId))
     .orderBy(desc(roundSummaries.date), desc(roundSummaries.roundId));
 });

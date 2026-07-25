@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { asc, count, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { clubs, courses, greenies, rounds, tournaments, users } from "@/db/schema";
+import { clubs, courses, greenies, rounds, seasons, tournaments, users } from "@/db/schema";
 
 export const getAllGreenies = cache(async () => {
   return db
@@ -20,14 +20,15 @@ export const getAllGreenies = cache(async () => {
       courseName: courses.name,
       courseImgUrl: courses.imgUrl,
       clubName: clubs.name,
-      season: tournaments.season,
+      season: seasons.number,
     })
     .from(greenies)
     .innerJoin(rounds, eq(greenies.roundId, rounds.id))
     .innerJoin(users, eq(rounds.userId, users.id))
     .innerJoin(courses, eq(rounds.courseId, courses.id))
     .leftJoin(tournaments, eq(rounds.tournamentId, tournaments.id))
-    .leftJoin(clubs, eq(tournaments.clubId, clubs.id))
+    .leftJoin(seasons, eq(tournaments.seasonId, seasons.id))
+    .leftJoin(clubs, eq(seasons.clubId, clubs.id))
     .orderBy(desc(rounds.date), desc(greenies.feet), desc(greenies.inches));
 });
 
@@ -48,14 +49,15 @@ export const getClosestGreenies = cache(async (limit = 10) => {
       courseName: courses.name,
       courseImgUrl: courses.imgUrl,
       clubName: clubs.name,
-      season: tournaments.season,
+      season: seasons.number,
     })
     .from(greenies)
     .innerJoin(rounds, eq(greenies.roundId, rounds.id))
     .innerJoin(users, eq(rounds.userId, users.id))
     .innerJoin(courses, eq(rounds.courseId, courses.id))
     .leftJoin(tournaments, eq(rounds.tournamentId, tournaments.id))
-    .leftJoin(clubs, eq(tournaments.clubId, clubs.id))
+    .leftJoin(seasons, eq(tournaments.seasonId, seasons.id))
+    .leftJoin(clubs, eq(seasons.clubId, clubs.id))
     .orderBy(asc(greenies.feet), asc(greenies.inches), desc(rounds.date))
     .limit(limit);
 });

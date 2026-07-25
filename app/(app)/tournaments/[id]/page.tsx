@@ -6,7 +6,7 @@ import { PlayRoundButton } from "@/components/domain/play-round-button";
 import { RoundsTabContent } from "@/components/features/scores/rounds-tab-content";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/shared/url-tabs";
-import { getAllClubs } from "@/lib/clubs/queries";
+import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
 import { getCoursesWithTees } from "@/lib/courses/queries";
 import {
   getAddablePlayersForTournament,
@@ -68,7 +68,7 @@ export default async function TournamentPage({
   const [addablePlayers, clubs, courses] = currentUser?.isAdmin
     ? await Promise.all([
         getAddablePlayersForTournament(tournament.id),
-        getAllClubs(),
+        getAllClubsWithSeasons(),
         getCoursesWithTees(),
       ])
     : [[], [], []];
@@ -90,6 +90,7 @@ export default async function TournamentPage({
                     clubName: tournament.clubName,
                     date: tournament.date,
                     season: tournament.season,
+                    seasonId: tournament.seasonId,
                     courseHandle: tournament.courseHandle,
                     courseName: tournament.courseName,
                     courseImgUrl: tournament.courseImgUrl,

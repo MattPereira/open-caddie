@@ -10,7 +10,7 @@ import { PageContent } from "@/components/layout/page-content";
 import { PlayRoundButton } from "@/components/domain/play-round-button";
 import { matchFormatLabel } from "@/lib/matches";
 import { brandFont } from "@/app/fonts";
-import { getAllClubs } from "@/lib/clubs/queries";
+import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
 import { getCoursesWithTees } from "@/lib/courses/queries";
 import { getActiveRoundForUser } from "@/lib/rounds/queries";
 import { getAllTournaments } from "@/lib/tournaments/queries";
@@ -40,7 +40,7 @@ export default async function Home() {
       currentUser ? getActiveRoundForUser(currentUser.id) : null,
       currentUser ? getCoursesWithTees() : [],
       currentUser ? getAllUsers() : [],
-      currentUser?.isAdmin ? getAllClubs() : [],
+      currentUser?.isAdmin ? getAllClubsWithSeasons() : [],
     ]);
 
   const today = getLocalDateKey(new Date());

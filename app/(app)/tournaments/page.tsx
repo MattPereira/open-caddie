@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { appPageIcons } from "@/components/layout/app-nav-items";
 import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
-import { getAllClubs } from "@/lib/clubs/queries";
+import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
 import { getCoursesWithTees } from "@/lib/courses/queries";
 import { getAllTournaments } from "@/lib/tournaments/queries";
 import { getCurrentUser } from "@/lib/users/queries";
@@ -23,7 +23,7 @@ export default async function TournamentsPage() {
   ]);
 
   const [clubs, courses] = currentUser?.isAdmin
-    ? await Promise.all([getAllClubs(), getCoursesWithTees()])
+    ? await Promise.all([getAllClubsWithSeasons(), getCoursesWithTees()])
     : [[], []];
 
   return (

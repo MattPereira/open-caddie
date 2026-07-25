@@ -114,9 +114,9 @@ export const clubMembers = pgTable(
 );
 
 // Club-owned Season records (ADR 0004). Numbers are Club-relative and begin at
-// 1; at most one Season per Club may be current. Tournaments still carry their
-// legacy `season` number as a temporary compatibility path until #22 removes
-// the old Tournament Club and Season columns.
+// 1. A Club's Current Season is its highest-numbered one rather than a stored
+// flag, so uniqueness of (club_id, number) is what keeps it single; Seasons are
+// not deletable, which is what keeps the highest number monotonic.
 export const seasons = pgTable(
   "seasons",
   {
@@ -125,24 +125,18 @@ export const seasons = pgTable(
       .notNull()
       .references(() => clubs.id, { onDelete: "cascade" }),
     number: integer("number").notNull(),
-    isCurrent: boolean("is_current").notNull().default(false),
   },
   (s) => [
     uniqueIndex("seasons_club_number_unique").on(s.clubId, s.number),
-    uniqueIndex("seasons_club_current_unique")
-      .on(s.clubId)
-      .where(sql`${s.isCurrent}`),
     check("seasons_number_check", sql`${s.number} >= 1`),
   ],
 );
 
+// A Tournament's Club is reached through its Season (ADR 0004); it is
+// deliberately not stored here.
 export const tournaments = pgTable("tournaments", {
   id: serial("id").primaryKey(),
-  clubId: integer("club_id")
-    .notNull()
-    .references(() => clubs.id, { onDelete: "restrict" }),
   date: date("date", { mode: "date" }).notNull(),
-  season: integer("season"),
   seasonId: integer("season_id")
     .notNull()
     .references(() => seasons.id, { onDelete: "restrict" }),

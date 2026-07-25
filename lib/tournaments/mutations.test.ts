@@ -14,14 +14,15 @@ if (!testDatabaseUrl) {
   describe("Tournament Season mutations", async () => {
     process.env.DATABASE_URL = testDatabaseUrl;
     process.env.DATABASE_DRIVER = "node-postgres";
-    const [{ db }, schema, actions, standings, queries] = await Promise.all([
+    const [{ db }, schema, actions, standings, queries, clubQueries] = await Promise.all([
       import("@/db"),
       import("@/db/schema"),
       import("@/app/(app)/tournaments/actions"),
       import("@/lib/clubs/standings/queries"),
       import("./queries"),
+      import("@/lib/clubs/queries"),
     ]);
-    const { eq } = await import("drizzle-orm");
+    const { desc, eq } = await import("drizzle-orm");
     const clubIds: number[] = [];
     const courseIds: number[] = [];
 
@@ -56,7 +57,8 @@ if (!testDatabaseUrl) {
     afterEach(async () => {
       const { inArray } = await import("drizzle-orm");
       if (clubIds.length) {
-        await db.delete(schema.tournaments).where(inArray(schema.tournaments.clubId, clubIds));
+        const clubSeasonIds = (await db.select({ id: schema.seasons.id }).from(schema.seasons).where(inArray(schema.seasons.clubId, clubIds))).map((season) => season.id);
+        if (clubSeasonIds.length) await db.delete(schema.tournaments).where(inArray(schema.tournaments.seasonId, clubSeasonIds));
         await db.delete(schema.clubs).where(inArray(schema.clubs.id, clubIds));
       }
       if (courseIds.length) await db.delete(schema.courses).where(inArray(schema.courses.id, courseIds));
@@ -69,7 +71,7 @@ if (!testDatabaseUrl) {
       const f = { club, course, tee };
       const tournament = await create(f);
       const [season] = await db.select().from(schema.seasons).where(eq(schema.seasons.id, tournament.seasonId));
-      expect(season).toMatchObject({ clubId: club.id, number: 1, isCurrent: true });
+      expect(season).toMatchObject({ clubId: club.id, number: 1 });
       expect(await queries.getTournamentById(tournament.id)).toMatchObject({ clubId: club.id, season: 1, seasonId: season.id });
       expect(await queries.getAllTournaments()).toContainEqual(expect.objectContaining({ id: tournament.id, clubId: club.id, season: 1 }));
     });
@@ -79,8 +81,8 @@ if (!testDatabaseUrl) {
       const f = { club, course, tee };
       await create(f);
       const tournament = await create(f, { startNextSeason: true, date: "2025-01-01" });
-      const clubSeasons = await db.select().from(schema.seasons).where(eq(schema.seasons.clubId, club.id));
-      expect(clubSeasons.map(({ number, isCurrent }) => ({ number, isCurrent }))).toEqual([{ number: 1, isCurrent: false }, { number: 2, isCurrent: true }]);
+      const clubSeasons = await db.select().from(schema.seasons).where(eq(schema.seasons.clubId, club.id)).orderBy(schema.seasons.number);
+      expect(clubSeasons.map(({ number }) => number)).toEqual([1, 2]);
       expect(tournament.seasonId).toBe(clubSeasons[1].id);
     });
 
@@ -93,8 +95,30 @@ if (!testDatabaseUrl) {
       const update = await actions.updateTournament({ id: second.id, clubHandle: club.handle, seasonId: seasonOne.id, startNextSeason: false, date: "2010-01-01", courseHandle: course.handle, teeId: tee.id });
       expect(update.ok).toBe(true);
       const [updated] = await db.select().from(schema.tournaments).where(eq(schema.tournaments.id, second.id));
-      expect(updated).toMatchObject({ seasonId: seasonOne.id, season: 1, clubId: club.id });
+      expect(updated).toMatchObject({ seasonId: seasonOne.id });
+      expect(await queries.getTournamentById(second.id)).toMatchObject({ clubId: club.id, season: 1 });
       expect(first.id).toBeTypeOf("number");
+    });
+
+    it("defaults a new Tournament to the Club's highest-numbered Season", async () => {
+      const { club, course, tee } = await fixture();
+      const f = { club, course, tee };
+      await create(f);
+      await create(f, { startNextSeason: true });
+      const [highest] = await db.select().from(schema.seasons).where(eq(schema.seasons.clubId, club.id)).orderBy(desc(schema.seasons.number)).limit(1);
+      expect(highest.number).toBe(2);
+
+      const tournament = await create(f);
+      expect(tournament.seasonId).toBe(highest.id);
+    });
+
+    it("counts a Club's Tournaments through their Seasons", async () => {
+      const { club, course, tee } = await fixture();
+      const f = { club, course, tee };
+      await create(f);
+      await create(f, { startNextSeason: true });
+      const clubRow = (await clubQueries.getAllClubsFull()).find((row) => row.id === club.id);
+      expect(clubRow).toMatchObject({ tournamentsCount: 2 });
     });
 
     it("lists only non-empty Seasons and defaults standings to the newest non-empty Season", async () => {

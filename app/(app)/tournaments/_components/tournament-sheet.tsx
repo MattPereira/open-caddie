@@ -55,7 +55,7 @@ export type TournamentSheetTournament = {
   clubHandle: string;
   clubName: string;
   date: Date;
-  season: number | null;
+  season: number;
   seasonId: number;
   courseHandle: string | null;
   courseName: string | null;
@@ -66,8 +66,18 @@ export type TournamentSheetTournament = {
 export type ClubOption = {
   handle: string;
   name: string;
-  seasons: Array<{ id: number; number: number; isCurrent: boolean }>;
+  seasons: Array<{ id: number; number: number }>;
 };
+
+// A Club's Current Season is its highest-numbered one, so it is derived here
+// rather than read off a flag; undefined until the Club has any Season.
+function currentSeason(club: ClubOption | undefined) {
+  return club?.seasons.reduce<ClubOption["seasons"][number] | undefined>(
+    (highest, season) =>
+      highest == null || season.number > highest.number ? season : highest,
+    undefined,
+  );
+}
 export type TeeOption = {
   id: number;
   name: string;
@@ -157,7 +167,7 @@ function toFormValues(t: TournamentSheetTournament | undefined, clubs: ClubOptio
     return {
       ...emptyDefaults,
       clubHandle: club?.handle ?? "",
-      seasonId: club?.seasons.find((season) => season.isCurrent)?.id ?? "",
+      seasonId: currentSeason(club)?.id ?? "",
     };
   }
   return {
@@ -201,6 +211,8 @@ export function TournamentSheet({
   });
   const selectedClubHandle = useWatch({ control: form.control, name: "clubHandle" });
   const startsNextSeason = useWatch({ control: form.control, name: "startNextSeason" });
+  const selectedClub = clubs.find((club) => club.handle === selectedClubHandle);
+  const selectedClubCurrentSeasonId = currentSeason(selectedClub)?.id;
 
   useEffect(() => {
     if (open) {
@@ -306,7 +318,7 @@ export function TournamentSheet({
                         <select className={selectClass} {...field} onChange={(event) => {
                           field.onChange(event);
                           const club = clubs.find((option) => option.handle === event.target.value);
-                          form.setValue("seasonId", club?.seasons.find((season) => season.isCurrent)?.id ?? "");
+                          form.setValue("seasonId", currentSeason(club)?.id ?? "");
                           form.setValue("startNextSeason", false);
                         }}>
                           <option value="">Select a club…</option>
@@ -330,8 +342,8 @@ export function TournamentSheet({
                           field.onChange(startNext || event.target.value === "" ? "" : Number(event.target.value));
                         }}>
                           <option value="">Select a Season…</option>
-                          {clubs.find((club) => club.handle === selectedClubHandle)?.seasons.map((season) => (
-                            <option key={season.id} value={season.id}>Season {season.number}{season.isCurrent ? " (Current)" : ""}</option>
+                          {selectedClub?.seasons.map((season) => (
+                            <option key={season.id} value={season.id}>Season {season.number}{season.id === selectedClubCurrentSeasonId ? " (Current)" : ""}</option>
                           ))}
                           {mode === "create" && selectedClubHandle ? <option value="next">Start next Season…</option> : null}
                         </select>

@@ -9,10 +9,10 @@ A numbered, Club-owned collection of Tournaments whose results contribute to one
 _Avoid_: Tournament group, date range
 
 **Current Season**:
-The Season selected by default for new Tournaments in a Club. A Club has at most one Current Season.
+A Club's highest-numbered Season. A Club has exactly one once it has any Season, and none before that; it is never repointed at a lower-numbered Season. New Tournaments default to it.
 
 **Past Season**:
-Any non-current Season. Past Seasons remain editable and may receive Tournaments.
+Any Season below its Club's highest-numbered Season. Past Seasons remain editable and may receive Tournaments.
 _Avoid_: Archived Season
 
 **Course Scorecard Import**:

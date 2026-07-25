@@ -102,8 +102,7 @@ export default async function TournamentPage({
               ) : null}
             </div>
             <p className="text-sm text-muted-foreground">
-              {tournament.clubName} ·{" "}
-              {tournament.season ? `Season ${tournament.season}` : null}
+              {tournament.clubName} · {`Season ${tournament.season}`}
             </p>
           </div>
 

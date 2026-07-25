@@ -42,11 +42,12 @@ export const getAllClubsFull = cache(async () => {
 
   const tournamentsCountSq = db
     .select({
-      clubId: tournaments.clubId,
+      clubId: seasons.clubId,
       value: count().as("value"),
     })
     .from(tournaments)
-    .groupBy(tournaments.clubId)
+    .innerJoin(seasons, eq(tournaments.seasonId, seasons.id))
+    .groupBy(seasons.clubId)
     .as("tc");
 
   const rows = await db

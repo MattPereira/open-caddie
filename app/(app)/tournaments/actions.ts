@@ -182,18 +182,15 @@ async function createTournamentRecord(values: TournamentFields & { startNextSeas
     let season = values.seasonId == null ? null : await getSeason(tx, values.seasonId, values.clubId);
 
     if (values.startNextSeason) {
-      const [highest] = await tx.select({ number: seasons.number }).from(seasons).where(eq(seasons.clubId, values.clubId)).orderBy(desc(seasons.number)).limit(1);
-      await tx.update(seasons).set({ isCurrent: false }).where(and(eq(seasons.clubId, values.clubId), eq(seasons.isCurrent, true)));
-      [season] = await tx.insert(seasons).values({ clubId: values.clubId, number: (highest?.number ?? 0) + 1, isCurrent: true }).returning();
+      const current = await getCurrentSeason(tx, values.clubId);
+      [season] = await tx.insert(seasons).values({ clubId: values.clubId, number: (current?.number ?? 0) + 1 }).returning();
     } else if (!season) {
-      [season] = await tx.select().from(seasons).where(and(eq(seasons.clubId, values.clubId), eq(seasons.isCurrent, true))).limit(1);
-      if (!season) [season] = await tx.insert(seasons).values({ clubId: values.clubId, number: 1, isCurrent: true }).returning();
+      season = await getCurrentSeason(tx, values.clubId);
+      if (!season) [season] = await tx.insert(seasons).values({ clubId: values.clubId, number: 1 }).returning();
     }
 
     const [tournament] = await tx.insert(tournaments).values({
-      clubId: season.clubId,
       seasonId: season.id,
-      season: season.number,
       date: values.date,
       courseId: values.courseId,
       teeId: values.teeId,
@@ -206,9 +203,7 @@ async function updateTournamentRecord(values: TournamentFields & { id: number })
   if (values.seasonId == null) throw new Error("Season is required.");
   const season = await getSeason(db, values.seasonId, values.clubId);
   await db.update(tournaments).set({
-    clubId: season.clubId,
     seasonId: season.id,
-    season: season.number,
     date: values.date,
     courseId: values.courseId,
     teeId: values.teeId,
@@ -216,6 +211,12 @@ async function updateTournamentRecord(values: TournamentFields & { id: number })
 }
 
 type SeasonReader = Pick<typeof db, "select">;
+
+// A Club's Current Season is its highest-numbered one; null until it has any.
+async function getCurrentSeason(reader: SeasonReader, clubId: number) {
+  const [season] = await reader.select().from(seasons).where(eq(seasons.clubId, clubId)).orderBy(desc(seasons.number)).limit(1);
+  return season ?? null;
+}
 
 async function getSeason(reader: SeasonReader, seasonId: number, clubId: number) {
   const [season] = await reader.select().from(seasons).where(and(eq(seasons.id, seasonId), eq(seasons.clubId, clubId))).limit(1);

@@ -59,7 +59,7 @@ export default async function Home() {
             src="/poipu-bay.jpg"
             alt="Open Caddie"
             fill
-            sizes="100vw"
+            sizes="(min-width: 896px) 896px, 100vw"
             priority
             className="object-cover object-bottom"
           />

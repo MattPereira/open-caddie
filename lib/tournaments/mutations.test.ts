@@ -97,23 +97,6 @@ if (!testDatabaseUrl) {
       expect(first.id).toBeTypeOf("number");
     });
 
-    it("deletes only an empty highest Season and restores the previous current Season", async () => {
-      const { club, course, tee } = await fixture();
-      const f = { club, course, tee };
-      await create(f);
-      const current = await create(f, { startNextSeason: true });
-      expect(await actions.deleteSeason(current.seasonId)).toEqual(expect.objectContaining({ ok: false, error: expect.stringContaining("empty") }));
-      const [seasonOne] = await db.select().from(schema.seasons).where(eq(schema.seasons.clubId, club.id)).orderBy(schema.seasons.number);
-      expect(await actions.deleteSeason(seasonOne.id)).toEqual(expect.objectContaining({ ok: false, error: expect.stringContaining("highest") }));
-      await db.delete(schema.tournaments).where(eq(schema.tournaments.id, current.id));
-      expect(await actions.deleteSeason(current.seasonId)).toEqual({ ok: true });
-      const remaining = await db.select().from(schema.seasons).where(eq(schema.seasons.clubId, club.id));
-      expect(remaining).toEqual([expect.objectContaining({ number: 1, isCurrent: true })]);
-      const reused = await create(f, { startNextSeason: true });
-      const [reusedSeason] = await db.select().from(schema.seasons).where(eq(schema.seasons.id, reused.seasonId));
-      expect(reusedSeason.number).toBe(2);
-    });
-
     it("lists only non-empty Seasons and defaults standings to the newest non-empty Season", async () => {
       const { club, course, tee } = await fixture();
       const f = { club, course, tee };

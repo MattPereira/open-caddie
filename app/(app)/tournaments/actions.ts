@@ -168,18 +168,6 @@ export async function updateTournament(
   return { ok: true };
 }
 
-export async function deleteSeason(id: number): Promise<ActionResult> {
-  await requireAdmin();
-  try {
-    await deleteSeasonRecord(id);
-    revalidatePath("/tournaments");
-    revalidatePath("/clubs/[handle]", "page");
-    return { ok: true };
-  } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : "Could not delete Season." };
-  }
-}
-
 type TournamentFields = {
   clubId: number;
   seasonId: number | null;
@@ -225,23 +213,6 @@ async function updateTournamentRecord(values: TournamentFields & { id: number })
     courseId: values.courseId,
     teeId: values.teeId,
   }).where(eq(tournaments.id, values.id));
-}
-
-async function deleteSeasonRecord(seasonId: number) {
-  return db.transaction(async (tx) => {
-    const [season] = await tx.select().from(seasons).where(eq(seasons.id, seasonId)).limit(1);
-    if (!season) throw new Error("Season not found.");
-    await tx.execute(sql`select id from clubs where id = ${season.clubId} for update`);
-    const [[highest], [{ value: tournamentCount }]] = await Promise.all([
-      tx.select({ id: seasons.id }).from(seasons).where(eq(seasons.clubId, season.clubId)).orderBy(desc(seasons.number)).limit(1),
-      tx.select({ value: count() }).from(tournaments).where(eq(tournaments.seasonId, seasonId)),
-    ]);
-    if (highest?.id !== seasonId) throw new Error("Only the highest-numbered Season can be deleted.");
-    if (tournamentCount > 0) throw new Error("Only an empty Season can be deleted.");
-    await tx.delete(seasons).where(eq(seasons.id, seasonId));
-    const [previous] = await tx.select({ id: seasons.id }).from(seasons).where(eq(seasons.clubId, season.clubId)).orderBy(desc(seasons.number)).limit(1);
-    if (previous) await tx.update(seasons).set({ isCurrent: true }).where(eq(seasons.id, previous.id));
-  });
 }
 
 type SeasonReader = Pick<typeof db, "select">;

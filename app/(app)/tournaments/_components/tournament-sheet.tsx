@@ -40,7 +40,6 @@ import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import {
   createTournament,
-  deleteSeason,
   deleteTournament,
   updateTournament,
 } from "../actions";
@@ -186,7 +185,6 @@ export function TournamentSheet({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
-  const [isDeletingSeason, startDeleteSeasonTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
@@ -202,7 +200,6 @@ export function TournamentSheet({
     name: "courseHandle",
   });
   const selectedClubHandle = useWatch({ control: form.control, name: "clubHandle" });
-  const selectedSeasonId = useWatch({ control: form.control, name: "seasonId" });
   const startsNextSeason = useWatch({ control: form.control, name: "startNextSeason" });
 
   useEffect(() => {
@@ -320,21 +317,6 @@ export function TournamentSheet({
                     </FormItem>
                   )}
                 />
-                {mode === "create" && typeof selectedSeasonId === "number" ? (
-                  <Button type="button" variant="outline" disabled={isDeletingSeason} onClick={() => {
-                    if (!window.confirm("Delete this empty highest-numbered Season?")) return;
-                    startDeleteSeasonTransition(async () => {
-                      const result = await deleteSeason(selectedSeasonId);
-                      if (!result.ok) {
-                        form.setError("root.server", { type: "server", message: result.error });
-                        return;
-                      }
-                      router.refresh();
-                      closeSheet();
-                    });
-                  }}>Delete selected Season</Button>
-                ) : null}
-
                 <FormField
                   control={form.control}
                   name="seasonId"

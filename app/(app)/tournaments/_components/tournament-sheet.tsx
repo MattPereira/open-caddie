@@ -67,17 +67,8 @@ export type ClubOption = {
   handle: string;
   name: string;
   seasons: Array<{ id: number; number: number }>;
+  currentSeasonId: number | null;
 };
-
-// A Club's Current Season is its highest-numbered one, so it is derived here
-// rather than read off a flag; undefined until the Club has any Season.
-function currentSeason(club: ClubOption | undefined) {
-  return club?.seasons.reduce<ClubOption["seasons"][number] | undefined>(
-    (highest, season) =>
-      highest == null || season.number > highest.number ? season : highest,
-    undefined,
-  );
-}
 export type TeeOption = {
   id: number;
   name: string;
@@ -167,7 +158,7 @@ function toFormValues(t: TournamentSheetTournament | undefined, clubs: ClubOptio
     return {
       ...emptyDefaults,
       clubHandle: club?.handle ?? "",
-      seasonId: currentSeason(club)?.id ?? "",
+      seasonId: club?.currentSeasonId ?? "",
     };
   }
   return {
@@ -212,7 +203,6 @@ export function TournamentSheet({
   const selectedClubHandle = useWatch({ control: form.control, name: "clubHandle" });
   const startsNextSeason = useWatch({ control: form.control, name: "startNextSeason" });
   const selectedClub = clubs.find((club) => club.handle === selectedClubHandle);
-  const selectedClubCurrentSeasonId = currentSeason(selectedClub)?.id;
 
   useEffect(() => {
     if (open) {
@@ -318,7 +308,7 @@ export function TournamentSheet({
                         <select className={selectClass} {...field} onChange={(event) => {
                           field.onChange(event);
                           const club = clubs.find((option) => option.handle === event.target.value);
-                          form.setValue("seasonId", currentSeason(club)?.id ?? "");
+                          form.setValue("seasonId", club?.currentSeasonId ?? "");
                           form.setValue("startNextSeason", false);
                         }}>
                           <option value="">Select a club…</option>
@@ -343,7 +333,7 @@ export function TournamentSheet({
                         }}>
                           <option value="">Select a Season…</option>
                           {selectedClub?.seasons.map((season) => (
-                            <option key={season.id} value={season.id}>Season {season.number}{season.id === selectedClubCurrentSeasonId ? " (Current)" : ""}</option>
+                            <option key={season.id} value={season.id}>Season {season.number}{season.id === selectedClub.currentSeasonId ? " (Current)" : ""}</option>
                           ))}
                           {mode === "create" && selectedClubHandle ? <option value="next">Start next Season…</option> : null}
                         </select>

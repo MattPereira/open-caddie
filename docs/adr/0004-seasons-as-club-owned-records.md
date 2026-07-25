@@ -13,7 +13,7 @@ Storing which Season is current, so a Club could point it back at a lower-number
 - Every Tournament must reference exactly one Season.
 - Season numbers are unique within a Club and begin at 1.
 - New Tournaments visibly default to the Club's current Season; starting the next Season requires confirmation and atomically creates both the Season and Tournament.
-- Past Seasons remain editable. Seasons are not deletable; deleting a Club's highest-numbered Season is the one operation that would move its Current Season backwards, so reintroducing deletion means revisiting this ADR.
+- Past Seasons remain editable. No Season deletion is offered, and this is a product decision rather than a schema constraint: deleting a Club's highest-numbered Season is the one operation that would move its Current Season backwards, so reintroducing deletion means revisiting this ADR.
 - Club standings show only Seasons containing at least one Tournament and default to the newest non-empty Season.
 - Existing `(club_id, season)` pairs migrate to Season records; each Club's highest existing number is therefore its current Season.
 

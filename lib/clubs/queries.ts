@@ -24,10 +24,17 @@ export const getAllClubsWithSeasons = cache(async () => {
     getAllClubs(),
     db.select().from(seasons).orderBy(asc(seasons.number)),
   ]);
-  return clubRows.map((club) => ({
-    ...club,
-    seasons: seasonRows.filter((season) => season.clubId === club.id),
-  }));
+  return clubRows.map((club) => {
+    const clubSeasons = seasonRows.filter((season) => season.clubId === club.id);
+    return {
+      ...club,
+      seasons: clubSeasons,
+      // A Club's Current Season is its highest-numbered one, and the rows are
+      // ordered by number, so it is the last of the Club's Seasons. Callers
+      // read this rather than re-deriving the rule.
+      currentSeasonId: clubSeasons.at(-1)?.id ?? null,
+    };
+  });
 });
 
 export const getAllClubsFull = cache(async () => {

@@ -113,7 +113,7 @@ export const getLatestSeasonStandings = cache(
       .orderBy(desc(seasons.number), desc(tournaments.date))
       .limit(1);
 
-    if (!latest || latest.season == null) return null;
+    if (!latest) return null;
 
     return getSeasonStandings({
       clubId: latest.clubId,
@@ -124,14 +124,12 @@ export const getLatestSeasonStandings = cache(
 );
 
 export const getClubSeasons = cache(async (clubId: number) => {
-  const rows = await db
+  return db
     .selectDistinct({ season: seasons.number })
     .from(tournaments)
     .innerJoin(seasons, eq(tournaments.seasonId, seasons.id))
     .where(eq(seasons.clubId, clubId))
     .orderBy(desc(seasons.number));
-
-  return rows.filter((row): row is { season: number } => row.season != null);
 });
 
 export const getSeasonStandings = cache(

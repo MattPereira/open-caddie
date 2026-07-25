@@ -100,7 +100,7 @@ if (!testDatabaseUrl) {
       expect(first.id).toBeTypeOf("number");
     });
 
-    it("defaults a new Tournament to the Club's highest-numbered Season", async () => {
+    it("defaults a new Tournament to the Club's Current Season", async () => {
       const { club, course, tee } = await fixture();
       const f = { club, course, tee };
       await create(f);

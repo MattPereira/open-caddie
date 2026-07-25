@@ -115,8 +115,9 @@ export const clubMembers = pgTable(
 
 // Club-owned Season records (ADR 0004). Numbers are Club-relative and begin at
 // 1. A Club's Current Season is its highest-numbered one rather than a stored
-// flag, so uniqueness of (club_id, number) is what keeps it single; Seasons are
-// not deletable, which is what keeps the highest number monotonic.
+// flag, so uniqueness of (club_id, number) is what keeps it single. That the
+// highest number only ever climbs rests on the app exposing no way to delete a
+// Season; nothing below enforces it, so see ADR 0004 before adding one.
 export const seasons = pgTable(
   "seasons",
   {

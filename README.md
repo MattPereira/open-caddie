@@ -1,10 +1,8 @@
 <img width="909" height="301" alt="image" src="https://github.com/user-attachments/assets/7849fec4-f2cc-44e6-964b-372c134c9007" />
 
-Track match play, skins games, tournament rounds, and season standings for recreational golf clubs
+Track match play, skins games, tournament rounds, and season standings for golf clubs
 
-_Built for and used by my golf group since September 2021._
-
-**[Browse the live app →](https://opencaddie.app)** — everything is public. You only need an account to record a round or join a tournament.
+**[Browse the live app →](https://opencaddie.app)** — _used by my golf group since September 2021._
 
 ### Features
 
@@ -61,4 +59,13 @@ Every course keeps a scorecard per tee with its rating and slope, plus its own l
 - **Seasons as first-class records.** Clubs own numbered seasons with per-club points configuration; past seasons stay editable and can still receive tournaments.
 - **Nightly cleanup cron.** A scheduled job expires abandoned in-progress imports so half-finished uploads don't accumulate as orphaned blobs and rows.
 
-Next.js 16 · React 19 · TypeScript · Postgres (Neon) + Drizzle · Auth.js · AI SDK + Vercel AI Gateway · Vercel Blob · Vitest
+### Tech stack
+
+- **Framework** — Next.js 16 (App Router), React 19, TypeScript
+- **Database** — Postgres on Neon, Drizzle ORM with generated migrations
+- **Auth** — Auth.js with the Drizzle adapter, Google OAuth and Resend email sign-in
+- **AI** — Vercel AI SDK through the AI Gateway, with a model eval harness
+- **Storage** — Vercel Blob for course, scorecard, and avatar images
+- **UI** — Tailwind CSS v4, shadcn/ui on Radix, Motion for animation
+- **Testing** — Vitest, with integration tests against a real Postgres instance
+- **Hosting** — Vercel, including a nightly cron job

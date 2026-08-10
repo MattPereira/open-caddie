@@ -1,0 +1,1 @@
+ALTER TABLE "scrambles" ADD CONSTRAINT "scrambles_handle_check" CHECK ("scrambles"."handle" ~ '^[a-z0-9]+(-[a-z0-9]+)*$');

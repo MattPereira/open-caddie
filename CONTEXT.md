@@ -4,6 +4,18 @@ Open Caddie records golf courses, rounds, matches, tournaments, and club standin
 
 ## Language
 
+**Scramble**:
+A one-off, Club-less golf event in which each team records one gross score per hole. It belongs to no Season, contributes to no standings or Player Index, and is modeled separately from a Tournament.
+
+**Scramble Team**:
+A named, variable-size roster of people who play and score together in one Scramble. Members are names, not Users.
+
+**Team Score**:
+One Scramble Team's gross strokes recorded for one hole.
+
+**Starting Hole**:
+The hole where a Scramble Team begins play in a shotgun start.
+
 **Season**:
 A numbered, Club-owned collection of Tournaments whose results contribute to one standings table. Numbers begin at 1 and have no calendar meaning; every Tournament belongs to exactly one Season.
 _Avoid_: Tournament group, date range

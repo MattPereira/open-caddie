@@ -113,6 +113,20 @@
       "when": 1785021504204,
       "tag": "0015_drop_legacy_season_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1786401800154,
+      "tag": "0016_clumsy_moondragon",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1786402103239,
+      "tag": "0017_ancient_amazoness",
+      "breakpoints": true
     }
   ]
 }

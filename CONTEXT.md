@@ -5,7 +5,15 @@ Open Caddie records golf courses, rounds, matches, tournaments, and club standin
 ## Language
 
 **Scramble**:
-A one-off, Club-less golf event in which each team records one gross score per hole. It belongs to no Season, contributes to no standings or Player Index, and is modeled separately from a Tournament.
+A one-off, Club-less golf event in which each team plays every stroke from the best of its members' shots and records one gross score per hole. It belongs to no Season, contributes to no standings or Player Index, and is modeled separately from a Tournament.
+_Avoid_: Event, Outing, Charity tournament
+
+**Shotgun Start**:
+A start in which every Scramble Team tees off at the same time from a different hole, wrapping from its Starting Hole around to the hole before it.
+
+**Scoring Link**:
+The URL through which a Scramble Team's scores are recorded, requiring no account.
+_Avoid_: Magic link, invite link, QR link
 
 **Scramble Team**:
 A named, variable-size roster of people who play and score together in one Scramble. Members are names, not Users.
@@ -15,6 +23,9 @@ One Scramble Team's gross strokes recorded for one hole.
 
 **Starting Hole**:
 The hole where a Scramble Team begins play in a shotgun start.
+
+**Tournament**:
+A Club-owned competition belonging to exactly one Season, whose Rounds feed that Season's standings and its players' Player Indexes. A Scramble is never a Tournament.
 
 **Season**:
 A numbered, Club-owned collection of Tournaments whose results contribute to one standings table. Numbers begin at 1 and have no calendar meaning; every Tournament belongs to exactly one Season.
@@ -63,6 +74,10 @@ _Avoid_: tournament handicap (a legacy field name for the computed Course Handic
 
 **Match Play**:
 A per-hole game in which the unique lowest net team score wins the hole. Singles and Three-Ball use 100% relative Playing Handicaps; Four-Ball uses 90% relative Playing Handicaps.
+
+**Greenie**:
+A closest-to-the-pin result on a par 3, recorded as the distance from the hole.
+_Avoid_: Closie, CTP
 
 **Skins**:
 A per-hole game using relative Playing Handicaps. A unique low net score wins the hole; tied completed holes carry their skins forward until a later unique low net score wins them.

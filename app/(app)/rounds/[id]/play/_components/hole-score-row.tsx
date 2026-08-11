@@ -48,7 +48,7 @@ export function HoleScoreRow({
       <div className="text-center text-xs tabular-nums text-muted-foreground">
         {par ?? "—"}
       </div>
-      <div className="pr-2 text-right text-xs tabular-nums text-muted-foreground">
+      <div className="text-center text-xs tabular-nums text-muted-foreground/70">
         {yards == null ? "—" : yards.toLocaleString()}
       </div>
       {cells.map((cell) => (
@@ -61,14 +61,20 @@ export function HoleScoreRow({
               ? `Add score for ${cell.playerName}, hole ${hole}`
               : `Edit ${cell.playerName}, hole ${hole}, ${cell.strokes} strokes`
           }
-          className={cn(
-            "flex h-12 items-center justify-center gap-0.5 border-l border-border transition-colors active:bg-muted",
-            cell.strokes == null && "text-muted-foreground",
-          )}
+          className="flex h-14 items-center justify-center gap-0.5 border-l border-border transition-colors active:bg-muted"
         >
-          <HoleScore score={cell.strokes} par={par} showSymbol />
+          {cell.strokes == null ? (
+            <span className="size-9 rounded-md border border-dashed border-muted-foreground/40" />
+          ) : (
+            <HoleScore
+              score={cell.strokes}
+              par={par}
+              showSymbol
+              size="lg"
+            />
+          )}
           {showPutts && cell.putts != null ? (
-            <span className="translate-y-1 text-[0.625rem] tabular-nums text-muted-foreground">
+            <span className="translate-y-1.5 text-[0.625rem] tabular-nums text-muted-foreground">
               {cell.putts}
             </span>
           ) : null}

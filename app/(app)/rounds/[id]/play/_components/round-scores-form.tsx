@@ -323,7 +323,7 @@ export function RoundScoresForm({
       scores: delegateScoresByRoundId[player.roundId] ?? [],
     })),
   ];
-  const columns = `2.5rem 2.5rem minmax(2.5rem,1fr) repeat(${players.length}, minmax(2.5rem,3.5rem))`;
+  const columns = `2.5rem 2.5rem 3.25rem repeat(${players.length}, minmax(3rem,1fr))`;
 
   const activePlayer =
     activeCell == null
@@ -362,11 +362,11 @@ export function RoundScoresForm({
       <div className="overflow-hidden rounded-lg ring-1 ring-border">
         <div
           style={{ gridTemplateColumns: columns }}
-          className="grid items-center bg-muted"
+          className="grid items-center border-b border-border bg-muted"
         >
           <HeaderCell className="text-center">HOL</HeaderCell>
           <HeaderCell className="text-center">PAR</HeaderCell>
-          <HeaderCell className="pr-2 text-right">YDS</HeaderCell>
+          <HeaderCell className="text-center">YDS</HeaderCell>
           {players.map((player) => (
             <HeaderCell
               key={player.roundId}
@@ -552,7 +552,7 @@ function SummaryRow({
         return (
           <div
             key={player.roundId}
-            className="flex h-10 items-center justify-center gap-0.5 border-l border-border text-sm font-semibold tabular-nums"
+            className="flex h-11 items-center justify-center gap-0.5 border-l border-border text-base font-semibold tabular-nums"
           >
             {strokes ?? "—"}
             {showPutts && putts != null ? (

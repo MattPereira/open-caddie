@@ -242,7 +242,7 @@ export function HoleScore({
   score: number | null;
   par: number | null;
   showSymbol: boolean;
-  size?: "default" | "sm";
+  size?: "default" | "sm" | "lg";
 }) {
   const symbol =
     showSymbol && score != null && par != null
@@ -253,7 +253,9 @@ export function HoleScore({
     <span
       className={cn(
         "inline-flex shrink-0 items-center justify-center border-current leading-none tabular-nums",
-        size === "sm" ? "size-6 text-sm" : "size-7 text-sm",
+        size === "sm" && "size-6 text-sm",
+        size === "default" && "size-7 text-sm",
+        size === "lg" && "size-9 text-base font-medium",
         symbol === "circle" && "rounded-full border",
         symbol === "double-circle" && "rounded-full border-[3px] border-double",
         symbol === "square" && "rounded-sm border",

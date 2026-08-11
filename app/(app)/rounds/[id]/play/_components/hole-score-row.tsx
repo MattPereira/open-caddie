@@ -42,13 +42,13 @@ export function HoleScoreRow({
         highlight && "bg-muted/50",
       )}
     >
-      <div className="text-center text-sm font-semibold tabular-nums">
+      <div className="text-center text-base font-semibold tabular-nums">
         {hole}
       </div>
-      <div className="text-center text-sm tabular-nums text-muted-foreground">
+      <div className="text-center text-base tabular-nums text-muted-foreground">
         {par ?? "—"}
       </div>
-      <div className="text-center text-sm tabular-nums text-muted-foreground">
+      <div className="text-center text-base tabular-nums text-muted-foreground">
         {yards == null ? "—" : yards.toLocaleString()}
       </div>
       {cells.map((cell) => (

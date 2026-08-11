@@ -325,7 +325,7 @@ export function RoundScoresForm({
   ];
   // Score columns keep a fixed width so cells stay the same size whoever you are
   // scoring for; the table is centered until enough players push it full width.
-  const columns = `2.5rem 2.5rem 3.25rem repeat(${players.length}, minmax(3.25rem,4.5rem))`;
+  const columns = `2.75rem 2.75rem 3.5rem repeat(${players.length}, minmax(3.25rem,4.5rem))`;
 
   const activePlayer =
     activeCell == null
@@ -544,7 +544,7 @@ function SummaryRow({
     >
       <div
         style={{ gridColumn: `span ${labelColumns}` }}
-        className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+        className="px-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground"
       >
         {label}
       </div>
@@ -579,7 +579,7 @@ function HeaderCell({
   return (
     <div
       className={cn(
-        "py-1.5 text-xs font-medium text-muted-foreground",
+        "py-2 text-sm font-medium text-muted-foreground",
         className,
       )}
     >

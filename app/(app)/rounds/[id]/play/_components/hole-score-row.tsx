@@ -45,10 +45,10 @@ export function HoleScoreRow({
       <div className="text-center text-sm font-semibold tabular-nums">
         {hole}
       </div>
-      <div className="text-center text-xs tabular-nums text-muted-foreground">
+      <div className="text-center text-sm tabular-nums text-muted-foreground">
         {par ?? "—"}
       </div>
-      <div className="text-center text-xs tabular-nums text-muted-foreground/70">
+      <div className="text-center text-sm tabular-nums text-muted-foreground">
         {yards == null ? "—" : yards.toLocaleString()}
       </div>
       {cells.map((cell) => (

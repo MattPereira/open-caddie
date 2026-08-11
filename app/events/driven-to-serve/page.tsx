@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import { Calendar01Icon } from "@hugeicons/core-free-icons";
+import { Calendar01Icon, Call02Icon } from "@hugeicons/core-free-icons";
 
 import { Button } from "@/components/ui/button";
 import { appPageIcons } from "@/components/layout/app-nav-items";
@@ -83,9 +83,28 @@ export default function EventPage() {
           <SponsorGrid tiers={event.sponsorTiers} />
         </section>
 
-        <ContactBanner contact={event.registration} />
+        <ContactSection contact={event.registration} />
       </div>
     </main>
+  );
+}
+
+function ContactSection({ contact }: { contact: typeof event.registration }) {
+  return (
+    <section className="flex justify-end py-4">
+      <div className="flex flex-col items-end gap-1.5 text-right">
+        <p className="text-base text-neutral-300">
+          For more information, contact {contact.contactName}
+        </p>
+        <a
+          href={contact.contactPhoneHref}
+          className="flex items-center gap-2 font-semibold text-orange-300 underline decoration-orange-300/40 underline-offset-4 transition-colors hover:text-orange-200 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-orange-300/40"
+        >
+          <HugeiconsIcon icon={Call02Icon} className="size-5 shrink-0" />
+          {contact.contactPhone}
+        </a>
+      </div>
+    </section>
   );
 }
 
@@ -96,25 +115,6 @@ function Proceeds({ proceeds }: { proceeds: string }) {
       <Heart />
       {proceeds}
     </p>
-  );
-}
-
-// The flyer closes on a red contact band; this mirrors the hero's banner.
-function ContactBanner({ contact }: { contact: typeof event.registration }) {
-  return (
-    <div className="flex items-center justify-between gap-4 bg-[linear-gradient(to_right,transparent_0,#8e1c1c_2.5rem,#8e1c1c_calc(100%-2.5rem),transparent_100%)] px-10 py-2 font-[family-name:var(--font-poster)] text-xl tracking-[0.1em] text-neutral-50 uppercase sm:text-2xl">
-      <Star />
-      <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center">
-        For more information, contact {contact.contactName}
-        <a
-          href={contact.contactPhoneHref}
-          className="text-orange-300 underline-offset-4 hover:underline"
-        >
-          {contact.contactPhone}
-        </a>
-      </p>
-      <Star />
-    </div>
   );
 }
 

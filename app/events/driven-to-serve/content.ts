@@ -93,7 +93,7 @@ export const event = {
       benefits: ["Anything above Gold is considered a Premium Sponsor"],
     },
   ],
-  metaTitle: "Driven to Serve — Golf Tournament for Captain Derek Cochnauer",
+  metaTitle: "Golf Fundraiser for Captain Derek Cochnauer",
   metaDescription:
     "A golf tournament fundraiser supporting Rodeo-Hercules Fire Captain Derek Cochnauer and his family. Saturday, September 19, 2026 at Blue Rock Springs in Vallejo.",
   ogKicker: "Sat Sept 19, 2026 · Vallejo, CA",

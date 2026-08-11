@@ -42,7 +42,7 @@ export function HoleScoreRow({
         highlight && "bg-muted/50",
       )}
     >
-      <div className="text-center text-base font-semibold tabular-nums">
+      <div className="flex h-full items-center justify-center self-stretch border-r border-border text-base font-semibold tabular-nums">
         {hole}
       </div>
       <div className="text-center text-base tabular-nums text-muted-foreground">

@@ -554,11 +554,11 @@ function SummaryRow({
         return (
           <div
             key={player.roundId}
-            className="flex h-11 items-center justify-center gap-0.5 border-l border-border text-base font-semibold tabular-nums"
+            className="relative flex h-11 items-center justify-center border-l border-border text-base font-semibold tabular-nums"
           >
             {strokes ?? "—"}
             {showPutts && putts != null ? (
-              <span className="translate-y-1 text-[0.625rem] font-normal text-muted-foreground">
+              <span className="absolute right-1 top-0.5 text-xs font-normal text-muted-foreground">
                 {putts}
               </span>
             ) : null}

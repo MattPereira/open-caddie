@@ -42,7 +42,7 @@ export function HoleScoreRow({
         highlight && "bg-muted/50",
       )}
     >
-      <div className="text-center text-base font-semibold tabular-nums">
+      <div className="text-center text-base font-medium tabular-nums">
         {hole}
       </div>
       <div className="text-center text-base tabular-nums text-muted-foreground">
@@ -61,7 +61,7 @@ export function HoleScoreRow({
               ? `Add score for ${cell.playerName}, hole ${hole}`
               : `Edit ${cell.playerName}, hole ${hole}, ${cell.strokes} strokes`
           }
-          className="flex h-14 items-center justify-center gap-0.5 border-l border-border transition-colors active:bg-muted"
+          className="relative flex h-14 items-center justify-center border-l border-border transition-colors active:bg-muted"
         >
           {cell.strokes == null ? (
             <span className="size-9 rounded-md border border-dashed border-muted-foreground/40" />
@@ -74,7 +74,7 @@ export function HoleScoreRow({
             />
           )}
           {showPutts && cell.putts != null ? (
-            <span className="translate-y-1.5 text-[0.625rem] tabular-nums text-muted-foreground">
+            <span className="absolute right-1 top-0.5 text-xs tabular-nums text-muted-foreground">
               {cell.putts}
             </span>
           ) : null}

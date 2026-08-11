@@ -137,7 +137,6 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
           roundId={round.id}
           tableRound={tableRound}
           leaderboardRounds={tournament?.rounds}
-          date={round.date}
           holes={tableRound.holes}
           tees={round.tees}
           matchPlayers={matchPlayers}

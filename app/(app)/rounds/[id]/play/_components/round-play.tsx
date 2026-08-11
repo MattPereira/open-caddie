@@ -38,7 +38,6 @@ type RoundPlayProps = {
   roundId: number;
   tableRound: RoundScoresTableRound;
   leaderboardRounds?: RoundScoresTableRound[];
-  date: Date | string;
   holes: {
     hole: number;
     par: number;
@@ -54,7 +53,6 @@ export function RoundPlay({
   roundId,
   tableRound,
   leaderboardRounds,
-  date,
   holes,
   tees,
   matchPlayers,
@@ -87,7 +85,6 @@ export function RoundPlay({
       roundId={roundId}
       round={liveRound}
       leaderboardRounds={leaderboardRounds}
-      date={date}
       holes={holes}
       scores={scores}
       setScoresAction={setScores}

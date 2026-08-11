@@ -1,10 +1,8 @@
 "use client";
 
 import {
-  Fragment,
   type Dispatch,
   type SetStateAction,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -14,7 +12,7 @@ import {
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
-import { formatDate } from "@/lib/dates";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
   deleteRoundGreenie,
@@ -23,7 +21,11 @@ import {
 } from "../../../actions";
 import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
 import { toRoundScoreRow } from "@/components/features/scores/round-scores";
-import { type ScoreEntry, buildInitialScores, isRoundComplete } from "./round-score-state";
+import {
+  type ScoreEntry,
+  buildInitialScores,
+  isRoundComplete,
+} from "./round-score-state";
 import type { GreenieValue } from "./hole-greenie-manager";
 import { HoleScoreRow } from "./hole-score-row";
 import { ScoreEntrySheet, type ScorePatch } from "./score-entry-sheet";
@@ -36,11 +38,17 @@ export type { SettingsTee };
 
 type GreenieEntry = GreenieValue & { hole: number };
 
+type Nine = "out" | "in";
+
+// The default active state (near-white on light grey) is too quiet to read at a
+// glance in sunlight, so the selected nine gets a filled primary chip.
+const nineTabClassName =
+  "text-base data-active:bg-primary data-active:text-primary-foreground dark:data-active:border-transparent dark:data-active:bg-primary dark:data-active:text-primary-foreground";
+
 type RoundScoresFormProps = {
   roundId: number;
   round: RoundScoresTableRound;
   leaderboardRounds?: RoundScoresTableRound[];
-  date: Date | string;
   holes: {
     hole: number;
     par: number;
@@ -62,7 +70,6 @@ export function RoundScoresForm({
   roundId,
   round,
   leaderboardRounds,
-  date,
   holes,
   scores,
   setScoresAction,
@@ -139,11 +146,10 @@ export function RoundScoresForm({
   const [highlightHole] = useState(
     () => scores.find((entry) => entry.strokes == null)?.hole ?? null,
   );
-  const rowRefs = useRef(new Map<number, HTMLDivElement>());
-  useEffect(() => {
-    if (highlightHole == null || highlightHole <= 2) return;
-    rowRefs.current.get(highlightHole)?.scrollIntoView({ block: "center" });
-  }, [highlightHole]);
+  // Resume on the nine holding the first unplayed hole.
+  const [activeNine, setActiveNine] = useState<Nine>(() =>
+    highlightHole != null && highlightHole > 9 ? "in" : "out",
+  );
 
   const isComplete = isRoundComplete(round);
 
@@ -200,6 +206,20 @@ export function RoundScoresForm({
     updateScoresForRound(targetRoundId, (prev) =>
       prev.map((s) => (s.hole === hole ? { ...s, ...patch } : s)),
     );
+    if (targetRoundId === roundId) {
+      const next = getScoresForRound(roundId).map((s) =>
+        s.hole === hole ? { ...s, ...patch } : s,
+      );
+      const frontComplete = next
+        .filter((s) => s.hole <= 9)
+        .every((s) => s.strokes != null);
+      // Only on the first pass — otherwise editing an old front-nine hole late
+      // in the round would yank you off the tab you chose.
+      const backUnstarted = next
+        .filter((s) => s.hole > 9)
+        .every((s) => s.strokes == null);
+      if (frontComplete && backUnstarted) setActiveNine("in");
+    }
     startSaveTransition(async () => {
       const result = await upsertRoundScore({
         roundId: targetRoundId,
@@ -348,101 +368,103 @@ export function RoundScoresForm({
           (greenie) => greenie.hole === activeCell.hole,
         ) ?? null);
 
+  // Only one nine is on screen at a time, so all 18 holes stay reachable in a
+  // single tap instead of a ~560px scroll.
+  const renderNine = (nine: Nine) => {
+    const [from, to] = nine === "out" ? [1, 9] : [10, 18];
+
+    return (
+      <div className="mx-auto flex w-fit max-w-full flex-col gap-1.5">
+        <p className="truncate text-base text-muted-foreground">
+          {round.courseName}
+        </p>
+        <div className="overflow-hidden rounded-lg ring-1 ring-border">
+          <div
+            style={{ gridTemplateColumns: columns }}
+            className="grid items-center border-b border-border bg-muted"
+          >
+            <HeaderCell className="text-center">HOL</HeaderCell>
+            <HeaderCell className="text-center">PAR</HeaderCell>
+            <HeaderCell className="text-center">YDS</HeaderCell>
+            {players.map((player) => (
+              <HeaderCell
+                key={player.roundId}
+                className="border-l border-border text-center"
+              >
+                {toInitials(player.name)}
+              </HeaderCell>
+            ))}
+          </div>
+
+          {scores
+            .filter((entry) => entry.hole >= from && entry.hole <= to)
+            .map((entry) => (
+              <HoleScoreRow
+                key={entry.hole}
+                hole={entry.hole}
+                par={entry.par}
+                yards={entry.yards}
+                showPutts={recordPutts}
+                highlight={entry.hole === highlightHole}
+                columns={columns}
+                cells={players.map((player) => {
+                  const playerEntry = player.scores.find(
+                    (playerScore) => playerScore.hole === entry.hole,
+                  );
+                  return {
+                    id: player.roundId,
+                    playerName: player.name,
+                    strokes: playerEntry?.strokes ?? null,
+                    putts: playerEntry?.putts ?? null,
+                  };
+                })}
+                onSelectAction={(targetRoundId) =>
+                  setActiveCell({ roundId: targetRoundId, hole: entry.hole })
+                }
+              />
+            ))}
+
+          <SummaryRow
+            label={nine === "out" ? "Out" : "In"}
+            labelColumns={3}
+            columns={columns}
+            showPutts={recordPutts}
+            players={players}
+            from={from}
+            to={to}
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex w-full min-w-0 flex-1 flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold tracking-normal">
-          {round.courseName ?? "Round"}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {[toRoundScoreRow(round).playerName, formatDate(date, "short")]
-            .filter(Boolean)
-            .join(" · ")}
-        </p>
-      </div>
-
-      <div className="mx-auto w-fit max-w-full overflow-hidden rounded-lg ring-1 ring-border">
-        <div
-          style={{ gridTemplateColumns: columns }}
-          className="grid items-center border-b border-border bg-muted"
-        >
-          <HeaderCell className="text-center">HOL</HeaderCell>
-          <HeaderCell className="text-center">PAR</HeaderCell>
-          <HeaderCell className="text-center">YDS</HeaderCell>
-          {players.map((player) => (
-            <HeaderCell
-              key={player.roundId}
-              className="border-l border-border text-center"
-            >
-              {toInitials(player.name)}
-            </HeaderCell>
-          ))}
+      <Tabs
+        className="flex-1"
+        value={activeNine}
+        onValueChange={(value) => setActiveNine(value as Nine)}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="min-w-0 truncate text-2xl font-semibold tracking-normal">
+            {toRoundScoreRow(round).playerName || "Round"}
+          </h1>
+          <TabsList className="h-11 w-36 shrink-0">
+            <TabsTrigger value="out" className={nineTabClassName}>
+              Out
+            </TabsTrigger>
+            <TabsTrigger value="in" className={nineTabClassName}>
+              In
+            </TabsTrigger>
+          </TabsList>
         </div>
-
-        {scores.map((entry) => (
-          <Fragment key={entry.hole}>
-            <HoleScoreRow
-              hole={entry.hole}
-              par={entry.par}
-              yards={entry.yards}
-              showPutts={recordPutts}
-              highlight={entry.hole === highlightHole}
-              columns={columns}
-              rowRef={(element) => {
-                if (element) rowRefs.current.set(entry.hole, element);
-                else rowRefs.current.delete(entry.hole);
-              }}
-              cells={players.map((player) => {
-                const playerEntry = player.scores.find(
-                  (playerScore) => playerScore.hole === entry.hole,
-                );
-                return {
-                  id: player.roundId,
-                  playerName: player.name,
-                  strokes: playerEntry?.strokes ?? null,
-                  putts: playerEntry?.putts ?? null,
-                };
-              })}
-              onSelectAction={(targetRoundId) =>
-                setActiveCell({ roundId: targetRoundId, hole: entry.hole })
-              }
-            />
-            {entry.hole === 9 ? (
-              <SummaryRow
-                label="Out"
-                labelColumns={3}
-                columns={columns}
-                showPutts={recordPutts}
-                players={players}
-                from={1}
-                to={9}
-              />
-            ) : null}
-            {entry.hole === 18 ? (
-              <>
-                <SummaryRow
-                  label="In"
-                  labelColumns={3}
-                  columns={columns}
-                  showPutts={recordPutts}
-                  players={players}
-                  from={10}
-                  to={18}
-                />
-                <SummaryRow
-                  label="Total"
-                  labelColumns={3}
-                  columns={columns}
-                  showPutts={recordPutts}
-                  players={players}
-                  from={1}
-                  to={18}
-                />
-              </>
-            ) : null}
-          </Fragment>
-        ))}
-      </div>
+        <TabsContent value="out" className="flex flex-col justify-center">
+          {renderNine("out")}
+        </TabsContent>
+        <TabsContent value="in" className="flex flex-col justify-center">
+          {renderNine("in")}
+        </TabsContent>
+      </Tabs>
 
       {saveError ? (
         <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -450,7 +472,7 @@ export function RoundScoresForm({
         </p>
       ) : null}
 
-      <div className="sticky bottom-0 z-10 mt-auto flex items-center gap-2 border-t border-border bg-background py-3">
+      <div className="sticky bottom-0 z-10 mt-auto flex items-center gap-2 bg-background py-3">
         {isComplete ? (
           <Button
             type="button"

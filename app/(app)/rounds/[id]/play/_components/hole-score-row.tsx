@@ -19,7 +19,6 @@ type HoleScoreRowProps = {
   columns: string;
   cells: HoleRowCell[];
   onSelectAction: (id: number) => void;
-  rowRef?: (element: HTMLDivElement | null) => void;
 };
 
 export function HoleScoreRow({
@@ -31,11 +30,9 @@ export function HoleScoreRow({
   columns,
   cells,
   onSelectAction,
-  rowRef,
 }: HoleScoreRowProps) {
   return (
     <div
-      ref={rowRef}
       style={{ gridTemplateColumns: columns }}
       className={cn(
         "grid items-center border-t border-border",

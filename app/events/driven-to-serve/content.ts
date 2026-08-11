@@ -39,12 +39,12 @@ export const event = {
     {
       label: "When",
       value: "Saturday, September 19",
-      detail: "7:30 check-in · 8:00 shotgun",
+      detail: "7:30 check-in · 8:00 shotgun start",
     },
     {
       label: "Where",
-      value: "Blue Rock Springs Golf",
-      detail: "Vallejo, California",
+      value: "Blue Rock Springs Golf Course",
+      detail: "655 Columbus Parkway, Vallejo, CA 94591",
     },
     {
       label: "Format",

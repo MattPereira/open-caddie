@@ -39,7 +39,10 @@ export function HoleScoreRow({
         highlight && "bg-muted/50",
       )}
     >
-      <div className="text-center text-base font-medium tabular-nums">
+      {/* The hole number reads as the row's header, so it carries the same
+          muted fill and text colour as the column header row. self-stretch fills
+          the row height, which items-center would otherwise collapse to text. */}
+      <div className="flex self-stretch items-center justify-center bg-muted text-base font-medium tabular-nums text-muted-foreground">
         {hole}
       </div>
       <div className="text-center text-base tabular-nums text-muted-foreground">
@@ -71,7 +74,7 @@ export function HoleScoreRow({
             />
           )}
           {showPutts && cell.putts != null ? (
-            <span className="absolute right-1 top-0.5 text-xs tabular-nums text-muted-foreground">
+            <span className="absolute right-1 top-0.5 text-sm tabular-nums text-muted-foreground">
               {cell.putts}
             </span>
           ) : null}

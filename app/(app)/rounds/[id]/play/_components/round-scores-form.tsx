@@ -95,6 +95,12 @@ export function RoundScoresForm({
     [delegateRoundIds, matchPlayers],
   );
   const getPlayerName = (player: MatchPlayer) => player.firstName || "Player";
+  // The grid columns are too narrow for anything but a first name, so the full
+  // name is carried separately for the roomier score entry sheet.
+  const getFullName = (
+    player: { firstName: string | null; lastName: string | null },
+    fallback: string,
+  ) => [player.firstName, player.lastName].filter(Boolean).join(" ") || fallback;
   const [delegateScoresByRoundId, setDelegateScoresByRoundId] = useState<
     Record<number, ScoreEntry[]>
   >(() => {
@@ -336,10 +342,11 @@ export function RoundScoresForm({
   }, [delegateScoresByRoundId, matchScoreboard, round]);
 
   const players = [
-    { roundId, name: selfName, scores },
+    { roundId, name: selfName, fullName: getFullName(round, selfName), scores },
     ...delegatePlayers.map((player) => ({
       roundId: player.roundId,
       name: getPlayerName(player),
+      fullName: getFullName(player, getPlayerName(player)),
       scores: delegateScoresByRoundId[player.roundId] ?? [],
     })),
   ];
@@ -381,7 +388,7 @@ export function RoundScoresForm({
         <div className="overflow-hidden rounded-lg ring-1 ring-border">
           <div
             style={{ gridTemplateColumns: columns }}
-            className="grid items-center border-b border-border bg-muted"
+            className="grid items-center bg-muted"
           >
             <HeaderCell className="text-center">HOL</HeaderCell>
             <HeaderCell className="text-center">PAR</HeaderCell>
@@ -391,7 +398,7 @@ export function RoundScoresForm({
                 key={player.roundId}
                 className="border-l border-border text-center"
               >
-                {toInitials(player.name)}
+                {toInitials(player.fullName)}
               </HeaderCell>
             ))}
           </div>
@@ -449,7 +456,10 @@ export function RoundScoresForm({
           <h1 className="min-w-0 truncate text-2xl font-semibold tracking-normal">
             {toRoundScoreRow(round).playerName || "Round"}
           </h1>
-          <TabsList className="h-11 w-36 shrink-0">
+          {/* TabsList sets its height as group-data-horizontal/tabs:h-8, so a
+              bare h-* here survives the class merge but loses on specificity.
+              The override has to carry the same modifier to take effect. */}
+          <TabsList className="w-36 shrink-0 group-data-horizontal/tabs:h-11">
             <TabsTrigger value="out" className={nineTabClassName}>
               Out
             </TabsTrigger>
@@ -514,7 +524,7 @@ export function RoundScoresForm({
           open
           hole={activeCell.hole}
           par={activePar}
-          playerName={activePlayer.name}
+          playerName={activePlayer.fullName}
           strokes={activeEntry?.strokes ?? null}
           putts={activeEntry?.putts ?? null}
           greenie={
@@ -580,7 +590,7 @@ function SummaryRow({
           >
             {strokes ?? "—"}
             {showPutts && putts != null ? (
-              <span className="absolute right-1 top-0.5 text-xs font-normal text-muted-foreground">
+              <span className="absolute right-1 top-0.5 text-sm font-normal text-muted-foreground">
                 {putts}
               </span>
             ) : null}

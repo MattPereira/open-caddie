@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   Sheet,
   SheetContent,
@@ -10,7 +11,15 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { HoleGreenieManager, type GreenieValue } from "./hole-greenie-manager";
+import {
+  EMPTY_GREENIE_DRAFT,
+  GreenieInputs,
+  type GreenieDraft,
+  type GreenieValue,
+  isGreenieDraftEmpty,
+  parseGreenie,
+  toGreenieDraft,
+} from "./hole-greenie-manager";
 
 export type ScorePatch = { strokes: number | null; putts: number | null };
 
@@ -19,7 +28,7 @@ type Step = "strokes" | "putts" | "greenie";
 const STROKE_OFFSETS = [-2, -1, 0, 1, 2, 3];
 const EXTRA_STROKE_OFFSETS = [4, 5, 6, 7, 8, 9];
 const PUTT_OPTIONS = [0, 1, 2, 3, 4];
-const EXTRA_PUTT_OPTIONS = [5, 6, 7, 8, 9, 10];
+const EXTRA_PUTT_OPTIONS = [5, 6, 7, 8, 9];
 
 function strokeLabel(strokes: number, par: number) {
   if (strokes === 1) return "Ace";
@@ -80,6 +89,9 @@ export function ScoreEntrySheet({
   const [step, setStep] = useState<Step>("strokes");
   const [showMore, setShowMore] = useState(false);
   const [draft, setDraft] = useState<ScorePatch>({ strokes, putts });
+  const [greenieDraft, setGreenieDraft] = useState<GreenieDraft>(() =>
+    toGreenieDraft(greenie),
+  );
   const draftRef = useRef<ScorePatch>({ strokes, putts });
   const savedRef = useRef<ScorePatch>({ strokes, putts });
 
@@ -143,7 +155,34 @@ export function ScoreEntrySheet({
     commitAndClose();
   };
 
+  const greenieValue = parseGreenie(greenieDraft);
+
+  const handleGreenieSave = () => {
+    if (greenieValue) onGreenieSaveAction(greenieValue);
+    commitAndClose();
+  };
+
+  const handleGreenieClear = () => {
+    setGreenieDraft(EMPTY_GREENIE_DRAFT);
+    if (greenie != null) onGreenieDeleteAction();
+    commitAndClose();
+  };
+
   const canClear = strokes != null || putts != null;
+  // Strokes and putts tuck Clear behind More; the greenie step has no More, so
+  // it shows Clear as soon as there is a distance to throw away.
+  const showClear =
+    step === "greenie"
+      ? greenie != null || !isGreenieDraftEmpty(greenieDraft)
+      : canClear && showMore;
+
+  const handleClearAction = () => {
+    if (step === "greenie") {
+      handleGreenieClear();
+      return;
+    }
+    handleClear();
+  };
   const stepLabel =
     step === "strokes" ? "Strokes" : step === "putts" ? "Putts" : "Greenie";
 
@@ -151,32 +190,21 @@ export function ScoreEntrySheet({
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent
         side="bottom"
+        showCloseButton={false}
         className="gap-0 rounded-t-2xl px-5 pb-8 pt-5"
       >
-        <SheetHeader className="p-0">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex flex-col gap-1">
-              <SheetTitle className="text-lg">
-                Hole {hole} · Par {par}
-              </SheetTitle>
-              <SheetDescription>
-                {playerName} · {stepLabel}
-              </SheetDescription>
-            </div>
-            {canClear ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleClear}
-              >
-                Clear
-              </Button>
-            ) : null}
-          </div>
+        <SheetHeader className="flex-row items-baseline justify-between gap-3 p-0">
+          <SheetTitle className="text-lg">Hole {hole}</SheetTitle>
+          <span className="min-w-0 truncate font-heading text-lg font-medium text-foreground">
+            {playerName}
+          </span>
         </SheetHeader>
 
-        <div className="mt-5 flex flex-col gap-3">
+        <SheetDescription className="mt-5 text-xs font-medium uppercase tracking-wide">
+          {stepLabel}
+        </SheetDescription>
+
+        <div className="mt-2 flex flex-col gap-3">
           {step === "strokes" ? (
             <>
               <div className="grid grid-cols-3 gap-2">
@@ -202,16 +230,7 @@ export function ScoreEntrySheet({
                     />
                   ))}
                 </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="xl"
-                  onClick={() => setShowMore(true)}
-                >
-                  More
-                </Button>
-              )}
+              ) : null}
             </>
           ) : null}
 
@@ -238,43 +257,63 @@ export function ScoreEntrySheet({
                     />
                   ))}
                 </div>
-              ) : (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="xl"
-                  onClick={() => setShowMore(true)}
-                >
-                  More
-                </Button>
-              )}
-              <Button
-                type="button"
-                variant="ghost"
-                size="xl"
-                onClick={advanceFromPutts}
-              >
-                Skip putts
-              </Button>
+              ) : null}
             </>
           ) : null}
 
           {step === "greenie" ? (
-            <div className="flex flex-col gap-4">
-              <HoleGreenieManager
-                key={`${playerName}-${hole}`}
-                hole={hole}
-                idPrefix={`sheet-hole-${hole}`}
-                playerName={playerName}
-                initialGreenie={greenie}
-                onSaveAction={onGreenieSaveAction}
-                onDeleteAction={onGreenieDeleteAction}
-              />
-              <Button type="button" size="xl" onClick={commitAndClose}>
-                Done
-              </Button>
-            </div>
+            <GreenieInputs
+              hole={hole}
+              idPrefix={`sheet-hole-${hole}`}
+              draft={greenieDraft}
+              onChangeAction={setGreenieDraft}
+            />
           ) : null}
+        </div>
+
+        <div className="mt-4 flex items-center gap-2">
+          {showClear ? (
+            <Button
+              type="button"
+              variant="destructive"
+              size="xl"
+              onClick={handleClearAction}
+            >
+              Clear
+            </Button>
+          ) : null}
+          <div className="ml-auto flex items-center gap-2">
+            {step !== "greenie" && !showMore ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="xl"
+                onClick={() => setShowMore(true)}
+              >
+                More
+              </Button>
+            ) : null}
+            {step === "greenie" ? (
+              <>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="xl"
+                  onClick={commitAndClose}
+                >
+                  Skip
+                </Button>
+                <Button
+                  type="button"
+                  size="xl"
+                  disabled={greenieValue == null}
+                  onClick={handleGreenieSave}
+                >
+                  Save
+                </Button>
+              </>
+            ) : null}
+          </div>
         </div>
       </SheetContent>
     </Sheet>
@@ -296,14 +335,19 @@ function ChoiceButton({
     <Button
       type="button"
       variant={selected ? "default" : "outline"}
-      className="flex h-16 flex-col items-center justify-center gap-0.5 px-0"
+      className={cn(
+        "flex flex-col items-center justify-center gap-1 px-0",
+        label ? "h-20" : "h-16"
+      )}
       onClick={() => onSelectAction(value)}
     >
       <span className="text-2xl font-semibold tabular-nums leading-none">
         {value}
       </span>
       {label ? (
-        <span className="text-[0.7rem] font-normal opacity-80">{label}</span>
+        <span className="text-sm font-normal leading-none opacity-80">
+          {label}
+        </span>
       ) : null}
     </Button>
   );

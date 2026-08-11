@@ -323,7 +323,9 @@ export function RoundScoresForm({
       scores: delegateScoresByRoundId[player.roundId] ?? [],
     })),
   ];
-  const columns = `2.5rem 2.5rem 3.25rem repeat(${players.length}, minmax(3rem,1fr))`;
+  // Score columns keep a fixed width so cells stay the same size whoever you are
+  // scoring for; the table is centered until enough players push it full width.
+  const columns = `2.5rem 2.5rem 3.25rem repeat(${players.length}, minmax(3.25rem,4.5rem))`;
 
   const activePlayer =
     activeCell == null
@@ -359,7 +361,7 @@ export function RoundScoresForm({
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-lg ring-1 ring-border">
+      <div className="mx-auto w-fit max-w-full overflow-hidden rounded-lg ring-1 ring-border">
         <div
           style={{ gridTemplateColumns: columns }}
           className="grid items-center border-b border-border bg-muted"

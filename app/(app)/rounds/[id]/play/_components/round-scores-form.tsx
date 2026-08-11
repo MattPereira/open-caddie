@@ -11,8 +11,11 @@ import {
   useTransition,
 } from "react";
 
+import type { ReactNode } from "react";
+
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/dates";
+import { cn } from "@/lib/utils";
 import {
   deleteRoundGreenie,
   upsertRoundGreenie,
@@ -321,7 +324,8 @@ export function RoundScoresForm({
     })),
   ];
   const showYards = players.length === 1;
-  const columns = `2.25rem minmax(0,1fr) repeat(${players.length}, minmax(2.75rem,3.5rem))`;
+  const labelColumns = showYards ? 3 : 2;
+  const columns = `2.75rem ${showYards ? "2.75rem minmax(0,1fr)" : "minmax(0,1fr)"} repeat(${players.length}, minmax(2.75rem,3.5rem))`;
 
   const activePlayer =
     activeCell == null
@@ -362,17 +366,20 @@ export function RoundScoresForm({
           style={{ gridTemplateColumns: columns }}
           className="grid items-center bg-muted"
         >
-          <div className="py-1.5 text-center text-xs font-medium text-muted-foreground">
-            #
-          </div>
-          <div />
+          <HeaderCell className="text-center">HOL</HeaderCell>
+          <HeaderCell className={showYards ? "text-center" : "text-left"}>
+            PAR
+          </HeaderCell>
+          {showYards ? (
+            <HeaderCell className="pr-2 text-right">YDS</HeaderCell>
+          ) : null}
           {players.map((player) => (
-            <div
+            <HeaderCell
               key={player.roundId}
-              className="border-l border-border py-1.5 text-center text-xs font-medium text-muted-foreground"
+              className="border-l border-border text-center"
             >
               {toInitials(player.name)}
-            </div>
+            </HeaderCell>
           ))}
         </div>
 
@@ -408,6 +415,7 @@ export function RoundScoresForm({
             {entry.hole === 9 ? (
               <SummaryRow
                 label="Out"
+                labelColumns={labelColumns}
                 columns={columns}
                 showPutts={recordPutts}
                 players={players}
@@ -419,6 +427,7 @@ export function RoundScoresForm({
               <>
                 <SummaryRow
                   label="In"
+                  labelColumns={labelColumns}
                   columns={columns}
                   showPutts={recordPutts}
                   players={players}
@@ -427,6 +436,7 @@ export function RoundScoresForm({
                 />
                 <SummaryRow
                   label="Total"
+                  labelColumns={labelColumns}
                   columns={columns}
                   showPutts={recordPutts}
                   players={players}
@@ -517,6 +527,7 @@ export function RoundScoresForm({
 
 function SummaryRow({
   label,
+  labelColumns,
   columns,
   showPutts,
   players,
@@ -524,6 +535,7 @@ function SummaryRow({
   to,
 }: {
   label: string;
+  labelColumns: number;
   columns: string;
   showPutts: boolean;
   players: { roundId: number; scores: ScoreEntry[] }[];
@@ -535,8 +547,10 @@ function SummaryRow({
       style={{ gridTemplateColumns: columns }}
       className="grid items-center border-t border-border bg-muted"
     >
-      <div />
-      <div className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      <div
+        style={{ gridColumn: `span ${labelColumns}` }}
+        className="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+      >
         {label}
       </div>
       {players.map((player) => {
@@ -556,6 +570,25 @@ function SummaryRow({
           </div>
         );
       })}
+    </div>
+  );
+}
+
+function HeaderCell({
+  children,
+  className,
+}: {
+  children?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "py-1.5 text-xs font-medium text-muted-foreground",
+        className,
+      )}
+    >
+      {children}
     </div>
   );
 }

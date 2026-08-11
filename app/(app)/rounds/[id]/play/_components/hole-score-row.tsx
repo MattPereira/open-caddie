@@ -47,10 +47,14 @@ export function HoleScoreRow({
       <div className="text-center text-sm font-semibold tabular-nums">
         {hole}
       </div>
-      <div className="min-w-0 truncate px-1 text-xs text-muted-foreground">
-        {par == null ? "—" : `Par ${par}`}
-        {showYards && yards != null ? ` · ${yards.toLocaleString()} yds` : ""}
+      <div className="text-center text-xs tabular-nums text-muted-foreground">
+        {par ?? "—"}
       </div>
+      {showYards ? (
+        <div className="pr-2 text-right text-xs tabular-nums text-muted-foreground">
+          {yards == null ? "—" : yards.toLocaleString()}
+        </div>
+      ) : null}
       {cells.map((cell) => (
         <button
           key={cell.id}

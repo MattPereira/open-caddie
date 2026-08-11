@@ -34,7 +34,7 @@ export default function EventPage() {
           className="object-cover object-top opacity-60"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/45 to-neutral-950/20" />
-        <div className="relative mx-auto max-w-6xl px-5 pt-44 pb-16 sm:px-8 sm:pt-56">
+        <div className="relative mx-auto max-w-6xl px-5 pt-64 pb-16 sm:px-8 sm:pt-56">
           {/* One column so every element in the hero shares the same width. */}
           <div className="flex w-full flex-col gap-4 lg:w-1/2 lg:min-w-[34rem]">
             <h1 className="font-[family-name:var(--font-poster)] text-6xl leading-[0.95] sm:text-[6.5rem]">

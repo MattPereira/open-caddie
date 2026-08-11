@@ -323,9 +323,7 @@ export function RoundScoresForm({
       scores: delegateScoresByRoundId[player.roundId] ?? [],
     })),
   ];
-  const showYards = players.length === 1;
-  const labelColumns = showYards ? 3 : 2;
-  const columns = `2.75rem ${showYards ? "2.75rem minmax(0,1fr)" : "minmax(0,1fr)"} repeat(${players.length}, minmax(2.75rem,3.5rem))`;
+  const columns = `2.5rem 2.5rem minmax(2.5rem,1fr) repeat(${players.length}, minmax(2.5rem,3.5rem))`;
 
   const activePlayer =
     activeCell == null
@@ -367,12 +365,8 @@ export function RoundScoresForm({
           className="grid items-center bg-muted"
         >
           <HeaderCell className="text-center">HOL</HeaderCell>
-          <HeaderCell className={showYards ? "text-center" : "text-left"}>
-            PAR
-          </HeaderCell>
-          {showYards ? (
-            <HeaderCell className="pr-2 text-right">YDS</HeaderCell>
-          ) : null}
+          <HeaderCell className="text-center">PAR</HeaderCell>
+          <HeaderCell className="pr-2 text-right">YDS</HeaderCell>
           {players.map((player) => (
             <HeaderCell
               key={player.roundId}
@@ -389,7 +383,6 @@ export function RoundScoresForm({
               hole={entry.hole}
               par={entry.par}
               yards={entry.yards}
-              showYards={showYards}
               showPutts={recordPutts}
               highlight={entry.hole === highlightHole}
               columns={columns}
@@ -415,7 +408,7 @@ export function RoundScoresForm({
             {entry.hole === 9 ? (
               <SummaryRow
                 label="Out"
-                labelColumns={labelColumns}
+                labelColumns={3}
                 columns={columns}
                 showPutts={recordPutts}
                 players={players}
@@ -427,7 +420,7 @@ export function RoundScoresForm({
               <>
                 <SummaryRow
                   label="In"
-                  labelColumns={labelColumns}
+                  labelColumns={3}
                   columns={columns}
                   showPutts={recordPutts}
                   players={players}
@@ -436,7 +429,7 @@ export function RoundScoresForm({
                 />
                 <SummaryRow
                   label="Total"
-                  labelColumns={labelColumns}
+                  labelColumns={3}
                   columns={columns}
                   showPutts={recordPutts}
                   players={players}

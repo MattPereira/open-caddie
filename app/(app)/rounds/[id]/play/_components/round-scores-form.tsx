@@ -366,9 +366,7 @@ export function RoundScoresForm({
           style={{ gridTemplateColumns: columns }}
           className="grid items-center border-b border-border bg-muted"
         >
-          <HeaderCell className="self-stretch border-r border-border text-center">
-            HOL
-          </HeaderCell>
+          <HeaderCell className="text-center">HOL</HeaderCell>
           <HeaderCell className="text-center">PAR</HeaderCell>
           <HeaderCell className="text-center">YDS</HeaderCell>
           {players.map((player) => (
@@ -544,9 +542,8 @@ function SummaryRow({
       style={{ gridTemplateColumns: columns }}
       className="grid items-center border-t border-border bg-muted"
     >
-      <div className="h-full self-stretch border-r border-border" />
       <div
-        style={{ gridColumn: `span ${labelColumns - 1}` }}
+        style={{ gridColumn: `span ${labelColumns}` }}
         className="px-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground"
       >
         {label}

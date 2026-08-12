@@ -26,14 +26,22 @@ export default function EventPage() {
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-50">
       <section className="relative isolate overflow-hidden">
+        {/* Separate mobile/desktop crops so tuning one never reframes the other. */}
+        <Image
+          src={event.heroImageMobile}
+          alt={event.heroAlt}
+          fill
+          priority
+          className="object-cover object-center opacity-60 sm:hidden"
+        />
         <Image
           src={event.heroImage}
           alt={event.heroAlt}
           fill
           priority
-          className="object-cover object-top opacity-60"
+          className="hidden object-cover object-[50%_30%] opacity-60 sm:block"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/45 to-neutral-950/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/25 via-35% to-neutral-950/10" />
         <div className="relative mx-auto max-w-6xl px-5 pt-64 pb-16 sm:px-8 sm:pt-56">
           {/* One column so every element in the hero shares the same width. */}
           <div className="flex w-full flex-col gap-4 lg:w-1/2 lg:min-w-[34rem]">

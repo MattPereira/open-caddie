@@ -26,8 +26,9 @@ export const event = {
     "Join us as we rally around Fire Captain Derek Cochnauer, who has dedicated his life to protecting our community. Recently diagnosed with cancer, we are coming together to support him and his family.",
   narrativeHighlight: "Derek Cochnauer",
   proceeds: "All proceeds benefit Captain Derek Cochnauer & his family",
-  heroImage: "/events/driven-to-serve-hero.jpg",
-  heroAlt: "Fire Captain Derek Cochnauer in uniform at the station",
+  heroImage: "/events/hero-a-desktop.jpg",
+  heroImageMobile: "/events/hero-a-mobile.jpg",
+  heroAlt: "A firefighter watching over a controlled grass burn",
   ogSourceImage: "/events/fireman-tournament.jpeg",
   donations: [
     { label: "Donate with Venmo", href: venmoDonateHref },

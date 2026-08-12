@@ -30,12 +30,16 @@ export const event = {
   heroImageMobile: "/events/hero-a-mobile.jpg",
   heroAlt: "A firefighter watching over a controlled grass burn",
   ogSourceImage: "/events/fireman-tournament.jpeg",
+  // Both buttons carry equal weight; `primary` only picks which one takes the
+  // orange accent fill. Venmo gets it because it is the only method on the
+  // printed flyer, so a reader arriving from the QR looks for it first.
   donations: [
-    { label: "Donate with Venmo", href: venmoDonateHref },
-    { label: "Donate with Zelle", href: zelleDonateHref },
+    { label: "Donate with Venmo", href: venmoDonateHref, primary: true },
+    { label: "Donate with Zelle", href: zelleDonateHref, primary: false },
   ],
-  // Three facts, in flyer order. Entry price rides along with the format
-  // rather than claiming a section of its own.
+  // Where, when, and what it costs — the three things a reader checks before
+  // deciding. The flyer's separate "format" panel is folded into Entry's
+  // detail line: the scramble matters, but not enough to spend a card on.
   facts: [
     {
       label: "When",
@@ -48,11 +52,31 @@ export const event = {
       detail: "655 Columbus Parkway, Vallejo, CA 94591",
     },
     {
-      label: "Format",
-      value: "Scramble Tournament",
-      detail: "Four players per team · $175 per player",
+      label: "Entry",
+      value: "$175 per player",
+      detail: "$700 per foursome · Four-player scramble",
     },
     // `as const` so the labels stay literal and the page can key its icons off them.
+  ] as const,
+  // Second band: the deadline that forces a decision, then what the entry fee
+  // actually buys. RSVP leads because it is the only item here with a clock on
+  // it — the other two are reasons to say yes once the date has landed.
+  extras: [
+    {
+      label: "RSVP by",
+      value: "September 10",
+      detail: "140 players maximum",
+    },
+    {
+      label: "Contests & Prizes",
+      value: "Longest drive · Closest to the pin",
+      detail: "Raffles and more throughout the day",
+    },
+    {
+      label: "Lunch & Dinner",
+      value: "BBQ lunch · Awards dinner",
+      detail: "Included with every entry",
+    },
   ] as const,
   registration: {
     contactName: "Samuel White",

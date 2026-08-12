@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
-import { Calendar01Icon, Call02Icon } from "@hugeicons/core-free-icons";
+import {
+  AlarmClockIcon,
+  Calendar01Icon,
+  GiftIcon,
+  Restaurant01Icon,
+  Ticket01Icon,
+} from "@hugeicons/core-free-icons";
 
 import { Button } from "@/components/ui/button";
 import { appPageIcons } from "@/components/layout/app-nav-items";
@@ -43,8 +49,10 @@ export default function EventPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/25 via-35% to-neutral-950/10" />
         <div className="relative mx-auto max-w-6xl px-5 pt-64 pb-16 sm:px-8 sm:pt-56">
-          {/* One column so every element in the hero shares the same width. */}
-          <div className="flex w-full flex-col gap-4 lg:w-1/2 lg:min-w-[34rem]">
+          {/* One column so every element in the hero shares the same width.
+              Centred on phones, where the copy sits over the middle of the
+              image; left-aligned from `sm` up, where it becomes a column. */}
+          <div className="flex w-full flex-col gap-4 text-center sm:text-left lg:w-1/2 lg:min-w-[34rem]">
             <h1 className="font-[family-name:var(--font-poster)] text-6xl leading-[0.95] sm:text-[6.5rem]">
               {event.name}
             </h1>
@@ -62,11 +70,15 @@ export default function EventPage() {
             {/* Button and its caption travel together, tighter than the hero gap. */}
             <div className="flex flex-col gap-2.5">
               <div className="flex flex-col gap-2.5 sm:grid sm:grid-cols-2 sm:gap-3">
-                {event.donations.map(({ label, href }) => (
+                {event.donations.map(({ label, href, primary }) => (
                   <Button
                     key={href}
                     size="xl"
-                    className="w-full border-neutral-50/30 bg-transparent text-neutral-50 [a]:hover:bg-neutral-50/10 sm:h-14 sm:rounded-xl sm:text-lg"
+                    className={`w-full sm:h-14 sm:rounded-xl sm:text-lg ${
+                      primary
+                        ? "border-orange-300 bg-orange-300 font-semibold text-neutral-950 [a]:hover:bg-orange-200"
+                        : "border-neutral-50 bg-neutral-50 font-semibold text-neutral-950 [a]:hover:bg-neutral-200"
+                    }`}
                     asChild
                   >
                     <a href={href} target="_blank" rel="noreferrer">
@@ -82,7 +94,19 @@ export default function EventPage() {
       </section>
 
       <div className="mx-auto flex max-w-6xl flex-col gap-12 px-5 pt-0 pb-10 sm:px-8">
-        <EventFacts facts={event.facts} />
+        <InfoGrid
+          cards={event.facts.map((fact) => ({
+            ...fact,
+            icon: factIcons[fact.label],
+          }))}
+        />
+
+        <InfoGrid
+          cards={event.extras.map((item) => ({
+            ...item,
+            icon: extraIcons[item.label],
+          }))}
+        />
 
         <section className="flex flex-col gap-5">
           <h2 className="font-[family-name:var(--font-poster)] text-3xl tracking-[0.06em] uppercase sm:text-4xl">
@@ -91,28 +115,9 @@ export default function EventPage() {
           <SponsorGrid tiers={event.sponsorTiers} />
         </section>
 
-        <ContactSection contact={event.registration} />
+        <ContactFooter contact={event.registration} />
       </div>
     </main>
-  );
-}
-
-function ContactSection({ contact }: { contact: typeof event.registration }) {
-  return (
-    <section className="flex justify-end py-4">
-      <div className="flex flex-col items-end gap-1.5 text-right">
-        <p className="text-base text-neutral-300">
-          For more information, contact {contact.contactName}
-        </p>
-        <a
-          href={contact.contactPhoneHref}
-          className="flex items-center gap-2 font-semibold text-orange-300 underline decoration-orange-300/40 underline-offset-4 transition-colors hover:text-orange-200 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-orange-300/40"
-        >
-          <HugeiconsIcon icon={Call02Icon} className="size-5 shrink-0" />
-          {contact.contactPhone}
-        </a>
-      </div>
-    </section>
   );
 }
 
@@ -191,19 +196,32 @@ function Highlighted({ text, highlight }: { text: string; highlight: string }) {
 const factIcons = {
   When: Calendar01Icon,
   Where: appPageIcons.courses,
-  Format: appPageIcons.tournaments,
+  Entry: Ticket01Icon,
 } satisfies Record<(typeof event.facts)[number]["label"], IconSvgElement>;
 
-function EventFacts({ facts }: { facts: typeof event.facts }) {
+const extraIcons = {
+  "RSVP by": AlarmClockIcon,
+  "Contests & Prizes": GiftIcon,
+  "Lunch & Dinner": Restaurant01Icon,
+} satisfies Record<(typeof event.extras)[number]["label"], IconSvgElement>;
+
+type InfoCard = {
+  label: string;
+  value: string;
+  detail: string;
+  icon: IconSvgElement;
+};
+
+// The page's one card idiom: an orange label with an icon, a bold value, and a
+// muted detail. Both three-across bands share it so they read as one system
+// stacked twice, rather than two lookalikes that drifted apart.
+function InfoGrid({ cards }: { cards: readonly InfoCard[] }) {
   return (
     <div className="bg-border border-border grid gap-px overflow-hidden rounded-xl border sm:grid-cols-3">
-      {facts.map(({ label, value, detail }) => (
+      {cards.map(({ label, value, detail, icon }) => (
         <div key={label} className="bg-neutral-950 p-4">
           <p className="flex items-center gap-2 text-base tracking-widest text-orange-300 uppercase">
-            <HugeiconsIcon
-              icon={factIcons[label]}
-              className="size-5 shrink-0"
-            />
+            <HugeiconsIcon icon={icon} className="size-5 shrink-0" />
             {label}
           </p>
           <p className="mt-1 text-lg font-semibold">{value}</p>
@@ -211,6 +229,23 @@ function EventFacts({ facts }: { facts: typeof event.facts }) {
         </div>
       ))}
     </div>
+  );
+}
+
+// Deliberately outside the card system: the page's closing whisper, centred
+// like the hero's proceeds caption so the two quiet lines bookend the loud
+// middle. Only the number carries emphasis, since it is the only tap target.
+function ContactFooter({ contact }: { contact: typeof event.registration }) {
+  return (
+    <p className="text-center text-sm text-balance text-neutral-400">
+      For more information, contact {contact.contactName} at{" "}
+      <a
+        href={contact.contactPhoneHref}
+        className="font-semibold text-orange-300 underline decoration-orange-300/40 underline-offset-4 transition-colors hover:text-orange-200 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-orange-300/40"
+      >
+        {contact.contactPhone}
+      </a>
+    </p>
   );
 }
 

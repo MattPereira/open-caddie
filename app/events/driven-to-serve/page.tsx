@@ -32,12 +32,17 @@ export default function EventPage() {
   return (
     <main className="min-h-screen bg-neutral-950 text-neutral-50">
       <section className="relative isolate overflow-hidden">
-        {/* Separate mobile/desktop crops so tuning one never reframes the other. */}
+        {/* Separate mobile/desktop crops so tuning one never reframes the other.
+            Both are always in the DOM and CSS picks one, so each declares `0px`
+            at the width where it is hidden: that is how the browser knows to
+            resolve the crop it will never paint to the smallest candidate
+            instead of a full-width one. Each fills the viewport otherwise. */}
         <Image
           src={event.heroImageMobile}
           alt={event.heroAlt}
           fill
           priority
+          sizes="(min-width: 640px) 0px, 100vw"
           className="object-cover object-center opacity-60 sm:hidden"
         />
         <Image
@@ -45,6 +50,7 @@ export default function EventPage() {
           alt={event.heroAlt}
           fill
           priority
+          sizes="(min-width: 640px) 100vw, 0px"
           className="hidden object-cover object-[50%_30%] opacity-60 sm:block"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/25 via-35% to-neutral-950/10" />
@@ -69,24 +75,15 @@ export default function EventPage() {
             </p>
             {/* Button and its caption travel together, tighter than the hero gap. */}
             <div className="flex flex-col gap-2.5">
-              <div className="flex flex-col gap-2.5 sm:grid sm:grid-cols-2 sm:gap-3">
-                {event.donations.map(({ label, href, primary }) => (
-                  <Button
-                    key={href}
-                    size="xl"
-                    className={`w-full sm:h-14 sm:rounded-xl sm:text-lg ${
-                      primary
-                        ? "border-orange-300 bg-orange-300 font-semibold text-neutral-950 [a]:hover:bg-orange-200"
-                        : "border-neutral-50 bg-neutral-50 font-semibold text-neutral-950 [a]:hover:bg-neutral-200"
-                    }`}
-                    asChild
-                  >
-                    <a href={href} target="_blank" rel="noreferrer">
-                      {label}
-                    </a>
-                  </Button>
-                ))}
-              </div>
+              <Button
+                size="xl"
+                className="w-full border-orange-300 bg-orange-300 font-semibold text-neutral-950 sm:h-14 sm:rounded-xl sm:text-lg [a]:hover:bg-orange-200"
+                asChild
+              >
+                <a href={event.donate.href} target="_blank" rel="noreferrer">
+                  {event.donate.label}
+                </a>
+              </Button>
               <Proceeds proceeds={event.proceeds} />
             </div>
           </div>
@@ -114,6 +111,8 @@ export default function EventPage() {
           </h2>
           <SponsorGrid tiers={event.sponsorTiers} />
         </section>
+
+        <DonateGrid methods={event.donateMethods} />
 
         <ContactFooter contact={event.registration} />
       </div>
@@ -209,6 +208,11 @@ type InfoCard = {
   label: string;
   value: string;
   detail: string;
+  // Only RSVP carries one: it is the sole card whose detail ends in an action
+  // rather than a fact, since calling Samuel is the only way to enter. The
+  // detail stays muted and the number alone is the link, matching how the
+  // closing contact line already reads.
+  detailLink?: { label: string; href: string };
   icon: IconSvgElement;
 };
 
@@ -218,14 +222,68 @@ type InfoCard = {
 function InfoGrid({ cards }: { cards: readonly InfoCard[] }) {
   return (
     <div className="bg-border border-border grid gap-px overflow-hidden rounded-xl border sm:grid-cols-3">
-      {cards.map(({ label, value, detail, icon }) => (
+      {cards.map(({ label, value, detail, detailLink, icon }) => (
         <div key={label} className="bg-neutral-950 p-4">
           <p className="flex items-center gap-2 text-base tracking-widest text-orange-300 uppercase">
             <HugeiconsIcon icon={icon} className="size-5 shrink-0" />
             {label}
           </p>
           <p className="mt-1 text-lg font-semibold">{value}</p>
-          <p className="mt-1 text-sm text-neutral-400">{detail}</p>
+          <p className="mt-1 text-sm text-neutral-400">
+            {detail}
+            {detailLink ? (
+              <>
+                {" "}
+                <a
+                  href={detailLink.href}
+                  className="font-semibold text-orange-300 underline decoration-orange-300/40 underline-offset-4 transition-colors hover:text-orange-200"
+                >
+                  {detailLink.label}
+                </a>
+              </>
+            ) : null}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Shares InfoGrid's hairline seams so the codes read as another band of the
+// same system. Deliberately unlabelled, inside the cells and above them: each
+// export already shows its wordmark and the recipient's name, so any heading
+// would only repeat what the images say louder. The instruction stays, because
+// how you scan a Zelle code is the one thing the picture cannot tell you.
+function DonateGrid({
+  methods,
+}: {
+  methods: typeof event.donateMethods;
+}) {
+  return (
+    <div className="bg-border border-border grid gap-px overflow-hidden rounded-xl border sm:grid-cols-2">
+      {methods.map(({ image, alt, width, height, instruction }) => (
+        <div
+          key={image}
+          className="flex flex-col items-center gap-4 bg-neutral-950 p-5"
+        >
+          {/* The codes have different aspect ratios, so they are matched on
+              width and centred in the taller cell rather than letterboxed into
+              a shared box — that keeps both as large as the column allows. */}
+          <div className="flex w-full max-w-80 flex-1 items-center">
+            {/* QR scanners need a light quiet zone; the padding is functional. */}
+            <div className="w-full rounded-xl bg-white p-3">
+              <Image
+                src={image}
+                alt={alt}
+                width={width}
+                height={height}
+                className="h-auto w-full"
+              />
+            </div>
+          </div>
+          <p className="text-center text-sm text-balance text-neutral-400">
+            {instruction}
+          </p>
         </div>
       ))}
     </div>

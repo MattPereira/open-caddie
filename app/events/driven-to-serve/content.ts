@@ -8,15 +8,14 @@
 // Venmo prefills only from the bare-handle form with `txn=pay`; the `/u/<handle>`
 // form opens the app without prefilling. `amount` is deliberately omitted so the
 // donor chooses. See docs/research/venmo-zelle-deep-links.md.
+// Registration runs entirely through one phone call, so the number is printed
+// twice: once against the RSVP deadline it satisfies, once in the closing line
+// that catches sponsors and everything else.
+const contactPhone = "510-426-1854";
+const contactPhoneHref = "tel:+15104261854";
+
 const venmoDonateHref =
   "https://venmo.com/Heather-Cochnauer?txn=pay&note=Driven%20to%20Serve";
-
-// Zelle has no deep-link format of its own; this is the URL its QR code encodes,
-// which hands off to the visitor's enrolled banking app. The `data` payload is
-// base64 of {"name":"HEATHER","token":"<phone>"} — public by design, but it does
-// expose the number, so it is the recipient's to approve.
-const zelleDonateHref =
-  "https://enroll.zellepay.com/qr-codes?data=eyJuYW1lIjoiSEVBVEhFUiIsInRva2VuIjoiOTI1NzU5MTg2MiJ9";
 
 export const event = {
   handle: "driven-to-serve",
@@ -30,12 +29,33 @@ export const event = {
   heroImageMobile: "/events/hero-a-mobile.jpg",
   heroAlt: "A firefighter watching over a controlled grass burn",
   ogSourceImage: "/events/fireman-tournament.jpeg",
-  // Both buttons carry equal weight; `primary` only picks which one takes the
-  // orange accent fill. Venmo gets it because it is the only method on the
-  // printed flyer, so a reader arriving from the QR looks for it first.
-  donations: [
-    { label: "Donate with Venmo", href: venmoDonateHref, primary: true },
-    { label: "Donate with Zelle", href: zelleDonateHref, primary: false },
+  // Venmo is the page's one donate button, because it is the only method that
+  // survives a tap: `venmo.com/<handle>?txn=pay` hands off to the app. Zelle has
+  // no deep link at all (docs/research/venmo-zelle-deep-links.md), so it lives
+  // in `donateMethods` below as a QR to scan, never as a button that dead-ends.
+  donate: { label: "Donate with Venmo", href: venmoDonateHref },
+  // Both codes are the recipient's own exports from Venmo and her bank's Zelle
+  // screen, kept whole rather than cropped: each already carries the wordmark
+  // and the name a donor needs to trust what they are scanning. That is why the
+  // page prints no label of its own beside them — only the instruction, which
+  // is the one thing the image cannot say. Intrinsic sizes differ, so they are
+  // recorded here rather than guessed at the call site.
+  donateMethods: [
+    {
+      image: "/events/venmo.jpg",
+      alt: "Venmo QR code for @Heather-Cochnauer",
+      width: 1068,
+      height: 1284,
+      instruction: "Scan with mobile camera",
+    },
+    {
+      image: "/events/zelle.jpg",
+      alt: "Zelle QR code for Heather Cochnauer",
+      width: 1206,
+      height: 1532,
+      instruction:
+        "Open your banking app, find Zelle, then scan",
+    },
   ],
   // Where, when, and what it costs — the three things a reader checks before
   // deciding. The flyer's separate "format" panel is folded into Entry's
@@ -65,7 +85,8 @@ export const event = {
     {
       label: "RSVP by",
       value: "September 10",
-      detail: "140 players maximum",
+      detail: "Call Samuel White at",
+      detailLink: { label: contactPhone, href: contactPhoneHref },
     },
     {
       label: "Contests & Prizes",
@@ -80,8 +101,8 @@ export const event = {
   ] as const,
   registration: {
     contactName: "Samuel White",
-    contactPhone: "510-426-1854",
-    contactPhoneHref: "tel:+15104261854",
+    contactPhone,
+    contactPhoneHref,
   },
   sponsorTiers: [
     {

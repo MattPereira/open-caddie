@@ -44,3 +44,6 @@ next-env.d.ts
 
 # Scorecard eval model outputs (regenerable)
 evals/scorecard-import/runs/
+
+# Image-viewer sidecar metadata
+.comments/

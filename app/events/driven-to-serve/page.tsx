@@ -267,9 +267,19 @@ function DonateGrid({
           key={image}
           className="flex flex-col items-center gap-4"
         >
-          <p className="text-base tracking-widest text-orange-300 uppercase">
-            {name}
-          </p>
+          {/* Label and instruction are one block, above the code rather than
+              captioning it. For Zelle the line is a precondition, not a
+              caption: a phone camera pointed at that code reaches a bank
+              directory that cannot pay anyone, so the reader needs the sentence
+              before the symbol, not after the attempt. */}
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-base tracking-widest text-orange-300 uppercase">
+              {name}
+            </p>
+            <p className="text-center text-sm text-balance text-neutral-400">
+              {instruction}
+            </p>
+          </div>
           {/* The codes have different aspect ratios, so they are matched on
               width and centred in the taller cell rather than letterboxed into
               a shared box — that keeps both as large as the column allows. */}
@@ -285,9 +295,6 @@ function DonateGrid({
               />
             </div>
           </div>
-          <p className="text-center text-sm text-balance text-neutral-400">
-            {instruction}
-          </p>
         </div>
       ))}
     </div>

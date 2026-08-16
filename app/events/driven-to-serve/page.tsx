@@ -249,23 +249,27 @@ function InfoGrid({ cards }: { cards: readonly InfoCard[] }) {
   );
 }
 
-// Shares InfoGrid's hairline seams so the codes read as another band of the
-// same system. Deliberately unlabelled, inside the cells and above them: each
-// export already shows its wordmark and the recipient's name, so any heading
-// would only repeat what the images say louder. The instruction stays, because
-// how you scan a Zelle code is the one thing the picture cannot tell you.
+// The one band that drops InfoGrid's seams and outer border. Those exist to
+// separate cells that are otherwise dark text on dark ground; here each cell is
+// built around a white panel that already separates itself, so a border would
+// only frame what is framed. The orange label stays, and is not decoration: the
+// codes are cropped to the bare symbol, so it is the only thing telling a donor
+// which of the two apps a given square belongs to.
 function DonateGrid({
   methods,
 }: {
   methods: typeof event.donateMethods;
 }) {
   return (
-    <div className="bg-border border-border grid gap-px overflow-hidden rounded-xl border sm:grid-cols-2">
-      {methods.map(({ image, alt, width, height, instruction }) => (
+    <div className="grid gap-8 sm:grid-cols-2">
+      {methods.map(({ name, image, alt, width, height, instruction }) => (
         <div
           key={image}
-          className="flex flex-col items-center gap-4 bg-neutral-950 p-5"
+          className="flex flex-col items-center gap-4"
         >
+          <p className="text-base tracking-widest text-orange-300 uppercase">
+            {name}
+          </p>
           {/* The codes have different aspect ratios, so they are matched on
               width and centred in the taller cell rather than letterboxed into
               a shared box — that keeps both as large as the column allows. */}

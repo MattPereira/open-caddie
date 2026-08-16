@@ -34,27 +34,28 @@ export const event = {
   // no deep link at all (docs/research/venmo-zelle-deep-links.md), so it lives
   // in `donateMethods` below as a QR to scan, never as a button that dead-ends.
   donate: { label: "Donate with Venmo", href: venmoDonateHref },
-  // Both codes are the recipient's own exports from Venmo and her bank's Zelle
-  // screen, kept whole rather than cropped: each already carries the wordmark
-  // and the name a donor needs to trust what they are scanning. That is why the
-  // page prints no label of its own beside them — only the instruction, which
-  // is the one thing the image cannot say. Intrinsic sizes differ, so they are
-  // recorded here rather than guessed at the call site.
+  // Both codes are cropped from the recipient's own exports — her Venmo code
+  // and her bank's Zelle "My Code" screen — down to the symbol itself. The crop
+  // drops the wordmark each export carried, which is why `name` exists: with it
+  // gone, a bare symbol says nothing about which app opens it, and the Zelle
+  // crop in particular is indistinguishable from any other QR code. Intrinsic
+  // sizes are recorded rather than guessed at the call site.
   donateMethods: [
     {
-      image: "/events/venmo.jpg",
+      name: "Venmo",
+      image: "/events/venmo-code.jpg",
       alt: "Venmo QR code for @Heather-Cochnauer",
-      width: 1068,
-      height: 1284,
+      width: 605,
+      height: 607,
       instruction: "Scan with mobile camera",
     },
     {
-      image: "/events/zelle.jpg",
+      name: "Zelle",
+      image: "/events/zelle-code.jpg",
       alt: "Zelle QR code for Heather Cochnauer",
-      width: 1206,
-      height: 1532,
-      instruction:
-        "Open your banking app, find Zelle, then scan",
+      width: 570,
+      height: 574,
+      instruction: "Open banking app, find Zelle, then scan",
     },
   ],
   // Where, when, and what it costs — the three things a reader checks before

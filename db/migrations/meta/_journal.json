@@ -127,6 +127,13 @@
       "when": 1786402103239,
       "tag": "0017_ancient_amazoness",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1787613571711,
+      "tag": "0018_drop_scramble_tables",
+      "breakpoints": true
     }
   ]
 }

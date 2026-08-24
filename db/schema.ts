@@ -12,7 +12,6 @@ import {
   primaryKey,
   serial,
   text,
-  time,
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -261,7 +260,6 @@ export const courseTees = pgTable(
     sortOrder: integer("sort_order").notNull().default(0),
   },
   (t) => [
-    uniqueIndex("course_tees_id_course_unique").on(t.id, t.courseId),
     uniqueIndex("course_tees_course_name_unique").on(t.courseId, t.name),
     check("course_tees_rating_check", sql`${t.rating} > 0`),
     check("course_tees_slope_check", sql`${t.slope} between 55 and 155`),
@@ -299,85 +297,6 @@ export const courseHoles = pgTable(
     check("course_holes_hole_check", sql`${ch.hole} between 1 and 18`),
     check("course_holes_par_check", sql`${ch.par} between 2 and 7`),
     check("course_holes_handicap_check", sql`${ch.handicap} between 1 and 18`),
-  ],
-);
-
-// Scrambles deliberately use a parallel event/team/score model (ADR 0005),
-// keeping their scores outside Rounds, Seasons, standings, and handicaps.
-export const scrambles = pgTable(
-  "scrambles",
-  {
-    id: serial("id").primaryKey(),
-    handle: text("handle").notNull().unique(),
-    name: text("name").notNull(),
-    date: date("date", { mode: "date" }).notNull(),
-    startTime: time("start_time").notNull(),
-    timezone: text("timezone").notNull(),
-    courseId: integer("course_id").notNull(),
-    teeId: integer("tee_id").notNull(),
-  },
-  (scramble) => [
-    foreignKey({
-      columns: [scramble.teeId, scramble.courseId],
-      foreignColumns: [courseTees.id, courseTees.courseId],
-      name: "scrambles_tee_course_fk",
-    }).onDelete("restrict"),
-    check(
-      "scrambles_handle_check",
-      sql`${scramble.handle} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`,
-    ),
-  ],
-);
-
-export const scrambleTeams = pgTable(
-  "scramble_teams",
-  {
-    id: serial("id").primaryKey(),
-    scrambleId: integer("scramble_id")
-      .notNull()
-      .references(() => scrambles.id, { onDelete: "restrict" }),
-    name: text("name").notNull(),
-    startingHole: integer("starting_hole").notNull(),
-  },
-  (team) => [
-    uniqueIndex("scramble_teams_scramble_name_unique").on(
-      team.scrambleId,
-      sql`lower(${team.name})`,
-    ),
-    check(
-      "scramble_teams_starting_hole_check",
-      sql`${team.startingHole} between 1 and 18`,
-    ),
-  ],
-);
-
-export const scrambleTeamMembers = pgTable("scramble_team_members", {
-  id: serial("id").primaryKey(),
-  teamId: integer("team_id")
-    .notNull()
-    .references(() => scrambleTeams.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-});
-
-export const scrambleTeamScores = pgTable(
-  "scramble_team_scores",
-  {
-    teamId: integer("team_id")
-      .notNull()
-      .references(() => scrambleTeams.id, { onDelete: "cascade" }),
-    hole: integer("hole").notNull(),
-    strokes: integer("strokes").notNull(),
-  },
-  (score) => [
-    primaryKey({ columns: [score.teamId, score.hole] }),
-    check(
-      "scramble_team_scores_hole_check",
-      sql`${score.hole} between 1 and 18`,
-    ),
-    check(
-      "scramble_team_scores_strokes_check",
-      sql`${score.strokes} >= 1`,
-    ),
   ],
 );
 

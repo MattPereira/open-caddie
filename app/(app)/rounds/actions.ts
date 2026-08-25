@@ -15,6 +15,7 @@ import {
   tournaments,
   users,
 } from "@/db/schema";
+import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import {
   RoundConfigSchema,
   RoundGreenieDeleteSchema,
@@ -168,6 +169,7 @@ export async function createRound(
       })
       .returning({ id: rounds.id });
 
+    if (tournamentId != null) invalidateHomeEventsCache();
     revalidatePath("/");
     revalidatePath("/clubs/[handle]", "page");
     return { ok: true, roundId: created.id };
@@ -220,6 +222,9 @@ export async function deleteRound(
     return { ok: false, error: "Round not found." };
   }
 
+  if (result[0].tournamentId != null || result[0].matchId != null) {
+    invalidateHomeEventsCache();
+  }
   revalidatePath("/");
   revalidatePath("/records");
   revalidatePath("/clubs/[handle]", "page");

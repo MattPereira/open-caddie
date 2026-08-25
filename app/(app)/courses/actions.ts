@@ -13,6 +13,7 @@ import {
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/users/queries";
 import { safeDeleteBlob } from "@/lib/images/blob";
+import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import {
   DEFAULT_COURSE_SCORECARD_MODEL,
   parseScorecardImage,
@@ -407,6 +408,7 @@ export async function updateCourse(
     await safeDeleteBlob(current.imgUrl);
   }
   const renamed = current.handle !== handle;
+  invalidateHomeEventsCache();
   revalidateCoursePaths(renamed ? [current.handle, handle] : [handle]);
   return { ok: true, handle, renamed };
 }

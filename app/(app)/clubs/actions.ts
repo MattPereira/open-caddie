@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { clubs } from "@/db/schema";
 import { getCurrentUser } from "@/lib/users/queries";
+import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import {
   ClubCreateSchema,
   ClubUpdateSchema,
@@ -79,6 +80,7 @@ export async function updateClub(
     .set({ name, logo, pointRules })
     .where(eq(clubs.handle, handle));
 
+  invalidateHomeEventsCache();
   revalidatePath("/clubs");
   revalidatePath(`/clubs/${handle}`);
   revalidatePath("/clubs/[handle]", "page");

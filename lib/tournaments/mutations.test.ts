@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  updateTag: vi.fn(),
+}));
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
 vi.mock("@/lib/users/queries", () => ({ getCurrentUser: async () => ({ isAdmin: true }) }));
 

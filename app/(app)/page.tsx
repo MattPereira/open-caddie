@@ -13,11 +13,9 @@ import { brandFont } from "@/app/fonts";
 import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
 import { getCoursesWithTees } from "@/lib/courses/queries";
 import { getActiveRoundForUser } from "@/lib/rounds/queries";
-import { getAllTournaments } from "@/lib/tournaments/queries";
-import { getAllMatches } from "@/lib/matches/queries";
+import { getHomeEvents } from "@/lib/home/queries";
 import { getAllUsers, getCurrentUser } from "@/lib/users/queries";
 import { createPageMetadata } from "@/app/metadata";
-import { toIsoDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
 import { AddMatchButton } from "./matches/_components/add-match-button";
 import { AddTournamentButton } from "./tournaments/_components/add-tournament-button";
@@ -33,10 +31,9 @@ export const metadata: Metadata = createPageMetadata({
 export default async function Home() {
   const currentUser = await getCurrentUser();
 
-  const [tournaments, matches, activeRound, courses, players, clubs] =
+  const [homeEvents, activeRound, courses, players, clubs] =
     await Promise.all([
-      getAllTournaments(),
-      getAllMatches(),
+      getHomeEvents(),
       currentUser ? getActiveRoundForUser(currentUser.id) : null,
       currentUser ? getCoursesWithTees() : [],
       currentUser ? getAllUsers() : [],
@@ -44,11 +41,11 @@ export default async function Home() {
     ]);
 
   const today = getLocalDateKey(new Date());
-  const recentTournaments = tournaments
-    .filter((tournament) => toIsoDate(tournament.date) <= today)
+  const recentTournaments = homeEvents.tournaments
+    .filter((tournament) => tournament.date <= today)
     .slice(0, RECENT_LIMIT);
-  const recentMatches = matches
-    .filter((match) => toIsoDate(match.date) <= today)
+  const recentMatches = homeEvents.matches
+    .filter((match) => match.date <= today)
     .slice(0, RECENT_LIMIT);
 
   return (
@@ -129,8 +126,9 @@ function getLocalDateKey(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-type RecentTournament = Awaited<ReturnType<typeof getAllTournaments>>[number];
-type RecentMatch = Awaited<ReturnType<typeof getAllMatches>>[number];
+type HomeEvents = Awaited<ReturnType<typeof getHomeEvents>>;
+type RecentTournament = HomeEvents["tournaments"][number];
+type RecentMatch = HomeEvents["matches"][number];
 
 function RecentEventsSections({
   tournaments,

@@ -16,6 +16,7 @@ import {
   users,
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/users/queries";
+import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import {
   TournamentCreateSchema,
   TournamentUpdateSchema,
@@ -100,6 +101,7 @@ export async function createTournament(
       teeId,
     });
 
+    invalidateHomeEventsCache();
     revalidatePath("/");
     revalidatePath("/tournaments");
     revalidatePath("/clubs/[handle]", "page");
@@ -162,6 +164,7 @@ export async function updateTournament(
     return { ok: false, error: e instanceof Error ? e.message : "Could not update Tournament." };
   }
 
+  invalidateHomeEventsCache();
   revalidatePath("/tournaments");
   revalidatePath(`/tournaments/${id}`);
   revalidatePath("/clubs/[handle]", "page");
@@ -240,6 +243,7 @@ export async function deleteTournament(id: number): Promise<ActionResult> {
   }
 
   await db.delete(tournaments).where(eq(tournaments.id, id));
+  invalidateHomeEventsCache();
   revalidatePath("/tournaments");
   revalidatePath("/clubs/[handle]", "page");
   return { ok: true };
@@ -312,6 +316,7 @@ export async function addPlayersToTournament(
     .onConflictDoNothing()
     .returning({ id: rounds.id });
 
+  invalidateHomeEventsCache();
   revalidatePath("/");
   revalidatePath(`/tournaments/${tournamentId}`);
   return { ok: true, added: inserted.length };

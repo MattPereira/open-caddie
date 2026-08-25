@@ -15,6 +15,7 @@ import {
   users,
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/users/queries";
+import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import {
   MatchCreateSchema,
   MatchUpdateSchema,
@@ -164,6 +165,7 @@ export async function createMatch(
       return match.id;
     });
 
+    invalidateHomeEventsCache();
     revalidatePath("/");
     revalidatePath("/matches");
     return { ok: true, id: matchId };
@@ -348,6 +350,7 @@ export async function updateMatch(
     throw e;
   }
 
+  invalidateHomeEventsCache();
   revalidatePath("/matches");
   revalidatePath(`/matches/${parsed.data.id}`);
   return { ok: true };
@@ -362,6 +365,7 @@ export async function deleteMatch(id: number): Promise<ActionResult> {
     await tx.delete(rounds).where(eq(rounds.matchId, id));
     await tx.delete(matches).where(eq(matches.id, id));
   });
+  invalidateHomeEventsCache();
   revalidatePath("/matches");
   return { ok: true };
 }
@@ -462,6 +466,7 @@ export async function saveFourBallTeams(
     await tx.insert(matchTeamMembers).values(memberValues);
   });
 
+  invalidateHomeEventsCache();
   revalidatePath("/matches");
   revalidatePath(`/matches/${matchId}`);
   return { ok: true };

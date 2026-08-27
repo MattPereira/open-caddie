@@ -10,6 +10,7 @@ import {
   clubs,
   courseTees,
   courses,
+  pairings,
   rounds,
   seasons,
   tournaments,
@@ -320,4 +321,127 @@ export async function addPlayersToTournament(
   revalidatePath("/");
   revalidatePath(`/tournaments/${tournamentId}`);
   return { ok: true, added: inserted.length };
+}
+
+const PairingCreateSchema = z.object({
+  tournamentId: z.number().int().positive(),
+});
+
+const PairingRenameSchema = z.object({
+  pairingId: z.number().int().positive(),
+  name: z.string().trim().min(1, "Name is required").max(60, "Name is too long"),
+});
+
+const PairingDeleteSchema = z.object({
+  pairingId: z.number().int().positive(),
+});
+
+export type PairingCreateValues = z.infer<typeof PairingCreateSchema>;
+export type PairingRenameValues = z.infer<typeof PairingRenameSchema>;
+export type PairingDeleteValues = z.infer<typeof PairingDeleteSchema>;
+
+async function isAdmin() {
+  const me = await getCurrentUser();
+  return me?.isAdmin === true;
+}
+
+// Pairings do not appear in home events, and play pages are force-dynamic, so
+// the Tournament page is the only thing to revalidate.
+function revalidateTournament(tournamentId: number) {
+  revalidatePath(`/tournaments/${tournamentId}`);
+}
+
+async function getPairingTournamentId(pairingId: number) {
+  const [pairing] = await db
+    .select({ tournamentId: pairings.tournamentId })
+    .from(pairings)
+    .where(eq(pairings.id, pairingId))
+    .limit(1);
+  return pairing?.tournamentId ?? null;
+}
+
+export async function createPairing(
+  values: PairingCreateValues,
+): Promise<ActionResult> {
+  if (!(await isAdmin())) {
+    return { ok: false, error: "Only admins can manage Pairings." };
+  }
+
+  const parsed = PairingCreateSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { tournamentId } = parsed.data;
+  const [tournament] = await db
+    .select({ id: tournaments.id })
+    .from(tournaments)
+    .where(eq(tournaments.id, tournamentId))
+    .limit(1);
+  if (!tournament) {
+    return { ok: false, error: "Tournament not found." };
+  }
+
+  // A Pairing is named and ordered by its number, taken in one statement so
+  // two quick creates cannot land on the same one. Numbers are never reused,
+  // so deleting a Pairing never gives two Pairings the same name.
+  const nextNumber = sql`(select coalesce(max(${pairings.sortOrder}), 0) + 1 from ${pairings} where ${pairings.tournamentId} = ${tournamentId})`;
+  const [created] = await db
+    .insert(pairings)
+    .values({
+      tournamentId,
+      name: sql`'Pairing ' || ${nextNumber}`,
+      sortOrder: nextNumber,
+    })
+    .returning({ id: pairings.id });
+
+  revalidateTournament(tournamentId);
+  return { ok: true, id: created.id };
+}
+
+export async function renamePairing(
+  values: PairingRenameValues,
+): Promise<ActionResult> {
+  if (!(await isAdmin())) {
+    return { ok: false, error: "Only admins can manage Pairings." };
+  }
+
+  const parsed = PairingRenameSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { pairingId, name } = parsed.data;
+  const tournamentId = await getPairingTournamentId(pairingId);
+  if (tournamentId == null) {
+    return { ok: false, error: "Pairing not found." };
+  }
+
+  await db.update(pairings).set({ name }).where(eq(pairings.id, pairingId));
+  revalidateTournament(tournamentId);
+  return { ok: true, id: pairingId };
+}
+
+export async function deletePairing(
+  values: PairingDeleteValues,
+): Promise<ActionResult> {
+  if (!(await isAdmin())) {
+    return { ok: false, error: "Only admins can manage Pairings." };
+  }
+
+  const parsed = PairingDeleteSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { pairingId } = parsed.data;
+  const tournamentId = await getPairingTournamentId(pairingId);
+  if (tournamentId == null) {
+    return { ok: false, error: "Pairing not found." };
+  }
+
+  // Membership rows cascade; the Rounds themselves stay in the Tournament.
+  await db.delete(pairings).where(eq(pairings.id, pairingId));
+  revalidateTournament(tournamentId);
+  return { ok: true, id: pairingId };
 }

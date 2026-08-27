@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, inArray, lt, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { auth } from "@/auth";
@@ -10,6 +10,7 @@ import {
   clubs,
   courseTees,
   courses,
+  pairings,
   rounds,
   seasons,
   tournaments,
@@ -24,7 +25,7 @@ import {
   type TournamentUpdateValues,
 } from "./schema";
 
-type ActionResult = { ok: true; id?: number } | { ok: false; error: string };
+export type ActionResult = { ok: true; id?: number } | { ok: false; error: string };
 
 async function requireAdmin() {
   const me = await getCurrentUser();
@@ -320,4 +321,202 @@ export async function addPlayersToTournament(
   revalidatePath("/");
   revalidatePath(`/tournaments/${tournamentId}`);
   return { ok: true, added: inserted.length };
+}
+
+const PairingCreateSchema = z.object({
+  tournamentId: z.number().int().positive(),
+});
+
+const PairingRenameSchema = z.object({
+  pairingId: z.number().int().positive(),
+  name: z.string().trim().min(1, "Name is required").max(60, "Name is too long"),
+});
+
+const PairingDeleteSchema = z.object({
+  pairingId: z.number().int().positive(),
+});
+
+const PairingMoveSchema = z.object({
+  pairingId: z.number().int().positive(),
+  direction: z.enum(["up", "down"]),
+});
+
+export type PairingCreateValues = z.infer<typeof PairingCreateSchema>;
+export type PairingRenameValues = z.infer<typeof PairingRenameSchema>;
+export type PairingDeleteValues = z.infer<typeof PairingDeleteSchema>;
+export type PairingMoveValues = z.infer<typeof PairingMoveSchema>;
+
+async function isAdmin() {
+  const me = await getCurrentUser();
+  return me?.isAdmin === true;
+}
+
+// Pairings do not appear in home events, and play pages are force-dynamic, so
+// every Pairing write revalidates the Tournament page and nothing else.
+
+async function getPairingTournamentId(pairingId: number) {
+  const [pairing] = await db
+    .select({ tournamentId: pairings.tournamentId })
+    .from(pairings)
+    .where(eq(pairings.id, pairingId))
+    .limit(1);
+  return pairing?.tournamentId ?? null;
+}
+
+export async function createPairing(
+  values: PairingCreateValues,
+): Promise<ActionResult> {
+  if (!(await isAdmin())) {
+    return { ok: false, error: "Only admins can manage Pairings." };
+  }
+
+  const parsed = PairingCreateSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { tournamentId } = parsed.data;
+  const [tournament] = await db
+    .select({ id: tournaments.id })
+    .from(tournaments)
+    .where(eq(tournaments.id, tournamentId))
+    .limit(1);
+  if (!tournament) {
+    return { ok: false, error: "Tournament not found." };
+  }
+
+  // A new Pairing is named and ordered by the number after the Tournament's
+  // highest, read under a lock on the Tournament so two quick creates cannot
+  // land on the same number. Deleting the last Pairing frees its number again,
+  // which is harmless: the Pairing that held the name is gone.
+  const created = await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select id from tournaments where id = ${tournamentId} for update`,
+    );
+    const [highest] = await tx
+      .select({ sortOrder: pairings.sortOrder })
+      .from(pairings)
+      .where(eq(pairings.tournamentId, tournamentId))
+      .orderBy(desc(pairings.sortOrder))
+      .limit(1);
+    const number = (highest?.sortOrder ?? 0) + 1;
+    const [pairing] = await tx
+      .insert(pairings)
+      .values({ tournamentId, name: `Pairing ${number}`, sortOrder: number })
+      .returning({ id: pairings.id });
+    return pairing;
+  });
+
+  revalidatePath(`/tournaments/${tournamentId}`);
+  return { ok: true, id: created.id };
+}
+
+export async function renamePairing(
+  values: PairingRenameValues,
+): Promise<ActionResult> {
+  if (!(await isAdmin())) {
+    return { ok: false, error: "Only admins can manage Pairings." };
+  }
+
+  const parsed = PairingRenameSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { pairingId, name } = parsed.data;
+  const tournamentId = await getPairingTournamentId(pairingId);
+  if (tournamentId == null) {
+    return { ok: false, error: "Pairing not found." };
+  }
+
+  await db.update(pairings).set({ name }).where(eq(pairings.id, pairingId));
+  revalidatePath(`/tournaments/${tournamentId}`);
+  return { ok: true, id: pairingId };
+}
+
+export async function deletePairing(
+  values: PairingDeleteValues,
+): Promise<ActionResult> {
+  if (!(await isAdmin())) {
+    return { ok: false, error: "Only admins can manage Pairings." };
+  }
+
+  const parsed = PairingDeleteSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { pairingId } = parsed.data;
+  const tournamentId = await getPairingTournamentId(pairingId);
+  if (tournamentId == null) {
+    return { ok: false, error: "Pairing not found." };
+  }
+
+  // Membership rows cascade; the Rounds themselves stay in the Tournament.
+  await db.delete(pairings).where(eq(pairings.id, pairingId));
+  revalidatePath(`/tournaments/${tournamentId}`);
+  return { ok: true, id: pairingId };
+}
+
+export async function movePairing(
+  values: PairingMoveValues,
+): Promise<ActionResult> {
+  if (!(await isAdmin())) {
+    return { ok: false, error: "Only admins can manage Pairings." };
+  }
+
+  const parsed = PairingMoveSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { pairingId, direction } = parsed.data;
+  // Moving swaps sort orders with the adjacent Pairing, under a lock on the
+  // Tournament so a concurrent move or create cannot read a half-done swap.
+  const moved = await db.transaction(async (tx) => {
+    const [pairing] = await tx
+      .select()
+      .from(pairings)
+      .where(eq(pairings.id, pairingId))
+      .limit(1);
+    if (!pairing) return { ok: false as const, error: "Pairing not found." };
+
+    await tx.execute(
+      sql`select id from tournaments where id = ${pairing.tournamentId} for update`,
+    );
+    const [neighbour] = await tx
+      .select()
+      .from(pairings)
+      .where(
+        and(
+          eq(pairings.tournamentId, pairing.tournamentId),
+          direction === "up"
+            ? lt(pairings.sortOrder, pairing.sortOrder)
+            : gt(pairings.sortOrder, pairing.sortOrder),
+        ),
+      )
+      .orderBy(
+        direction === "up"
+          ? desc(pairings.sortOrder)
+          : asc(pairings.sortOrder),
+      )
+      .limit(1);
+    if (!neighbour) {
+      return { ok: false as const, error: "Pairing is already at the end." };
+    }
+
+    await tx
+      .update(pairings)
+      .set({ sortOrder: pairing.sortOrder })
+      .where(eq(pairings.id, neighbour.id));
+    await tx
+      .update(pairings)
+      .set({ sortOrder: neighbour.sortOrder })
+      .where(eq(pairings.id, pairingId));
+    return { ok: true as const, tournamentId: pairing.tournamentId };
+  });
+
+  if (!moved.ok) return moved;
+  revalidatePath(`/tournaments/${moved.tournamentId}`);
+  return { ok: true, id: pairingId };
 }

@@ -329,6 +329,8 @@ export const rounds = pgTable(
     uniqueIndex("rounds_tournament_user_unique")
       .on(r.tournamentId, r.userId)
       .where(sql`${r.tournamentId} IS NOT NULL`),
+    // Referenced by pairing_members so membership cannot cross Tournaments.
+    uniqueIndex("rounds_id_tournament_unique").on(r.id, r.tournamentId),
     uniqueIndex("rounds_match_user_unique")
       .on(r.matchId, r.userId)
       .where(sql`${r.matchId} IS NOT NULL`),
@@ -352,6 +354,47 @@ export const matchTeamMembers = pgTable(
   (mtm) => [
     primaryKey({ columns: [mtm.matchTeamId, mtm.roundId] }),
     uniqueIndex("match_team_members_round_unique").on(mtm.roundId),
+  ],
+);
+
+// A Pairing is an admin-defined set of Rounds within one Tournament.
+export const pairings = pgTable(
+  "pairings",
+  {
+    id: serial("id").primaryKey(),
+    tournamentId: integer("tournament_id")
+      .notNull()
+      .references(() => tournaments.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+  },
+  (p) => [uniqueIndex("pairings_id_tournament_unique").on(p.id, p.tournamentId)],
+);
+
+// Membership is keyed by Round, and carries the Tournament id so the composite
+// foreign keys below make a cross-Tournament assignment unrepresentable. Match
+// team membership relies on a single creating transaction instead; a Pairing is
+// edited repeatedly over a Tournament's life, so the invariant lives here.
+export const pairingMembers = pgTable(
+  "pairing_members",
+  {
+    tournamentId: integer("tournament_id").notNull(),
+    pairingId: integer("pairing_id").notNull(),
+    roundId: integer("round_id").notNull(),
+  },
+  (pm) => [
+    primaryKey({ columns: [pm.pairingId, pm.roundId] }),
+    uniqueIndex("pairing_members_round_unique").on(pm.roundId),
+    foreignKey({
+      columns: [pm.pairingId, pm.tournamentId],
+      foreignColumns: [pairings.id, pairings.tournamentId],
+      name: "pairing_members_pairing_tournament_fk",
+    }).onDelete("cascade"),
+    foreignKey({
+      columns: [pm.roundId, pm.tournamentId],
+      foreignColumns: [rounds.id, rounds.tournamentId],
+      name: "pairing_members_round_tournament_fk",
+    }).onDelete("cascade"),
   ],
 );
 

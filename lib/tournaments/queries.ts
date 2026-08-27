@@ -8,6 +8,7 @@ import {
   courseTees,
   courses,
   greenies,
+  pairings,
   roundScores,
   roundSummaries,
   rounds,
@@ -371,3 +372,19 @@ function compareTournamentRoundPlayers(
     (a.username ?? "").localeCompare(b.username ?? "")
   );
 }
+
+export const getPairingsForTournament = cache(async (tournamentId: number) => {
+  return db
+    .select({
+      id: pairings.id,
+      name: pairings.name,
+      sortOrder: pairings.sortOrder,
+    })
+    .from(pairings)
+    .where(eq(pairings.tournamentId, tournamentId))
+    .orderBy(asc(pairings.sortOrder), asc(pairings.id));
+});
+
+export type TournamentPairing = Awaited<
+  ReturnType<typeof getPairingsForTournament>
+>[number];

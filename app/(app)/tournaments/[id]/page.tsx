@@ -18,6 +18,7 @@ import { formatDate } from "@/lib/dates";
 import { PageContent } from "@/components/layout/page-content";
 import { UploadScorecardButton } from "@/components/features/scorecard-import/upload-scorecard-button";
 import { AddPlayersSheet } from "./_components/add-players-sheet";
+import { PairingsButton } from "./_components/pairings-button";
 import { EditTournamentButton } from "./_components/edit-tournament-button";
 import { WinnersTabContent } from "./_components/winners-tab-content";
 
@@ -154,8 +155,10 @@ export default async function TournamentPage({
                   tournamentId={tournament.id}
                   players={addablePlayers}
                 />
+                <PairingsButton href={`/tournaments/${tournament.id}/pairings`} />
                 <UploadScorecardButton
                   href={`/tournaments/${tournament.id}/upload-scorecard`}
+                  className="w-full sm:w-auto"
                 />
               </>
             ) : null

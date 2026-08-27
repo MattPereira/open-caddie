@@ -1,11 +1,15 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
   updateTag: vi.fn(),
 }));
 vi.mock("@/auth", () => ({ auth: vi.fn() }));
-vi.mock("@/lib/users/queries", () => ({ getCurrentUser: async () => ({ isAdmin: true }) }));
+
+const getCurrentUser = vi.hoisted(() =>
+  vi.fn(async (): Promise<{ isAdmin: boolean } | null> => ({ isAdmin: true })),
+);
+vi.mock("@/lib/users/queries", () => ({ getCurrentUser }));
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 
@@ -132,6 +136,166 @@ if (!testDatabaseUrl) {
       await db.delete(schema.tournaments).where(eq(schema.tournaments.id, second.id));
       expect(await standings.getClubSeasons(club.id)).toEqual([{ season: 1 }]);
       expect((await standings.getLatestSeasonStandings({ clubHandle: club.handle }))?.season).toBe(1);
+    });
+  });
+
+  describe("Pairing mutations", async () => {
+    process.env.DATABASE_URL = testDatabaseUrl;
+    process.env.DATABASE_DRIVER = "node-postgres";
+    const [{ db }, schema, actions, queries, cache] = await Promise.all([
+      import("@/db"),
+      import("@/db/schema"),
+      import("@/app/(app)/tournaments/actions"),
+      import("./queries"),
+      import("next/cache"),
+    ]);
+    const { eq, inArray } = await import("drizzle-orm");
+    const clubIds: number[] = [];
+    const courseIds: number[] = [];
+
+    async function tournamentFixture() {
+      const suffix = crypto.randomUUID();
+      const [club] = await db.insert(schema.clubs).values({
+        handle: `club-${suffix}`,
+        name: `Club ${suffix}`,
+        pointRules: { participation: 0, pars: 0, birdies: 0, eagles: 0, aces: 0, strokes: { positions: [0] }, putts: { positions: [0] }, greenies: { tiers: [{ maxFt: null, pts: 0 }] } },
+      }).returning();
+      const [course] = await db.insert(schema.courses).values({ handle: `course-${suffix}`, name: `Course ${suffix}` }).returning();
+      const [tee] = await db.insert(schema.courseTees).values({ courseId: course.id, name: "Blue", rating: "72", slope: 120 }).returning();
+      const [season] = await db.insert(schema.seasons).values({ clubId: club.id, number: 1 }).returning();
+      const [tournament] = await db.insert(schema.tournaments).values({
+        seasonId: season.id,
+        date: new Date("2026-01-01T00:00:00.000Z"),
+        courseId: course.id,
+        teeId: tee.id,
+      }).returning();
+      clubIds.push(club.id);
+      courseIds.push(course.id);
+      return { tournament };
+    }
+
+    async function createPairing(tournamentId: number) {
+      const result = await actions.createPairing({ tournamentId });
+      if (!result.ok || result.id == null) throw new Error(result.ok ? "Missing Pairing id" : result.error);
+      return result.id;
+    }
+
+    beforeEach(() => {
+      getCurrentUser.mockResolvedValue({ isAdmin: true });
+      vi.mocked(cache.revalidatePath).mockClear();
+      vi.mocked(cache.updateTag).mockClear();
+    });
+
+    afterEach(async () => {
+      if (clubIds.length) {
+        const clubSeasonIds = (await db.select({ id: schema.seasons.id }).from(schema.seasons).where(inArray(schema.seasons.clubId, clubIds))).map((season) => season.id);
+        if (clubSeasonIds.length) await db.delete(schema.tournaments).where(inArray(schema.tournaments.seasonId, clubSeasonIds));
+        await db.delete(schema.clubs).where(inArray(schema.clubs.id, clubIds));
+      }
+      if (courseIds.length) await db.delete(schema.courses).where(inArray(schema.courses.id, courseIds));
+      clubIds.length = 0;
+      courseIds.length = 0;
+    });
+
+    it("rejects every Pairing mutation from a non-admin", async () => {
+      const { tournament } = await tournamentFixture();
+      const pairingId = await createPairing(tournament.id);
+      getCurrentUser.mockResolvedValue({ isAdmin: false });
+
+      expect(await actions.createPairing({ tournamentId: tournament.id })).toMatchObject({ ok: false });
+      expect(await actions.renamePairing({ pairingId, name: "Late tee" })).toMatchObject({ ok: false });
+      expect(await actions.deletePairing({ pairingId })).toMatchObject({ ok: false });
+      expect(await actions.movePairing({ pairingId, direction: "up" })).toMatchObject({ ok: false });
+      expect(await queries.getPairingsForTournament(tournament.id)).toMatchObject([{ id: pairingId, name: "Pairing 1" }]);
+    });
+
+    it("names each new Pairing by number without reusing a deleted number", async () => {
+      const { tournament } = await tournamentFixture();
+      const first = await createPairing(tournament.id);
+      await createPairing(tournament.id);
+      expect((await queries.getPairingsForTournament(tournament.id)).map(({ name }) => name)).toEqual(["Pairing 1", "Pairing 2"]);
+
+      expect(await actions.deletePairing({ pairingId: first })).toMatchObject({ ok: true });
+      await createPairing(tournament.id);
+      expect((await queries.getPairingsForTournament(tournament.id)).map(({ name }) => name)).toEqual(["Pairing 2", "Pairing 3"]);
+    });
+
+    it("frees the last number again once its Pairing is deleted", async () => {
+      const { tournament } = await tournamentFixture();
+      await createPairing(tournament.id);
+      const second = await createPairing(tournament.id);
+
+      expect(await actions.deletePairing({ pairingId: second })).toMatchObject({ ok: true });
+      await createPairing(tournament.id);
+      expect((await queries.getPairingsForTournament(tournament.id)).map(({ name }) => name)).toEqual(["Pairing 1", "Pairing 2"]);
+    });
+
+    it("moves a Pairing up and down its Tournament's order", async () => {
+      const { tournament } = await tournamentFixture();
+      const first = await createPairing(tournament.id);
+      const second = await createPairing(tournament.id);
+      const third = await createPairing(tournament.id);
+      const order = async () => (await queries.getPairingsForTournament(tournament.id)).map(({ id }) => id);
+
+      expect(await actions.movePairing({ pairingId: third, direction: "up" })).toMatchObject({ ok: true });
+      expect(await order()).toEqual([first, third, second]);
+
+      expect(await actions.movePairing({ pairingId: third, direction: "down" })).toMatchObject({ ok: true });
+      expect(await order()).toEqual([first, second, third]);
+
+      expect(await actions.movePairing({ pairingId: first, direction: "up" })).toMatchObject({ ok: false });
+      expect(await actions.movePairing({ pairingId: third, direction: "down" })).toMatchObject({ ok: false });
+      expect(await order()).toEqual([first, second, third]);
+    });
+
+    it("keeps numbering ahead of a reordered Tournament's Pairings", async () => {
+      const { tournament } = await tournamentFixture();
+      await createPairing(tournament.id);
+      const second = await createPairing(tournament.id);
+      await actions.movePairing({ pairingId: second, direction: "up" });
+
+      await createPairing(tournament.id);
+      expect((await queries.getPairingsForTournament(tournament.id)).map(({ name }) => name)).toEqual(["Pairing 2", "Pairing 1", "Pairing 3"]);
+    });
+
+    it("numbers Pairings per Tournament", async () => {
+      const { tournament: first } = await tournamentFixture();
+      const { tournament: second } = await tournamentFixture();
+      await createPairing(first.id);
+      await createPairing(second.id);
+      expect((await queries.getPairingsForTournament(second.id)).map(({ name }) => name)).toEqual(["Pairing 1"]);
+    });
+
+    it("renames a Pairing", async () => {
+      const { tournament } = await tournamentFixture();
+      const pairingId = await createPairing(tournament.id);
+
+      expect(await actions.renamePairing({ pairingId, name: "  8:30 tee  " })).toMatchObject({ ok: true });
+      expect(await queries.getPairingsForTournament(tournament.id)).toMatchObject([{ id: pairingId, name: "8:30 tee" }]);
+      expect(await actions.renamePairing({ pairingId, name: "   " })).toMatchObject({ ok: false });
+    });
+
+    it("deletes a Pairing and leaves the Tournament's other Pairings ordered", async () => {
+      const { tournament } = await tournamentFixture();
+      const first = await createPairing(tournament.id);
+      const second = await createPairing(tournament.id);
+
+      expect(await actions.deletePairing({ pairingId: first })).toMatchObject({ ok: true });
+      expect(await queries.getPairingsForTournament(tournament.id)).toMatchObject([{ id: second, name: "Pairing 2" }]);
+      const [stillThere] = await db.select().from(schema.tournaments).where(eq(schema.tournaments.id, tournament.id));
+      expect(stillThere).toBeDefined();
+    });
+
+    it("revalidates the Tournament page without touching the home events cache", async () => {
+      const { tournament } = await tournamentFixture();
+      const pairingId = await createPairing(tournament.id);
+      expect(vi.mocked(cache.revalidatePath)).toHaveBeenCalledWith(`/tournaments/${tournament.id}`);
+      expect(vi.mocked(cache.updateTag)).not.toHaveBeenCalled();
+
+      await actions.renamePairing({ pairingId, name: "Flight A" });
+      await actions.movePairing({ pairingId, direction: "up" });
+      await actions.deletePairing({ pairingId });
+      expect(vi.mocked(cache.updateTag)).not.toHaveBeenCalled();
     });
   });
 }

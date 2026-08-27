@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
+  ArrowDown01Icon,
   ArrowLeft02Icon,
+  ArrowUp01Icon,
   Delete02Icon,
   PencilEdit02Icon,
   PlusSignIcon,
@@ -15,9 +17,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { HoldToConfirmButton } from "@/components/shared/hold-to-confirm-button";
 import type { TournamentPairing } from "@/lib/tournaments/queries";
+import type { ActionResult } from "../../../actions";
 import {
   createPairing,
   deletePairing,
+  movePairing,
   renamePairing,
 } from "../../../actions";
 
@@ -38,12 +42,12 @@ export function PairingsManager({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const run = (action: () => Promise<{ ok: boolean; error?: string }>) => {
+  const run = (action: () => Promise<ActionResult>) => {
     setError(null);
     startTransition(async () => {
       const result = await action();
       if (!result.ok) {
-        setError(result.error ?? "Something went wrong.");
+        setError(result.error);
         return;
       }
       setEditingId(null);
@@ -84,7 +88,7 @@ export function PairingsManager({
         </p>
       ) : (
         <ul className="flex flex-col gap-2">
-          {pairings.map((pairing) => (
+          {pairings.map((pairing, index) => (
             <li
               key={pairing.id}
               className="flex flex-col gap-3 rounded-xl border px-4 py-3"
@@ -103,6 +107,37 @@ export function PairingsManager({
                   <span className="flex-1 text-base font-medium">
                     {pairing.name}
                   </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-lg"
+                    aria-label={`Move ${pairing.name} up`}
+                    disabled={isPending || index === 0}
+                    onClick={() =>
+                      run(() =>
+                        movePairing({ pairingId: pairing.id, direction: "up" }),
+                      )
+                    }
+                  >
+                    <HugeiconsIcon icon={ArrowUp01Icon} aria-hidden />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-lg"
+                    aria-label={`Move ${pairing.name} down`}
+                    disabled={isPending || index === pairings.length - 1}
+                    onClick={() =>
+                      run(() =>
+                        movePairing({
+                          pairingId: pairing.id,
+                          direction: "down",
+                        }),
+                      )
+                    }
+                  >
+                    <HugeiconsIcon icon={ArrowDown01Icon} aria-hidden />
+                  </Button>
                   <Button
                     type="button"
                     variant="ghost"
@@ -147,7 +182,9 @@ export function PairingsManager({
                   <HoldToConfirmButton
                     disabled={isPending}
                     idleLabel={
-                      isPending ? "Deleting…" : `Hold to delete ${pairing.name}`
+                      isPending
+                        ? "Deleting…"
+                        : `Hold to delete ${pairing.name}`
                     }
                     onConfirmAction={() =>
                       run(() => deletePairing({ pairingId: pairing.id }))

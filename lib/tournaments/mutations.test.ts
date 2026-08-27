@@ -205,7 +205,8 @@ if (!testDatabaseUrl) {
       expect(await actions.createPairing({ tournamentId: tournament.id })).toMatchObject({ ok: false });
       expect(await actions.renamePairing({ pairingId, name: "Late tee" })).toMatchObject({ ok: false });
       expect(await actions.deletePairing({ pairingId })).toMatchObject({ ok: false });
-      expect(await queries.getPairingsForTournament(tournament.id)).toHaveLength(1);
+      expect(await actions.movePairing({ pairingId, direction: "up" })).toMatchObject({ ok: false });
+      expect(await queries.getPairingsForTournament(tournament.id)).toMatchObject([{ id: pairingId, name: "Pairing 1" }]);
     });
 
     it("names each new Pairing by number without reusing a deleted number", async () => {
@@ -217,6 +218,44 @@ if (!testDatabaseUrl) {
       expect(await actions.deletePairing({ pairingId: first })).toMatchObject({ ok: true });
       await createPairing(tournament.id);
       expect((await queries.getPairingsForTournament(tournament.id)).map(({ name }) => name)).toEqual(["Pairing 2", "Pairing 3"]);
+    });
+
+    it("frees the last number again once its Pairing is deleted", async () => {
+      const { tournament } = await tournamentFixture();
+      await createPairing(tournament.id);
+      const second = await createPairing(tournament.id);
+
+      expect(await actions.deletePairing({ pairingId: second })).toMatchObject({ ok: true });
+      await createPairing(tournament.id);
+      expect((await queries.getPairingsForTournament(tournament.id)).map(({ name }) => name)).toEqual(["Pairing 1", "Pairing 2"]);
+    });
+
+    it("moves a Pairing up and down its Tournament's order", async () => {
+      const { tournament } = await tournamentFixture();
+      const first = await createPairing(tournament.id);
+      const second = await createPairing(tournament.id);
+      const third = await createPairing(tournament.id);
+      const order = async () => (await queries.getPairingsForTournament(tournament.id)).map(({ id }) => id);
+
+      expect(await actions.movePairing({ pairingId: third, direction: "up" })).toMatchObject({ ok: true });
+      expect(await order()).toEqual([first, third, second]);
+
+      expect(await actions.movePairing({ pairingId: third, direction: "down" })).toMatchObject({ ok: true });
+      expect(await order()).toEqual([first, second, third]);
+
+      expect(await actions.movePairing({ pairingId: first, direction: "up" })).toMatchObject({ ok: false });
+      expect(await actions.movePairing({ pairingId: third, direction: "down" })).toMatchObject({ ok: false });
+      expect(await order()).toEqual([first, second, third]);
+    });
+
+    it("keeps numbering ahead of a reordered Tournament's Pairings", async () => {
+      const { tournament } = await tournamentFixture();
+      await createPairing(tournament.id);
+      const second = await createPairing(tournament.id);
+      await actions.movePairing({ pairingId: second, direction: "up" });
+
+      await createPairing(tournament.id);
+      expect((await queries.getPairingsForTournament(tournament.id)).map(({ name }) => name)).toEqual(["Pairing 2", "Pairing 1", "Pairing 3"]);
     });
 
     it("numbers Pairings per Tournament", async () => {
@@ -254,6 +293,7 @@ if (!testDatabaseUrl) {
       expect(vi.mocked(cache.updateTag)).not.toHaveBeenCalled();
 
       await actions.renamePairing({ pairingId, name: "Flight A" });
+      await actions.movePairing({ pairingId, direction: "up" });
       await actions.deletePairing({ pairingId });
       expect(vi.mocked(cache.updateTag)).not.toHaveBeenCalled();
     });

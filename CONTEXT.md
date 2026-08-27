@@ -18,6 +18,10 @@ A Club's highest-numbered Season. A Club has exactly one once it has any Season,
 Any Season below its Club's highest-numbered Season. Past Seasons remain editable and may receive Tournaments.
 _Avoid_: Archived Season
 
+**Pairing**:
+An admin-defined set of up to four Rounds within one Tournament, representing the players who are playing together. Its members may enter each other's scores.
+_Avoid_: Tournament group (already a rejected synonym for Season), foursome (a Pairing may hold fewer than four)
+
 **Course Scorecard Import**:
 A resumable process for turning a course scorecard image into data for either a new or existing course. A new-course import creates tees and holes; an existing-course import preserves historical hole data and the identities of tees referenced by past play, and requires an explicit disposition for every Placeholder Tee.
 _Avoid_: Scorecard reconciliation, scorecard sync

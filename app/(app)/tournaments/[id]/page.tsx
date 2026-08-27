@@ -158,6 +158,7 @@ export default async function TournamentPage({
                 <PairingsButton href={`/tournaments/${tournament.id}/pairings`} />
                 <UploadScorecardButton
                   href={`/tournaments/${tournament.id}/upload-scorecard`}
+                  className="w-full sm:w-auto"
                 />
               </>
             ) : null

@@ -6,7 +6,12 @@ import { Button } from "@/components/ui/button";
 
 export function PairingsButton({ href }: { href: string }) {
   return (
-    <Button asChild variant="outline" size="lg" className="flex-1 sm:flex-none">
+    <Button
+      asChild
+      variant="outline"
+      size="lg"
+      className="w-[calc(50%-0.25rem)] sm:w-auto"
+    >
       <Link href={href}>
         <HugeiconsIcon icon={UserGroupIcon} data-icon="inline-start" />
         Pairings

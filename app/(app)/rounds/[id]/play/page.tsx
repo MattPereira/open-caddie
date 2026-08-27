@@ -31,7 +31,7 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
     round.matchId == null ? Promise.resolve(null) : getMatchById(round.matchId),
   ]);
 
-  const matchPlayers =
+  const scoringPeers =
     match?.rounds
       .filter((matchRound) => matchRound.id !== round.id)
       .map((matchRound) => ({
@@ -139,7 +139,7 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
           leaderboardRounds={tournament?.rounds}
           holes={tableRound.holes}
           tees={round.tees}
-          matchPlayers={matchPlayers}
+          scoringPeers={scoringPeers}
           matchScoreboard={matchScoreboard}
         />
       </section>

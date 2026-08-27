@@ -33,7 +33,7 @@ import { ScoreEntrySheet, type ScorePatch } from "./score-entry-sheet";
 import { SettingsDialog, type SettingsTee } from "./settings-dialog";
 import { TournamentLeaderboardDialog } from "./tournament-leaderboard-dialog";
 import { MatchScoreboardDialog } from "./match-scoreboard-dialog";
-import type { MatchPlayer, MatchScoreboard } from "./round-play";
+import type { MatchScoreboard, ScoringPeer } from "./round-play";
 
 export type { SettingsTee };
 
@@ -59,7 +59,7 @@ type RoundScoresFormProps = {
   scores: ScoreEntry[];
   setScoresAction: Dispatch<SetStateAction<ScoreEntry[]>>;
   tees: SettingsTee[];
-  matchPlayers: MatchPlayer[];
+  scoringPeers: ScoringPeer[];
   matchScoreboard: MatchScoreboard | null;
   delegateRoundIds: readonly number[];
   setDelegateRoundIdsAction: (next: readonly number[]) => void;
@@ -75,7 +75,7 @@ export function RoundScoresForm({
   scores,
   setScoresAction,
   tees,
-  matchPlayers,
+  scoringPeers,
   matchScoreboard,
   delegateRoundIds,
   setDelegateRoundIdsAction,
@@ -91,11 +91,11 @@ export function RoundScoresForm({
   const delegatePlayers = useMemo(
     () =>
       delegateRoundIds
-        .map((id) => matchPlayers.find((p) => p.roundId === id))
-        .filter((p): p is MatchPlayer => p != null),
-    [delegateRoundIds, matchPlayers],
+        .map((id) => scoringPeers.find((p) => p.roundId === id))
+        .filter((p): p is ScoringPeer => p != null),
+    [delegateRoundIds, scoringPeers],
   );
-  const getPlayerName = (player: MatchPlayer) => player.firstName || "Player";
+  const getPlayerName = (player: ScoringPeer) => player.firstName || "Player";
   // The grid columns are too narrow for anything but a first name, so the full
   // name is carried separately for the roomier score entry sheet.
   const getFullName = (
@@ -502,7 +502,7 @@ export function RoundScoresForm({
               roundId={roundId}
               round={round}
               tees={tees}
-              matchPlayers={matchPlayers}
+              scoringPeers={scoringPeers}
               delegateRoundIds={delegateRoundIds}
               setDelegateRoundIdsAction={setDelegateRoundIdsAction}
               recordPutts={recordPutts}

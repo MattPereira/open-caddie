@@ -14,7 +14,7 @@ import {
 } from "./round-score-state";
 import { useDelegateRoundIds } from "./use-delegate-round-id";
 
-export type MatchPlayer = {
+export type ScoringPeer = {
   roundId: number;
   userId: string;
   firstName: string | null;
@@ -45,7 +45,7 @@ type RoundPlayProps = {
     yards: number | null;
   }[];
   tees: SettingsTee[];
-  matchPlayers: MatchPlayer[];
+  scoringPeers: ScoringPeer[];
   matchScoreboard: MatchScoreboard | null;
 };
 
@@ -55,7 +55,7 @@ export function RoundPlay({
   leaderboardRounds,
   holes,
   tees,
-  matchPlayers,
+  scoringPeers,
   matchScoreboard,
 }: RoundPlayProps) {
   const router = useRouter();
@@ -89,7 +89,7 @@ export function RoundPlay({
       scores={scores}
       setScoresAction={setScores}
       tees={tees}
-      matchPlayers={matchPlayers}
+      scoringPeers={scoringPeers}
       matchScoreboard={matchScoreboard}
       delegateRoundIds={delegateRoundIds}
       setDelegateRoundIdsAction={setDelegateRoundIds}

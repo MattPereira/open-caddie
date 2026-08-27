@@ -53,7 +53,7 @@ import {
   type RoundScoresUpdateValues,
 } from "@/app/(app)/rounds/schema";
 import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
-import type { MatchPlayer } from "./round-play";
+import type { ScoringPeer } from "./round-play";
 
 export const MAX_DELEGATES = 3;
 
@@ -100,7 +100,7 @@ export function SettingsDialog({
   roundId,
   round,
   tees,
-  matchPlayers,
+  scoringPeers,
   delegateRoundIds,
   setDelegateRoundIdsAction,
   recordPutts,
@@ -112,7 +112,7 @@ export function SettingsDialog({
   roundId: number;
   round: RoundScoresTableRound;
   tees: SettingsTee[];
-  matchPlayers: MatchPlayer[];
+  scoringPeers: ScoringPeer[];
   delegateRoundIds: readonly number[];
   setDelegateRoundIdsAction: (next: readonly number[]) => void;
   recordPutts: boolean;
@@ -133,7 +133,7 @@ export function SettingsDialog({
     defaultValues: buildSettingsFormValues(round, tees),
   });
   const serverError = form.formState.errors.root?.server?.message;
-  const showMatchOptions = round.matchId != null;
+  const showPeerScoring = round.matchId != null;
   useEffect(() => {
     if (open) {
       form.reset(buildSettingsFormValues(round, tees));
@@ -306,7 +306,7 @@ export function SettingsDialog({
                 </RadioGroup>
               </FieldSet>
 
-              {showMatchOptions && matchPlayers.length > 0 ? (
+              {showPeerScoring && scoringPeers.length > 0 ? (
                 <FieldSet className="gap-2">
                   <FieldLabel className="text-base">
                     Choose Players
@@ -315,7 +315,7 @@ export function SettingsDialog({
                     </span>
                   </FieldLabel>
                   <div className="flex flex-col gap-2">
-                    {matchPlayers.map((player) => {
+                    {scoringPeers.map((player) => {
                       const name =
                         [player.firstName, player.lastName]
                           .filter(Boolean)

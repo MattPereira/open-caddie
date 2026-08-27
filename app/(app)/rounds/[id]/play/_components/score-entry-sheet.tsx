@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { haptic, type HapticKind } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -100,13 +101,21 @@ export function ScoreEntrySheet({
     setDraft(next);
   };
 
-  const commitAndClose = () => {
+  // One cue per gesture: the terminal action wins. Callers that persist
+  // something outside the score patch pass their own cue; otherwise the confirm
+  // buzz rides the same condition as the write, so swiping the sheet away
+  // unchanged stays silent rather than claiming a save that never happened.
+  const commitAndClose = (cue?: HapticKind) => {
     const next = draftRef.current;
     const saved = savedRef.current;
-    if (next.strokes !== saved.strokes || next.putts !== saved.putts) {
+    const changed =
+      next.strokes !== saved.strokes || next.putts !== saved.putts;
+    if (changed) {
       savedRef.current = next;
       onSubmitAction(next);
     }
+    const feedback = cue ?? (changed ? "commit" : null);
+    if (feedback) haptic(feedback);
     onOpenChangeAction(false);
   };
 
@@ -121,10 +130,12 @@ export function ScoreEntrySheet({
   const advanceFromStrokes = () => {
     setShowMore(false);
     if (showPutts) {
+      haptic("tick");
       setStep("putts");
       return;
     }
     if (showGreenie) {
+      haptic("tick");
       setStep("greenie");
       return;
     }
@@ -134,6 +145,7 @@ export function ScoreEntrySheet({
   const advanceFromPutts = () => {
     setShowMore(false);
     if (showGreenie) {
+      haptic("tick");
       setStep("greenie");
       return;
     }
@@ -152,20 +164,20 @@ export function ScoreEntrySheet({
 
   const handleClear = () => {
     applyDraft({ strokes: null, putts: null });
-    commitAndClose();
+    commitAndClose("clear");
   };
 
   const greenieValue = parseGreenie(greenieDraft);
 
   const handleGreenieSave = () => {
     if (greenieValue) onGreenieSaveAction(greenieValue);
-    commitAndClose();
+    commitAndClose("commit");
   };
 
   const handleGreenieClear = () => {
     setGreenieDraft(EMPTY_GREENIE_DRAFT);
     if (greenie != null) onGreenieDeleteAction();
-    commitAndClose();
+    commitAndClose("clear");
   };
 
   const canClear = strokes != null || putts != null;
@@ -299,7 +311,7 @@ export function ScoreEntrySheet({
                   type="button"
                   variant="secondary"
                   size="xl"
-                  onClick={commitAndClose}
+                  onClick={() => commitAndClose()}
                 >
                   Skip
                 </Button>

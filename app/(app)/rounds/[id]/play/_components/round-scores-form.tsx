@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { haptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import {
   deleteRoundGreenie,
@@ -240,6 +241,7 @@ export function RoundScoresForm({
           );
         }
         setSaveError(result.error);
+        haptic("error");
       }
     });
   };
@@ -279,6 +281,7 @@ export function RoundScoresForm({
             : withoutCurrent;
         });
         setSaveError(result.error);
+        haptic("error");
       }
     });
   };
@@ -309,6 +312,7 @@ export function RoundScoresForm({
           );
         }
         setSaveError(result.error);
+        haptic("error");
       }
     });
   };

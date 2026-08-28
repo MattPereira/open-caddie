@@ -85,7 +85,7 @@ export default async function Home() {
       <div className="flex w-full flex-col gap-8">
         {activeRound ? (
           <div className="flex flex-col items-center gap-2">
-            <PlayRoundButton href={`/rounds/${activeRound.roundId}`} />
+            <PlayRoundButton href={`/rounds/${activeRound.roundId}/play`} />
             <p className="text-sm text-muted-foreground">
               In progress at {activeRound.courseName}
             </p>

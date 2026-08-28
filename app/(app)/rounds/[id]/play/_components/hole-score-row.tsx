@@ -78,7 +78,7 @@ export function HoleScoreRow({
             <HoleScore score={cell.strokes} par={par} showSymbol size="lg" />
           )}
           {showPutts && cell.putts != null ? (
-            <span className="absolute right-1 top-0.5 text-sm tabular-nums text-muted-foreground">
+            <span className="absolute right-1 top-0.5 text-xs tabular-nums text-muted-foreground">
               {cell.putts}
             </span>
           ) : null}

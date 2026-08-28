@@ -640,7 +640,7 @@ function SummaryRow({
           >
             {strokes ?? "—"}
             {showPutts && putts != null ? (
-              <span className="absolute right-1 top-0.5 text-sm font-normal text-muted-foreground">
+              <span className="absolute right-1 top-0.5 text-xs font-normal text-muted-foreground">
                 {putts}
               </span>
             ) : null}

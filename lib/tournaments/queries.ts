@@ -376,44 +376,33 @@ function compareTournamentRoundPlayers(
 
 // Every Tournament Round with the Pairing it belongs to, if any. Both Pairing
 // reads below start here so a Round can never be missing from one and present
-// in the other.
-async function getTournamentRoundPlayers(tournamentId: number) {
+// in the other: cached, the two share one result within a render, so a Round
+// cannot land in both or neither. The Pairing is kept beside the player rather
+// than on it — which Pairing a Round sits in is the caller's context, not part
+// of the player.
+const getTournamentRoundPlayers = cache(async (tournamentId: number) => {
   return db
     .select({
-      roundId: rounds.id,
       pairingId: pairingMembers.pairingId,
-      userId: users.id,
-      email: users.email,
-      firstName: users.firstName,
-      lastName: users.lastName,
-      username: users.username,
-      image: users.image,
+      player: {
+        roundId: rounds.id,
+        userId: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        username: users.username,
+        image: users.image,
+      },
     })
     .from(rounds)
     .innerJoin(users, eq(users.id, rounds.userId))
     .leftJoin(pairingMembers, eq(pairingMembers.roundId, rounds.id))
     .where(eq(rounds.tournamentId, tournamentId))
-    .orderBy(asc(users.lastName), asc(users.firstName), asc(users.username));
-}
-
-// The Pairing a Round currently sits in is the caller's context, not part of
-// the player, so it is dropped on the way out.
-function toPairingMember(
-  row: Awaited<ReturnType<typeof getTournamentRoundPlayers>>[number],
-) {
-  return {
-    roundId: row.roundId,
-    userId: row.userId,
-    email: row.email,
-    firstName: row.firstName,
-    lastName: row.lastName,
-    username: row.username,
-    image: row.image,
-  };
-}
+    .orderBy(asc(users.firstName), asc(users.lastName), asc(users.username));
+});
 
 export const getPairingsForTournament = cache(async (tournamentId: number) => {
-  const [rows, players] = await Promise.all([
+  const [pairingRows, rows] = await Promise.all([
     db
       .select({
         id: pairings.id,
@@ -426,11 +415,11 @@ export const getPairingsForTournament = cache(async (tournamentId: number) => {
     getTournamentRoundPlayers(tournamentId),
   ]);
 
-  return rows.map((pairing) => ({
+  return pairingRows.map((pairing) => ({
     ...pairing,
-    members: players
-      .filter((player) => player.pairingId === pairing.id)
-      .map(toPairingMember),
+    members: rows
+      .filter((row) => row.pairingId === pairing.id)
+      .map((row) => row.player),
   }));
 });
 
@@ -439,10 +428,10 @@ export const getPairingsForTournament = cache(async (tournamentId: number) => {
 // because that would silently grant write access between unpaired players.
 export const getUnassignedRoundsForTournament = cache(
   async (tournamentId: number) => {
-    const players = await getTournamentRoundPlayers(tournamentId);
-    return players
-      .filter((player) => player.pairingId == null)
-      .map(toPairingMember);
+    const rows = await getTournamentRoundPlayers(tournamentId);
+    return rows
+      .filter((row) => row.pairingId == null)
+      .map((row) => row.player);
   },
 );
 

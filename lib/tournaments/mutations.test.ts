@@ -367,15 +367,15 @@ if (!testDatabaseUrl) {
     it("rejects a fifth Round with a message", async () => {
       const f = await tournamentFixture();
       const pairingId = await createPairing(f.tournament.id);
-      const rounds = [];
-      for (let i = 0; i < 5; i += 1) rounds.push((await playerFixture(f)).round);
-      for (const round of rounds.slice(0, 4)) {
+      const field = [];
+      for (let i = 0; i < 5; i += 1) field.push((await playerFixture(f)).round);
+      for (const round of field.slice(0, 4)) {
         expect(await actions.assignRoundToPairing({ pairingId, roundId: round.id })).toMatchObject({ ok: true });
       }
 
-      const fifth = await actions.assignRoundToPairing({ pairingId, roundId: rounds[4].id });
+      const fifth = await actions.assignRoundToPairing({ pairingId, roundId: field[4].id });
       expect(fifth).toMatchObject({ ok: false, error: expect.stringContaining("4") });
-      expect(await queries.getUnassignedRoundsForTournament(f.tournament.id)).toMatchObject([{ roundId: rounds[4].id }]);
+      expect(await queries.getUnassignedRoundsForTournament(f.tournament.id)).toMatchObject([{ roundId: field[4].id }]);
     });
 
     it("rejects a Round from another Tournament", async () => {

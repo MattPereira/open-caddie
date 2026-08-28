@@ -54,14 +54,21 @@ export default async function TournamentPage({
   params,
   searchParams,
 }: TournamentPageProps) {
-  const [tournament, currentUser, resolvedSearchParams] = await Promise.all([
-    getTournamentFromParams(params),
+  const [{ id }, currentUser, resolvedSearchParams] = await Promise.all([
+    params,
     getCurrentUser(),
     searchParams,
   ]);
 
+  const tournamentId = Number(id);
+  if (!Number.isInteger(tournamentId) || tournamentId <= 0) notFound();
+
+  const [tournament, pairings] = await Promise.all([
+    getTournamentById(tournamentId),
+    getPairingsForTournament(tournamentId),
+  ]);
+
   if (!tournament) notFound();
-  const pairings = await getPairingsForTournament(tournament.id);
   const defaultTab = getTournamentDefaultTab(resolvedSearchParams?.tab);
   const currentUserUnfinishedRound = currentUser
     ? tournament.rounds.find(
@@ -166,13 +173,12 @@ export default async function TournamentPage({
               </>
             ) : null
           }
-          footer={
-            <PairingsList
-              pairings={pairings}
-              currentUserId={currentUser?.id ?? null}
-            />
-          }
-        />
+        >
+          <PairingsList
+            pairings={pairings}
+            currentUserId={currentUser?.id ?? null}
+          />
+        </RoundsTabContent>
         <GreeniesTabContent
           emptyMessage="No greenies have been recorded for this tournament."
           greenies={tournament.greenies}

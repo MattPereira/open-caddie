@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -10,6 +11,7 @@ import {
   courseTees,
   courses,
   greenies,
+  pairingMembers,
   roundScores,
   rounds,
   tournaments,
@@ -81,6 +83,32 @@ async function assertCanWriteToRound(
       )
       .limit(1);
     if (peerRound) {
+      return { ok: true, round };
+    }
+  }
+
+  // A Tournament grants no write access of its own — only a shared Pairing
+  // does. A Round in no Pairing therefore rejects every non-owner, so an
+  // ungrouped Tournament is exactly as closed as one with no Pairings at all.
+  if (round.tournamentId != null) {
+    const mateMembership = alias(pairingMembers, "mate_membership");
+    const mateRound = alias(rounds, "mate_round");
+    const [pairingMate] = await db
+      .select({ roundId: mateMembership.roundId })
+      .from(pairingMembers)
+      .innerJoin(
+        mateMembership,
+        eq(mateMembership.pairingId, pairingMembers.pairingId),
+      )
+      .innerJoin(mateRound, eq(mateRound.id, mateMembership.roundId))
+      .where(
+        and(
+          eq(pairingMembers.roundId, round.id),
+          eq(mateRound.userId, sessionUserId),
+        ),
+      )
+      .limit(1);
+    if (pairingMate) {
       return { ok: true, round };
     }
   }

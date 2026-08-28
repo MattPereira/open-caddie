@@ -10,30 +10,48 @@ import {
   Delete02Icon,
   PencilEdit02Icon,
   PlusSignIcon,
+  UserSwitchIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { HoldToConfirmButton } from "@/components/shared/hold-to-confirm-button";
-import type { TournamentPairing } from "@/lib/tournaments/queries";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { displayName } from "@/lib/players/player-name";
+import { PAIRING_MAX_MEMBERS } from "@/lib/tournaments/pairings";
+import type {
+  TournamentPairing,
+  TournamentPairingMember,
+} from "@/lib/tournaments/queries";
 import type { ActionResult } from "../../../actions";
 import {
+  assignRoundToPairing,
   createPairing,
   deletePairing,
   movePairing,
+  removeRoundFromPairing,
   renamePairing,
 } from "../../../actions";
 
 type PairingsManagerProps = {
   tournamentId: number;
   pairings: TournamentPairing[];
+  unassigned: TournamentPairingMember[];
   backHref: string;
 };
 
 export function PairingsManager({
   tournamentId,
   pairings,
+  unassigned,
   backHref,
 }: PairingsManagerProps) {
   const router = useRouter();
@@ -82,6 +100,33 @@ export function PairingsManager({
         </p>
       ) : null}
 
+      <div className="flex flex-col gap-3 rounded-xl border border-dashed bg-muted/40 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="flex-1 text-base font-medium">Unassigned</span>
+          <span className="text-sm text-muted-foreground">
+            {unassigned.length}
+          </span>
+        </div>
+        {unassigned.length === 0 ? (
+          <p className="py-2 text-sm text-muted-foreground">
+            Every player in this tournament is in a pairing.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-1">
+            {unassigned.map((player) => (
+              <PlayerRow
+                key={player.roundId}
+                player={player}
+                pairingId={null}
+                pairings={pairings}
+                isPending={isPending}
+                onRunAction={run}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
+
       {pairings.length === 0 ? (
         <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
           No pairings yet. Add one to start grouping the field.
@@ -106,6 +151,9 @@ export function PairingsManager({
                 <div className="flex items-center gap-2">
                   <span className="flex-1 text-base font-medium">
                     {pairing.name}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {pairing.members.length}/{PAIRING_MAX_MEMBERS}
                   </span>
                   <Button
                     type="button"
@@ -168,6 +216,25 @@ export function PairingsManager({
                 </div>
               )}
 
+              {pairing.members.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No players yet.
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-1">
+                  {pairing.members.map((player) => (
+                    <PlayerRow
+                      key={player.roundId}
+                      player={player}
+                      pairingId={pairing.id}
+                      pairings={pairings}
+                      isPending={isPending}
+                      onRunAction={run}
+                    />
+                  ))}
+                </ul>
+              )}
+
               {deletingId === pairing.id ? (
                 <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
                   <Button
@@ -197,6 +264,81 @@ export function PairingsManager({
         </ul>
       )}
     </div>
+  );
+}
+
+// One control covers assigning, moving and removing: membership is keyed by
+// Round, so every change is a choice of which Pairing — if any — a player sits
+// in. A full Pairing stays selectable so the admin gets the server's message
+// rather than a silently dead menu item.
+function PlayerRow({
+  player,
+  pairingId,
+  pairings,
+  isPending,
+  onRunAction,
+}: {
+  player: TournamentPairingMember;
+  pairingId: number | null;
+  pairings: TournamentPairing[];
+  isPending: boolean;
+  onRunAction: (action: () => Promise<ActionResult>) => void;
+}) {
+  const name = displayName(player);
+
+  return (
+    <li className="flex items-center gap-2">
+      <span className="flex-1 truncate text-sm">{name}</span>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-lg"
+            aria-label={`Change pairing for ${name}`}
+            disabled={isPending || (pairings.length === 0 && pairingId === null)}
+          >
+            <HugeiconsIcon icon={UserSwitchIcon} aria-hidden />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>Move {name} to</DropdownMenuLabel>
+          {pairings.map((pairing) => (
+            <DropdownMenuItem
+              key={pairing.id}
+              disabled={pairing.id === pairingId}
+              onSelect={() =>
+                onRunAction(() =>
+                  assignRoundToPairing({
+                    pairingId: pairing.id,
+                    roundId: player.roundId,
+                  }),
+                )
+              }
+            >
+              {pairing.name}
+              <span className="ml-auto text-xs text-muted-foreground">
+                {pairing.members.length}/{PAIRING_MAX_MEMBERS}
+              </span>
+            </DropdownMenuItem>
+          ))}
+          {pairingId === null ? null : (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={() =>
+                  onRunAction(() =>
+                    removeRoundFromPairing({ roundId: player.roundId }),
+                  )
+                }
+              >
+                Unassigned
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </li>
   );
 }
 

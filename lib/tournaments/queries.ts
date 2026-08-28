@@ -8,6 +8,7 @@ import {
   courseTees,
   courses,
   greenies,
+  pairingMembers,
   pairings,
   roundScores,
   roundSummaries,
@@ -373,18 +374,69 @@ function compareTournamentRoundPlayers(
   );
 }
 
-export const getPairingsForTournament = cache(async (tournamentId: number) => {
+// Every Tournament Round with the Pairing it belongs to, if any. Both Pairing
+// reads below start here so a Round can never be missing from one and present
+// in the other: cached, the two share one result within a render, so a Round
+// cannot land in both or neither. The Pairing is kept beside the player rather
+// than on it — which Pairing a Round sits in is the caller's context, not part
+// of the player.
+const getTournamentRoundPlayers = cache(async (tournamentId: number) => {
   return db
     .select({
-      id: pairings.id,
-      name: pairings.name,
-      sortOrder: pairings.sortOrder,
+      pairingId: pairingMembers.pairingId,
+      player: {
+        roundId: rounds.id,
+        userId: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        username: users.username,
+        image: users.image,
+      },
     })
-    .from(pairings)
-    .where(eq(pairings.tournamentId, tournamentId))
-    .orderBy(asc(pairings.sortOrder), asc(pairings.id));
+    .from(rounds)
+    .innerJoin(users, eq(users.id, rounds.userId))
+    .leftJoin(pairingMembers, eq(pairingMembers.roundId, rounds.id))
+    .where(eq(rounds.tournamentId, tournamentId))
+    .orderBy(asc(users.firstName), asc(users.lastName), asc(users.username));
 });
+
+export const getPairingsForTournament = cache(async (tournamentId: number) => {
+  const [pairingRows, rows] = await Promise.all([
+    db
+      .select({
+        id: pairings.id,
+        name: pairings.name,
+        sortOrder: pairings.sortOrder,
+      })
+      .from(pairings)
+      .where(eq(pairings.tournamentId, tournamentId))
+      .orderBy(asc(pairings.sortOrder), asc(pairings.id)),
+    getTournamentRoundPlayers(tournamentId),
+  ]);
+
+  return pairingRows.map((pairing) => ({
+    ...pairing,
+    members: rows
+      .filter((row) => row.pairingId === pairing.id)
+      .map((row) => row.player),
+  }));
+});
+
+// A Round is unassigned until an admin puts it in a Pairing: a player added to
+// the Tournament after grouping is never auto-filled into a Pairing with room,
+// because that would silently grant write access between unpaired players.
+export const getUnassignedRoundsForTournament = cache(
+  async (tournamentId: number) => {
+    const rows = await getTournamentRoundPlayers(tournamentId);
+    return rows
+      .filter((row) => row.pairingId == null)
+      .map((row) => row.player);
+  },
+);
 
 export type TournamentPairing = Awaited<
   ReturnType<typeof getPairingsForTournament>
 >[number];
+
+export type TournamentPairingMember = TournamentPairing["members"][number];

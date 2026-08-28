@@ -5,6 +5,7 @@ import { PageContent } from "@/components/layout/page-content";
 import {
   getPairingsForTournament,
   getTournamentById,
+  getUnassignedRoundsForTournament,
 } from "@/lib/tournaments/queries";
 import { getCurrentUser } from "@/lib/users/queries";
 import { formatDate } from "@/lib/dates";
@@ -35,7 +36,10 @@ export default async function TournamentPairingsPage({
   if (!tournament) notFound();
   if (!currentUser?.isAdmin) redirect(`/tournaments/${tournamentId}`);
 
-  const pairings = await getPairingsForTournament(tournamentId);
+  const [pairings, unassigned] = await Promise.all([
+    getPairingsForTournament(tournamentId),
+    getUnassignedRoundsForTournament(tournamentId),
+  ]);
 
   return (
     <PageContent className="max-w-3xl">
@@ -51,6 +55,7 @@ export default async function TournamentPairingsPage({
       <PairingsManager
         tournamentId={tournamentId}
         pairings={pairings}
+        unassigned={unassigned}
         backHref={`/tournaments/${tournamentId}`}
       />
     </PageContent>

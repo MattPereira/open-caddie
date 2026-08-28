@@ -10,6 +10,9 @@ import {
 } from "react";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowLeft02Icon } from "@hugeicons/core-free-icons";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,7 +24,6 @@ import {
   upsertRoundScore,
 } from "../../../actions";
 import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
-import { toRoundScoreRow } from "@/components/features/scores/round-scores";
 import {
   type ScoreEntry,
   buildInitialScores,
@@ -33,6 +35,7 @@ import { ScoreEntrySheet, type ScorePatch } from "./score-entry-sheet";
 import { SettingsDialog, type SettingsTee } from "./settings-dialog";
 import { TournamentLeaderboardDialog } from "./tournament-leaderboard-dialog";
 import { MatchScoreboardDialog } from "./match-scoreboard-dialog";
+import { selfColumnClassName } from "./self-column";
 import type { MatchScoreboard, ScoringPeer } from "./round-play";
 
 export type { SettingsTee };
@@ -48,6 +51,10 @@ const nineTabClassName =
 
 type RoundScoresFormProps = {
   roundId: number;
+  // Whose column gets marked. Read from the session rather than the Round,
+  // because an admin may be keeping a card that is not their own — in which
+  // case no column is theirs.
+  currentUserId: string;
   round: RoundScoresTableRound;
   leaderboardRounds?: RoundScoresTableRound[];
   holes: {
@@ -69,6 +76,7 @@ type RoundScoresFormProps = {
 
 export function RoundScoresForm({
   roundId,
+  currentUserId,
   round,
   leaderboardRounds,
   holes,
@@ -101,7 +109,8 @@ export function RoundScoresForm({
   const getFullName = (
     player: { firstName: string | null; lastName: string | null },
     fallback: string,
-  ) => [player.firstName, player.lastName].filter(Boolean).join(" ") || fallback;
+  ) =>
+    [player.firstName, player.lastName].filter(Boolean).join(" ") || fallback;
   const [delegateScoresByRoundId, setDelegateScoresByRoundId] = useState<
     Record<number, ScoreEntry[]>
   >(() => {
@@ -150,15 +159,22 @@ export function RoundScoresForm({
     hole: number;
   } | null>(null);
 
-  const [highlightHole] = useState(
-    () => scores.find((entry) => entry.strokes == null)?.hole ?? null,
-  );
+  // Derived rather than held: clearing a score should hand the marker back to
+  // that hole, so the card always points at the first one still unplayed.
+  const highlightHole =
+    scores.find((entry) => entry.strokes == null)?.hole ?? null;
   // Resume on the nine holding the first unplayed hole.
   const [activeNine, setActiveNine] = useState<Nine>(() =>
     highlightHole != null && highlightHole > 9 ? "in" : "out",
   );
 
   const isComplete = isRoundComplete(round);
+  const backLink =
+    round.tournamentId != null
+      ? { href: `/tournaments/${round.tournamentId}`, label: "Tournament" }
+      : round.matchId != null
+        ? { href: `/matches/${round.matchId}`, label: "Match" }
+        : null;
 
   const updateScoresForRound = (
     targetRoundId: number,
@@ -346,11 +362,18 @@ export function RoundScoresForm({
   }, [delegateScoresByRoundId, matchScoreboard, round]);
 
   const players = [
-    { roundId, name: selfName, fullName: getFullName(round, selfName), scores },
+    {
+      roundId,
+      name: selfName,
+      fullName: getFullName(round, selfName),
+      isSelf: round.userId === currentUserId,
+      scores,
+    },
     ...delegatePlayers.map((player) => ({
       roundId: player.roundId,
       name: getPlayerName(player),
       fullName: getFullName(player, getPlayerName(player)),
+      isSelf: player.userId === currentUserId,
       scores: delegateScoresByRoundId[player.roundId] ?? [],
     })),
   ];
@@ -400,7 +423,11 @@ export function RoundScoresForm({
             {players.map((player) => (
               <HeaderCell
                 key={player.roundId}
-                className="border-l border-border text-center"
+                className={cn(
+                  "self-stretch border-l border-border text-center",
+                  player.isSelf &&
+                    cn(selfColumnClassName, "font-semibold text-foreground"),
+                )}
               >
                 {toInitials(player.fullName)}
               </HeaderCell>
@@ -425,6 +452,7 @@ export function RoundScoresForm({
                   return {
                     id: player.roundId,
                     playerName: player.name,
+                    isSelf: player.isSelf,
                     strokes: playerEntry?.strokes ?? null,
                     putts: playerEntry?.putts ?? null,
                   };
@@ -457,13 +485,28 @@ export function RoundScoresForm({
         onValueChange={(value) => setActiveNine(value as Nine)}
       >
         <div className="flex items-center justify-between gap-3">
-          <h1 className="min-w-0 truncate text-2xl font-semibold tracking-normal">
-            {toRoundScoreRow(round).playerName || "Round"}
+          <h1 className="sr-only">
+            {`${round.courseName ?? "Round"} scorecard`}
           </h1>
+          {/* The card itself says whose it is — the tinted column and the
+              column headers — so the heading slot is spent on the way out
+              instead. A Round with no parent gets no link, and the tabs sit
+              alone on the right. */}
+          {backLink ? (
+            <Button asChild variant="secondary" size="xl" className="min-w-0">
+              <Link href={backLink.href}>
+                <HugeiconsIcon
+                  icon={ArrowLeft02Icon}
+                  data-icon="inline-start"
+                />
+                {backLink.label}
+              </Link>
+            </Button>
+          ) : null}
           {/* TabsList sets its height as group-data-horizontal/tabs:h-8, so a
               bare h-* here survives the class merge but loses on specificity.
               The override has to carry the same modifier to take effect. */}
-          <TabsList className="w-36 shrink-0 group-data-horizontal/tabs:h-11">
+          <TabsList className="ml-auto w-36 shrink-0 group-data-horizontal/tabs:h-12">
             <TabsTrigger value="out" className={nineTabClassName}>
               Out
             </TabsTrigger>
@@ -569,7 +612,7 @@ function SummaryRow({
   labelColumns: number;
   columns: string;
   showPutts: boolean;
-  players: { roundId: number; scores: ScoreEntry[] }[];
+  players: { roundId: number; isSelf: boolean; scores: ScoreEntry[] }[];
   from: number;
   to: number;
 }) {
@@ -590,7 +633,10 @@ function SummaryRow({
         return (
           <div
             key={player.roundId}
-            className="relative flex h-11 items-center justify-center border-l border-border text-base font-semibold tabular-nums"
+            className={cn(
+              "relative flex h-11 items-center justify-center border-l border-border text-base font-semibold tabular-nums",
+              player.isSelf && selfColumnClassName,
+            )}
           >
             {strokes ?? "—"}
             {showPutts && putts != null ? (

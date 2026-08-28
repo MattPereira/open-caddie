@@ -37,6 +37,7 @@ export type MatchScoreboard = {
 
 type RoundPlayProps = {
   roundId: number;
+  currentUserId: string;
   tableRound: RoundScoresTableRound;
   leaderboardRounds?: RoundScoresTableRound[];
   holes: {
@@ -55,6 +56,7 @@ type RoundPlayProps = {
 
 export function RoundPlay({
   roundId,
+  currentUserId,
   tableRound,
   leaderboardRounds,
   holes,
@@ -98,6 +100,7 @@ export function RoundPlay({
   return (
     <RoundScoresForm
       roundId={roundId}
+      currentUserId={currentUserId}
       round={liveRound}
       leaderboardRounds={leaderboardRounds}
       holes={holes}

@@ -2,10 +2,12 @@
 
 import { HoleScore } from "@/components/features/scores/round-scores-card";
 import { cn } from "@/lib/utils";
+import { selfColumnClassName } from "./self-column";
 
 export type HoleRowCell = {
   id: number;
   playerName: string;
+  isSelf: boolean;
   strokes: number | null;
   putts: number | null;
 };
@@ -61,17 +63,19 @@ export function HoleScoreRow({
               ? `Add score for ${cell.playerName}, hole ${hole}`
               : `Edit ${cell.playerName}, hole ${hole}, ${cell.strokes} strokes`
           }
-          className="relative flex h-14 items-center justify-center border-l border-border transition-colors active:bg-muted"
+          className={cn(
+            "relative flex h-14 items-center justify-center border-l border-border transition-colors active:bg-muted",
+            // The column you are scoring for yourself is tinted end to end so
+            // it stays findable while scanning mid-table, not just in the head.
+            // Skipped where the row already carries the same fill, which would
+            // otherwise stack into a darker patch at the intersection.
+            cell.isSelf && !highlight && selfColumnClassName,
+          )}
         >
           {cell.strokes == null ? (
-            <span className="size-9 rounded-md border border-dashed border-muted-foreground/40" />
+            <span className="size-8 rounded-md border border-dashed border-muted-foreground/40" />
           ) : (
-            <HoleScore
-              score={cell.strokes}
-              par={par}
-              showSymbol
-              size="lg"
-            />
+            <HoleScore score={cell.strokes} par={par} showSymbol size="lg" />
           )}
           {showPutts && cell.putts != null ? (
             <span className="absolute right-1 top-0.5 text-sm tabular-nums text-muted-foreground">

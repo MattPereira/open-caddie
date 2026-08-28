@@ -12,7 +12,7 @@ const inputVariants = cva(
           "h-8 px-2.5 py-1 text-base file:h-6 file:text-sm md:text-sm",
         sm: "h-7 px-2 py-1 text-sm file:h-5 file:text-xs",
         lg: "h-9 px-3 py-1.5 text-base file:h-7 file:text-sm md:text-sm",
-        xl: "h-11 px-4 py-2 text-base file:h-8 file:text-sm",
+        xl: "h-12 px-4 py-2 text-base file:h-8 file:text-sm",
         "2xl": "h-14 rounded-xl px-6 py-3 text-lg file:h-10 file:text-base",
       },
     },

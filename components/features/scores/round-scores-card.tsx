@@ -25,11 +25,7 @@ const frontNine = holes.slice(0, 9);
 const backNine = holes.slice(9);
 
 type ScoreSymbol =
-  | "double-circle"
-  | "circle"
-  | "none"
-  | "square"
-  | "double-square";
+  "double-circle" | "circle" | "none" | "square" | "double-square";
 
 export function RoundScoresCard({
   action,
@@ -255,7 +251,10 @@ export function HoleScore({
         "inline-flex shrink-0 items-center justify-center border-current leading-none tabular-nums",
         size === "sm" && "size-6 text-sm",
         size === "default" && "size-7 text-sm",
-        size === "lg" && "size-9 text-base font-medium",
+        // A shade under the 2.25rem the type would suggest: the play grid tucks
+        // a putts count into the cell's top-right corner, and a size-9 ring
+        // runs under it.
+        size === "lg" && "size-8 text-base font-medium",
         symbol === "circle" && "rounded-full border",
         symbol === "double-circle" && "rounded-full border-[3px] border-double",
         symbol === "square" && "rounded-sm border",

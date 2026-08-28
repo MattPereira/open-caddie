@@ -148,6 +148,7 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
       <section className="flex w-full max-w-md flex-1 flex-col gap-6 sm:flex-none">
         <RoundPlay
           roundId={round.id}
+          currentUserId={currentUser.id}
           tableRound={tableRound}
           leaderboardRounds={tournament?.rounds}
           holes={tableRound.holes}

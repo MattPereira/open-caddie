@@ -46,6 +46,9 @@ type RoundPlayProps = {
   }[];
   tees: SettingsTee[];
   scoringPeers: ScoringPeer[];
+  // Selected on first open of this Round's play form, so a player keeping their
+  // Pairing's card finds their mates already there.
+  prefillDelegateRoundIds?: readonly number[];
   matchScoreboard: MatchScoreboard | null;
 };
 
@@ -56,6 +59,7 @@ export function RoundPlay({
   holes,
   tees,
   scoringPeers,
+  prefillDelegateRoundIds,
   matchScoreboard,
 }: RoundPlayProps) {
   const router = useRouter();
@@ -68,7 +72,10 @@ export function RoundPlay({
     () => buildLiveRound(tableRound, scores),
     [tableRound, scores],
   );
-  const [delegateRoundIds, setDelegateRoundIds] = useDelegateRoundIds(roundId);
+  const [delegateRoundIds, setDelegateRoundIds] = useDelegateRoundIds(
+    roundId,
+    prefillDelegateRoundIds,
+  );
 
   const summary =
     tableRound.tournamentId != null

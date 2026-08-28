@@ -2,7 +2,10 @@ import { notFound } from "next/navigation";
 
 import { getMatchById } from "@/lib/matches/queries";
 import { getRoundById } from "@/lib/rounds/queries";
-import { getTournamentById } from "@/lib/tournaments/queries";
+import {
+  getPairingMatesForRound,
+  getTournamentById,
+} from "@/lib/tournaments/queries";
 import { getCurrentUser } from "@/lib/users/queries";
 import { RoundPlay } from "./_components/round-play";
 
@@ -24,14 +27,20 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
 
   if (!round || !currentUser) notFound();
   if (currentUser.id !== round.userId && !currentUser.isAdmin) notFound();
-  const [tournament, match] = await Promise.all([
+  const [tournament, match, pairingMates] = await Promise.all([
     round.tournamentId == null
       ? Promise.resolve(null)
       : getTournamentById(round.tournamentId),
     round.matchId == null ? Promise.resolve(null) : getMatchById(round.matchId),
+    // Keyed by this Round rather than its Tournament: the peers a player may
+    // score for are their Pairing's, and the Tournament read is cached for
+    // pages that want none of this.
+    round.tournamentId == null
+      ? Promise.resolve([])
+      : getPairingMatesForRound(round.id),
   ]);
 
-  const scoringPeers =
+  const matchPeers =
     match?.rounds
       .filter((matchRound) => matchRound.id !== round.id)
       .map((matchRound) => ({
@@ -51,6 +60,10 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
           inches: greenie.inches,
         })),
       })) ?? [];
+  // A Round is in a Match or a Tournament, never both, so one of these is
+  // always empty. A Pairing holds at most four Rounds, so a player's mates
+  // never exceed the picker's cap of three.
+  const scoringPeers = [...matchPeers, ...pairingMates];
 
   const tableRound = {
     id: round.id,
@@ -140,6 +153,7 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
           holes={tableRound.holes}
           tees={round.tees}
           scoringPeers={scoringPeers}
+          prefillDelegateRoundIds={pairingMates.map((mate) => mate.roundId)}
           matchScoreboard={matchScoreboard}
         />
       </section>

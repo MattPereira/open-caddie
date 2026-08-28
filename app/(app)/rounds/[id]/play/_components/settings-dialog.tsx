@@ -133,7 +133,6 @@ export function SettingsDialog({
     defaultValues: buildSettingsFormValues(round, tees),
   });
   const serverError = form.formState.errors.root?.server?.message;
-  const showPeerScoring = round.matchId != null;
   useEffect(() => {
     if (open) {
       form.reset(buildSettingsFormValues(round, tees));
@@ -306,7 +305,7 @@ export function SettingsDialog({
                 </RadioGroup>
               </FieldSet>
 
-              {showPeerScoring && scoringPeers.length > 0 ? (
+              {scoringPeers.length > 0 ? (
                 <FieldSet className="gap-2">
                   <FieldLabel className="text-base">
                     Choose Players

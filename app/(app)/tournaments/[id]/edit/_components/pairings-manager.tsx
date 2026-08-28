@@ -1,11 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
   ArrowDown01Icon,
-  ArrowLeft02Icon,
   ArrowUp01Icon,
   Delete02Icon,
   PencilEdit02Icon,
@@ -45,14 +43,12 @@ type PairingsManagerProps = {
   tournamentId: number;
   pairings: TournamentPairing[];
   unassigned: TournamentPairingMember[];
-  backHref: string;
 };
 
 export function PairingsManager({
   tournamentId,
   pairings,
   unassigned,
-  backHref,
 }: PairingsManagerProps) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -85,12 +81,6 @@ export function PairingsManager({
         >
           <HugeiconsIcon icon={PlusSignIcon} data-icon="inline-start" />
           Add pairing
-        </Button>
-        <Button asChild variant="outline" size="lg" className="ml-auto">
-          <Link href={backHref}>
-            <HugeiconsIcon icon={ArrowLeft02Icon} data-icon="inline-start" />
-            Tournament
-          </Link>
         </Button>
       </div>
 

@@ -6,30 +6,18 @@ import { PlayRoundButton } from "@/components/domain/play-round-button";
 import { RoundsTabContent } from "@/components/features/scores/rounds-tab-content";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/shared/url-tabs";
-import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
-import { getCoursesWithTees } from "@/lib/courses/queries";
-import {
-  getAddablePlayersForTournament,
-  getPairingsForTournament,
-  getTournamentById,
-} from "@/lib/tournaments/queries";
+import { getTournamentById } from "@/lib/tournaments/queries";
 import { getCurrentUser } from "@/lib/users/queries";
 import { createPageMetadata } from "@/app/metadata";
 import { formatDate } from "@/lib/dates";
 import { PageContent } from "@/components/layout/page-content";
 import { UploadScorecardButton } from "@/components/features/scorecard-import/upload-scorecard-button";
-import { AddPlayersSheet } from "./_components/add-players-sheet";
-import { PairingsButton } from "./_components/pairings-button";
-import { PairingsList } from "./_components/pairings-list";
-import { EditTournamentButton } from "./_components/edit-tournament-button";
+import { EditTournamentLink } from "./_components/edit-tournament-link";
 import { WinnersTabContent } from "./_components/winners-tab-content";
 
 type TournamentPageProps = {
   params: Promise<{
     id: string;
-  }>;
-  searchParams?: Promise<{
-    tab?: string;
   }>;
 };
 
@@ -52,71 +40,37 @@ export async function generateMetadata({
 
 export default async function TournamentPage({
   params,
-  searchParams,
 }: TournamentPageProps) {
-  const [{ id }, currentUser, resolvedSearchParams] = await Promise.all([
-    params,
-    getCurrentUser(),
-    searchParams,
-  ]);
+  const [{ id }, currentUser] = await Promise.all([params, getCurrentUser()]);
 
   const tournamentId = Number(id);
   if (!Number.isInteger(tournamentId) || tournamentId <= 0) notFound();
 
-  const [tournament, pairings] = await Promise.all([
-    getTournamentById(tournamentId),
-    getPairingsForTournament(tournamentId),
-  ]);
+  const tournament = await getTournamentById(tournamentId);
 
   if (!tournament) notFound();
-  const defaultTab = getTournamentDefaultTab(resolvedSearchParams?.tab);
   const currentUserUnfinishedRound = currentUser
     ? tournament.rounds.find(
         (round) => round.userId === currentUser.id && !round.isComplete,
       )
     : null;
 
-  const [addablePlayers, clubs, courses] = currentUser?.isAdmin
-    ? await Promise.all([
-        getAddablePlayersForTournament(tournament.id),
-        getAllClubsWithSeasons(),
-        getCoursesWithTees(),
-      ])
-    : [[], [], []];
-
   return (
     <PageContent className="max-w-5xl">
       <div className="flex flex-col gap-3">
         <div className="flex justify-between items-center gap-2">
           <div className="flex flex-col">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-normal">
-                Tournament
-              </h1>
-              {currentUser?.isAdmin ? (
-                <EditTournamentButton
-                  tournament={{
-                    id: tournament.id,
-                    clubHandle: tournament.clubHandle,
-                    clubName: tournament.clubName,
-                    date: tournament.date,
-                    season: tournament.season,
-                    seasonId: tournament.seasonId,
-                    courseHandle: tournament.courseHandle,
-                    courseName: tournament.courseName,
-                    courseImgUrl: tournament.courseImgUrl,
-                    teeId: tournament.teeId,
-                  }}
-                  clubs={clubs}
-                  courses={courses}
-                />
-              ) : null}
-            </div>
+            <h1 className="text-2xl font-semibold tracking-normal">
+              Tournament
+            </h1>
             <p className="text-sm text-muted-foreground">
               {tournament.clubName} · Season {tournament.season}
             </p>
           </div>
 
+          {currentUser?.isAdmin ? (
+            <EditTournamentLink href={`/tournaments/${tournament.id}/edit`} />
+          ) : null}
         </div>
         <CourseHero
           courseName={tournament.courseName}
@@ -124,12 +78,14 @@ export default async function TournamentPage({
           date={tournament.date}
         />
         {currentUserUnfinishedRound ? (
-          <PlayRoundButton href={`/rounds/${currentUserUnfinishedRound.id}/play`} />
+          <PlayRoundButton
+            href={`/rounds/${currentUserUnfinishedRound.id}/play`}
+          />
         ) : null}
       </div>
 
       <UrlTabs
-        defaultValue={defaultTab}
+        defaultValue="rounds"
         values={tournamentTabValues}
         className="w-full"
       >
@@ -160,25 +116,13 @@ export default async function TournamentPage({
           rounds={tournament.rounds}
           actions={
             currentUser?.isAdmin ? (
-              <>
-                <AddPlayersSheet
-                  tournamentId={tournament.id}
-                  players={addablePlayers}
-                />
-                <PairingsButton href={`/tournaments/${tournament.id}/pairings`} />
-                <UploadScorecardButton
-                  href={`/tournaments/${tournament.id}/upload-scorecard`}
-                  className="w-full sm:w-auto"
-                />
-              </>
+              <UploadScorecardButton
+                href={`/tournaments/${tournament.id}/upload-scorecard`}
+                className="w-full sm:w-auto"
+              />
             ) : null
           }
-        >
-          <PairingsList
-            pairings={pairings}
-            currentUserId={currentUser?.id ?? null}
-          />
-        </RoundsTabContent>
+        />
         <GreeniesTabContent
           emptyMessage="No greenies have been recorded for this tournament."
           greenies={tournament.greenies}
@@ -190,10 +134,6 @@ export default async function TournamentPage({
       </UrlTabs>
     </PageContent>
   );
-}
-
-function getTournamentDefaultTab(tab: string | undefined) {
-  return tab === "greenies" || tab === "winners" ? tab : "rounds";
 }
 
 async function getTournamentFromParams(params: TournamentPageProps["params"]) {

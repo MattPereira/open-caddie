@@ -170,6 +170,7 @@ export async function updateTournament(
   invalidateHomeEventsCache();
   revalidatePath("/tournaments");
   revalidatePath(`/tournaments/${id}`);
+  revalidatePath(`/tournaments/${id}/edit`);
   revalidatePath("/clubs/[handle]", "page");
   return { ok: true };
 }
@@ -322,6 +323,7 @@ export async function addPlayersToTournament(
   invalidateHomeEventsCache();
   revalidatePath("/");
   revalidatePath(`/tournaments/${tournamentId}`);
+  revalidatePath(`/tournaments/${tournamentId}/edit`);
   return { ok: true, added: inserted.length };
 }
 
@@ -365,7 +367,7 @@ async function isAdmin() {
 }
 
 // Pairings do not appear in home events, and play pages are force-dynamic, so
-// every Pairing write revalidates the Tournament page and nothing else.
+// every Pairing write revalidates the Tournament edit page and nothing else.
 
 async function getPairingTournamentId(pairingId: number) {
   const [pairing] = await db
@@ -420,7 +422,7 @@ export async function createPairing(
     return pairing;
   });
 
-  revalidatePath(`/tournaments/${tournamentId}`);
+  revalidatePath(`/tournaments/${tournamentId}/edit`);
   return { ok: true, id: created.id };
 }
 
@@ -443,7 +445,7 @@ export async function renamePairing(
   }
 
   await db.update(pairings).set({ name }).where(eq(pairings.id, pairingId));
-  revalidatePath(`/tournaments/${tournamentId}`);
+  revalidatePath(`/tournaments/${tournamentId}/edit`);
   return { ok: true, id: pairingId };
 }
 
@@ -467,7 +469,7 @@ export async function deletePairing(
 
   // Membership rows cascade; the Rounds themselves stay in the Tournament.
   await db.delete(pairings).where(eq(pairings.id, pairingId));
-  revalidatePath(`/tournaments/${tournamentId}`);
+  revalidatePath(`/tournaments/${tournamentId}/edit`);
   return { ok: true, id: pairingId };
 }
 
@@ -530,7 +532,7 @@ export async function movePairing(
   });
 
   if (!moved.ok) return moved;
-  revalidatePath(`/tournaments/${moved.tournamentId}`);
+  revalidatePath(`/tournaments/${moved.tournamentId}/edit`);
   return { ok: true, id: pairingId };
 }
 
@@ -610,7 +612,7 @@ export async function assignRoundToPairing(
   });
 
   if (!assigned.ok) return assigned;
-  revalidatePath(`/tournaments/${assigned.tournamentId}`);
+  revalidatePath(`/tournaments/${assigned.tournamentId}/edit`);
   return { ok: true, id: roundId };
 }
 
@@ -639,6 +641,6 @@ export async function removeRoundFromPairing(
   }
 
   await db.delete(pairingMembers).where(eq(pairingMembers.roundId, roundId));
-  revalidatePath(`/tournaments/${member.tournamentId}`);
+  revalidatePath(`/tournaments/${member.tournamentId}/edit`);
   return { ok: true, id: roundId };
 }

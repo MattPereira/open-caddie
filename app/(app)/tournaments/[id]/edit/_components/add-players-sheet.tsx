@@ -20,7 +20,7 @@ import {
   type PlayerCardPlayer,
 } from "@/lib/players/player-name";
 import { SearchInput } from "@/components/shared/search-input";
-import { addPlayersToTournament } from "../../actions";
+import { addPlayersToTournament } from "../../../actions";
 
 export type AddablePlayer = PlayerCardPlayer & { id: string };
 
@@ -84,11 +84,7 @@ export function AddPlayersSheet({
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
-        <Button
-          size="lg"
-          variant="outline"
-          className="w-[calc(50%-0.25rem)] sm:w-auto"
-        >
+        <Button size="lg" variant="outline">
           <HugeiconsIcon icon={UserAdd02Icon} data-icon="inline-start" />
           Add players
         </Button>

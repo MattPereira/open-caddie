@@ -424,10 +424,10 @@ if (!testDatabaseUrl) {
       expect(await queries.getUnassignedRoundsForTournament(f.tournament.id)).toMatchObject([{ roundId: round.id }]);
     });
 
-    it("revalidates the Tournament page without touching the home events cache", async () => {
+    it("revalidates the Tournament edit page without touching the home events cache", async () => {
       const { tournament } = await tournamentFixture();
       const pairingId = await createPairing(tournament.id);
-      expect(vi.mocked(cache.revalidatePath)).toHaveBeenCalledWith(`/tournaments/${tournament.id}`);
+      expect(vi.mocked(cache.revalidatePath)).toHaveBeenCalledWith(`/tournaments/${tournament.id}/edit`);
       expect(vi.mocked(cache.updateTag)).not.toHaveBeenCalled();
 
       await actions.renamePairing({ pairingId, name: "Flight A" });

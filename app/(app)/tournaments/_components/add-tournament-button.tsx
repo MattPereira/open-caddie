@@ -39,7 +39,6 @@ export function AddTournamentButton({
       <TournamentSheet
         open={open}
         onOpenChange={setOpen}
-        mode="create"
         clubs={clubs}
         courses={courses}
         redirectOnCreate={redirectOnCreate}

@@ -13,7 +13,7 @@ export function UploadScorecardButton({
   className?: string;
 }) {
   return (
-    <Button asChild variant="outline" size="lg" className={cn(className)}>
+    <Button asChild variant="secondary" size="xl" className={cn(className)}>
       <Link href={href}>
         <HugeiconsIcon icon={Upload03Icon} data-icon="inline-start" />
         Upload scores

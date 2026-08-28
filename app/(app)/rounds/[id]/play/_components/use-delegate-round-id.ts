@@ -12,50 +12,65 @@ const subscribe = (callback: () => void) => {
 
 const EMPTY: readonly number[] = [];
 
-const parse = (raw: string | null): readonly number[] => {
-  if (!raw) return EMPTY;
+const parse = (raw: string | null): readonly number[] | null => {
+  if (raw == null) return null;
   try {
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return EMPTY;
-    const ids = parsed.filter(
-      (v): v is number => Number.isInteger(v) && v > 0,
-    );
-    return ids.length === 0 ? EMPTY : ids;
+    if (!Array.isArray(parsed)) return null;
+    return parsed.filter((v): v is number => Number.isInteger(v) && v > 0);
   } catch {
-    return EMPTY;
+    return null;
   }
 };
 
-export function useDelegateRoundIds(roundId: number) {
-  const cacheRef = useRef<{ raw: string | null; value: readonly number[] }>({
-    raw: null,
-    value: EMPTY,
-  });
+// `null` means the player has never chosen for this Round, which is the only
+// condition that lets a caller prefill; an empty array means they chose nobody
+// and must survive a reload as such.
+export function readDelegateRoundIds(roundId: number) {
+  return parse(window.localStorage.getItem(storageKey(roundId)));
+}
 
+export function writeDelegateRoundIds(
+  roundId: number,
+  delegateRoundIds: readonly number[],
+) {
+  window.localStorage.setItem(
+    storageKey(roundId),
+    JSON.stringify(delegateRoundIds),
+  );
+}
+
+const same = (a: readonly number[] | null, b: readonly number[] | null) =>
+  a === b ||
+  (a != null &&
+    b != null &&
+    a.length === b.length &&
+    a.every((id, index) => id === b[index]));
+
+export function useDelegateRoundIds(
+  roundId: number,
+  prefillDelegateRoundIds: readonly number[] = EMPTY,
+) {
+  const cacheRef = useRef<readonly number[] | null>(null);
+
+  // `useSyncExternalStore` needs a stable snapshot, and every read parses a
+  // fresh array, so an unchanged selection is handed back its last identity.
   const getSnapshot = useCallback(() => {
-    const raw = window.localStorage.getItem(storageKey(roundId));
-    if (raw === cacheRef.current.raw) return cacheRef.current.value;
-    cacheRef.current = { raw, value: parse(raw) };
-    return cacheRef.current.value;
+    const next = readDelegateRoundIds(roundId);
+    if (same(cacheRef.current, next)) return cacheRef.current;
+    cacheRef.current = next;
+    return next;
   }, [roundId]);
 
-  const delegateRoundIds = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    () => EMPTY,
-  );
+  const storedRoundIds = useSyncExternalStore(subscribe, getSnapshot, () => null);
 
   const setDelegateRoundIds = useCallback(
     (next: readonly number[]) => {
-      if (next.length === 0) {
-        window.localStorage.removeItem(storageKey(roundId));
-      } else {
-        window.localStorage.setItem(storageKey(roundId), JSON.stringify(next));
-      }
+      writeDelegateRoundIds(roundId, next);
       window.dispatchEvent(new StorageEvent("storage"));
     },
     [roundId],
   );
 
-  return [delegateRoundIds, setDelegateRoundIds] as const;
+  return [storedRoundIds ?? prefillDelegateRoundIds, setDelegateRoundIds] as const;
 }

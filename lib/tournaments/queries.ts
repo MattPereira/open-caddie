@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, asc, count, desc, eq, gte, isNull, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNull, ne, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   clubMembers,
@@ -440,3 +440,85 @@ export type TournamentPairing = Awaited<
 >[number];
 
 export type TournamentPairingMember = TournamentPairing["members"][number];
+
+// The pairing-mates of one Round, with what they have already entered — the
+// play form's peer picker and its score columns, in one read. Deliberately not
+// folded into the cached Tournament-by-id read: that read serves the club
+// standings and Tournament pages, which would pay for a join only this form
+// needs.
+export const getPairingMatesForRound = cache(async (roundId: number) => {
+  const [membership] = await db
+    .select({ pairingId: pairingMembers.pairingId })
+    .from(pairingMembers)
+    .where(eq(pairingMembers.roundId, roundId))
+    .limit(1);
+
+  if (!membership) return [];
+
+  const mates = await db
+    .select({
+      roundId: rounds.id,
+      userId: users.id,
+      firstName: users.firstName,
+      lastName: users.lastName,
+    })
+    .from(pairingMembers)
+    .innerJoin(rounds, eq(rounds.id, pairingMembers.roundId))
+    .innerJoin(users, eq(users.id, rounds.userId))
+    .where(
+      and(
+        eq(pairingMembers.pairingId, membership.pairingId),
+        ne(pairingMembers.roundId, roundId),
+      ),
+    )
+    .orderBy(asc(users.lastName), asc(users.firstName), asc(users.username));
+
+  if (mates.length === 0) return [];
+
+  const mateRoundIds = mates.map((mate) => mate.roundId);
+  const [scoreRows, greenieRows] = await Promise.all([
+    db
+      .select({
+        roundId: roundScores.roundId,
+        hole: roundScores.hole,
+        par: courseHoles.par,
+        strokes: roundScores.strokes,
+        putts: roundScores.putts,
+      })
+      .from(roundScores)
+      .innerJoin(rounds, eq(rounds.id, roundScores.roundId))
+      .leftJoin(
+        courseHoles,
+        and(
+          eq(courseHoles.courseId, rounds.courseId),
+          eq(courseHoles.hole, roundScores.hole),
+        ),
+      )
+      .where(inArray(roundScores.roundId, mateRoundIds))
+      .orderBy(asc(roundScores.roundId), asc(roundScores.hole)),
+    db
+      .select({
+        roundId: greenies.roundId,
+        hole: greenies.hole,
+        feet: greenies.feet,
+        inches: greenies.inches,
+      })
+      .from(greenies)
+      .where(inArray(greenies.roundId, mateRoundIds))
+      .orderBy(asc(greenies.roundId), asc(greenies.hole)),
+  ]);
+
+  return mates.map((mate) => ({
+    ...mate,
+    scores: scoreRows
+      .filter((score) => score.roundId === mate.roundId)
+      .map(({ hole, par, strokes, putts }) => ({ hole, par, strokes, putts })),
+    greenies: greenieRows
+      .filter((greenie) => greenie.roundId === mate.roundId)
+      .map(({ hole, feet, inches }) => ({ hole, feet, inches })),
+  }));
+});
+
+export type PairingMate = Awaited<
+  ReturnType<typeof getPairingMatesForRound>
+>[number];

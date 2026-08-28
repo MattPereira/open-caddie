@@ -209,6 +209,59 @@ if (!testDatabaseUrl) {
       return greenie;
     }
 
+    // Both write surfaces are asserted together everywhere, because the
+    // authorization branch they share is the whole subject of this file.
+    async function expectWritesAllowed(
+      roundId: number,
+      { strokes, feet }: { strokes: number; feet: number },
+    ) {
+      expect(
+        await roundActions.upsertRoundScore({
+          roundId,
+          hole: PAR_FOUR_HOLE,
+          strokes,
+          putts: 2,
+        }),
+      ).toMatchObject({ ok: true });
+      expect(
+        await roundActions.upsertRoundGreenie({
+          roundId,
+          hole: PAR_THREE_HOLE,
+          feet,
+          inches: 3,
+        }),
+      ).toMatchObject({ ok: true });
+      expect(await scoreOf(roundId, PAR_FOUR_HOLE)).toMatchObject({
+        strokes,
+        putts: 2,
+      });
+      expect(await greenieOf(roundId, PAR_THREE_HOLE)).toMatchObject({
+        feet,
+        inches: 3,
+      });
+    }
+
+    async function expectWritesRejected(roundId: number) {
+      expect(
+        await roundActions.upsertRoundScore({
+          roundId,
+          hole: PAR_FOUR_HOLE,
+          strokes: 5,
+          putts: 2,
+        }),
+      ).toMatchObject({ ok: false });
+      expect(
+        await roundActions.upsertRoundGreenie({
+          roundId,
+          hole: PAR_THREE_HOLE,
+          feet: 12,
+          inches: 3,
+        }),
+      ).toMatchObject({ ok: false });
+      expect(await scoreOf(roundId, PAR_FOUR_HOLE)).toBeUndefined();
+      expect(await greenieOf(roundId, PAR_THREE_HOLE)).toBeUndefined();
+    }
+
     beforeEach(() => {
       vi.mocked(auth).mockReset();
     });
@@ -259,31 +312,7 @@ if (!testDatabaseUrl) {
       await pairingFixture(f.tournament.id, [marker.round.id, mate.round.id]);
       signInAs(marker.user.id);
 
-      expect(
-        await roundActions.upsertRoundScore({
-          roundId: mate.round.id,
-          hole: PAR_FOUR_HOLE,
-          strokes: 5,
-          putts: 2,
-        }),
-      ).toMatchObject({ ok: true });
-      expect(
-        await roundActions.upsertRoundGreenie({
-          roundId: mate.round.id,
-          hole: PAR_THREE_HOLE,
-          feet: 12,
-          inches: 3,
-        }),
-      ).toMatchObject({ ok: true });
-
-      expect(await scoreOf(mate.round.id, PAR_FOUR_HOLE)).toMatchObject({
-        strokes: 5,
-        putts: 2,
-      });
-      expect(await greenieOf(mate.round.id, PAR_THREE_HOLE)).toMatchObject({
-        feet: 12,
-        inches: 3,
-      });
+      await expectWritesAllowed(mate.round.id, { strokes: 5, feet: 12 });
     });
 
     it("lets a pairing-mate delete a Greenie they entered", async () => {
@@ -316,23 +345,7 @@ if (!testDatabaseUrl) {
       await pairingFixture(f.tournament.id, [target.round.id]);
       signInAs(outsider.user.id);
 
-      expect(
-        await roundActions.upsertRoundScore({
-          roundId: target.round.id,
-          hole: PAR_FOUR_HOLE,
-          strokes: 5,
-          putts: 2,
-        }),
-      ).toMatchObject({ ok: false });
-      expect(
-        await roundActions.upsertRoundGreenie({
-          roundId: target.round.id,
-          hole: PAR_THREE_HOLE,
-          feet: 12,
-          inches: 3,
-        }),
-      ).toMatchObject({ ok: false });
-      expect(await scoreOf(target.round.id, PAR_FOUR_HOLE)).toBeUndefined();
+      await expectWritesRejected(target.round.id);
     });
 
     it("rejects a Tournament player in no Pairing", async () => {
@@ -342,15 +355,7 @@ if (!testDatabaseUrl) {
       await pairingFixture(f.tournament.id, [target.round.id]);
       signInAs(ungrouped.user.id);
 
-      expect(
-        await roundActions.upsertRoundScore({
-          roundId: target.round.id,
-          hole: PAR_FOUR_HOLE,
-          strokes: 5,
-          putts: 2,
-        }),
-      ).toMatchObject({ ok: false });
-      expect(await scoreOf(target.round.id, PAR_FOUR_HOLE)).toBeUndefined();
+      await expectWritesRejected(target.round.id);
     });
 
     it("rejects a peer write in a Tournament with no Pairings at all", async () => {
@@ -359,15 +364,7 @@ if (!testDatabaseUrl) {
       const target = await playerFixture(f);
       signInAs(peer.user.id);
 
-      expect(
-        await roundActions.upsertRoundScore({
-          roundId: target.round.id,
-          hole: PAR_FOUR_HOLE,
-          strokes: 5,
-          putts: 2,
-        }),
-      ).toMatchObject({ ok: false });
-      expect(await scoreOf(target.round.id, PAR_FOUR_HOLE)).toBeUndefined();
+      await expectWritesRejected(target.round.id);
     });
 
     it("lets a Round's owner write their own Round when they are in no Pairing", async () => {
@@ -375,17 +372,7 @@ if (!testDatabaseUrl) {
       const player = await playerFixture(f);
       signInAs(player.user.id);
 
-      expect(
-        await roundActions.upsertRoundScore({
-          roundId: player.round.id,
-          hole: PAR_FOUR_HOLE,
-          strokes: 4,
-          putts: 1,
-        }),
-      ).toMatchObject({ ok: true });
-      expect(await scoreOf(player.round.id, PAR_FOUR_HOLE)).toMatchObject({
-        strokes: 4,
-      });
+      await expectWritesAllowed(player.round.id, { strokes: 4, feet: 6 });
     });
 
     it("lets an admin write any Round", async () => {
@@ -395,17 +382,7 @@ if (!testDatabaseUrl) {
       const admin = await userFixture({ isAdmin: true });
       signInAs(admin.id);
 
-      expect(
-        await roundActions.upsertRoundScore({
-          roundId: target.round.id,
-          hole: PAR_FOUR_HOLE,
-          strokes: 7,
-          putts: 3,
-        }),
-      ).toMatchObject({ ok: true });
-      expect(await scoreOf(target.round.id, PAR_FOUR_HOLE)).toMatchObject({
-        strokes: 7,
-      });
+      await expectWritesAllowed(target.round.id, { strokes: 7, feet: 20 });
     });
 
     it("leaves Match peer scoring unaffected", async () => {

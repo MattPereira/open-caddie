@@ -10,6 +10,7 @@ import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
 import { getCoursesWithTees } from "@/lib/courses/queries";
 import {
   getAddablePlayersForTournament,
+  getPairingsForTournament,
   getTournamentById,
 } from "@/lib/tournaments/queries";
 import { getCurrentUser } from "@/lib/users/queries";
@@ -19,6 +20,7 @@ import { PageContent } from "@/components/layout/page-content";
 import { UploadScorecardButton } from "@/components/features/scorecard-import/upload-scorecard-button";
 import { AddPlayersSheet } from "./_components/add-players-sheet";
 import { PairingsButton } from "./_components/pairings-button";
+import { PairingsList } from "./_components/pairings-list";
 import { EditTournamentButton } from "./_components/edit-tournament-button";
 import { WinnersTabContent } from "./_components/winners-tab-content";
 
@@ -59,6 +61,7 @@ export default async function TournamentPage({
   ]);
 
   if (!tournament) notFound();
+  const pairings = await getPairingsForTournament(tournament.id);
   const defaultTab = getTournamentDefaultTab(resolvedSearchParams?.tab);
   const currentUserUnfinishedRound = currentUser
     ? tournament.rounds.find(
@@ -162,6 +165,12 @@ export default async function TournamentPage({
                 />
               </>
             ) : null
+          }
+          footer={
+            <PairingsList
+              pairings={pairings}
+              currentUserId={currentUser?.id ?? null}
+            />
           }
         />
         <GreeniesTabContent

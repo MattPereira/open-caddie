@@ -361,11 +361,9 @@ const getTournamentRoundPlayers = cache(async (tournamentId: number) => {
 export const getPairingsForTournament = cache(async (tournamentId: number) => {
   const [pairingRows, rows] = await Promise.all([
     db
-      .select({
-        id: pairings.id,
-        name: pairings.name,
-        sortOrder: pairings.sortOrder,
-      })
+      // Sort order carries no meaning past the ordering itself — a Pairing is
+      // read by name — so it orders the rows without joining the result.
+      .select({ id: pairings.id, name: pairings.name })
       .from(pairings)
       .where(eq(pairings.tournamentId, tournamentId))
       .orderBy(asc(pairings.sortOrder), asc(pairings.id)),

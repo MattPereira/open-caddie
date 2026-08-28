@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, asc, count, desc, eq, gt, inArray, lt, sql } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { auth } from "@/auth";
@@ -340,11 +340,6 @@ const PairingDeleteSchema = z.object({
   pairingId: z.number().int().positive(),
 });
 
-const PairingMoveSchema = z.object({
-  pairingId: z.number().int().positive(),
-  direction: z.enum(["up", "down"]),
-});
-
 const PairingAssignSchema = z.object({
   pairingId: z.number().int().positive(),
   roundId: z.number().int().positive(),
@@ -357,7 +352,6 @@ const PairingUnassignSchema = z.object({
 export type PairingCreateValues = z.infer<typeof PairingCreateSchema>;
 export type PairingRenameValues = z.infer<typeof PairingRenameSchema>;
 export type PairingDeleteValues = z.infer<typeof PairingDeleteSchema>;
-export type PairingMoveValues = z.infer<typeof PairingMoveSchema>;
 export type PairingAssignValues = z.infer<typeof PairingAssignSchema>;
 export type PairingUnassignValues = z.infer<typeof PairingUnassignSchema>;
 
@@ -470,69 +464,6 @@ export async function deletePairing(
   // Membership rows cascade; the Rounds themselves stay in the Tournament.
   await db.delete(pairings).where(eq(pairings.id, pairingId));
   revalidatePath(`/tournaments/${tournamentId}/edit`);
-  return { ok: true, id: pairingId };
-}
-
-export async function movePairing(
-  values: PairingMoveValues,
-): Promise<ActionResult> {
-  if (!(await isAdmin())) {
-    return { ok: false, error: "Only admins can manage Pairings." };
-  }
-
-  const parsed = PairingMoveSchema.safeParse(values);
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0].message };
-  }
-
-  const { pairingId, direction } = parsed.data;
-  // Moving swaps sort orders with the adjacent Pairing, under a lock on the
-  // Tournament so a concurrent move or create cannot read a half-done swap.
-  const moved = await db.transaction(async (tx) => {
-    const [pairing] = await tx
-      .select()
-      .from(pairings)
-      .where(eq(pairings.id, pairingId))
-      .limit(1);
-    if (!pairing) return { ok: false as const, error: "Pairing not found." };
-
-    await tx.execute(
-      sql`select id from tournaments where id = ${pairing.tournamentId} for update`,
-    );
-    const [neighbour] = await tx
-      .select()
-      .from(pairings)
-      .where(
-        and(
-          eq(pairings.tournamentId, pairing.tournamentId),
-          direction === "up"
-            ? lt(pairings.sortOrder, pairing.sortOrder)
-            : gt(pairings.sortOrder, pairing.sortOrder),
-        ),
-      )
-      .orderBy(
-        direction === "up"
-          ? desc(pairings.sortOrder)
-          : asc(pairings.sortOrder),
-      )
-      .limit(1);
-    if (!neighbour) {
-      return { ok: false as const, error: "Pairing is already at the end." };
-    }
-
-    await tx
-      .update(pairings)
-      .set({ sortOrder: pairing.sortOrder })
-      .where(eq(pairings.id, neighbour.id));
-    await tx
-      .update(pairings)
-      .set({ sortOrder: neighbour.sortOrder })
-      .where(eq(pairings.id, pairingId));
-    return { ok: true as const, tournamentId: pairing.tournamentId };
-  });
-
-  if (!moved.ok) return moved;
-  revalidatePath(`/tournaments/${moved.tournamentId}/edit`);
   return { ok: true, id: pairingId };
 }
 

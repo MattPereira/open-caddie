@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/shared/url-tabs";
 import { PageContent } from "@/components/layout/page-content";
+import { CourseHero } from "@/components/domain/course-hero";
 import { TournamentForm } from "../../_components/tournament-form";
 import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
 import { getCoursesWithTees } from "@/lib/courses/queries";
@@ -17,9 +18,7 @@ import {
   getUnassignedRoundsForTournament,
 } from "@/lib/tournaments/queries";
 import { getCurrentUser } from "@/lib/users/queries";
-import { formatDate } from "@/lib/dates";
-import { PairingsManager } from "./_components/pairings-manager";
-import { TournamentPlayers } from "./_components/tournament-players";
+import { PairingBoard } from "./_components/pairing-board";
 
 type EditTournamentPageProps = {
   params: Promise<{ id: string }>;
@@ -27,7 +26,7 @@ type EditTournamentPageProps = {
 
 export const dynamic = "force-dynamic";
 
-const editTabValues = ["players", "pairings", "details"] as const;
+const editTabValues = ["players", "details"] as const;
 
 export default async function EditTournamentPage({
   params,
@@ -52,27 +51,29 @@ export default async function EditTournamentPage({
 
   return (
     <PageContent className="max-w-3xl">
-      <div className="flex items-start gap-2">
-        <Button
-          asChild
-          variant="ghost"
-          size="icon"
-          aria-label="Back to tournament"
-        >
-          <Link href={`/tournaments/${tournamentId}`}>
-            <HugeiconsIcon icon={ArrowLeft02Icon} aria-hidden />
-          </Link>
-        </Button>
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-normal">
-            Edit tournament
-          </h1>
-          <p className="text-base text-muted-foreground">
-            {[tournament.courseName, formatDate(tournament.date, "shorter")]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
+      <div className="flex flex-col gap-3">
+        <div className="flex justify-between items-center gap-2">
+          <div className="flex flex-col">
+            <h1 className="text-2xl font-semibold tracking-normal">
+              Edit tournament
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {tournament.clubName} · Season {tournament.season}
+            </p>
+          </div>
+
+          <Button asChild variant="secondary" size="xl">
+            <Link href={`/tournaments/${tournamentId}`}>
+              <HugeiconsIcon icon={ArrowLeft02Icon} data-icon="inline-start" />
+              Back
+            </Link>
+          </Button>
         </div>
+        <CourseHero
+          courseName={tournament.courseName}
+          courseImgUrl={tournament.courseImgUrl}
+          date={tournament.date}
+        />
       </div>
 
       <UrlTabs
@@ -80,38 +81,25 @@ export default async function EditTournamentPage({
         values={editTabValues}
         className="w-full"
       >
-        <TabsList className="w-full p-1 sm:w-fit mb-3 h-10!">
+        <TabsList size="lg" className="mb-3 w-full sm:w-fit">
           <TabsTrigger
             value="players"
-            className="flex-1 px-5 py-2 text-base sm:flex-none"
+            className="flex-1 sm:flex-none"
           >
             Players
           </TabsTrigger>
           <TabsTrigger
-            value="pairings"
-            className="flex-1 px-5 py-2 text-base sm:flex-none"
-          >
-            Pairings
-          </TabsTrigger>
-          <TabsTrigger
             value="details"
-            className="flex-1 px-5 py-2 text-base sm:flex-none"
+            className="flex-1 sm:flex-none"
           >
             Details
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="players">
-          <TournamentPlayers
+          <PairingBoard
             tournamentId={tournamentId}
-            players={tournament.rounds}
             addablePlayers={addablePlayers}
-          />
-        </TabsContent>
-
-        <TabsContent value="pairings">
-          <PairingsManager
-            tournamentId={tournamentId}
             pairings={pairings}
             unassigned={unassigned}
           />

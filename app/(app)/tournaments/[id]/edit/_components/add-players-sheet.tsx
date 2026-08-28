@@ -84,7 +84,7 @@ export function AddPlayersSheet({
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
-        <Button size="lg" variant="outline">
+        <Button size="xl" variant="secondary" className="w-full">
           <HugeiconsIcon icon={UserAdd02Icon} data-icon="inline-start" />
           Add players
         </Button>

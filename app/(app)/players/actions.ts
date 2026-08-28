@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { and, count, eq, ne, sql } from "drizzle-orm";
 import { signIn } from "@/auth";
 import { db } from "@/db";
 import { greenies, rounds, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/users/queries";
 import { safeDeleteBlob } from "@/lib/images/blob";
+import { createSignInLink } from "@/lib/users/sign-in-link";
 import {
   UserCreateSchema,
   UserUpdateSchema,
@@ -224,4 +226,19 @@ export async function deleteUser(id: string): Promise<ActionResult> {
   revalidatePath("/players");
   revalidatePath(`/players/${id}`);
   return { ok: true };
+}
+
+export async function createPlayerSignInLink(
+  id: string,
+): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  await requireAdmin();
+
+  const headerList = await headers();
+  const host = headerList.get("host");
+  if (!host) {
+    return { ok: false, error: "Could not determine the app URL." };
+  }
+  const protocol = host.startsWith("localhost") ? "http" : "https";
+
+  return createSignInLink({ userId: id, origin: `${protocol}://${host}` });
 }

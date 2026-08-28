@@ -49,8 +49,8 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
 
   return (
     <PageContent>
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-1 items-center gap-3">
           <div className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-muted">
             {player.image ? (
               <Image

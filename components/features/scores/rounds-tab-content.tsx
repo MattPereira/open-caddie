@@ -12,11 +12,13 @@ export function RoundsTabContent({
   emptyMessage,
   rounds,
   actions,
+  children,
 }: {
   currentUser: { id: string; isAdmin: boolean } | null;
   emptyMessage: string;
   rounds: RoundScoresTableRound[];
   actions?: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <TabsContent value="rounds" className="flex flex-col gap-5">
@@ -30,6 +32,7 @@ export function RoundsTabContent({
       ) : (
         <RoundScoresTable currentUser={currentUser} rounds={rounds} />
       )}
+      {children}
     </TabsContent>
   );
 }

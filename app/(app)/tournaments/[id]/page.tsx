@@ -10,6 +10,7 @@ import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
 import { getCoursesWithTees } from "@/lib/courses/queries";
 import {
   getAddablePlayersForTournament,
+  getPairingsForTournament,
   getTournamentById,
 } from "@/lib/tournaments/queries";
 import { getCurrentUser } from "@/lib/users/queries";
@@ -19,6 +20,7 @@ import { PageContent } from "@/components/layout/page-content";
 import { UploadScorecardButton } from "@/components/features/scorecard-import/upload-scorecard-button";
 import { AddPlayersSheet } from "./_components/add-players-sheet";
 import { PairingsButton } from "./_components/pairings-button";
+import { PairingsList } from "./_components/pairings-list";
 import { EditTournamentButton } from "./_components/edit-tournament-button";
 import { WinnersTabContent } from "./_components/winners-tab-content";
 
@@ -52,10 +54,18 @@ export default async function TournamentPage({
   params,
   searchParams,
 }: TournamentPageProps) {
-  const [tournament, currentUser, resolvedSearchParams] = await Promise.all([
-    getTournamentFromParams(params),
+  const [{ id }, currentUser, resolvedSearchParams] = await Promise.all([
+    params,
     getCurrentUser(),
     searchParams,
+  ]);
+
+  const tournamentId = Number(id);
+  if (!Number.isInteger(tournamentId) || tournamentId <= 0) notFound();
+
+  const [tournament, pairings] = await Promise.all([
+    getTournamentById(tournamentId),
+    getPairingsForTournament(tournamentId),
   ]);
 
   if (!tournament) notFound();
@@ -163,7 +173,12 @@ export default async function TournamentPage({
               </>
             ) : null
           }
-        />
+        >
+          <PairingsList
+            pairings={pairings}
+            currentUserId={currentUser?.id ?? null}
+          />
+        </RoundsTabContent>
         <GreeniesTabContent
           emptyMessage="No greenies have been recorded for this tournament."
           greenies={tournament.greenies}

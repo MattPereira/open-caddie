@@ -152,6 +152,7 @@ if (!testDatabaseUrl) {
     const { eq, inArray } = await import("drizzle-orm");
     const clubIds: number[] = [];
     const courseIds: number[] = [];
+    const userIds: string[] = [];
 
     async function tournamentFixture() {
       const suffix = crypto.randomUUID();
@@ -171,7 +172,31 @@ if (!testDatabaseUrl) {
       }).returning();
       clubIds.push(club.id);
       courseIds.push(course.id);
-      return { tournament };
+      return { tournament, course, tee };
+    }
+
+    // A Tournament player: a user with a Round in that Tournament, which is
+    // what a Pairing actually holds.
+    async function playerFixture(
+      f: Awaited<ReturnType<typeof tournamentFixture>>,
+    ) {
+      const suffix = crypto.randomUUID();
+      const [user] = await db
+        .insert(schema.users)
+        .values({ email: `player-${suffix}@example.com`, firstName: "Player", lastName: suffix })
+        .returning();
+      const [round] = await db
+        .insert(schema.rounds)
+        .values({
+          tournamentId: f.tournament.id,
+          userId: user.id,
+          courseId: f.course.id,
+          teeId: f.tee.id,
+          date: f.tournament.date,
+        })
+        .returning();
+      userIds.push(user.id);
+      return { user, round };
     }
 
     async function createPairing(tournamentId: number) {
@@ -187,14 +212,18 @@ if (!testDatabaseUrl) {
     });
 
     afterEach(async () => {
+      // Rounds restrict their Tournament, Course and user, so they go first.
+      if (userIds.length) await db.delete(schema.rounds).where(inArray(schema.rounds.userId, userIds));
       if (clubIds.length) {
         const clubSeasonIds = (await db.select({ id: schema.seasons.id }).from(schema.seasons).where(inArray(schema.seasons.clubId, clubIds))).map((season) => season.id);
         if (clubSeasonIds.length) await db.delete(schema.tournaments).where(inArray(schema.tournaments.seasonId, clubSeasonIds));
         await db.delete(schema.clubs).where(inArray(schema.clubs.id, clubIds));
       }
       if (courseIds.length) await db.delete(schema.courses).where(inArray(schema.courses.id, courseIds));
+      if (userIds.length) await db.delete(schema.users).where(inArray(schema.users.id, userIds));
       clubIds.length = 0;
       courseIds.length = 0;
+      userIds.length = 0;
     });
 
     it("rejects every Pairing mutation from a non-admin", async () => {
@@ -284,6 +313,115 @@ if (!testDatabaseUrl) {
       expect(await queries.getPairingsForTournament(tournament.id)).toMatchObject([{ id: second, name: "Pairing 2" }]);
       const [stillThere] = await db.select().from(schema.tournaments).where(eq(schema.tournaments.id, tournament.id));
       expect(stillThere).toBeDefined();
+    });
+
+    it("assigns an unassigned Round to a Pairing", async () => {
+      const f = await tournamentFixture();
+      const pairingId = await createPairing(f.tournament.id);
+      const { user, round } = await playerFixture(f);
+      expect(await queries.getUnassignedRoundsForTournament(f.tournament.id)).toMatchObject([{ roundId: round.id, userId: user.id }]);
+
+      expect(await actions.assignRoundToPairing({ pairingId, roundId: round.id })).toMatchObject({ ok: true });
+      expect(await queries.getPairingsForTournament(f.tournament.id)).toMatchObject([{ id: pairingId, members: [{ roundId: round.id, userId: user.id }] }]);
+      expect(await queries.getUnassignedRoundsForTournament(f.tournament.id)).toEqual([]);
+    });
+
+    it("moves a Round from one Pairing to another", async () => {
+      const f = await tournamentFixture();
+      const first = await createPairing(f.tournament.id);
+      const second = await createPairing(f.tournament.id);
+      const { round } = await playerFixture(f);
+      await actions.assignRoundToPairing({ pairingId: first, roundId: round.id });
+
+      expect(await actions.assignRoundToPairing({ pairingId: second, roundId: round.id })).toMatchObject({ ok: true });
+      expect(await queries.getPairingsForTournament(f.tournament.id)).toMatchObject([
+        { id: first, members: [] },
+        { id: second, members: [{ roundId: round.id }] },
+      ]);
+    });
+
+    it("removes a Round from its Pairing without removing the player from the Tournament", async () => {
+      const f = await tournamentFixture();
+      const pairingId = await createPairing(f.tournament.id);
+      const { round } = await playerFixture(f);
+      await actions.assignRoundToPairing({ pairingId, roundId: round.id });
+
+      expect(await actions.removeRoundFromPairing({ roundId: round.id })).toMatchObject({ ok: true });
+      expect(await queries.getPairingsForTournament(f.tournament.id)).toMatchObject([{ id: pairingId, members: [] }]);
+      expect(await queries.getUnassignedRoundsForTournament(f.tournament.id)).toMatchObject([{ roundId: round.id }]);
+      const [stillPlaying] = await db.select().from(schema.rounds).where(eq(schema.rounds.id, round.id));
+      expect(stillPlaying).toMatchObject({ tournamentId: f.tournament.id });
+    });
+
+    it("leaves a player added after grouping unassigned", async () => {
+      const f = await tournamentFixture();
+      const pairingId = await createPairing(f.tournament.id);
+      const early = await playerFixture(f);
+      await actions.assignRoundToPairing({ pairingId, roundId: early.round.id });
+
+      const late = await playerFixture(f);
+      expect(await queries.getUnassignedRoundsForTournament(f.tournament.id)).toMatchObject([{ roundId: late.round.id }]);
+      expect(await queries.getPairingsForTournament(f.tournament.id)).toMatchObject([{ members: [{ roundId: early.round.id }] }]);
+    });
+
+    it("rejects a fifth Round with a message", async () => {
+      const f = await tournamentFixture();
+      const pairingId = await createPairing(f.tournament.id);
+      const rounds = [];
+      for (let i = 0; i < 5; i += 1) rounds.push((await playerFixture(f)).round);
+      for (const round of rounds.slice(0, 4)) {
+        expect(await actions.assignRoundToPairing({ pairingId, roundId: round.id })).toMatchObject({ ok: true });
+      }
+
+      const fifth = await actions.assignRoundToPairing({ pairingId, roundId: rounds[4].id });
+      expect(fifth).toMatchObject({ ok: false, error: expect.stringContaining("4") });
+      expect(await queries.getUnassignedRoundsForTournament(f.tournament.id)).toMatchObject([{ roundId: rounds[4].id }]);
+    });
+
+    it("rejects a Round from another Tournament", async () => {
+      const f = await tournamentFixture();
+      const other = await tournamentFixture();
+      const pairingId = await createPairing(f.tournament.id);
+      const { round } = await playerFixture(other);
+
+      expect(await actions.assignRoundToPairing({ pairingId, roundId: round.id })).toMatchObject({ ok: false });
+      expect(await queries.getPairingsForTournament(f.tournament.id)).toMatchObject([{ members: [] }]);
+    });
+
+    it("rejects membership changes from a non-admin", async () => {
+      const f = await tournamentFixture();
+      const pairingId = await createPairing(f.tournament.id);
+      const assigned = await playerFixture(f);
+      const unassigned = await playerFixture(f);
+      await actions.assignRoundToPairing({ pairingId, roundId: assigned.round.id });
+      getCurrentUser.mockResolvedValue({ isAdmin: false });
+
+      expect(await actions.assignRoundToPairing({ pairingId, roundId: unassigned.round.id })).toMatchObject({ ok: false });
+      expect(await actions.removeRoundFromPairing({ roundId: assigned.round.id })).toMatchObject({ ok: false });
+      expect(await queries.getPairingsForTournament(f.tournament.id)).toMatchObject([{ members: [{ roundId: assigned.round.id }] }]);
+    });
+
+    it("reassigns a player whose scores already exist and leaves those scores untouched", async () => {
+      const f = await tournamentFixture();
+      const first = await createPairing(f.tournament.id);
+      const second = await createPairing(f.tournament.id);
+      const { round } = await playerFixture(f);
+      await actions.assignRoundToPairing({ pairingId: first, roundId: round.id });
+      await db.insert(schema.roundScores).values({ roundId: round.id, hole: 1, strokes: 4, putts: 2 });
+
+      expect(await actions.assignRoundToPairing({ pairingId: second, roundId: round.id })).toMatchObject({ ok: true });
+      expect(await db.select().from(schema.roundScores).where(eq(schema.roundScores.roundId, round.id))).toMatchObject([{ hole: 1, strokes: 4, putts: 2 }]);
+    });
+
+    it("returns a deleted Pairing's members to unassigned without removing their Rounds", async () => {
+      const f = await tournamentFixture();
+      const pairingId = await createPairing(f.tournament.id);
+      const { round } = await playerFixture(f);
+      await actions.assignRoundToPairing({ pairingId, roundId: round.id });
+
+      expect(await actions.deletePairing({ pairingId })).toMatchObject({ ok: true });
+      expect(await queries.getPairingsForTournament(f.tournament.id)).toEqual([]);
+      expect(await queries.getUnassignedRoundsForTournament(f.tournament.id)).toMatchObject([{ roundId: round.id }]);
     });
 
     it("revalidates the Tournament page without touching the home events cache", async () => {

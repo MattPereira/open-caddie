@@ -10,6 +10,7 @@ import {
   clubs,
   courseTees,
   courses,
+  pairingMembers,
   pairings,
   rounds,
   seasons,
@@ -17,6 +18,7 @@ import {
   users,
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/users/queries";
+import { PAIRING_MAX_MEMBERS } from "@/lib/tournaments/pairings";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import {
   TournamentCreateSchema,
@@ -341,10 +343,21 @@ const PairingMoveSchema = z.object({
   direction: z.enum(["up", "down"]),
 });
 
+const PairingAssignSchema = z.object({
+  pairingId: z.number().int().positive(),
+  roundId: z.number().int().positive(),
+});
+
+const PairingUnassignSchema = z.object({
+  roundId: z.number().int().positive(),
+});
+
 export type PairingCreateValues = z.infer<typeof PairingCreateSchema>;
 export type PairingRenameValues = z.infer<typeof PairingRenameSchema>;
 export type PairingDeleteValues = z.infer<typeof PairingDeleteSchema>;
 export type PairingMoveValues = z.infer<typeof PairingMoveSchema>;
+export type PairingAssignValues = z.infer<typeof PairingAssignSchema>;
+export type PairingUnassignValues = z.infer<typeof PairingUnassignSchema>;
 
 async function isAdmin() {
   const me = await getCurrentUser();
@@ -519,4 +532,113 @@ export async function movePairing(
   if (!moved.ok) return moved;
   revalidatePath(`/tournaments/${moved.tournamentId}`);
   return { ok: true, id: pairingId };
+}
+
+// Assigning is also how a Round moves between Pairings: membership is keyed by
+// Round, so the old row is replaced rather than added to. Reassignment stays
+// possible after scores exist — scores live on the player's own Round and a
+// Pairing only gates who may write, so there is nothing to unwind.
+export async function assignRoundToPairing(
+  values: PairingAssignValues,
+): Promise<ActionResult> {
+  if (!(await isAdmin())) {
+    return { ok: false, error: "Only admins can manage Pairings." };
+  }
+
+  const parsed = PairingAssignSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { pairingId, roundId } = parsed.data;
+  const assigned = await db.transaction(async (tx) => {
+    const [pairing] = await tx
+      .select({ tournamentId: pairings.tournamentId })
+      .from(pairings)
+      .where(eq(pairings.id, pairingId))
+      .limit(1);
+    if (!pairing) return { ok: false as const, error: "Pairing not found." };
+
+    // The cap is counted under a lock on the Tournament so two concurrent
+    // assignments cannot both read a Pairing of three and each add a fourth.
+    await tx.execute(
+      sql`select id from tournaments where id = ${pairing.tournamentId} for update`,
+    );
+
+    const [round] = await tx
+      .select({ tournamentId: rounds.tournamentId })
+      .from(rounds)
+      .where(eq(rounds.id, roundId))
+      .limit(1);
+    if (!round) return { ok: false as const, error: "Player's round not found." };
+    if (round.tournamentId !== pairing.tournamentId) {
+      return {
+        ok: false as const,
+        error: "That player is not in this Tournament.",
+      };
+    }
+
+    const [existing] = await tx
+      .select({ pairingId: pairingMembers.pairingId })
+      .from(pairingMembers)
+      .where(eq(pairingMembers.roundId, roundId))
+      .limit(1);
+    if (existing?.pairingId === pairingId) {
+      return { ok: true as const, tournamentId: pairing.tournamentId };
+    }
+
+    const [members] = await tx
+      .select({ value: count() })
+      .from(pairingMembers)
+      .where(eq(pairingMembers.pairingId, pairingId));
+    if ((members?.value ?? 0) >= PAIRING_MAX_MEMBERS) {
+      return {
+        ok: false as const,
+        error: `A Pairing holds at most ${PAIRING_MAX_MEMBERS} players.`,
+      };
+    }
+
+    if (existing) {
+      await tx.delete(pairingMembers).where(eq(pairingMembers.roundId, roundId));
+    }
+    await tx.insert(pairingMembers).values({
+      tournamentId: pairing.tournamentId,
+      pairingId,
+      roundId,
+    });
+    return { ok: true as const, tournamentId: pairing.tournamentId };
+  });
+
+  if (!assigned.ok) return assigned;
+  revalidatePath(`/tournaments/${assigned.tournamentId}`);
+  return { ok: true, id: roundId };
+}
+
+// Removing a Round from its Pairing returns it to the unassigned bucket; the
+// Round itself stays in the Tournament.
+export async function removeRoundFromPairing(
+  values: PairingUnassignValues,
+): Promise<ActionResult> {
+  if (!(await isAdmin())) {
+    return { ok: false, error: "Only admins can manage Pairings." };
+  }
+
+  const parsed = PairingUnassignSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
+  }
+
+  const { roundId } = parsed.data;
+  const [member] = await db
+    .select({ tournamentId: pairingMembers.tournamentId })
+    .from(pairingMembers)
+    .where(eq(pairingMembers.roundId, roundId))
+    .limit(1);
+  if (!member) {
+    return { ok: false, error: "That player is not in a Pairing." };
+  }
+
+  await db.delete(pairingMembers).where(eq(pairingMembers.roundId, roundId));
+  revalidatePath(`/tournaments/${member.tournamentId}`);
+  return { ok: true, id: roundId };
 }

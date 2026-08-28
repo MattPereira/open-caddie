@@ -40,19 +40,26 @@ export function writeDelegateRoundIds(
   );
 }
 
+const same = (a: readonly number[] | null, b: readonly number[] | null) =>
+  a === b ||
+  (a != null &&
+    b != null &&
+    a.length === b.length &&
+    a.every((id, index) => id === b[index]));
+
 export function useDelegateRoundIds(
   roundId: number,
-  prefillRoundIds: readonly number[] = EMPTY,
+  prefillDelegateRoundIds: readonly number[] = EMPTY,
 ) {
-  const cacheRef = useRef<{ raw: string | null; value: readonly number[] | null }>(
-    { raw: null, value: null },
-  );
+  const cacheRef = useRef<readonly number[] | null>(null);
 
+  // `useSyncExternalStore` needs a stable snapshot, and every read parses a
+  // fresh array, so an unchanged selection is handed back its last identity.
   const getSnapshot = useCallback(() => {
-    const raw = window.localStorage.getItem(storageKey(roundId));
-    if (raw === cacheRef.current.raw) return cacheRef.current.value;
-    cacheRef.current = { raw, value: parse(raw) };
-    return cacheRef.current.value;
+    const next = readDelegateRoundIds(roundId);
+    if (same(cacheRef.current, next)) return cacheRef.current;
+    cacheRef.current = next;
+    return next;
   }, [roundId]);
 
   const storedRoundIds = useSyncExternalStore(subscribe, getSnapshot, () => null);
@@ -65,5 +72,5 @@ export function useDelegateRoundIds(
     [roundId],
   );
 
-  return [storedRoundIds ?? prefillRoundIds, setDelegateRoundIds] as const;
+  return [storedRoundIds ?? prefillDelegateRoundIds, setDelegateRoundIds] as const;
 }

@@ -7,6 +7,7 @@ import type { RoundScoresTableRound } from "@/components/features/scores/round-s
 import type { StoredMatchPlayTeam } from "@/app/(app)/matches/[id]/_components/match-play-tab-content";
 import type { MatchFormat } from "@/app/(app)/matches/schema";
 import { RoundScoresForm, type SettingsTee } from "./round-scores-form";
+import { MAX_DELEGATES } from "./settings-dialog";
 import {
   buildInitialScores,
   buildLiveRound,
@@ -72,9 +73,16 @@ export function RoundPlay({
     () => buildLiveRound(tableRound, scores),
     [tableRound, scores],
   );
+  // A Pairing holds at most four Rounds, so a player's mates already fit the
+  // picker's cap; the slice keeps a prefill from ever exceeding what the picker
+  // would let the player choose by hand.
+  const prefill = useMemo(
+    () => prefillDelegateRoundIds?.slice(0, MAX_DELEGATES),
+    [prefillDelegateRoundIds],
+  );
   const [delegateRoundIds, setDelegateRoundIds] = useDelegateRoundIds(
     roundId,
-    prefillDelegateRoundIds,
+    prefill,
   );
 
   const summary =

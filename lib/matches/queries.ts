@@ -1,22 +1,25 @@
 import { cache } from "react";
-import { and, asc, count, desc, eq, sql } from "drizzle-orm";
+import { asc, count, desc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import {
   courseHoles,
   courseTees,
   courses,
-  greenies,
   matches,
   matchTeamMembers,
   matchTeams,
-  roundScores,
   roundSummaries,
   rounds,
   teeYardages,
   users,
 } from "@/db/schema";
 import { assessHandicap } from "@/lib/handicap";
+import {
+  groupByRoundId,
+  readGreeniesByRounds,
+  readScoresByRounds,
+} from "@/lib/rounds/scorecards";
 
 export const getAllMatches = cache(async () => {
   return db
@@ -116,45 +119,8 @@ export const getMatchById = cache(async (matchId: number) => {
           asc(users.firstName),
           asc(users.username),
         ),
-      db
-        .select({
-          roundId: roundScores.roundId,
-          hole: roundScores.hole,
-          par: courseHoles.par,
-          handicap: courseHoles.handicap,
-          strokes: roundScores.strokes,
-          putts: roundScores.putts,
-        })
-        .from(roundScores)
-        .innerJoin(rounds, eq(roundScores.roundId, rounds.id))
-        .leftJoin(
-          courseHoles,
-          and(
-            eq(courseHoles.courseId, rounds.courseId),
-            eq(courseHoles.hole, roundScores.hole),
-          ),
-        )
-        .where(eq(rounds.matchId, matchId))
-        .orderBy(asc(roundScores.roundId), asc(roundScores.hole)),
-      db
-        .select({
-          roundId: greenies.roundId,
-          hole: greenies.hole,
-          feet: greenies.feet,
-          inches: greenies.inches,
-          roundDate: rounds.date,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          username: users.username,
-          image: users.image,
-          courseName: courses.name,
-        })
-        .from(greenies)
-        .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-        .innerJoin(users, eq(rounds.userId, users.id))
-        .innerJoin(courses, eq(rounds.courseId, courses.id))
-        .where(eq(rounds.matchId, matchId))
-        .orderBy(asc(greenies.hole), asc(greenies.feet), asc(greenies.inches)),
+      readScoresByRounds(eq(rounds.matchId, matchId)),
+      readGreeniesByRounds(eq(rounds.matchId, matchId)),
       db
         .select({
           hole: courseHoles.hole,
@@ -205,19 +171,8 @@ export const getMatchById = cache(async (matchId: number) => {
         .orderBy(asc(matchTeams.sortOrder), asc(matchTeams.id)),
     ]);
 
-  const scoresByRoundId = new Map<number, typeof matchRoundScores>();
-  for (const score of matchRoundScores) {
-    const scores = scoresByRoundId.get(score.roundId) ?? [];
-    scores.push(score);
-    scoresByRoundId.set(score.roundId, scores);
-  }
-
-  const greeniesByRoundId = new Map<number, typeof matchGreenies>();
-  for (const greenie of matchGreenies) {
-    const roundGreenies = greeniesByRoundId.get(greenie.roundId) ?? [];
-    roundGreenies.push(greenie);
-    greeniesByRoundId.set(greenie.roundId, roundGreenies);
-  }
+  const scoresByRoundId = groupByRoundId(matchRoundScores);
+  const greeniesByRoundId = groupByRoundId(matchGreenies);
 
   const roundsWithScores = matchRounds
     .map((round) => {

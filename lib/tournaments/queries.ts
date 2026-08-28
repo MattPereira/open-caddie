@@ -7,10 +7,8 @@ import {
   courseHoles,
   courseTees,
   courses,
-  greenies,
   pairingMembers,
   pairings,
-  roundScores,
   roundSummaries,
   rounds,
   seasons,
@@ -20,6 +18,12 @@ import {
 } from "@/db/schema";
 import { assessHandicap } from "@/lib/handicap";
 import { getPriorClubScoreDifferentials } from "@/lib/rounds/queries";
+import {
+  groupByRoundId,
+  readGreeniesByRounds,
+  readScorecardsByRounds,
+  readScoresByRounds,
+} from "@/lib/rounds/scorecards";
 
 export const getAllTournaments = cache(async () => {
   return db
@@ -141,45 +145,8 @@ export const getTournamentById = cache(async (tournamentId: number) => {
           asc(users.firstName),
           asc(users.username),
         ),
-      db
-        .select({
-          roundId: roundScores.roundId,
-          hole: roundScores.hole,
-          par: courseHoles.par,
-          handicap: courseHoles.handicap,
-          strokes: roundScores.strokes,
-          putts: roundScores.putts,
-        })
-        .from(roundScores)
-        .innerJoin(rounds, eq(roundScores.roundId, rounds.id))
-        .leftJoin(
-          courseHoles,
-          and(
-            eq(courseHoles.courseId, rounds.courseId),
-            eq(courseHoles.hole, roundScores.hole),
-          ),
-        )
-        .where(eq(rounds.tournamentId, tournamentId))
-        .orderBy(asc(roundScores.roundId), asc(roundScores.hole)),
-      db
-        .select({
-          roundId: greenies.roundId,
-          hole: greenies.hole,
-          feet: greenies.feet,
-          inches: greenies.inches,
-          roundDate: rounds.date,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          username: users.username,
-          image: users.image,
-          courseName: courses.name,
-        })
-        .from(greenies)
-        .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-        .innerJoin(users, eq(rounds.userId, users.id))
-        .innerJoin(courses, eq(rounds.courseId, courses.id))
-        .where(eq(rounds.tournamentId, tournamentId))
-        .orderBy(asc(greenies.hole), asc(greenies.feet), asc(greenies.inches)),
+      readScoresByRounds(eq(rounds.tournamentId, tournamentId)),
+      readGreeniesByRounds(eq(rounds.tournamentId, tournamentId)),
       db
         .select({
           hole: courseHoles.hole,
@@ -214,18 +181,8 @@ export const getTournamentById = cache(async (tournamentId: number) => {
         .orderBy(asc(courseTees.sortOrder), asc(courseTees.id)),
     ]);
 
-  const scoresByRoundId = new Map<number, typeof tournamentRoundScores>();
-  for (const score of tournamentRoundScores) {
-    const scores = scoresByRoundId.get(score.roundId) ?? [];
-    scores.push(score);
-    scoresByRoundId.set(score.roundId, scores);
-  }
-  const greeniesByRoundId = new Map<number, typeof tournamentGreenies>();
-  for (const greenie of tournamentGreenies) {
-    const roundGreenies = greeniesByRoundId.get(greenie.roundId) ?? [];
-    roundGreenies.push(greenie);
-    greeniesByRoundId.set(greenie.roundId, roundGreenies);
-  }
+  const scoresByRoundId = groupByRoundId(tournamentRoundScores);
+  const greeniesByRoundId = groupByRoundId(tournamentGreenies);
 
   const roundsWithScores = (
     await Promise.all(
@@ -476,46 +433,21 @@ export const getPairingMatesForRound = cache(async (roundId: number) => {
   if (mates.length === 0) return [];
 
   const mateRoundIds = mates.map((mate) => mate.roundId);
-  const [scoreRows, greenieRows] = await Promise.all([
-    db
-      .select({
-        roundId: roundScores.roundId,
-        hole: roundScores.hole,
-        par: courseHoles.par,
-        strokes: roundScores.strokes,
-        putts: roundScores.putts,
-      })
-      .from(roundScores)
-      .innerJoin(rounds, eq(rounds.id, roundScores.roundId))
-      .leftJoin(
-        courseHoles,
-        and(
-          eq(courseHoles.courseId, rounds.courseId),
-          eq(courseHoles.hole, roundScores.hole),
-        ),
-      )
-      .where(inArray(roundScores.roundId, mateRoundIds))
-      .orderBy(asc(roundScores.roundId), asc(roundScores.hole)),
-    db
-      .select({
-        roundId: greenies.roundId,
-        hole: greenies.hole,
-        feet: greenies.feet,
-        inches: greenies.inches,
-      })
-      .from(greenies)
-      .where(inArray(greenies.roundId, mateRoundIds))
-      .orderBy(asc(greenies.roundId), asc(greenies.hole)),
-  ]);
+  const { scores, greenies: greenieRows } = await readScorecardsByRounds(
+    inArray(rounds.id, mateRoundIds),
+  );
+  const scoresByRoundId = groupByRoundId(scores);
+  const greeniesByRoundId = groupByRoundId(greenieRows);
 
+  // The form wants only what a player enters, not the reader's wider row.
   return mates.map((mate) => ({
     ...mate,
-    scores: scoreRows
-      .filter((score) => score.roundId === mate.roundId)
-      .map(({ hole, par, strokes, putts }) => ({ hole, par, strokes, putts })),
-    greenies: greenieRows
-      .filter((greenie) => greenie.roundId === mate.roundId)
-      .map(({ hole, feet, inches }) => ({ hole, feet, inches })),
+    scores: (scoresByRoundId.get(mate.roundId) ?? []).map(
+      ({ hole, par, strokes, putts }) => ({ hole, par, strokes, putts }),
+    ),
+    greenies: (greeniesByRoundId.get(mate.roundId) ?? []).map(
+      ({ hole, feet, inches }) => ({ hole, feet, inches }),
+    ),
   }));
 });
 

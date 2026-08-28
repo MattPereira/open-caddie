@@ -4,10 +4,7 @@ import { db } from "@/db";
 
 import {
   clubs,
-  courseHoles,
   courses,
-  greenies,
-  roundScores,
   roundSummaries,
   rounds,
   seasons,
@@ -23,6 +20,10 @@ import {
   type RoundScoreForPoints,
 } from "@/lib/clubs/standings/points";
 import { assessHandicap } from "@/lib/handicap";
+import {
+  readGreeniesByRounds,
+  readScoresByRounds,
+} from "@/lib/rounds/scorecards";
 
 type SeasonStandingsParams = {
   clubId: number;
@@ -219,34 +220,8 @@ export const getSeasonStandings = cache(
           asc(users.lastName),
           asc(users.firstName),
         ),
-      db
-        .select({
-          roundId: roundScores.roundId,
-          hole: roundScores.hole,
-          par: courseHoles.par,
-          strokes: roundScores.strokes,
-        })
-        .from(roundScores)
-        .innerJoin(rounds, eq(roundScores.roundId, rounds.id))
-        .leftJoin(
-          courseHoles,
-          and(
-            eq(courseHoles.courseId, rounds.courseId),
-            eq(courseHoles.hole, roundScores.hole),
-          ),
-        )
-        .where(inArray(rounds.tournamentId, tournamentIds))
-        .orderBy(asc(roundScores.roundId), asc(roundScores.hole)),
-      db
-        .select({
-          roundId: greenies.roundId,
-          feet: greenies.feet,
-          inches: greenies.inches,
-        })
-        .from(greenies)
-        .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-        .where(inArray(rounds.tournamentId, tournamentIds))
-        .orderBy(asc(greenies.roundId), asc(greenies.hole)),
+      readScoresByRounds(inArray(rounds.tournamentId, tournamentIds)),
+      readGreeniesByRounds(inArray(rounds.tournamentId, tournamentIds)),
     ]);
 
     const userIds = Array.from(

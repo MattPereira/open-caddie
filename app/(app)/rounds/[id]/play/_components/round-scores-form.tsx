@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  type Dispatch,
-  type SetStateAction,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useMemo, useState, useTransition } from "react";
 
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -27,6 +20,7 @@ import type { RoundScoresTableRound } from "@/components/features/scores/round-s
 import {
   type ScoreEntry,
   buildInitialScores,
+  buildLiveRound,
   isRoundComplete,
 } from "./round-score-state";
 import type { GreenieValue } from "./hole-greenie-manager";
@@ -36,11 +30,14 @@ import { SettingsDialog, type SettingsTee } from "./settings-dialog";
 import { TournamentLeaderboardDialog } from "./tournament-leaderboard-dialog";
 import { MatchScoreboardDialog } from "./match-scoreboard-dialog";
 import { selfColumnClassName } from "./self-column";
+import {
+  type GreenieEntry,
+  useLiveScorecard,
+} from "./use-live-scorecard";
+import { useRefreshOnWake } from "./use-refresh-on-wake";
 import type { MatchScoreboard, ScoringPeer } from "./round-play";
 
 export type { SettingsTee };
-
-type GreenieEntry = GreenieValue & { hole: number };
 
 type Nine = "out" | "in";
 
@@ -55,6 +52,9 @@ type RoundScoresFormProps = {
   // because an admin may be keeping a card that is not their own — in which
   // case no column is theirs.
   currentUserId: string;
+  // The server's snapshot of this Round, not what the card is showing: the
+  // cells are that snapshot merged with whatever this device has typed and the
+  // server has yet to confirm.
   round: RoundScoresTableRound;
   leaderboardRounds?: RoundScoresTableRound[];
   holes: {
@@ -63,8 +63,6 @@ type RoundScoresFormProps = {
     handicap?: number | null;
     yards: number | null;
   }[];
-  scores: ScoreEntry[];
-  setScoresAction: Dispatch<SetStateAction<ScoreEntry[]>>;
   tees: SettingsTee[];
   scoringPeers: ScoringPeer[];
   matchScoreboard: MatchScoreboard | null;
@@ -77,11 +75,9 @@ type RoundScoresFormProps = {
 export function RoundScoresForm({
   roundId,
   currentUserId,
-  round,
+  round: serverRound,
   leaderboardRounds,
   holes,
-  scores,
-  setScoresAction,
   tees,
   scoringPeers,
   matchScoreboard,
@@ -90,12 +86,8 @@ export function RoundScoresForm({
   onShowSummaryAction,
   summaryLabel,
 }: RoundScoresFormProps) {
-  const saveVersionRef = useRef<Record<string, number>>({});
-  const greenieSaveVersionRef = useRef<Record<string, number>>({});
-
   const [recordPutts, setRecordPutts] = useState(true);
   const [recordGreenies, setRecordGreenies] = useState(true);
-  const selfName = round.firstName ?? "You";
   const delegatePlayers = useMemo(
     () =>
       delegateRoundIds
@@ -111,49 +103,51 @@ export function RoundScoresForm({
     fallback: string,
   ) =>
     [player.firstName, player.lastName].filter(Boolean).join(" ") || fallback;
-  const [delegateScoresByRoundId, setDelegateScoresByRoundId] = useState<
-    Record<number, ScoreEntry[]>
-  >(() => {
-    const map: Record<number, ScoreEntry[]> = {};
-    for (const player of delegatePlayers) {
+  // All peers stay in the snapshot even while deselected. Selection then only
+  // controls visible columns; it cannot interrupt refresh reconciliation.
+  const baseScoresByRoundId = useMemo(() => {
+    const map: Record<number, ScoreEntry[]> = {
+      [roundId]: buildInitialScores(serverRound.scores, holes),
+    };
+    for (const player of scoringPeers) {
       map[player.roundId] = buildInitialScores(player.scores, holes);
     }
     return map;
-  });
-  const [delegateGreeniesByRoundId, setDelegateGreeniesByRoundId] = useState<
-    Record<number, GreenieEntry[]>
-  >(() => {
-    const map: Record<number, GreenieEntry[]> = {};
-    for (const player of delegatePlayers) {
+  }, [roundId, serverRound.scores, holes, scoringPeers]);
+  const baseGreeniesByRoundId = useMemo(() => {
+    const map: Record<number, GreenieEntry[]> = {
+      [roundId]: serverRound.greenies ?? [],
+    };
+    for (const player of scoringPeers) {
       map[player.roundId] = player.greenies ?? [];
     }
     return map;
-  });
-  const delegateIdsKey = delegateRoundIds.join(",");
-  const [prevDelegateIdsKey, setPrevDelegateIdsKey] = useState(delegateIdsKey);
-  if (prevDelegateIdsKey !== delegateIdsKey) {
-    setPrevDelegateIdsKey(delegateIdsKey);
-    setDelegateScoresByRoundId((prev) => {
-      const next: Record<number, ScoreEntry[]> = {};
-      for (const player of delegatePlayers) {
-        next[player.roundId] =
-          prev[player.roundId] ?? buildInitialScores(player.scores, holes);
-      }
-      return next;
-    });
-    setDelegateGreeniesByRoundId((prev) => {
-      const next: Record<number, GreenieEntry[]> = {};
-      for (const player of delegatePlayers) {
-        next[player.roundId] = prev[player.roundId] ?? player.greenies ?? [];
-      }
-      return next;
-    });
-  }
+  }, [roundId, serverRound.greenies, scoringPeers]);
+
+  const {
+    scoresByRoundId,
+    greeniesByRoundId,
+    editScore,
+    editGreenie,
+    prepareForRefresh,
+  } = useLiveScorecard(
+    baseScoresByRoundId,
+    baseGreeniesByRoundId,
+  );
+  // The card is read again every time the phone comes back on screen. The live
+  // state keeps pending writes, then retires accepted ones into that snapshot.
+  useRefreshOnWake(prepareForRefresh);
+  // This Round is always in the base map, so the merge always returns it — and
+  // a stable identity here is what keeps the live Round below from rebuilding.
+  const scores = scoresByRoundId[roundId];
+  const round = useMemo(
+    () => buildLiveRound(serverRound, scores),
+    [serverRound, scores],
+  );
+  const selfName = round.firstName ?? "You";
+
   const [saveError, setSaveError] = useState<string | null>(null);
   const [, startSaveTransition] = useTransition();
-  const [greenies, setGreenies] = useState<GreenieEntry[]>(
-    () => round.greenies ?? [],
-  );
   const [activeCell, setActiveCell] = useState<{
     roundId: number;
     hole: number;
@@ -176,61 +170,18 @@ export function RoundScoresForm({
         ? { href: `/matches/${round.matchId}`, label: "Match" }
         : null;
 
-  const updateScoresForRound = (
-    targetRoundId: number,
-    updater: (prev: ScoreEntry[]) => ScoreEntry[],
-  ) => {
-    if (targetRoundId === roundId) {
-      setScoresAction(updater);
-    } else {
-      setDelegateScoresByRoundId((prev) => ({
-        ...prev,
-        [targetRoundId]: updater(prev[targetRoundId] ?? []),
-      }));
-    }
-  };
-
-  const updateGreeniesForRound = (
-    targetRoundId: number,
-    updater: (prev: GreenieEntry[]) => GreenieEntry[],
-  ) => {
-    if (targetRoundId === roundId) {
-      setGreenies(updater);
-    } else {
-      setDelegateGreeniesByRoundId((prev) => ({
-        ...prev,
-        [targetRoundId]: updater(prev[targetRoundId] ?? []),
-      }));
-    }
-  };
-
-  const getScoresForRound = (targetRoundId: number): ScoreEntry[] => {
-    if (targetRoundId === roundId) return scores;
-    return delegateScoresByRoundId[targetRoundId] ?? [];
-  };
-
-  const getGreeniesForRound = (targetRoundId: number): GreenieEntry[] => {
-    if (targetRoundId === roundId) return greenies;
-    return delegateGreeniesByRoundId[targetRoundId] ?? [];
-  };
+  const getGreeniesForRound = (targetRoundId: number): GreenieEntry[] =>
+    greeniesByRoundId[targetRoundId] ?? [];
 
   const saveScore = (
     targetRoundId: number,
     hole: number,
     patch: ScorePatch,
   ) => {
-    const previousEntry =
-      getScoresForRound(targetRoundId).find((s) => s.hole === hole) ?? null;
-    const versionKey = `${targetRoundId}:${hole}`;
-    const saveVersion = (saveVersionRef.current[versionKey] ?? 0) + 1;
-    saveVersionRef.current[versionKey] = saveVersion;
-
     setSaveError(null);
-    updateScoresForRound(targetRoundId, (prev) =>
-      prev.map((s) => (s.hole === hole ? { ...s, ...patch } : s)),
-    );
+    const edit = editScore(targetRoundId, hole, patch);
     if (targetRoundId === roundId) {
-      const next = getScoresForRound(roundId).map((s) =>
+      const next = scores.map((s) =>
         s.hole === hole ? { ...s, ...patch } : s,
       );
       const frontComplete = next
@@ -249,13 +200,9 @@ export function RoundScoresForm({
         hole,
         ...patch,
       });
-      if (!result.ok) {
-        if (saveVersionRef.current[versionKey] !== saveVersion) return;
-        if (previousEntry) {
-          updateScoresForRound(targetRoundId, (prev) =>
-            prev.map((s) => (s.hole === hole ? previousEntry : s)),
-          );
-        }
+      if (result.ok) {
+        edit.accept();
+      } else if (edit.reject()) {
         setSaveError(result.error);
         haptic("error");
       }
@@ -267,35 +214,17 @@ export function RoundScoresForm({
     hole: number,
     value: GreenieValue,
   ) => {
-    const previousGreenie =
-      getGreeniesForRound(targetRoundId).find((g) => g.hole === hole) ?? null;
-    const versionKey = `${targetRoundId}:${hole}`;
-    const saveVersion = (greenieSaveVersionRef.current[versionKey] ?? 0) + 1;
-    greenieSaveVersionRef.current[versionKey] = saveVersion;
-
     setSaveError(null);
-    updateGreeniesForRound(targetRoundId, (prev) => {
-      const nextGreenie = { hole, ...value };
-      return prev.some((g) => g.hole === hole)
-        ? prev.map((g) => (g.hole === hole ? nextGreenie : g))
-        : [...prev, nextGreenie].sort((a, b) => a.hole - b.hole);
-    });
+    const edit = editGreenie(targetRoundId, hole, value);
     startSaveTransition(async () => {
       const result = await upsertRoundGreenie({
         roundId: targetRoundId,
         hole,
         ...value,
       });
-      if (!result.ok) {
-        if (greenieSaveVersionRef.current[versionKey] !== saveVersion) return;
-        updateGreeniesForRound(targetRoundId, (prev) => {
-          const withoutCurrent = prev.filter((g) => g.hole !== hole);
-          return previousGreenie
-            ? [...withoutCurrent, previousGreenie].sort(
-                (a, b) => a.hole - b.hole,
-              )
-            : withoutCurrent;
-        });
+      if (result.ok) {
+        edit.accept();
+      } else if (edit.reject()) {
         setSaveError(result.error);
         haptic("error");
       }
@@ -303,30 +232,16 @@ export function RoundScoresForm({
   };
 
   const removeGreenie = (targetRoundId: number, hole: number) => {
-    const previousGreenie =
-      getGreeniesForRound(targetRoundId).find((g) => g.hole === hole) ?? null;
-    const versionKey = `${targetRoundId}:${hole}`;
-    const saveVersion = (greenieSaveVersionRef.current[versionKey] ?? 0) + 1;
-    greenieSaveVersionRef.current[versionKey] = saveVersion;
-
     setSaveError(null);
-    updateGreeniesForRound(targetRoundId, (prev) =>
-      prev.filter((g) => g.hole !== hole),
-    );
+    const edit = editGreenie(targetRoundId, hole, null);
     startSaveTransition(async () => {
       const result = await deleteRoundGreenie({
         roundId: targetRoundId,
         hole,
       });
-      if (!result.ok) {
-        if (greenieSaveVersionRef.current[versionKey] !== saveVersion) return;
-        if (previousGreenie) {
-          updateGreeniesForRound(targetRoundId, (prev) =>
-            [...prev.filter((g) => g.hole !== hole), previousGreenie].sort(
-              (a, b) => a.hole - b.hole,
-            ),
-          );
-        }
+      if (result.ok) {
+        edit.accept();
+      } else if (edit.reject()) {
         setSaveError(result.error);
         haptic("error");
       }
@@ -339,7 +254,7 @@ export function RoundScoresForm({
       if (scoreboardRound.id === round.id) {
         return round;
       }
-      const delegateScores = delegateScoresByRoundId[scoreboardRound.id];
+      const delegateScores = scoresByRoundId[scoreboardRound.id];
       if (delegateScores) {
         return applyScoreEntriesToRound(scoreboardRound, delegateScores);
       }
@@ -359,7 +274,7 @@ export function RoundScoresForm({
         ),
       })),
     };
-  }, [delegateScoresByRoundId, matchScoreboard, round]);
+  }, [scoresByRoundId, matchScoreboard, round]);
 
   const players = [
     {
@@ -374,7 +289,7 @@ export function RoundScoresForm({
       name: getPlayerName(player),
       fullName: getFullName(player, getPlayerName(player)),
       isSelf: player.userId === currentUserId,
-      scores: delegateScoresByRoundId[player.roundId] ?? [],
+      scores: scoresByRoundId[player.roundId] ?? [],
     })),
   ];
   // Score columns keep a fixed width so cells stay the same size whoever you are

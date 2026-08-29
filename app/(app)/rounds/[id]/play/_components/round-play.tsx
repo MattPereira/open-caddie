@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 
 import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
@@ -8,11 +8,6 @@ import type { StoredMatchPlayTeam } from "@/app/(app)/matches/[id]/_components/m
 import type { MatchFormat } from "@/app/(app)/matches/schema";
 import { RoundScoresForm, type SettingsTee } from "./round-scores-form";
 import { MAX_DELEGATES } from "./settings-dialog";
-import {
-  buildInitialScores,
-  buildLiveRound,
-  type ScoreEntry,
-} from "./round-score-state";
 import { useDelegateRoundIds } from "./use-delegate-round-id";
 
 export type ScoringPeer = {
@@ -66,15 +61,6 @@ export function RoundPlay({
   matchScoreboard,
 }: RoundPlayProps) {
   const router = useRouter();
-  const initialScores = useMemo(
-    () => buildInitialScores(tableRound.scores, holes),
-    [tableRound.scores, holes],
-  );
-  const [scores, setScores] = useState<ScoreEntry[]>(initialScores);
-  const liveRound = useMemo(
-    () => buildLiveRound(tableRound, scores),
-    [tableRound, scores],
-  );
   // A Pairing holds at most four Rounds, so a player's mates already fit the
   // picker's cap; the slice keeps a prefill from ever exceeding what the picker
   // would let the player choose by hand.
@@ -101,11 +87,9 @@ export function RoundPlay({
     <RoundScoresForm
       roundId={roundId}
       currentUserId={currentUserId}
-      round={liveRound}
+      round={tableRound}
       leaderboardRounds={leaderboardRounds}
       holes={holes}
-      scores={scores}
-      setScoresAction={setScores}
       tees={tees}
       scoringPeers={scoringPeers}
       matchScoreboard={matchScoreboard}

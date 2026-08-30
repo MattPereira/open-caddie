@@ -3,7 +3,6 @@
 import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { haptic, type HapticKind } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -148,23 +147,16 @@ export function ScoreEntrySheet({
       if (!same) {
         savedGreenieRef.current = next;
         onGreenieSaveAction(next);
-        return true;
       }
-      return false;
+      return;
     }
     if (saved != null && isGreenieDraftEmpty(greenieDraftRef.current)) {
       savedGreenieRef.current = null;
       onGreenieDeleteAction();
-      return true;
     }
-    return false;
   };
 
-  // One cue per gesture: the terminal action wins. Callers that persist
-  // something outside the score patch pass their own cue; otherwise the confirm
-  // buzz rides the same condition as the write, so swiping the sheet away
-  // unchanged stays silent rather than claiming a save that never happened.
-  const commitAndClose = (cue?: HapticKind) => {
+  const commitAndClose = () => {
     const next = draftRef.current;
     const saved = savedRef.current;
     const scoreChanged =
@@ -173,9 +165,7 @@ export function ScoreEntrySheet({
       savedRef.current = next;
       onSubmitAction(next);
     }
-    const greenieChanged = showGreenie ? commitGreenie() : false;
-    const feedback = cue ?? (scoreChanged || greenieChanged ? "commit" : null);
-    if (feedback) haptic(feedback);
+    if (showGreenie) commitGreenie();
     onOpenChangeAction(false);
   };
 
@@ -197,18 +187,16 @@ export function ScoreEntrySheet({
       commitAndClose();
       return;
     }
-    haptic("tick");
   };
 
   const handlePutts = (value: number) => {
     applyDraft({ strokes: draftRef.current.strokes, putts: value });
-    haptic("tick");
   };
 
   const handleClear = () => {
     applyDraft({ strokes: null, putts: null });
     applyGreenieDraft(EMPTY_GREENIE_DRAFT);
-    commitAndClose("clear");
+    commitAndClose();
   };
 
   const hasGreenie = greenie != null || !isGreenieDraftEmpty(greenieDraft);
@@ -345,10 +333,7 @@ function OptionGrid({
             "flex items-center justify-center px-0 text-2xl font-semibold leading-none text-muted-foreground",
             labelFor ? "h-20" : "h-16",
           )}
-          onClick={() => {
-            haptic("tick");
-            onMoreAction();
-          }}
+          onClick={onMoreAction}
         >
           +
         </Button>

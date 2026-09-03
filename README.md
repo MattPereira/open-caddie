@@ -2,8 +2,6 @@
 
 Track match play, skins games, tournament rounds, and season standings for golf clubs
 
-**[Browse the live app →](https://opencaddie.app)** — _used by my golf group since September 2021._
-
 ### Features
 
 - Track match play, skins games, and tournament rounds

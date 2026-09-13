@@ -5,17 +5,16 @@
 // public page independent of the database. Colocated with the only route that
 // reads it; types are inferred rather than declared.
 
-// Venmo prefills only from the bare-handle form with `txn=pay`; the `/u/<handle>`
-// form opens the app without prefilling. `amount` is deliberately omitted so the
-// donor chooses. See docs/research/venmo-zelle-deep-links.md.
 // Registration runs entirely through one phone call, so the number is printed
 // twice: once against the RSVP deadline it satisfies, once in the closing line
 // that catches sponsors and everything else.
 const contactPhone = "510-426-1854";
 const contactPhoneHref = "tel:+15104261854";
 
-const venmoDonateHref =
-  "https://venmo.com/Heather-Cochnauer?txn=pay&note=Driven%20to%20Serve";
+// The store's home rather than its Donation product: it is where the
+// organizer's own QR code points, and product URLs carry an item ID that breaks
+// if the listing is ever recreated.
+const donateHref = "https://local-1230-charity-2.square.site/";
 
 export const event = {
   handle: "driven-to-serve",
@@ -29,35 +28,18 @@ export const event = {
   heroImageMobile: "/events/hero-a-mobile.jpg",
   heroAlt: "A firefighter watching over a controlled grass burn",
   ogSourceImage: "/events/fireman-tournament.jpeg",
-  // Venmo is the page's one donate button, because it is the only method that
-  // survives a tap: `venmo.com/<handle>?txn=pay` hands off to the app. Zelle has
-  // no deep link at all (docs/research/venmo-zelle-deep-links.md), so it lives
-  // in `donateMethods` below as a QR to scan, never as a button that dead-ends.
-  donate: { label: "Donate with Venmo", href: venmoDonateHref },
-  // Both codes are cropped from the recipient's own exports — her Venmo code
-  // and her bank's Zelle "My Code" screen — down to the symbol itself. The crop
-  // drops the wordmark each export carried, which is why `name` exists: with it
-  // gone, a bare symbol says nothing about which app opens it, and the Zelle
-  // crop in particular is indistinguishable from any other QR code. Intrinsic
-  // sizes are recorded rather than guessed at the call site.
-  donateMethods: [
-    {
-      name: "Venmo",
-      image: "/events/venmo-code.jpg",
-      alt: "Venmo QR code for @Heather-Cochnauer",
-      width: 605,
-      height: 607,
-      instruction: "Scan with mobile camera",
-    },
-    {
-      name: "Zelle",
-      image: "/events/zelle-code.jpg",
-      alt: "Zelle QR code for Heather Cochnauer",
-      width: 570,
-      height: 574,
-      instruction: "Open banking app, find Zelle, then scan",
-    },
-  ],
+  donate: { label: "Donate", href: donateHref },
+  // The organizer's own export, pointing at the same store as the button, for
+  // readers on a desktop or a printed page. Intrinsic size is recorded rather
+  // than guessed at the call site.
+  donateCode: {
+    image: "/events/donate-code.png",
+    alt: "QR code for the Local 1230 Charity Event Fund donation page",
+    width: 450,
+    height: 450,
+    instruction: "Scan with mobile camera",
+    fund: "via Local 1230 Charity Event Fund",
+  },
   // Where, when, and what it costs — the three things a reader checks before
   // deciding. The flyer's separate "format" panel is folded into Entry's
   // detail line: the scramble matters, but not enough to spend a card on.

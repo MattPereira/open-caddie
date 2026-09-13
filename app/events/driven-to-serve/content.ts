@@ -58,12 +58,6 @@ export const event = {
   ] as const,
   extras: [
     {
-      label: "More Information",
-      value: "Samuel White",
-      detail: "Call",
-      detailLink: { label: contactPhone, href: contactPhoneHref },
-    },
-    {
       label: "Contests & Prizes",
       value: "Longest drive · Closest to the pin",
       detail: "Raffles and more throughout the day",
@@ -72,6 +66,12 @@ export const event = {
       label: "Lunch & Dinner",
       value: "BBQ lunch · Awards dinner",
       detail: "Included with every entry",
+    },
+    {
+      label: "Information",
+      value: "For more information",
+      detail: "Call Samuel White at",
+      detailLink: { label: contactPhone, href: contactPhoneHref },
     },
   ] as const,
   sponsorTiers: [

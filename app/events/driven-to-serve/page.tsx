@@ -197,7 +197,7 @@ const factIcons = {
 } satisfies Record<(typeof event.facts)[number]["label"], IconSvgElement>;
 
 const extraIcons = {
-  "More Information": CallIcon,
+  Information: CallIcon,
   "Contests & Prizes": GiftIcon,
   "Lunch & Dinner": Restaurant01Icon,
 } satisfies Record<(typeof event.extras)[number]["label"], IconSvgElement>;
@@ -206,7 +206,7 @@ type InfoCard = {
   label: string;
   value: string;
   detail: string;
-  // Only More Information carries one: the detail stays muted and the number
+  // Only Information carries one: the detail stays muted and the number
   // alone is the link, since it is the only tap target.
   detailLink?: { label: string; href: string };
   icon: IconSvgElement;

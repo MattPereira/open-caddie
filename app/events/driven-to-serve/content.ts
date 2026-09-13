@@ -5,9 +5,6 @@
 // public page independent of the database. Colocated with the only route that
 // reads it; types are inferred rather than declared.
 
-// Registration runs entirely through one phone call, so the number is printed
-// twice: once against the RSVP deadline it satisfies, once in the closing line
-// that catches sponsors and everything else.
 const contactPhone = "510-426-1854";
 const contactPhoneHref = "tel:+15104261854";
 
@@ -37,8 +34,6 @@ export const event = {
     alt: "QR code for the Local 1230 Charity Event Fund donation page",
     width: 450,
     height: 450,
-    instruction: "Scan with mobile camera",
-    fund: "via Local 1230 Charity Event Fund",
   },
   // Where, when, and what it costs — the three things a reader checks before
   // deciding. The flyer's separate "format" panel is folded into Entry's
@@ -61,14 +56,11 @@ export const event = {
     },
     // `as const` so the labels stay literal and the page can key its icons off them.
   ] as const,
-  // Second band: the deadline that forces a decision, then what the entry fee
-  // actually buys. RSVP leads because it is the only item here with a clock on
-  // it — the other two are reasons to say yes once the date has landed.
   extras: [
     {
-      label: "RSVP by",
-      value: "September 10",
-      detail: "Call Samuel White at",
+      label: "More Information",
+      value: "Samuel White",
+      detail: "Call",
       detailLink: { label: contactPhone, href: contactPhoneHref },
     },
     {
@@ -82,11 +74,6 @@ export const event = {
       detail: "Included with every entry",
     },
   ] as const,
-  registration: {
-    contactName: "Samuel White",
-    contactPhone,
-    contactPhoneHref,
-  },
   sponsorTiers: [
     {
       name: "Bronze",

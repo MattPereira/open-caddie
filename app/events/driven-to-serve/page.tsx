@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import {
-  AlarmClockIcon,
   Calendar01Icon,
+  CallIcon,
   GiftIcon,
   Restaurant01Icon,
   Ticket01Icon,
@@ -113,8 +113,6 @@ export default function EventPage() {
         </section>
 
         <DonateCode label={event.donate.label} code={event.donateCode} />
-
-        <ContactFooter contact={event.registration} />
       </div>
     </main>
   );
@@ -199,7 +197,7 @@ const factIcons = {
 } satisfies Record<(typeof event.facts)[number]["label"], IconSvgElement>;
 
 const extraIcons = {
-  "RSVP by": AlarmClockIcon,
+  "More Information": CallIcon,
   "Contests & Prizes": GiftIcon,
   "Lunch & Dinner": Restaurant01Icon,
 } satisfies Record<(typeof event.extras)[number]["label"], IconSvgElement>;
@@ -208,10 +206,8 @@ type InfoCard = {
   label: string;
   value: string;
   detail: string;
-  // Only RSVP carries one: it is the sole card whose detail ends in an action
-  // rather than a fact, since calling Samuel is the only way to enter. The
-  // detail stays muted and the number alone is the link, matching how the
-  // closing contact line already reads.
+  // Only More Information carries one: the detail stays muted and the number
+  // alone is the link, since it is the only tap target.
   detailLink?: { label: string; href: string };
   icon: IconSvgElement;
 };
@@ -261,17 +257,9 @@ function DonateCode({
 }) {
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="flex flex-col items-center gap-1">
-        <p className="text-base tracking-widest text-orange-300 uppercase">
-          {label}
-        </p>
-        <p className="text-center text-sm text-balance text-neutral-400">
-          {code.instruction}
-        </p>
-        <p className="text-center text-sm text-balance text-neutral-400">
-          {code.fund}
-        </p>
-      </div>
+      <p className="text-base tracking-widest text-orange-300 uppercase">
+        {label}
+      </p>
       {/* No padding: the export carries the quiet zone scanners need. */}
       <Image
         src={code.image}
@@ -281,23 +269,6 @@ function DonateCode({
         className="h-auto w-full max-w-80 rounded-xl"
       />
     </div>
-  );
-}
-
-// Deliberately outside the card system: the page's closing whisper, centred
-// like the hero's proceeds caption so the two quiet lines bookend the loud
-// middle. Only the number carries emphasis, since it is the only tap target.
-function ContactFooter({ contact }: { contact: typeof event.registration }) {
-  return (
-    <p className="text-center text-sm text-balance text-neutral-400">
-      For more information, contact {contact.contactName} at{" "}
-      <a
-        href={contact.contactPhoneHref}
-        className="font-semibold text-orange-300 underline decoration-orange-300/40 underline-offset-4 transition-colors hover:text-orange-200 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-orange-300/40"
-      >
-        {contact.contactPhone}
-      </a>
-    </p>
   );
 }
 

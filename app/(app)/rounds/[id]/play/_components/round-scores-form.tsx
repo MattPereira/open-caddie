@@ -5,9 +5,10 @@ import { useMemo, useState, useTransition } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowLeft02Icon } from "@hugeicons/core-free-icons";
+import { ArrowLeft02Icon, ChampionIcon } from "@hugeicons/core-free-icons";
 
 import { Button } from "@/components/ui/button";
+import { CourseRecordsDialog } from "@/components/features/course-records/course-records-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import {
@@ -69,6 +70,9 @@ type RoundScoresFormProps = {
   setDelegateRoundIdsAction: (next: readonly number[]) => void;
   onShowSummaryAction: () => void;
   summaryLabel: string;
+  // Rendered by the server, since the records are read from the database; this
+  // form only supplies the dialog and its trigger.
+  courseRecords?: ReactNode;
 };
 
 export function RoundScoresForm({
@@ -84,6 +88,7 @@ export function RoundScoresForm({
   setDelegateRoundIdsAction,
   onShowSummaryAction,
   summaryLabel,
+  courseRecords,
 }: RoundScoresFormProps) {
   const [recordPutts, setRecordPutts] = useState(true);
   const [recordGreenies, setRecordGreenies] = useState(true);
@@ -320,9 +325,28 @@ export function RoundScoresForm({
 
     return (
       <div className="mx-auto flex w-fit max-w-full flex-col gap-1.5">
-        <p className="truncate text-base text-muted-foreground">
-          {round.courseName}
-        </p>
+        <div className="flex items-center justify-between gap-3">
+          <p className="truncate text-base text-muted-foreground">
+            {round.courseName}
+          </p>
+          {courseRecords ? (
+            <CourseRecordsDialog
+              courseName={round.courseName}
+              trigger={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Course records"
+                  className="text-muted-foreground"
+                >
+                  <HugeiconsIcon icon={ChampionIcon} />
+                </Button>
+              }
+            >
+              {courseRecords}
+            </CourseRecordsDialog>
+          ) : null}
+        </div>
         <div className="overflow-hidden rounded-lg ring-1 ring-border">
           <div
             style={{ gridTemplateColumns: columns }}

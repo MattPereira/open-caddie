@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 
+import { CourseRecords } from "@/components/features/course-records/course-records";
 import { getMatchById } from "@/lib/matches/queries";
 import { getRoundById } from "@/lib/rounds/queries";
 import {
@@ -156,6 +157,9 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
           scoringPeers={scoringPeers}
           prefillDelegateRoundIds={pairingMates.map((mate) => mate.roundId)}
           matchScoreboard={matchScoreboard}
+          courseRecords={
+            <CourseRecords courseId={round.courseId} variant="tabs" />
+          }
         />
       </section>
     </main>

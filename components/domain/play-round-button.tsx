@@ -6,10 +6,17 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { motion } from "motion/react";
 
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-export function PlayRoundButton({ href }: { href: string }) {
+export function PlayRoundButton({
+  href,
+  className,
+}: {
+  href: string;
+  className?: string;
+}) {
   return (
-    <div className="w-full sm:w-64">
+    <div className={cn("w-full sm:w-64", className)}>
       <motion.div
         animate={{ boxShadow: ["0 0 0 0px oklch(0.55 0.15 145 / 0.45)", "0 0 0 14px oklch(0.55 0.15 145 / 0)", "0 0 0 0px oklch(0.55 0.15 145 / 0)"] }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeOut" }}

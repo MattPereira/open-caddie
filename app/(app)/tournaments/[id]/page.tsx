@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { ChampionIcon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { Button } from "@/components/ui/button";
 import { CourseHero } from "@/components/domain/course-hero";
 import { GreeniesTabContent } from "./_components/greenies-tab-content";
 import { PlayRoundButton } from "@/components/domain/play-round-button";
+import { CourseRecords } from "@/components/features/course-records/course-records";
+import { CourseRecordsDialog } from "@/components/features/course-records/course-records-dialog";
 import { RoundsTabContent } from "@/components/features/scores/rounds-tab-content";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/shared/url-tabs";
@@ -77,11 +82,29 @@ export default async function TournamentPage({
           courseImgUrl={tournament.courseImgUrl}
           date={tournament.date}
         />
-        {currentUserUnfinishedRound ? (
-          <PlayRoundButton
-            href={`/rounds/${currentUserUnfinishedRound.id}/play`}
-          />
-        ) : null}
+        <div className="flex gap-3">
+          <CourseRecordsDialog
+            courseName={tournament.courseName}
+            trigger={
+              <Button
+                variant="secondary"
+                size="xl"
+                className="flex-1 sm:w-64 sm:flex-none"
+              >
+                <HugeiconsIcon icon={ChampionIcon} data-icon="inline-start" />
+                Course records
+              </Button>
+            }
+          >
+            <CourseRecords courseId={tournament.courseId} variant="tabs" />
+          </CourseRecordsDialog>
+          {currentUserUnfinishedRound ? (
+            <PlayRoundButton
+              href={`/rounds/${currentUserUnfinishedRound.id}/play`}
+              className="flex-1 sm:flex-none"
+            />
+          ) : null}
+        </div>
       </div>
 
       <UrlTabs

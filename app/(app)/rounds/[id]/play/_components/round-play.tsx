@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
@@ -47,6 +47,7 @@ type RoundPlayProps = {
   // Pairing's card finds their mates already there.
   prefillDelegateRoundIds?: readonly number[];
   matchScoreboard: MatchScoreboard | null;
+  courseRecords: ReactNode;
 };
 
 export function RoundPlay({
@@ -59,6 +60,7 @@ export function RoundPlay({
   scoringPeers,
   prefillDelegateRoundIds,
   matchScoreboard,
+  courseRecords,
 }: RoundPlayProps) {
   const router = useRouter();
   // A Pairing holds at most four Rounds, so a player's mates already fit the
@@ -97,6 +99,7 @@ export function RoundPlay({
       setDelegateRoundIdsAction={setDelegateRoundIds}
       onShowSummaryAction={() => router.push(summary.href)}
       summaryLabel={summary.label}
+      courseRecords={courseRecords}
     />
   );
 }

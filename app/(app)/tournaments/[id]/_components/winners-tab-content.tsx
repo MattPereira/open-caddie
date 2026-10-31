@@ -190,7 +190,6 @@ function SkinWinnerCard({ winner }: { winner: SkinWinnerRow }) {
       secondary={"\u00a0"}
       primaryLabel={`Hole ${winner.hole}`}
       primaryValue={winner.primaryValue}
-      primaryValueClassName="text-lg"
       primaryValueAdjusted={winner.primaryValueAdjusted}
     />
   );
@@ -212,9 +211,7 @@ function toWinnerRows(
       image: round.image,
       secondaryLabel: metric === "strokes" ? "Hcp" : "Net",
       secondaryValue:
-        metric === "strokes"
-          ? formatDecimalScore(round.playingHandicap)
-          : net,
+        metric === "strokes" ? formatDecimalScore(round.playingHandicap) : net,
       primaryLabel: metric === "strokes" ? "Net" : "Putts",
       primaryValue: metric === "strokes" ? net : putts,
     };

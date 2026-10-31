@@ -15,7 +15,6 @@ export function WinnerCard({
   primaryValue,
   primaryValueAdjusted,
   primaryValueTone,
-  primaryValueClassName,
   href,
 }: {
   playerName: string;
@@ -26,7 +25,6 @@ export function WinnerCard({
   primaryValue: ReactNode;
   primaryValueAdjusted?: boolean;
   primaryValueTone?: "winning" | "losing" | "neutral";
-  primaryValueClassName?: string;
   href?: string;
 }) {
   return (
@@ -47,24 +45,24 @@ export function WinnerCard({
         </div>
       }
       header={playerName}
+      headerClassName="text-lg leading-snug"
       href={href}
       endSlot={
-        <div className="flex flex-col items-end leading-none">
+        <div className="flex flex-col items-end">
           <span
             className={cn(
-              "text-base tabular-nums",
+              "text-lg leading-snug tabular-nums",
               primaryValueAdjusted && "text-red-600 dark:text-red-500",
               primaryValueTone === "winning" &&
                 "font-medium text-emerald-600 dark:text-emerald-500",
               primaryValueTone === "losing" &&
                 "font-medium text-red-600 dark:text-red-500",
-              primaryValueClassName,
             )}
           >
             {primaryValue}
           </span>
           {primaryLabel ? (
-            <span className="text-sm text-muted-foreground">
+            <span className="text-sm leading-snug text-muted-foreground">
               {primaryLabel}
             </span>
           ) : null}

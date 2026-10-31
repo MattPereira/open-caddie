@@ -51,11 +51,14 @@ export function GreenieCard({
         </div>
       }
       header={playerName}
+      headerClassName="text-lg leading-snug"
       href={href}
       endSlot={
-        <div className="flex flex-col items-end leading-snug">
-          <span className="text-lg">{formatGreenieDistance(greenie)}</span>
-          <CardDescription className="text-sm">
+        <div className="flex flex-col items-end">
+          <span className="text-lg leading-snug">
+            {formatGreenieDistance(greenie)}
+          </span>
+          <CardDescription className="text-sm leading-snug">
             Hole {greenie.hole}
           </CardDescription>
         </div>

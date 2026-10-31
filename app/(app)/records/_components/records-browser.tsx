@@ -80,12 +80,8 @@ function RoundsGrid({ rounds }: { rounds: Round[] }) {
           playerName={displayName(round)}
           initials={getInitials(round)}
           image={round.image}
-          secondary={
-            <>
-              <span className="truncate">{round.courseName}</span>
-              <span>{formatDate(round.date, "shorter")}</span>
-            </>
-          }
+          secondary={formatDate(round.date, "shorter")}
+          primaryLabel={round.courseName}
           primaryValue={round.totalStrokes}
           href={`/rounds/${round.roundId}`}
         />

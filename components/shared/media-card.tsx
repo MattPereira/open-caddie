@@ -8,6 +8,7 @@ import type { VariantProps } from "class-variance-authority";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 type MediaCardBadge = {
   label: ReactNode;
@@ -19,6 +20,7 @@ type MediaCardProps = {
   imageAlt?: string;
   media?: ReactNode;
   header?: ReactNode;
+  headerClassName?: string;
   children?: ReactNode;
   badges?: MediaCardBadge[];
   endSlot?: ReactNode;
@@ -31,6 +33,7 @@ export function MediaCard({
   imageAlt = "",
   media,
   header,
+  headerClassName,
   children,
   badges = [],
   endSlot,
@@ -50,7 +53,7 @@ export function MediaCard({
       {mediaSlot}
       <div className="flex min-w-0 flex-1 flex-col">
         {header ? (
-          <CardTitle className="truncate text-base">
+          <CardTitle className={cn("truncate text-base", headerClassName)}>
             {header}
           </CardTitle>
         ) : null}

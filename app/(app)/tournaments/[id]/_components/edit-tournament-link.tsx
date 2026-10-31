@@ -6,10 +6,9 @@ import { Button } from "@/components/ui/button";
 
 export function EditTournamentLink({ href }: { href: string }) {
   return (
-    <Button asChild variant="secondary" size="xl">
+    <Button asChild variant="ghost" size="icon-sm" aria-label="Edit tournament">
       <Link href={href}>
-        <HugeiconsIcon icon={Edit03Icon} data-icon="inline-start" />
-        Edit
+        <HugeiconsIcon icon={Edit03Icon} aria-hidden />
       </Link>
     </Button>
   );

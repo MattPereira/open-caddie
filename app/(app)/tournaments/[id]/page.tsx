@@ -63,19 +63,18 @@ export default async function TournamentPage({
   return (
     <PageContent className="max-w-5xl">
       <div className="flex flex-col gap-3">
-        <div className="flex justify-between items-center gap-2">
-          <div className="flex flex-col">
+        <div className="flex flex-col">
+          <div className="flex items-center gap-1.5">
             <h1 className="text-2xl font-semibold tracking-normal">
               Tournament
             </h1>
-            <p className="text-sm text-muted-foreground">
-              {tournament.clubName} · Season {tournament.season}
-            </p>
+            {currentUser?.isAdmin ? (
+              <EditTournamentLink href={`/tournaments/${tournament.id}/edit`} />
+            ) : null}
           </div>
-
-          {currentUser?.isAdmin ? (
-            <EditTournamentLink href={`/tournaments/${tournament.id}/edit`} />
-          ) : null}
+          <p className="text-sm text-muted-foreground">
+            {tournament.clubName} · Season {tournament.season}
+          </p>
         </div>
         <CourseHero
           courseName={tournament.courseName}

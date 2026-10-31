@@ -53,12 +53,20 @@ export function GreenieCard({
       header={playerName}
       href={href}
       endSlot={
-        <span className="text-lg">{formatGreenieDistance(greenie)}</span>
+        <div className="flex flex-col items-end leading-snug">
+          <span className="text-lg">{formatGreenieDistance(greenie)}</span>
+          <CardDescription className="text-sm">
+            Hole {greenie.hole}
+          </CardDescription>
+        </div>
       }
     >
-      <CardDescription className="flex min-w-0 flex-col text-sm leading-snug">
-        {subtext ? <span className="truncate">{subtext}</span> : null}
-        <span>Hole {greenie.hole}</span>
+      {/* Blank line keeps the name level with the distance, which sits above the hole. */}
+      <CardDescription
+        className="truncate text-sm leading-snug"
+        aria-hidden={!subtext}
+      >
+        {subtext || "\u00a0"}
       </CardDescription>
     </MediaCard>
   );

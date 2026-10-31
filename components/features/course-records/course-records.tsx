@@ -40,7 +40,7 @@ export async function CourseRecords({
             playerName={displayName(round)}
             initials={getInitials(round)}
             image={round.image}
-            secondary={formatDate(round.date, "short")}
+            secondary={formatDate(round.date, "shorter")}
             primaryLabel="Strokes"
             primaryValue={round.totalStrokes}
           />
@@ -59,7 +59,7 @@ export async function CourseRecords({
             playerName={displayName(round)}
             initials={getInitials(round)}
             image={round.image}
-            secondary={formatDate(round.date, "short")}
+            secondary={formatDate(round.date, "shorter")}
             primaryLabel="Putts"
             primaryValue={round.totalPutts}
           />
@@ -78,7 +78,7 @@ export async function CourseRecords({
           <GreenieCard
             key={`greenie-${greenie.hole}`}
             greenie={greenie}
-            details={formatDate(greenie.roundDate, "short")}
+            details={formatDate(greenie.roundDate, "shorter")}
           />
         ))}
       </RecordsGrid>

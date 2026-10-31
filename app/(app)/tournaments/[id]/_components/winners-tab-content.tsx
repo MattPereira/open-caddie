@@ -186,9 +186,11 @@ function SkinWinnerCard({ winner }: { winner: SkinWinnerRow }) {
       playerName={winner.playerName}
       initials={winner.initials}
       image={winner.image}
-      secondary={`Hole ${winner.hole}`}
-      primaryLabel="Strokes"
+      // Blank line keeps the name level with the strokes, which sit above the hole.
+      secondary={"\u00a0"}
+      primaryLabel={`Hole ${winner.hole}`}
       primaryValue={winner.primaryValue}
+      primaryValueClassName="text-lg"
       primaryValueAdjusted={winner.primaryValueAdjusted}
     />
   );

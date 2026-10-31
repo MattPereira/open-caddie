@@ -15,6 +15,7 @@ export function WinnerCard({
   primaryValue,
   primaryValueAdjusted,
   primaryValueTone,
+  primaryValueClassName,
   href,
 }: {
   playerName: string;
@@ -25,6 +26,7 @@ export function WinnerCard({
   primaryValue: ReactNode;
   primaryValueAdjusted?: boolean;
   primaryValueTone?: "winning" | "losing" | "neutral";
+  primaryValueClassName?: string;
   href?: string;
 }) {
   return (
@@ -56,6 +58,7 @@ export function WinnerCard({
                 "font-medium text-emerald-600 dark:text-emerald-500",
               primaryValueTone === "losing" &&
                 "font-medium text-red-600 dark:text-red-500",
+              primaryValueClassName,
             )}
           >
             {primaryValue}

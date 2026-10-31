@@ -82,14 +82,14 @@ export default async function TournamentPage({
           courseImgUrl={tournament.courseImgUrl}
           date={tournament.date}
         />
-        <div className="flex gap-3">
+        <div className="grid auto-cols-fr grid-flow-col gap-3">
           <CourseRecordsDialog
             courseName={tournament.courseName}
             trigger={
               <Button
                 variant="secondary"
                 size="xl"
-                className="flex-1 sm:w-64 sm:flex-none"
+                className="min-w-0 w-full"
               >
                 <HugeiconsIcon icon={ChampionIcon} data-icon="inline-start" />
                 Course records
@@ -101,7 +101,7 @@ export default async function TournamentPage({
           {currentUserUnfinishedRound ? (
             <PlayRoundButton
               href={`/rounds/${currentUserUnfinishedRound.id}/play`}
-              className="flex-1 sm:flex-none"
+              className="min-w-0 w-full sm:w-full"
             />
           ) : null}
         </div>
@@ -137,15 +137,16 @@ export default async function TournamentPage({
           currentUser={currentUser}
           emptyMessage="No rounds have been recorded for this tournament."
           rounds={tournament.rounds}
-          actions={
-            currentUser?.isAdmin ? (
+        >
+          {currentUser?.isAdmin ? (
+            <div className="flex flex-wrap gap-2">
               <UploadScorecardButton
                 href={`/tournaments/${tournament.id}/upload-scorecard`}
                 className="w-full sm:w-auto"
               />
-            ) : null
-          }
-        />
+            </div>
+          ) : null}
+        </RoundsTabContent>
         <GreeniesTabContent
           emptyMessage="No greenies have been recorded for this tournament."
           greenies={tournament.greenies}

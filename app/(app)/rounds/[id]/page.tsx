@@ -47,12 +47,6 @@ export default async function RoundPage({ params }: RoundPageProps) {
 
   if (!round) notFound();
   const canEdit = currentUser?.isAdmin || currentUser?.id === round.userId;
-  const hasAllScores =
-    round.holes.length > 0 &&
-    round.holes.every((hole) => {
-      const score = round.scores.find((s) => s.hole === hole.hole);
-      return score?.strokes != null && score?.putts != null;
-    });
 
   return (
     <PageContent className="min-w-0">
@@ -76,7 +70,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
           courseName={round.courseName}
           courseImgUrl={round.courseImgUrl}
         />
-        {canEdit && !hasAllScores ? (
+        {canEdit ? (
           <Button asChild size="xl" className="w-full">
             <Link href={`/rounds/${round.id}/play`}>
               <HugeiconsIcon icon={PlayCircleIcon} data-icon="inline-start" />

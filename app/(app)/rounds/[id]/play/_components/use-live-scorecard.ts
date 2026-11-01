@@ -1,6 +1,21 @@
 "use client";
 
-import { useCallback, useMemo, useReducer, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
+import { useRouter } from "next/navigation";
+
+import {
+  deleteRoundGreenie,
+  upsertRoundGreenie,
+  upsertRoundScore,
+} from "../../../actions";
 
 import type { GreenieValue } from "./hole-greenie-manager";
 import type { ScoreEntry } from "./round-score-state";
@@ -38,8 +53,10 @@ type LiveScorecardEvent =
       greenieBase: Record<number, GreenieEntry[]>;
     }
   | { type: "refresh-started" }
-  | ({ type: "edit-applied"; edit: LocalEdit } &
-      Omit<EditIdentity, "kind" | "version">)
+  | ({ type: "edit-applied"; edit: LocalEdit } & Omit<
+      EditIdentity,
+      "kind" | "version"
+    >)
   | ({ type: "edit-accepted" | "edit-rejected" } & EditIdentity);
 
 type EditResolution = {
@@ -78,7 +95,7 @@ function mapEdits(
   return next;
 }
 
-export function reduceLiveScorecard(
+function reduceLiveScorecard(
   state: LiveScorecardState,
   event: LiveScorecardEvent,
 ): LiveScorecardState {
@@ -153,7 +170,7 @@ function visibleEdit(
   return versions[Math.max(...Object.keys(versions).map(Number))];
 }
 
-export function readLiveScorecard(state: LiveScorecardState) {
+function readLiveScorecard(state: LiveScorecardState) {
   const scoresByRoundId: Record<number, ScoreEntry[]> = {};
   for (const [roundKey, base] of Object.entries(state.scoreBase)) {
     const roundId = Number(roundKey);
@@ -182,7 +199,7 @@ export function readLiveScorecard(state: LiveScorecardState) {
   return { scoresByRoundId, greeniesByRoundId };
 }
 
-export function createLiveScorecardState(
+function createLiveScorecardState(
   scoreBase: Record<number, ScoreEntry[]>,
   greenieBase: Record<number, GreenieEntry[]>,
 ): LiveScorecardState {
@@ -193,6 +210,8 @@ export function createLiveScorecardState(
  * Shows a server snapshot plus this device's local writes. Pending writes
  * survive every snapshot. Accepted writes retire into the first snapshot whose
  * refresh began after their save, whether another scorer agreed or overwrote it.
+ * Save outcomes and wake refresh ordering are private to this hook; callers
+ * supply snapshots, request saves, and render the resulting values and error.
  */
 export function useLiveScorecard(
   scoreBase: Record<number, ScoreEntry[]>,
@@ -202,6 +221,9 @@ export function useLiveScorecard(
     reduceLiveScorecard,
     createLiveScorecardState(scoreBase, greenieBase),
   );
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [, startSaveTransition] = useTransition();
+  const router = useRouter();
   const versionRef = useRef(0);
   const latestVersionRef = useRef<Record<string, number>>({});
 
@@ -210,10 +232,11 @@ export function useLiveScorecard(
   }
 
   const live = useMemo(() => readLiveScorecard(state), [state]);
-  const prepareForRefresh = useCallback(
-    () => dispatch({ type: "refresh-started" }),
-    [],
-  );
+  const refresh = useCallback(() => {
+    dispatch({ type: "refresh-started" });
+    router.refresh();
+  }, [router]);
+  useRefreshOnWake(refresh);
 
   const startEdit = (
     roundId: number,
@@ -251,13 +274,62 @@ export function useLiveScorecard(
     };
   };
 
-  const editScore = (roundId: number, hole: number, value: ScorePatch) =>
-    startEdit(roundId, hole, { kind: "score", value });
-  const editGreenie = (
+  // Every save settles its own optimistic version. A late failure must not
+  // roll back a newer edit or replace its feedback with an obsolete error.
+  const save = (
     roundId: number,
     hole: number,
-    value: GreenieValue | null,
-  ) => startEdit(roundId, hole, { kind: "greenie", value });
+    value: EditValue,
+    action: () => Promise<{ ok: true } | { ok: false; error: string }>,
+  ) => {
+    setSaveError(null);
+    const edit = startEdit(roundId, hole, value);
+    startSaveTransition(async () => {
+      let result;
+      try {
+        result = await action();
+      } catch {
+        result = {
+          ok: false as const,
+          error: "Could not save. Please try again.",
+        };
+      }
+      if (result.ok) edit.accept();
+      else if (edit.reject()) setSaveError(result.error);
+    });
+  };
 
-  return { ...live, editScore, editGreenie, prepareForRefresh };
+  const saveScore = (roundId: number, hole: number, value: ScorePatch) =>
+    save(roundId, hole, { kind: "score", value }, () =>
+      upsertRoundScore({ roundId, hole, ...value }),
+    );
+  const saveGreenie = (roundId: number, hole: number, value: GreenieValue) =>
+    save(roundId, hole, { kind: "greenie", value }, () =>
+      upsertRoundGreenie({ roundId, hole, ...value }),
+    );
+  const removeGreenie = (roundId: number, hole: number) =>
+    save(roundId, hole, { kind: "greenie", value: null }, () =>
+      deleteRoundGreenie({ roundId, hole }),
+    );
+
+  return { ...live, saveScore, saveGreenie, removeGreenie, saveError };
+}
+
+// Wake is the freshness trigger for a phone scorecard: no polling and no
+// initial-load refresh. Safari also restores pages through the back/forward cache.
+function useRefreshOnWake(refresh: () => void) {
+  useEffect(() => {
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    const refreshOnRestore = (event: PageTransitionEvent) => {
+      if (event.persisted) refreshIfVisible();
+    };
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    window.addEventListener("pageshow", refreshOnRestore);
+    return () => {
+      document.removeEventListener("visibilitychange", refreshIfVisible);
+      window.removeEventListener("pageshow", refreshOnRestore);
+    };
+  }, [refresh]);
 }

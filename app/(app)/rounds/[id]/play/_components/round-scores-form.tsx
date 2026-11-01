@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 
 import type { ReactNode } from "react";
 import Link from "next/link";
@@ -11,11 +11,6 @@ import { Button } from "@/components/ui/button";
 import { CourseRecordsDialog } from "@/components/features/course-records/course-records-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import {
-  deleteRoundGreenie,
-  upsertRoundGreenie,
-  upsertRoundScore,
-} from "../../../actions";
 import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
 import {
   type ScoreEntry,
@@ -23,7 +18,6 @@ import {
   buildLiveRound,
   isRoundComplete,
 } from "./round-score-state";
-import type { GreenieValue } from "./hole-greenie-manager";
 import { HoleScoreRow } from "./hole-score-row";
 import { ScoreEntrySheet, type ScorePatch } from "./score-entry-sheet";
 import { SettingsDialog, type SettingsTee } from "./settings-dialog";
@@ -34,7 +28,6 @@ import {
   type GreenieEntry,
   useLiveScorecard,
 } from "./use-live-scorecard";
-import { useRefreshOnWake } from "./use-refresh-on-wake";
 import type { MatchScoreboard, ScoringPeer } from "./round-play";
 
 export type { SettingsTee };
@@ -131,16 +124,14 @@ export function RoundScoresForm({
   const {
     scoresByRoundId,
     greeniesByRoundId,
-    editScore,
-    editGreenie,
-    prepareForRefresh,
+    saveScore: persistScore,
+    saveGreenie,
+    removeGreenie,
+    saveError,
   } = useLiveScorecard(
     baseScoresByRoundId,
     baseGreeniesByRoundId,
   );
-  // The card is read again every time the phone comes back on screen. The live
-  // state keeps pending writes, then retires accepted ones into that snapshot.
-  useRefreshOnWake(prepareForRefresh);
   // This Round is always in the base map, so the merge always returns it — and
   // a stable identity here is what keeps the live Round below from rebuilding.
   const scores = scoresByRoundId[roundId];
@@ -150,8 +141,6 @@ export function RoundScoresForm({
   );
   const selfName = round.firstName ?? "You";
 
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [, startSaveTransition] = useTransition();
   const [activeCell, setActiveCell] = useState<{
     roundId: number;
     hole: number;
@@ -182,8 +171,7 @@ export function RoundScoresForm({
     hole: number,
     patch: ScorePatch,
   ) => {
-    setSaveError(null);
-    const edit = editScore(targetRoundId, hole, patch);
+    persistScore(targetRoundId, hole, patch);
     if (targetRoundId === roundId) {
       const next = scores.map((s) =>
         s.hole === hole ? { ...s, ...patch } : s,
@@ -198,55 +186,6 @@ export function RoundScoresForm({
         .every((s) => s.strokes == null);
       if (frontComplete && backUnstarted) setActiveNine("in");
     }
-    startSaveTransition(async () => {
-      const result = await upsertRoundScore({
-        roundId: targetRoundId,
-        hole,
-        ...patch,
-      });
-      if (result.ok) {
-        edit.accept();
-      } else if (edit.reject()) {
-        setSaveError(result.error);
-      }
-    });
-  };
-
-  const saveGreenie = (
-    targetRoundId: number,
-    hole: number,
-    value: GreenieValue,
-  ) => {
-    setSaveError(null);
-    const edit = editGreenie(targetRoundId, hole, value);
-    startSaveTransition(async () => {
-      const result = await upsertRoundGreenie({
-        roundId: targetRoundId,
-        hole,
-        ...value,
-      });
-      if (result.ok) {
-        edit.accept();
-      } else if (edit.reject()) {
-        setSaveError(result.error);
-      }
-    });
-  };
-
-  const removeGreenie = (targetRoundId: number, hole: number) => {
-    setSaveError(null);
-    const edit = editGreenie(targetRoundId, hole, null);
-    startSaveTransition(async () => {
-      const result = await deleteRoundGreenie({
-        roundId: targetRoundId,
-        hole,
-      });
-      if (result.ok) {
-        edit.accept();
-      } else if (edit.reject()) {
-        setSaveError(result.error);
-      }
-    });
   };
 
   const liveMatchScoreboard = useMemo(() => {

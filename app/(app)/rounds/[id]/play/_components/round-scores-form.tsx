@@ -295,7 +295,7 @@ export function RoundScoresForm({
   ];
   // Score columns keep a fixed width so cells stay the same size whoever you are
   // scoring for; the table is centered until enough players push it full width.
-  const columns = `2.75rem 2.75rem 3.5rem repeat(${players.length}, minmax(3.25rem,4.5rem))`;
+  const columns = `2.75rem 2.75rem repeat(${players.length}, minmax(3.25rem,4.5rem))`;
 
   const activePlayer =
     activeCell == null
@@ -311,6 +311,10 @@ export function RoundScoresForm({
     activeEntry?.par ??
     holes.find((hole) => hole.hole === activeCell?.hole)?.par ??
     4;
+  const activeYards =
+    activeEntry?.yards ??
+    holes.find((hole) => hole.hole === activeCell?.hole)?.yards ??
+    null;
   const activeGreenie =
     activeCell == null
       ? null
@@ -347,14 +351,15 @@ export function RoundScoresForm({
             </CourseRecordsDialog>
           ) : null}
         </div>
-        <div className="overflow-hidden rounded-lg ring-1 ring-border">
+        {/* Scrolls rather than clips when columns can't fit, e.g. 320px screens
+            or iOS larger text sizes. */}
+        <div className="overflow-x-auto rounded-lg ring-1 ring-border">
           <div
             style={{ gridTemplateColumns: columns }}
             className="grid items-center bg-muted"
           >
             <HeaderCell className="text-center">HOL</HeaderCell>
             <HeaderCell className="text-center">PAR</HeaderCell>
-            <HeaderCell className="text-center">YDS</HeaderCell>
             {players.map((player) => (
               <HeaderCell
                 key={player.roundId}
@@ -376,7 +381,6 @@ export function RoundScoresForm({
                 key={entry.hole}
                 hole={entry.hole}
                 par={entry.par}
-                yards={entry.yards}
                 showPutts={recordPutts}
                 highlight={entry.hole === highlightHole}
                 columns={columns}
@@ -400,7 +404,7 @@ export function RoundScoresForm({
 
           <SummaryRow
             label={nine === "out" ? "Out" : "In"}
-            labelColumns={3}
+            labelColumns={2}
             columns={columns}
             showPutts={recordPutts}
             players={players}
@@ -428,13 +432,13 @@ export function RoundScoresForm({
               instead. A Round with no parent gets no link, and the tabs sit
               alone on the right. */}
           {backLink ? (
-            <Button asChild variant="secondary" size="xl" className="min-w-0">
+            <Button asChild variant="secondary" size="xl" className="min-w-0 shrink">
               <Link href={backLink.href}>
                 <HugeiconsIcon
                   icon={ArrowLeft02Icon}
                   data-icon="inline-start"
                 />
-                {backLink.label}
+                <span className="truncate">{backLink.label}</span>
               </Link>
             </Button>
           ) : null}
@@ -464,7 +468,7 @@ export function RoundScoresForm({
         </p>
       ) : null}
 
-      <div className="sticky bottom-0 z-10 mt-auto flex items-center gap-2 bg-background py-3">
+      <div className="sticky bottom-0 z-10 mt-auto flex items-center gap-2 bg-background pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {isComplete ? (
           <Button
             type="button"
@@ -506,6 +510,7 @@ export function RoundScoresForm({
           open
           hole={activeCell.hole}
           par={activePar}
+          yards={activeYards}
           playerName={activePlayer.fullName}
           strokes={activeEntry?.strokes ?? null}
           putts={activeEntry?.putts ?? null}

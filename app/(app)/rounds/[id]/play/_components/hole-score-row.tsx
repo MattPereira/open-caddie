@@ -15,7 +15,6 @@ export type HoleRowCell = {
 type HoleScoreRowProps = {
   hole: number;
   par: number | null;
-  yards: number | null;
   showPutts: boolean;
   highlight: boolean;
   columns: string;
@@ -26,7 +25,6 @@ type HoleScoreRowProps = {
 export function HoleScoreRow({
   hole,
   par,
-  yards,
   showPutts,
   highlight,
   columns,
@@ -49,9 +47,6 @@ export function HoleScoreRow({
       </div>
       <div className="text-center text-base tabular-nums text-muted-foreground">
         {par ?? "—"}
-      </div>
-      <div className="text-center text-base tabular-nums text-muted-foreground">
-        {yards == null ? "—" : yards.toLocaleString()}
       </div>
       {cells.map((cell) => (
         <button

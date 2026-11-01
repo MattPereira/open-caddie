@@ -78,6 +78,7 @@ type ScoreEntrySheetProps = {
   open: boolean;
   hole: number;
   par: number;
+  yards: number | null;
   playerName: string;
   strokes: number | null;
   putts: number | null;
@@ -94,6 +95,7 @@ export function ScoreEntrySheet({
   open,
   hole,
   par,
+  yards,
   playerName,
   strokes,
   putts,
@@ -210,11 +212,25 @@ export function ScoreEntrySheet({
         showCloseButton={false}
         className="max-h-[90svh] gap-10 overflow-y-auto rounded-t-2xl px-5 pb-8 pt-5"
       >
-        <SheetHeader className="flex-row items-baseline justify-between gap-3 p-0">
-          <SheetTitle className="min-w-0 truncate font-heading text-xl font-semibold">
+        <SheetHeader className="gap-1 p-0">
+          <SheetTitle className="truncate font-heading text-xl font-semibold">
             {playerName}
           </SheetTitle>
-          <span className="shrink-0 font-heading text-xl font-semibold">Hole {hole}</span>
+          <p className="flex items-baseline gap-2 text-base text-muted-foreground">
+            <span className="font-heading font-semibold text-foreground">
+              Hole {hole}
+            </span>
+            <span aria-hidden>·</span>
+            <span className="tabular-nums">Par {par}</span>
+            {yards == null ? null : (
+              <>
+                <span aria-hidden>·</span>
+                <span className="tabular-nums">
+                  {yards.toLocaleString()} yds
+                </span>
+              </>
+            )}
+          </p>
         </SheetHeader>
 
         <section className="flex flex-col gap-2">

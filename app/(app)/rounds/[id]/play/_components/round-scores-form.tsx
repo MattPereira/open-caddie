@@ -353,7 +353,7 @@ export function RoundScoresForm({
         </div>
         {/* Scrolls rather than clips when columns can't fit, e.g. 320px screens
             or iOS larger text sizes. */}
-        <div className="overflow-x-auto rounded-lg ring-1 ring-border">
+        <div className="overflow-x-auto overflow-y-hidden rounded-lg ring-1 ring-border">
           <div
             style={{ gridTemplateColumns: columns }}
             className="grid items-center bg-muted"
@@ -404,7 +404,7 @@ export function RoundScoresForm({
 
           <SummaryRow
             label={nine === "out" ? "Out" : "In"}
-            labelColumns={2}
+            par={sumRange(scores, from, to, "par")}
             columns={columns}
             showPutts={recordPutts}
             players={players}
@@ -468,7 +468,7 @@ export function RoundScoresForm({
         </p>
       ) : null}
 
-      <div className="sticky bottom-0 z-10 mt-auto flex items-center gap-2 bg-background pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="mt-auto flex items-center gap-2 py-3">
         {isComplete ? (
           <Button
             type="button"
@@ -541,7 +541,7 @@ export function RoundScoresForm({
 
 function SummaryRow({
   label,
-  labelColumns,
+  par,
   columns,
   showPutts,
   players,
@@ -549,7 +549,7 @@ function SummaryRow({
   to,
 }: {
   label: string;
-  labelColumns: number;
+  par: number | null;
   columns: string;
   showPutts: boolean;
   players: { roundId: number; isSelf: boolean; scores: ScoreEntry[] }[];
@@ -561,11 +561,11 @@ function SummaryRow({
       style={{ gridTemplateColumns: columns }}
       className="grid items-center border-t border-border bg-muted"
     >
-      <div
-        style={{ gridColumn: `span ${labelColumns}` }}
-        className="px-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground"
-      >
+      <div className="text-center text-sm font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
+      </div>
+      <div className="text-center text-base font-semibold tabular-nums text-muted-foreground">
+        {par ?? "—"}
       </div>
       {players.map((player) => {
         const strokes = sumRange(player.scores, from, to, "strokes");
@@ -614,7 +614,7 @@ function sumRange(
   entries: ScoreEntry[],
   from: number,
   to: number,
-  key: "strokes" | "putts",
+  key: "strokes" | "putts" | "par",
 ) {
   const values = entries
     .filter((entry) => entry.hole >= from && entry.hole <= to)

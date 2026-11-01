@@ -54,10 +54,8 @@ export default async function TournamentPage({
   const tournament = await getTournamentById(tournamentId);
 
   if (!tournament) notFound();
-  const currentUserUnfinishedRound = currentUser
-    ? tournament.rounds.find(
-        (round) => round.userId === currentUser.id && !round.isComplete,
-      )
+  const currentUserRound = currentUser
+    ? tournament.rounds.find((round) => round.userId === currentUser.id)
     : null;
 
   return (
@@ -97,9 +95,9 @@ export default async function TournamentPage({
           >
             <CourseRecords courseId={tournament.courseId} variant="tabs" />
           </CourseRecordsDialog>
-          {currentUserUnfinishedRound ? (
+          {currentUserRound ? (
             <PlayRoundButton
-              href={`/rounds/${currentUserUnfinishedRound.id}/play`}
+              href={`/rounds/${currentUserRound.id}/play`}
               className="min-w-0 w-full sm:w-full"
             />
           ) : null}

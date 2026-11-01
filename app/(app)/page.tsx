@@ -146,37 +146,6 @@ function RecentEventsSections({
       <section className="flex flex-col gap-3">
         <div className="flex flex-col gap-0">
           <SectionHeader
-            icon={GolfBallIcon}
-            title="Matches"
-            href="/matches"
-            action={matchAction}
-          />
-          <p className="text-sm text-muted-foreground">
-            Singles and team match play for friendly competition
-          </p>
-        </div>
-        {matches.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No matches yet.</p>
-        ) : (
-          matches.map((match) => (
-            <EventCard
-              key={match.id}
-              event={{
-                title: matchFormatLabel(match.format),
-                date: match.date,
-                courseName: match.courseName,
-                courseImgUrl: match.courseImgUrl,
-                playerCount: match.playerCount,
-              }}
-              href={`/matches/${match.id}`}
-            />
-          ))
-        )}
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <div className="flex flex-col gap-0">
-          <SectionHeader
             icon={ChampionIcon}
             title="Tournaments"
             href="/tournaments"
@@ -200,6 +169,37 @@ function RecentEventsSections({
                 playerCount: tournament.playerCount,
               }}
               href={`/tournaments/${tournament.id}`}
+            />
+          ))
+        )}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <div className="flex flex-col gap-0">
+          <SectionHeader
+            icon={GolfBallIcon}
+            title="Matches"
+            href="/matches"
+            action={matchAction}
+          />
+          <p className="text-sm text-muted-foreground">
+            Singles and team match play for friendly competition
+          </p>
+        </div>
+        {matches.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No matches yet.</p>
+        ) : (
+          matches.map((match) => (
+            <EventCard
+              key={match.id}
+              event={{
+                title: matchFormatLabel(match.format),
+                date: match.date,
+                courseName: match.courseName,
+                courseImgUrl: match.courseImgUrl,
+                playerCount: match.playerCount,
+              }}
+              href={`/matches/${match.id}`}
             />
           ))
         )}

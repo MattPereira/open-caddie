@@ -10,6 +10,7 @@ import {
   users,
 } from "@/db/schema";
 import { isVercelBlobUrl } from "@/lib/images/blob";
+import { getRoundAccess } from "@/lib/rounds/access";
 import { recordScorecardChanges } from "@/lib/rounds/scorecard-writes";
 import { parseRoundScorecardImage } from "./parser";
 
@@ -71,12 +72,14 @@ export async function importRoundScorecard({
     };
   }
 
-  const event = await getWritableEvent({
-    eventKind,
-    eventId,
-    sessionUserId: userId,
-  });
-  if (!event.ok) return event;
+  const courseId = await readEventCourseId(eventKind, eventId);
+  if (courseId == null) {
+    return {
+      ok: false,
+      error:
+        eventKind === "tournament" ? "Tournament not found." : "Match not found.",
+    };
+  }
 
   const eventRoundRows = await db
     .select({
@@ -110,13 +113,22 @@ export async function importRoundScorecard({
     };
   }
 
+  // Checked before the parser runs, so a card the uploader can't wholly score
+  // costs nothing and writes nothing.
+  const accesses = await Promise.all(
+    selectedRoundIds.map((roundId) => getRoundAccess(userId, roundId)),
+  );
+  if (accesses.some((access) => !access?.canScore)) {
+    return { ok: false, error: "Round not found." };
+  }
+
   const holes = await db
     .select({
       hole: courseHoles.hole,
       par: courseHoles.par,
     })
     .from(courseHoles)
-    .where(eq(courseHoles.courseId, event.courseId))
+    .where(eq(courseHoles.courseId, courseId))
     .orderBy(asc(courseHoles.hole));
   if (
     holes.length !== 18 ||
@@ -331,68 +343,23 @@ function parseSelectedRoundIds(formData: FormData) {
   ];
 }
 
-async function getWritableEvent({
-  eventKind,
-  eventId,
-  sessionUserId,
-}: {
-  eventKind: EventKind;
-  eventId: number;
-  sessionUserId: string;
-}): Promise<
-  | { ok: true; courseId: number }
-  | { ok: false; error: string }
-> {
-  const [currentUser] = await db
-    .select({ isAdmin: users.isAdmin })
-    .from(users)
-    .where(eq(users.id, sessionUserId))
-    .limit(1);
-  if (!currentUser) {
-    return { ok: false, error: "You must be signed in." };
-  }
-
-  if (eventKind === "tournament") {
-    const [tournament] = await db
-      .select({ courseId: tournaments.courseId })
-      .from(tournaments)
-      .where(eq(tournaments.id, eventId))
-      .limit(1);
-    if (!tournament || !currentUser.isAdmin) {
-      return { ok: false, error: "Tournament not found." };
-    }
-    return { ok: true, courseId: tournament.courseId };
-  }
-
-  const [match] = await db
-    .select({
-      courseId: matches.courseId,
-      createdByUserId: matches.createdByUserId,
-    })
-    .from(matches)
-    .where(eq(matches.id, eventId))
-    .limit(1);
-  if (!match) {
-    return { ok: false, error: "Match not found." };
-  }
-
-  if (
-    !currentUser.isAdmin &&
-    match.createdByUserId !== sessionUserId
-  ) {
-    const [participant] = await db
-      .select({ id: rounds.id })
-      .from(rounds)
-      .where(
-        and(eq(rounds.matchId, eventId), eq(rounds.userId, sessionUserId)),
-      )
-      .limit(1);
-    if (!participant) {
-      return { ok: false, error: "Match not found." };
-    }
-  }
-
-  return { ok: true, courseId: match.courseId };
+async function readEventCourseId(
+  eventKind: EventKind,
+  eventId: number,
+): Promise<number | null> {
+  const [event] =
+    eventKind === "tournament"
+      ? await db
+          .select({ courseId: tournaments.courseId })
+          .from(tournaments)
+          .where(eq(tournaments.id, eventId))
+          .limit(1)
+      : await db
+          .select({ courseId: matches.courseId })
+          .from(matches)
+          .where(eq(matches.id, eventId))
+          .limit(1);
+  return event?.courseId ?? null;
 }
 
 function displayName(player: {

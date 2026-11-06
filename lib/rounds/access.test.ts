@@ -177,4 +177,126 @@ if (!testDatabaseUrl) {
       expect(await getRoundAccess(viewer.id, 2_147_483_000)).toBeNull();
     });
   });
+
+  describe("Event Round access", async () => {
+    process.env.DATABASE_URL = testDatabaseUrl;
+    process.env.DATABASE_DRIVER = "node-postgres";
+    const [{ db }, schema, { getEventRoundAccess }, { createRoundFixtures }] =
+      await Promise.all([
+        import("@/db"),
+        import("@/db/schema"),
+        import("./access"),
+        import("./test-fixtures"),
+      ]);
+    const fixtures = createRoundFixtures(db, schema);
+
+    function sorted(ids: number[]) {
+      return [...ids].sort((a, b) => a - b);
+    }
+
+    async function eventAccessOf(
+      viewerUserId: string,
+      event: { kind: "tournament" | "match"; id: number },
+    ) {
+      const access = await getEventRoundAccess(viewerUserId, event);
+      return {
+        scorable: sorted(access.scorableRoundIds),
+        manageable: sorted(access.manageableRoundIds),
+        canImportScorecard: access.canImportScorecard,
+      };
+    }
+
+    afterEach(async () => {
+      await fixtures.cleanup();
+    });
+
+    it("lets a Pairing mate score and import their Pairing's Rounds only", async () => {
+      const t = await fixtures.tournament();
+      const marker = await fixtures.tournamentPlayer(t);
+      const mate = await fixtures.tournamentPlayer(t);
+      const other = await fixtures.tournamentPlayer(t);
+      await fixtures.pairing(t.tournament.id, [marker.round.id, mate.round.id]);
+      await fixtures.pairing(t.tournament.id, [other.round.id]);
+
+      expect(
+        await eventAccessOf(marker.user.id, {
+          kind: "tournament",
+          id: t.tournament.id,
+        }),
+      ).toEqual({
+        scorable: sorted([marker.round.id, mate.round.id]),
+        manageable: [marker.round.id],
+        canImportScorecard: true,
+      });
+    });
+
+    it("leaves a Tournament player in no Pairing their own Round and no import", async () => {
+      const t = await fixtures.tournament();
+      const ungrouped = await fixtures.tournamentPlayer(t);
+      const paired = await fixtures.tournamentPlayer(t);
+      await fixtures.pairing(t.tournament.id, [paired.round.id]);
+
+      expect(
+        await eventAccessOf(ungrouped.user.id, {
+          kind: "tournament",
+          id: t.tournament.id,
+        }),
+      ).toEqual({
+        scorable: [ungrouped.round.id],
+        manageable: [ungrouped.round.id],
+        canImportScorecard: false,
+      });
+    });
+
+    it("lets an admin score, manage and import every Round in the event", async () => {
+      const t = await fixtures.tournament();
+      const first = await fixtures.tournamentPlayer(t);
+      const second = await fixtures.tournamentPlayer(t);
+      const admin = await fixtures.user({ isAdmin: true });
+      const all = sorted([first.round.id, second.round.id]);
+
+      expect(
+        await eventAccessOf(admin.id, {
+          kind: "tournament",
+          id: t.tournament.id,
+        }),
+      ).toEqual({ scorable: all, manageable: all, canImportScorecard: true });
+    });
+
+    it("lets a Match player score and import every Match Round, managing only their own", async () => {
+      const { match, players } = await fixtures.match(2);
+      const [self, peer] = players;
+
+      expect(
+        await eventAccessOf(self.user.id, { kind: "match", id: match.id }),
+      ).toEqual({
+        scorable: sorted([self.round.id, peer.round.id]),
+        manageable: [self.round.id],
+        canImportScorecard: true,
+      });
+    });
+
+    it("lets a Match creator who isn't playing score and import every Match Round", async () => {
+      const { match, creator, players } = await fixtures.match(2, {
+        creatorPlays: false,
+      });
+
+      expect(
+        await eventAccessOf(creator.id, { kind: "match", id: match.id }),
+      ).toEqual({
+        scorable: sorted(players.map((player) => player.round.id)),
+        manageable: [],
+        canImportScorecard: true,
+      });
+    });
+
+    it("gives a non-member of a Match nothing", async () => {
+      const { match } = await fixtures.match(2);
+      const stranger = await fixtures.user();
+
+      expect(
+        await eventAccessOf(stranger.id, { kind: "match", id: match.id }),
+      ).toEqual({ scorable: [], manageable: [], canImportScorecard: false });
+    });
+  });
 }

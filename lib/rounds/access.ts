@@ -68,6 +68,76 @@ export async function getRoundAccess(
   };
 }
 
+export type EventRef = { kind: "tournament" | "match"; id: number };
+
+export type EventRoundAccess = {
+  /** The event's Rounds the viewer is a Scorer of. */
+  scorableRoundIds: number[];
+  /** The event's Rounds the viewer may change or delete. */
+  manageableRoundIds: number[];
+  /**
+   * May use the Round Scorecard Import: a Scorer of some Round besides their
+   * own, since a card is a group's. A Tournament player in no Pairing scores
+   * only their own Round, so they can't.
+   */
+  canImportScorecard: boolean;
+};
+
+/**
+ * The Scorer rule across a whole Tournament or Match, for pages that list its
+ * Rounds. Agrees with getRoundAccess Round by Round, without reading each one.
+ */
+export async function getEventRoundAccess(
+  viewerUserId: string,
+  event: EventRef,
+): Promise<EventRoundAccess> {
+  const [eventRounds, [viewer], matchCreatorId] = await Promise.all([
+    db
+      .select({
+        id: rounds.id,
+        userId: rounds.userId,
+        courseId: rounds.courseId,
+        tournamentId: rounds.tournamentId,
+        matchId: rounds.matchId,
+      })
+      .from(rounds)
+      .where(
+        event.kind === "tournament"
+          ? eq(rounds.tournamentId, event.id)
+          : eq(rounds.matchId, event.id),
+      ),
+    db
+      .select({ isAdmin: users.isAdmin })
+      .from(users)
+      .where(eq(users.id, viewerUserId))
+      .limit(1),
+    event.kind === "match" ? readMatchCreatorId(event.id) : null,
+  ]);
+
+  const allRoundIds = eventRounds.map((round) => round.id);
+  const ownRound = eventRounds.find((round) => round.userId === viewerUserId);
+  const isAdmin = viewer?.isAdmin === true;
+
+  let scorableRoundIds: number[];
+  if (isAdmin) {
+    scorableRoundIds = allRoundIds;
+  } else if (event.kind === "match") {
+    scorableRoundIds =
+      ownRound || matchCreatorId === viewerUserId ? allRoundIds : [];
+  } else if (ownRound) {
+    const mates = await readGroupMates(ownRound);
+    scorableRoundIds = [ownRound.id, ...mates.map((mate) => mate.roundId)];
+  } else {
+    scorableRoundIds = [];
+  }
+
+  return {
+    scorableRoundIds,
+    manageableRoundIds: isAdmin ? allRoundIds : ownRound ? [ownRound.id] : [],
+    canImportScorecard: scorableRoundIds.some((id) => id !== ownRound?.id),
+  };
+}
+
 // A Tournament grants nothing on its own: only a shared Pairing does, so a
 // Round in no Pairing has no group mates.
 async function readGroupMates(

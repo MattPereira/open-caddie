@@ -202,6 +202,23 @@ describe("live scorecard lifecycle", () => {
     expect(current.saveError).toBeNull();
   });
 
+  it("sends only the changed field and layers it over an earlier pending edit", async () => {
+    const older = pendingSave();
+    vi.mocked(upsertRoundScore).mockReturnValueOnce(older.promise);
+    act(() => current.saveScore(1, 1, { strokes: 5 }));
+    await act(async () => current.saveScore(1, 1, { putts: 1 }));
+    expect(upsertRoundScore).toHaveBeenLastCalledWith({
+      roundId: 1,
+      hole: 1,
+      putts: 1,
+    });
+    expect(current.scoresByRoundId[1][0]).toMatchObject({
+      strokes: 5,
+      putts: 1,
+    });
+    await act(async () => older.resolve({ ok: true }));
+  });
+
   it("saves Greenies and reconciles them through the same wake lifecycle", async () => {
     await act(async () => current.saveGreenie(2, 1, { feet: 4, inches: 3 }));
     expect(upsertRoundGreenie).toHaveBeenCalledWith({

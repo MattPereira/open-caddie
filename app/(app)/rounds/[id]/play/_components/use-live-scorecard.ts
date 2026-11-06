@@ -170,14 +170,30 @@ function visibleEdit(
   return versions[Math.max(...Object.keys(versions).map(Number))];
 }
 
+// A score patch carries only the fields it changed, so every live version of
+// a cell layers over the base, oldest first, rather than the newest alone.
+function applyScoreEdits(
+  edits: LiveScorecardState["edits"],
+  roundId: number,
+  entry: ScoreEntry,
+) {
+  const versions = edits[cellKey("score", roundId, entry.hole)];
+  if (versions == null) return entry;
+  let merged = entry;
+  for (const version of Object.keys(versions).map(Number).sort((a, b) => a - b)) {
+    const edit = versions[version];
+    if (edit.kind === "score") merged = { ...merged, ...edit.value };
+  }
+  return merged;
+}
+
 function readLiveScorecard(state: LiveScorecardState) {
   const scoresByRoundId: Record<number, ScoreEntry[]> = {};
   for (const [roundKey, base] of Object.entries(state.scoreBase)) {
     const roundId = Number(roundKey);
-    scoresByRoundId[roundId] = base.map((entry) => {
-      const edit = visibleEdit(state.edits, "score", roundId, entry.hole);
-      return edit?.kind === "score" ? { ...entry, ...edit.value } : entry;
-    });
+    scoresByRoundId[roundId] = base.map((entry) =>
+      applyScoreEdits(state.edits, roundId, entry),
+    );
   }
 
   const greeniesByRoundId: Record<number, GreenieEntry[]> = {};

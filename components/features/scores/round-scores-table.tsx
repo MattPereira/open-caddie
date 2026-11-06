@@ -43,17 +43,21 @@ export type { RoundScoresTableRound } from "@/components/features/scores/round-s
 
 const holes = Array.from({ length: 18 }, (_, index) => index + 1);
 
+export type RoundsEditAccess = {
+  /** Rounds the viewer is a Scorer of, so may edit from the table. */
+  scorableRoundIds: readonly number[];
+  /** Rounds whose tee and override the viewer may also change. */
+  manageableRoundIds: readonly number[];
+};
+
 type RoundScoresTableProps = {
-  currentUser?: {
-    id: string;
-    isAdmin: boolean;
-  } | null;
+  editAccess?: RoundsEditAccess | null;
   rounds: RoundScoresTableRound[];
   showMobileTotals?: boolean;
 };
 
 export function RoundScoresTable({
-  currentUser,
+  editAccess,
   rounds,
   showMobileTotals = true,
 }: RoundScoresTableProps) {
@@ -64,7 +68,7 @@ export function RoundScoresTable({
       desktop={<DesktopRoundScoresTable rows={rows} />}
       mobile={
         <MobileRoundScoresCards
-          currentUser={currentUser}
+          editAccess={editAccess}
           rows={rows}
           showMobileTotals={showMobileTotals}
         />
@@ -187,11 +191,11 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
 }
 
 function MobileRoundScoresCards({
-  currentUser,
+  editAccess,
   rows,
   showMobileTotals,
 }: {
-  currentUser?: RoundScoresTableProps["currentUser"];
+  editAccess?: RoundScoresTableProps["editAccess"];
   rows: RoundScoreRow[];
   showMobileTotals: boolean;
 }) {
@@ -200,16 +204,20 @@ function MobileRoundScoresCards({
       {rows.map((row) => {
         const editableRound = toEditableRound(row.round);
         const canEdit =
-          currentUser != null &&
           editableRound != null &&
-          (currentUser.isAdmin || currentUser.id === editableRound.userId);
+          (editAccess?.scorableRoundIds.includes(editableRound.id) ?? false);
+        const canManage =
+          editAccess?.manageableRoundIds.includes(row.round.id) ?? false;
 
         return (
           <RoundScoresCard
             key={row.round.id}
             action={
               canEdit ? (
-                <RoundScoresCardEditAction round={editableRound} />
+                <RoundScoresCardEditAction
+                  canManage={canManage}
+                  round={editableRound}
+                />
               ) : null
             }
             row={row}
@@ -221,7 +229,13 @@ function MobileRoundScoresCards({
   );
 }
 
-function RoundScoresCardEditAction({ round }: { round: EditableRound }) {
+function RoundScoresCardEditAction({
+  canManage,
+  round,
+}: {
+  canManage: boolean;
+  round: EditableRound;
+}) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const router = useRouter();
 
@@ -245,8 +259,7 @@ function RoundScoresCardEditAction({ round }: { round: EditableRound }) {
       </TooltipProvider>
       {sheetOpen ? (
         <RoundScoresSheet
-          // Shown only to the Round's player or an admin, who manage it.
-          canManage
+          canManage={canManage}
           open={sheetOpen}
           onOpenChange={setSheetOpen}
           onDeleted={() => router.refresh()}

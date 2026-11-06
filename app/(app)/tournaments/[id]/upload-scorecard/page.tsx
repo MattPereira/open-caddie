@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { PageContent } from "@/components/layout/page-content";
 import { ScorecardUploadForm } from "@/components/features/scorecard-import/scorecard-upload-form";
+import { getEventRoundAccess } from "@/lib/rounds/access";
 import { getTournamentById } from "@/lib/tournaments/queries";
 import { getCurrentUser } from "@/lib/users/queries";
 import { uploadTournamentRoundScorecard } from "@/app/(app)/tournaments/actions";
@@ -31,16 +32,28 @@ export default async function TournamentUploadScorecardPage({
   ]);
 
   if (!tournament) notFound();
-  if (!currentUser?.isAdmin) redirect(`/tournaments/${tournamentId}`);
+  const access = currentUser
+    ? await getEventRoundAccess(currentUser.id, {
+        kind: "tournament",
+        id: tournamentId,
+      })
+    : null;
+  if (!currentUser || !access?.canImportScorecard) {
+    redirect(`/tournaments/${tournamentId}`);
+  }
 
-  const players = tournament.rounds.map((round) => ({
-    roundId: round.id,
-    userId: round.userId,
-    firstName: round.firstName,
-    lastName: round.lastName,
-    username: round.username,
-    image: round.image,
-  }));
+  // A Pairing mate is offered only their Pairing's Rounds; the import refuses
+  // any other.
+  const players = tournament.rounds
+    .filter((round) => access.scorableRoundIds.includes(round.id))
+    .map((round) => ({
+      roundId: round.id,
+      userId: round.userId,
+      firstName: round.firstName,
+      lastName: round.lastName,
+      username: round.username,
+      image: round.image,
+    }));
   const action = uploadTournamentRoundScorecard.bind(null, tournamentId);
   const uploadCourseHandle = tournament.courseHandle ?? `tournament-${tournamentId}`;
 

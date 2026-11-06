@@ -5,16 +5,17 @@ import { TabsContent } from "@/components/ui/tabs";
 import {
   RoundScoresTable,
   type RoundScoresTableRound,
+  type RoundsEditAccess,
 } from "@/components/features/scores/round-scores-table";
 
 export function RoundsTabContent({
-  currentUser,
+  editAccess,
   emptyMessage,
   rounds,
   actions,
   children,
 }: {
-  currentUser: { id: string; isAdmin: boolean } | null;
+  editAccess: RoundsEditAccess | null;
   emptyMessage: string;
   rounds: RoundScoresTableRound[];
   actions?: ReactNode;
@@ -30,7 +31,7 @@ export function RoundsTabContent({
           </CardContent>
         </Card>
       ) : (
-        <RoundScoresTable currentUser={currentUser} rounds={rounds} />
+        <RoundScoresTable editAccess={editAccess} rounds={rounds} />
       )}
       {children}
     </TabsContent>

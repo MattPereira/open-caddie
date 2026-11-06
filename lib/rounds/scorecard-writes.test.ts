@@ -18,9 +18,9 @@ if (!testDatabaseUrl) {
     const [
       { db },
       schema,
-      { recordScorecardChanges },
+      { recordScorecardChanges, changeRoundSettings, deleteRound },
       { createRoundFixtures, PAR_THREE_HOLES },
-      { revalidatePath },
+      { revalidatePath, updateTag },
     ] = await Promise.all([
       import("@/db"),
       import("@/db/schema"),
@@ -30,6 +30,7 @@ if (!testDatabaseUrl) {
     ]);
     const { readScorecardsByRounds } = await import("./scorecards");
     const { eq } = await import("drizzle-orm");
+    const { getRoundAccess } = await import("./access");
     const fixtures = createRoundFixtures(db, schema);
 
     const PAR_THREE = PAR_THREE_HOLES[0];
@@ -61,8 +62,22 @@ if (!testDatabaseUrl) {
       );
     }
 
+    async function settingsOf(roundId: number) {
+      const [round] = await db
+        .select({
+          teeId: schema.rounds.teeId,
+          playerIndexOverride: schema.rounds.playerIndexOverride,
+        })
+        .from(schema.rounds)
+        .where(eq(schema.rounds.id, roundId));
+      return round;
+    }
+
+    const CANNOT_MANAGE = "You can't change this Round's settings.";
+
     beforeEach(() => {
       vi.mocked(revalidatePath).mockClear();
+      vi.mocked(updateTag).mockClear();
     });
 
     afterEach(async () => {
@@ -282,6 +297,195 @@ if (!testDatabaseUrl) {
           [`/matches/${match.id}`],
         ]),
       );
+    });
+    describe("change Round settings", () => {
+      it("keeps a Pairing mate's live score when the Round's player changes tees", async () => {
+        const t = await fixtures.tournament();
+        const player = await fixtures.tournamentPlayer(t);
+        const mate = await fixtures.tournamentPlayer(t);
+        await fixtures.pairing(t.tournament.id, [
+          player.round.id,
+          mate.round.id,
+        ]);
+        const white = await fixtures.tee(t.course.id);
+        await recordScorecardChanges(player.user.id, {
+          scores: [{ roundId: player.round.id, hole: 1, strokes: 5, putts: 2 }],
+        });
+        // Entered from the mate's phone after the player's page loaded.
+        await recordScorecardChanges(mate.user.id, {
+          scores: [{ roundId: player.round.id, hole: 2, strokes: 3, putts: 1 }],
+          greenies: [
+            {
+              roundId: player.round.id,
+              hole: PAR_THREE,
+              distance: { feet: 9, inches: 2 },
+            },
+          ],
+        });
+
+        expect(
+          await changeRoundSettings(player.user.id, player.round.id, {
+            teeId: white.id,
+          }),
+        ).toEqual({ ok: true });
+
+        expect((await settingsOf(player.round.id)).teeId).toBe(white.id);
+        expect(await holeOf(player.round.id, 1)).toEqual({
+          strokes: 5,
+          putts: 2,
+        });
+        expect(await holeOf(player.round.id, 2)).toEqual({
+          strokes: 3,
+          putts: 1,
+        });
+        expect(await greenieOf(player.round.id, PAR_THREE)).toEqual({
+          feet: 9,
+          inches: 2,
+        });
+      });
+
+      it("rejects a tee from another course", async () => {
+        const t = await fixtures.tournament();
+        const player = await fixtures.tournamentPlayer(t);
+        const { tee: elsewhere } = await fixtures.course();
+
+        expect(
+          await changeRoundSettings(player.user.id, player.round.id, {
+            teeId: elsewhere.id,
+          }),
+        ).toMatchObject({
+          ok: false,
+          error: "Selected tees do not belong to this course.",
+        });
+        expect((await settingsOf(player.round.id)).teeId).toBe(t.tee.id);
+      });
+
+      it("rejects a Player Index Override on a non-Match Round", async () => {
+        const t = await fixtures.tournament();
+        const player = await fixtures.tournamentPlayer(t);
+        const white = await fixtures.tee(t.course.id);
+
+        expect(
+          await changeRoundSettings(player.user.id, player.round.id, {
+            teeId: white.id,
+            playerIndexOverride: 12.3,
+          }),
+        ).toMatchObject({
+          ok: false,
+          error: "A Player Index Override can only be set on a Match Round.",
+        });
+        expect(await settingsOf(player.round.id)).toEqual({
+          teeId: t.tee.id,
+          playerIndexOverride: null,
+        });
+      });
+
+      it("sets and clears a Player Index Override on a Match Round", async () => {
+        const { players } = await fixtures.match(2);
+        const [a] = players;
+
+        await changeRoundSettings(a.user.id, a.round.id, {
+          playerIndexOverride: 12.3,
+        });
+        expect((await settingsOf(a.round.id)).playerIndexOverride).toBe("12.3");
+
+        await changeRoundSettings(a.user.id, a.round.id, {
+          playerIndexOverride: null,
+        });
+        expect((await settingsOf(a.round.id)).playerIndexOverride).toBeNull();
+      });
+
+      it("gives a Scorer who can't manage the Round a distinct error", async () => {
+        const { players, match } = await fixtures.match(2);
+        const [a, b] = players;
+        const white = await fixtures.tee(match.courseId);
+
+        expect(
+          await changeRoundSettings(b.user.id, a.round.id, {
+            teeId: white.id,
+          }),
+        ).toMatchObject({ ok: false, error: CANNOT_MANAGE });
+        expect((await settingsOf(a.round.id)).teeId).not.toBe(white.id);
+      });
+
+      it("reports not found to someone who can't score the Round", async () => {
+        const t = await fixtures.tournament();
+        const player = await fixtures.tournamentPlayer(t);
+        const stranger = await fixtures.tournamentPlayer(t);
+
+        expect(
+          await changeRoundSettings(stranger.user.id, player.round.id, {
+            teeId: t.tee.id,
+          }),
+        ).toMatchObject({ ok: false, error: "Round not found." });
+      });
+
+      it("invalidates the Round changed pages but not the home events cache", async () => {
+        const t = await fixtures.tournament();
+        const player = await fixtures.tournamentPlayer(t);
+        const white = await fixtures.tee(t.course.id);
+
+        await changeRoundSettings(player.user.id, player.round.id, {
+          teeId: white.id,
+        });
+
+        expect(invalidatedPaths()).toEqual(
+          sortedPaths([
+            ["/"],
+            ["/records"],
+            ["/clubs/[handle]", "page"],
+            [`/players/${player.user.id}`],
+            [`/rounds/${player.round.id}`],
+            [`/tournaments/${t.tournament.id}`],
+          ]),
+        );
+        expect(updateTag).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("delete Round", () => {
+      it("lets the Round's player delete it, refreshing the home events cache", async () => {
+        const { match, players } = await fixtures.match(2);
+        const [a] = players;
+
+        expect(await deleteRound(a.user.id, a.round.id)).toEqual({ ok: true });
+
+        expect(await getRoundAccess(a.user.id, a.round.id)).toBeNull();
+        expect(updateTag).toHaveBeenCalledWith("home-events");
+        expect(invalidatedPaths()).toEqual(
+          sortedPaths([
+            ["/"],
+            ["/records"],
+            ["/clubs/[handle]", "page"],
+            [`/players/${a.user.id}`],
+            [`/rounds/${a.round.id}`],
+            [`/matches/${match.id}`],
+          ]),
+        );
+      });
+
+      it("gives a Scorer who can't manage the Round a distinct error and keeps it", async () => {
+        const { players } = await fixtures.match(2);
+        const [a, b] = players;
+
+        expect(await deleteRound(b.user.id, a.round.id)).toMatchObject({
+          ok: false,
+          error: CANNOT_MANAGE,
+        });
+        expect(await getRoundAccess(a.user.id, a.round.id)).not.toBeNull();
+        expect(revalidatePath).not.toHaveBeenCalled();
+      });
+
+      it("reports not found to someone who can't score the Round", async () => {
+        const t = await fixtures.tournament();
+        const player = await fixtures.tournamentPlayer(t);
+        const stranger = await fixtures.tournamentPlayer(t);
+
+        expect(
+          await deleteRound(stranger.user.id, player.round.id),
+        ).toMatchObject({ ok: false, error: "Round not found." });
+        expect(await getRoundAccess(player.user.id, player.round.id)).not.toBeNull();
+      });
     });
   });
 }

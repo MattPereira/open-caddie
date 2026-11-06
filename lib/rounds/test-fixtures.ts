@@ -34,6 +34,14 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
     return { course: created, tee };
   }
 
+  async function tee(courseId: number, name = "White") {
+    const [created] = await db
+      .insert(schema.courseTees)
+      .values({ courseId, name, rating: "70", slope: 115 })
+      .returning();
+    return created;
+  }
+
   async function user({ isAdmin = false } = {}) {
     const suffix = crypto.randomUUID();
     const [created] = await db
@@ -189,7 +197,7 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
     matchIds.length = 0;
   }
 
-  return { course, user, tournament, tournamentPlayer, pairing, match, cleanup };
+  return { course, tee, user, tournament, tournamentPlayer, pairing, match, cleanup };
 }
 
 export const PAR_THREE_HOLES = [3, 7, 12, 16];

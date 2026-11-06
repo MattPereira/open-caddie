@@ -14,7 +14,8 @@ date: 2026-07-13
 It is off-limits to feature work unless you are changing the connection or a table definition. All application data logic lives elsewhere, placed by a single rule:
 
 - **Reads → `lib/<domain>/queries.ts`.** Side-effect-free, `cache()`-wrapped, imported directly into Server Components. Reads are shared across many routes and have no route-boundary concerns, so they get one central per-domain home. A domain's read seam is the file named `queries.ts` (or a co-located read module such as `lib/rounds/greenies.ts` for a sub-entity).
-- **Writes → the route's `actions.ts`.** A write is a route-triggered command that fuses `"use server"`, auth, input validation, the mutation, and `revalidatePath`/`redirect`. Those boundary concerns cannot cleanly leave the action, so writes stay colocated with the route that triggers them. Colocated `actions.ts` is the Next.js-endorsed convention for mutation entry points.
+- **Writes enter through the route's `actions.ts`.** An action is the entry point: `"use server"`, `auth()` for the session, zod parsing of untrusted input, a call into the write, and `redirect`. Colocated `actions.ts` is the Next.js-endorsed convention for mutation entry points. A simple single-path write may live entirely in its action.
+- **A write moves to a module in `lib/<domain>/` once it has two or more entry points, or once it carries policy beyond "signed in / admin".** Two entry points might be several actions, an import, or a page gate. Policy here means authorization rules, cross-row invariants, or which pages to invalidate. The extracted module takes the session user id as an argument, owns authorization and invalidation, and is **never** `"use server"`. Every export of a `"use server"` file is a public endpoint, so a client could pass any user id it liked. See Amendments.
 
 This extends [ADR 0002](0002-layered-shared-components.md), which already made `lib/<domain>/` the home for domain logic. Reads previously lived in `db/queries/`, creating a split-brain — some DB-touching reads were in `db/queries/`, others already in `lib/<domain>/` (`lib/matches`, the `scorecard-import` modules). Consolidating reads under `lib/<domain>/` removes that second home.
 
@@ -24,7 +25,7 @@ This extends [ADR 0002](0002-layered-shared-components.md), which already made `
 
 - **`db/` as the full data-access layer** (connection + schema + reads + writes, e.g. `db/queries/` + `db/mutations/`) was rejected because writes are not moving out of server actions — they need `"use server"`, auth, and `revalidatePath`, which are route-boundary concerns — so a "all DB access lives in `db/`" rule would be false the moment you look at mutations. It also fights the existing dependency direction, where `db/queries/rounds.ts` already reached into `lib/handicap`.
 - **Sacred pure `lib/` with a separate repository/adapter layer** (hexagonal/DDD) was rejected as over-ceremony for a single-context, single-datastore app: the extra indirection buys little and gives an agent more places to misplace code.
-- **Full read/write symmetry** (thin actions + `lib/<domain>/mutations.ts`) was rejected as a speculative refactor. Splitting fat actions often makes them harder to follow (passing `userId` in, returning data for revalidation). A write's pure core is extracted to `lib/<domain>/` only on demand, as already done for `lib/matches` and `lib/handicap`.
+- **Full read/write symmetry** (a blanket `lib/<domain>/mutations.ts` for every domain, with thin actions everywhere) is still rejected as speculative. Writes move to `lib/` only when the extraction trigger above fires.
 
 ## Schema stays single-file
 
@@ -32,4 +33,8 @@ This extends [ADR 0002](0002-layered-shared-components.md), which already made `
 
 ## Consequences
 
-The agent-facing placement rule is two sentences: **Reads → `lib/<domain>/queries.ts`. Writes → that route's `actions.ts`.** `db/` becomes small and stable. Read modules keep importing `@/db` and `@/db/schema` unchanged; only their location and consumers' import paths change. The fat query files (`courses`, `standings`) may later become a `queries/` folder-with-barrel if they hurt.
+The agent-facing placement rule: **Reads → `lib/<domain>/queries.ts`. Writes enter through that route's `actions.ts`; once a write has a second entry point or carries policy, it moves to a plain (non-`"use server"`) module in `lib/<domain>/` that takes the user id.** `db/` becomes small and stable. Read modules keep importing `@/db` and `@/db/schema` unchanged; only their location and consumers' import paths change. The fat query files (`courses`, `standings`) may later become a `queries/` folder-with-barrel if they hurt.
+
+## Amendments
+
+**2026-11-06: write extraction trigger.** The original rule kept every write in its action. It assumed authorization and `revalidatePath` were route-boundary concerns. They aren't: `revalidatePath` works from any server module, and "who may write this" and "which pages show this" are domain knowledge. Keeping them in actions caused the very drift this ADR set out to prevent. Round scorecard writes had four conflicting access policies and six hand-copied revalidation lists that had drifted apart. Tests were placed where the missing modules should be (`lib/rounds/write-access.test.ts`, `lib/tournaments/mutations.test.ts`), so they had to drive actions while mocking `@/auth`. The original argument against splitting, "passing `userId` in", turned out to be the testability gain: a module that takes the user id is tested without mocking auth. Authentication, parsing and `redirect` stay in the action. Round scorecard writes and Round write access are the first modules extracted under this trigger.

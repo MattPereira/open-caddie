@@ -22,6 +22,10 @@ _Avoid_: Archived Season
 An admin-defined set of up to four Rounds within one Tournament, representing the players who are playing together. Its members may enter each other's scores.
 _Avoid_: Tournament group (already a rejected synonym for Season), foursome (a Pairing may hold fewer than four)
 
+**Scorer**:
+Someone who may enter a Round's per-hole scores and Greenies: the Round's player, an admin, the Round's Pairing mates, and, for a Match Round, the Match's other players and its creator. Only the Round's player or an admin may change the Round itself (its tee, its Player Index Override, or deleting it).
+_Avoid_: peer scorer, scorekeeper
+
 **Course Scorecard Import**:
 A resumable process for turning a course scorecard image into data for either a new or existing course. A new-course import creates tees and holes; an existing-course import preserves historical hole data and the identities of tees referenced by past play, and requires an explicit disposition for every Placeholder Tee.
 _Avoid_: Scorecard reconciliation, scorecard sync

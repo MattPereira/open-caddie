@@ -5,7 +5,7 @@ import { PageContent } from "@/components/layout/page-content";
 import { ScorecardUploadForm } from "@/components/features/scorecard-import/scorecard-upload-form";
 import { getTournamentById } from "@/lib/tournaments/queries";
 import { getCurrentUser } from "@/lib/users/queries";
-import { uploadTournamentRoundScorecard } from "@/lib/rounds/scorecard-import";
+import { uploadTournamentRoundScorecard } from "@/app/(app)/tournaments/actions";
 import { formatDate } from "@/lib/dates";
 
 type UploadScorecardPageProps = {

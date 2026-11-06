@@ -1,22 +1,20 @@
-"use server";
+import { and, asc, eq, inArray } from "drizzle-orm";
 
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
-
-import { auth } from "@/auth";
 import { db } from "@/db";
 import {
   courseHoles,
   matches,
   roundScorecardUploads,
-  roundScores,
   rounds,
   tournaments,
   users,
 } from "@/db/schema";
 import { isVercelBlobUrl } from "@/lib/images/blob";
+import { recordScorecardChanges } from "@/lib/rounds/scorecard-writes";
 import { parseRoundScorecardImage } from "./parser";
+
+// Not a "use server" module: it takes the session user id, so thin actions in
+// the Tournament and Match routes authenticate and wrap it (ADR 0003).
 
 export type UploadRoundScorecardState = {
   error: string | null;
@@ -26,64 +24,25 @@ const MAX_ADDITIONAL_CONTEXT_LENGTH = 1_000;
 
 type EventKind = "tournament" | "match";
 
-type UploadRoundScorecardResult =
-  | { ok: true; redirectPath: string; affectedUserIds: string[] }
+export type ImportRoundScorecardResult =
+  | { ok: true; redirectPath: string }
   | { ok: false; error: string };
 
-export async function uploadTournamentRoundScorecard(
-  tournamentId: number,
-  _state: UploadRoundScorecardState,
-  formData: FormData,
-): Promise<UploadRoundScorecardState> {
-  const result = await uploadRoundScorecardForEvent({
-    eventKind: "tournament",
-    eventId: tournamentId,
-    formData,
-  });
-
-  if (!result.ok) return { error: result.error };
-
-  revalidateUploadPaths(result.affectedUserIds, {
-    tournamentId,
-    matchId: null,
-  });
-  redirect(result.redirectPath);
-}
-
-export async function uploadMatchRoundScorecard(
-  matchId: number,
-  _state: UploadRoundScorecardState,
-  formData: FormData,
-): Promise<UploadRoundScorecardState> {
-  const result = await uploadRoundScorecardForEvent({
-    eventKind: "match",
-    eventId: matchId,
-    formData,
-  });
-
-  if (!result.ok) return { error: result.error };
-
-  revalidateUploadPaths(result.affectedUserIds, {
-    tournamentId: null,
-    matchId,
-  });
-  redirect(result.redirectPath);
-}
-
-async function uploadRoundScorecardForEvent({
+/**
+ * The Round Scorecard Import: parses the uploaded image and records the scores
+ * for the selected Rounds through record scorecard changes, all or nothing.
+ */
+export async function importRoundScorecard({
+  userId,
   eventKind,
   eventId,
   formData,
 }: {
+  userId: string;
   eventKind: EventKind;
   eventId: number;
   formData: FormData;
-}): Promise<UploadRoundScorecardResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { ok: false, error: "You must be signed in." };
-  }
-
+}): Promise<ImportRoundScorecardResult> {
   if (!Number.isInteger(eventId) || eventId <= 0) {
     return { ok: false, error: "Event not found." };
   }
@@ -115,7 +74,7 @@ async function uploadRoundScorecardForEvent({
   const event = await getWritableEvent({
     eventKind,
     eventId,
-    sessionUserId: session.user.id,
+    sessionUserId: userId,
   });
   if (!event.ok) return event;
 
@@ -183,7 +142,7 @@ async function uploadRoundScorecardForEvent({
     await insertScorecardUpload({
       eventKind,
       eventId,
-      uploadedByUserId: session.user.id,
+      uploadedByUserId: userId,
       imageUrl: scorecardImgUrl,
       additionalContext,
       status: "failed",
@@ -207,7 +166,7 @@ async function uploadRoundScorecardForEvent({
     await insertScorecardUpload({
       eventKind,
       eventId,
-      uploadedByUserId: session.user.id,
+      uploadedByUserId: userId,
       imageUrl: scorecardImgUrl,
       additionalContext,
       status: "failed",
@@ -227,7 +186,7 @@ async function uploadRoundScorecardForEvent({
     await insertScorecardUpload({
       eventKind,
       eventId,
-      uploadedByUserId: session.user.id,
+      uploadedByUserId: userId,
       imageUrl: scorecardImgUrl,
       additionalContext,
       status: "failed",
@@ -238,22 +197,24 @@ async function uploadRoundScorecardForEvent({
     return { ok: false, error: validationError };
   }
 
-  const scoresToUpsert = parsed.parsed.rounds.flatMap((round) =>
+  // A hole the card leaves blank is left out entirely, and a missing putts
+  // field keeps whatever putts were entered live.
+  const scoreChanges = parsed.parsed.rounds.flatMap((round) =>
     round.holes
       .filter((hole) => hole.strokes != null)
       .map((hole) => ({
         roundId: round.roundId,
         hole: hole.hole,
         strokes: hole.strokes,
-        putts: hole.putts ?? null,
+        ...(hole.putts != null && { putts: hole.putts }),
       })),
   );
 
-  if (scoresToUpsert.length === 0) {
+  if (scoreChanges.length === 0) {
     await insertScorecardUpload({
       eventKind,
       eventId,
-      uploadedByUserId: session.user.id,
+      uploadedByUserId: userId,
       imageUrl: scorecardImgUrl,
       additionalContext,
       status: "failed",
@@ -267,39 +228,38 @@ async function uploadRoundScorecardForEvent({
     };
   }
 
-  try {
-    await db.transaction(async (tx) => {
-      await tx.insert(roundScorecardUploads).values({
-        uploadedByUserId: session.user.id,
-        tournamentId: eventKind === "tournament" ? eventId : null,
-        matchId: eventKind === "match" ? eventId : null,
-        imageUrl: scorecardImgUrl,
-        additionalContext: additionalContext || null,
-        status: "parsed",
-        parsed: parsed.parsed,
-        sumCheckIssues: parsed.sumChecks,
-      });
-
-      await tx
-        .insert(roundScores)
-        .values(scoresToUpsert)
-        .onConflictDoUpdate({
-          target: [roundScores.roundId, roundScores.hole],
-          set: {
-            strokes: sql`excluded.strokes`,
-            putts: sql`coalesce(excluded.putts, ${roundScores.putts})`,
-          },
-        });
+  const recorded = await recordScorecardChanges(userId, {
+    scores: scoreChanges,
+  });
+  if (!recorded.ok) {
+    const error =
+      recorded.reason === "score_out_of_range"
+        ? "Parsed score is out of allowed range."
+        : recorded.error;
+    await insertScorecardUpload({
+      eventKind,
+      eventId,
+      uploadedByUserId: userId,
+      imageUrl: scorecardImgUrl,
+      additionalContext,
+      status: "failed",
+      parsed: parsed.parsed,
+      sumCheckIssues: parsed.sumChecks,
+      error,
     });
-  } catch (error: unknown) {
-    const code =
-      (error as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (error as { code?: string })?.code;
-    if (code === "23514") {
-      return { ok: false, error: "Parsed score is out of allowed range." };
-    }
-    throw error;
+    return { ok: false, error };
   }
+
+  await insertScorecardUpload({
+    eventKind,
+    eventId,
+    uploadedByUserId: userId,
+    imageUrl: scorecardImgUrl,
+    additionalContext,
+    status: "parsed",
+    parsed: parsed.parsed,
+    sumCheckIssues: parsed.sumChecks,
+  });
 
   return {
     ok: true,
@@ -307,7 +267,6 @@ async function uploadRoundScorecardForEvent({
       eventKind === "tournament"
         ? `/tournaments/${eventId}?tab=rounds`
         : `/matches/${eventId}?tab=rounds`,
-    affectedUserIds: eventRoundRows.map((round) => round.userId),
   };
 }
 
@@ -473,24 +432,4 @@ function validateParsedRoundScores(
   }
 
   return null;
-}
-
-function revalidateUploadPaths(
-  affectedUserIds: string[],
-  event: { tournamentId: number | null; matchId: number | null },
-) {
-  revalidatePath("/");
-  revalidatePath("/records");
-  revalidatePath("/clubs/[handle]", "page");
-
-  for (const userId of affectedUserIds) {
-    revalidatePath(`/players/${userId}`);
-  }
-
-  if (event.tournamentId != null) {
-    revalidatePath(`/tournaments/${event.tournamentId}`);
-  }
-  if (event.matchId != null) {
-    revalidatePath(`/matches/${event.matchId}`);
-  }
 }

@@ -1,23 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq, sql } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
+import { and, eq } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
-import {
-  courseHoles,
-  courseTees,
-  courses,
-  greenies,
-  pairingMembers,
-  roundScores,
-  rounds,
-  tournaments,
-  users,
-} from "@/db/schema";
+import { courseTees, courses, rounds, tournaments } from "@/db/schema";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
+import { getRoundAccess } from "@/lib/rounds/access";
+import {
+  recordScorecardChanges,
+  type GreenieChange,
+  type ScorecardWriteResult,
+} from "@/lib/rounds/scorecard-writes";
 import {
   RoundConfigSchema,
   RoundGreenieDeleteSchema,
@@ -30,91 +25,6 @@ import {
   type RoundScoreValues,
   type RoundScoresUpdateValues,
 } from "./schema";
-
-type WritableRound = {
-  id: number;
-  userId: string;
-  courseId: number;
-  tournamentId: number | null;
-  matchId: number | null;
-};
-
-async function assertCanWriteToRound(
-  sessionUserId: string,
-  roundId: number,
-): Promise<{ ok: true; round: WritableRound } | { ok: false; error: string }> {
-  const [round] = await db
-    .select({
-      id: rounds.id,
-      userId: rounds.userId,
-      courseId: rounds.courseId,
-      tournamentId: rounds.tournamentId,
-      matchId: rounds.matchId,
-    })
-    .from(rounds)
-    .where(eq(rounds.id, roundId))
-    .limit(1);
-  if (!round) {
-    return { ok: false, error: "Round not found." };
-  }
-
-  if (round.userId === sessionUserId) {
-    return { ok: true, round };
-  }
-
-  const [currentUser] = await db
-    .select({ isAdmin: users.isAdmin })
-    .from(users)
-    .where(eq(users.id, sessionUserId))
-    .limit(1);
-  if (currentUser?.isAdmin) {
-    return { ok: true, round };
-  }
-
-  if (round.matchId != null) {
-    const [peerRound] = await db
-      .select({ id: rounds.id })
-      .from(rounds)
-      .where(
-        and(
-          eq(rounds.matchId, round.matchId),
-          eq(rounds.userId, sessionUserId),
-        ),
-      )
-      .limit(1);
-    if (peerRound) {
-      return { ok: true, round };
-    }
-  }
-
-  // A Tournament grants no write access of its own — only a shared Pairing
-  // does. A Round in no Pairing therefore rejects every non-owner, so an
-  // ungrouped Tournament is exactly as closed as one with no Pairings at all.
-  if (round.tournamentId != null) {
-    const mateMembership = alias(pairingMembers, "mate_membership");
-    const mateRound = alias(rounds, "mate_round");
-    const [pairingMate] = await db
-      .select({ roundId: mateMembership.roundId })
-      .from(pairingMembers)
-      .innerJoin(
-        mateMembership,
-        eq(mateMembership.pairingId, pairingMembers.pairingId),
-      )
-      .innerJoin(mateRound, eq(mateRound.id, mateMembership.roundId))
-      .where(
-        and(
-          eq(pairingMembers.roundId, round.id),
-          eq(mateRound.userId, sessionUserId),
-        ),
-      )
-      .limit(1);
-    if (pairingMate) {
-      return { ok: true, round };
-    }
-  }
-
-  return { ok: false, error: "Round not found." };
-}
 
 export async function createRound(
   values: RoundConfigValues,
@@ -223,22 +133,14 @@ export async function deleteRound(
     return { ok: false, error: "You must be signed in." };
   }
 
-  const [currentUser] = await db
-    .select({ isAdmin: users.isAdmin })
-    .from(users)
-    .where(eq(users.id, session.user.id))
-    .limit(1);
-  if (!currentUser) {
-    return { ok: false, error: "You must be signed in." };
+  const access = await getRoundAccess(session.user.id, roundId);
+  if (!access?.canManage) {
+    return { ok: false, error: "Round not found." };
   }
 
   const result = await db
     .delete(rounds)
-    .where(
-      currentUser.isAdmin
-        ? eq(rounds.id, roundId)
-        : and(eq(rounds.id, roundId), eq(rounds.userId, session.user.id)),
-    )
+    .where(eq(rounds.id, roundId))
     .returning({
       id: rounds.id,
       tournamentId: rounds.tournamentId,
@@ -280,40 +182,9 @@ export async function upsertRoundScore(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  const { roundId, hole, strokes, putts } = parsed.data;
-
-  const auth_ = await assertCanWriteToRound(session.user.id, roundId);
-  if (!auth_.ok) return auth_;
-  const { round: owned } = auth_;
-
-  try {
-    await db
-      .insert(roundScores)
-      .values({ roundId, hole, strokes, putts })
-      .onConflictDoUpdate({
-        target: [roundScores.roundId, roundScores.hole],
-        set: { strokes, putts },
-      });
-    revalidatePath("/");
-    revalidatePath("/clubs/[handle]", "page");
-    revalidatePath(`/players/${owned.userId}`);
-    revalidatePath(`/rounds/${roundId}`);
-    if (owned.tournamentId != null) {
-      revalidatePath(`/tournaments/${owned.tournamentId}`);
-    }
-    if (owned.matchId != null) {
-      revalidatePath(`/matches/${owned.matchId}`);
-    }
-    return { ok: true };
-  } catch (e: unknown) {
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23514") {
-      return { ok: false, error: "Score is out of allowed range." };
-    }
-    throw e;
-  }
+  return toActionResult(
+    await recordScorecardChanges(session.user.id, { scores: [parsed.data] }),
+  );
 }
 
 export async function upsertRoundGreenie(
@@ -330,65 +201,11 @@ export async function upsertRoundGreenie(
   }
 
   const { roundId, hole, feet, inches } = parsed.data;
-
-  const auth_ = await assertCanWriteToRound(session.user.id, roundId);
-  if (!auth_.ok) return auth_;
-  const { round: owned } = auth_;
-
-  const [parThreeHole] = await db
-    .select({ hole: courseHoles.hole })
-    .from(courseHoles)
-    .where(
-      and(
-        eq(courseHoles.courseId, owned.courseId),
-        eq(courseHoles.hole, hole),
-        eq(courseHoles.par, 3),
-      ),
-    )
-    .limit(1);
-  if (!parThreeHole) {
-    return { ok: false, error: "Greenies can only be recorded on par 3 holes." };
-  }
-
-  try {
-    await db.transaction(async (tx) => {
-      await tx
-        .insert(roundScores)
-        .values({ roundId, hole, strokes: null, putts: null })
-        .onConflictDoNothing({
-          target: [roundScores.roundId, roundScores.hole],
-        });
-
-      await tx
-        .insert(greenies)
-        .values({ roundId, hole, feet, inches })
-        .onConflictDoUpdate({
-          target: [greenies.roundId, greenies.hole],
-          set: { feet, inches },
-        });
-    });
-  } catch (e: unknown) {
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23514") {
-      return { ok: false, error: "Greenie distance is out of allowed range." };
-    }
-    throw e;
-  }
-
-  revalidatePath("/");
-  revalidatePath("/records");
-  revalidatePath("/clubs/[handle]", "page");
-  revalidatePath(`/players/${owned.userId}`);
-  revalidatePath(`/rounds/${roundId}`);
-  if (owned.tournamentId != null) {
-    revalidatePath(`/tournaments/${owned.tournamentId}`);
-  }
-  if (owned.matchId != null) {
-    revalidatePath(`/matches/${owned.matchId}`);
-  }
-  return { ok: true };
+  return toActionResult(
+    await recordScorecardChanges(session.user.id, {
+      greenies: [{ roundId, hole, distance: { feet, inches } }],
+    }),
+  );
 }
 
 export async function deleteRoundGreenie(
@@ -405,29 +222,15 @@ export async function deleteRoundGreenie(
   }
 
   const { roundId, hole } = parsed.data;
-
-  const auth_ = await assertCanWriteToRound(session.user.id, roundId);
-  if (!auth_.ok) return auth_;
-  const { round: owned } = auth_;
-
-  await db
-    .delete(greenies)
-    .where(and(eq(greenies.roundId, roundId), eq(greenies.hole, hole)));
-
-  revalidatePath("/");
-  revalidatePath("/records");
-  revalidatePath("/clubs/[handle]", "page");
-  revalidatePath(`/players/${owned.userId}`);
-  revalidatePath(`/rounds/${roundId}`);
-  if (owned.tournamentId != null) {
-    revalidatePath(`/tournaments/${owned.tournamentId}`);
-  }
-  if (owned.matchId != null) {
-    revalidatePath(`/matches/${owned.matchId}`);
-  }
-  return { ok: true };
+  return toActionResult(
+    await recordScorecardChanges(session.user.id, {
+      greenies: [{ roundId, hole, distance: null }],
+    }),
+  );
 }
 
+// The round-page sheet. Still owner-or-admin and still a full 18-hole submit
+// with the tee and override; splitting settings out is the next step (#57).
 export async function updateRoundScores(
   values: RoundScoresUpdateValues,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -443,156 +246,66 @@ export async function updateRoundScores(
 
   const { playerIndexOverride, roundId, scores, teeId } = parsed.data;
 
-  const [currentUser] = await db
-    .select({ isAdmin: users.isAdmin })
-    .from(users)
-    .where(eq(users.id, session.user.id))
-    .limit(1);
-  if (!currentUser) {
-    return { ok: false, error: "You must be signed in." };
-  }
-
-  const [owned] = await db
-    .select({
-      id: rounds.id,
-      userId: rounds.userId,
-      courseId: rounds.courseId,
-      tournamentId: rounds.tournamentId,
-      matchId: rounds.matchId,
-    })
-    .from(rounds)
-    .where(eq(rounds.id, roundId))
-    .limit(1);
-  if (!owned || (!currentUser.isAdmin && owned.userId !== session.user.id)) {
+  const access = await getRoundAccess(session.user.id, roundId);
+  if (!access?.canManage) {
     return { ok: false, error: "Round not found." };
   }
+  const { round } = access;
 
   const [tee] = await db
     .select({ id: courseTees.id })
     .from(courseTees)
-    .where(and(eq(courseTees.id, teeId), eq(courseTees.courseId, owned.courseId)))
+    .where(and(eq(courseTees.id, teeId), eq(courseTees.courseId, round.courseId)))
     .limit(1);
   if (!tee) {
     return { ok: false, error: "Selected tees do not belong to this course." };
   }
 
-  const parThreeHoles = await db
-    .select({ hole: courseHoles.hole })
-    .from(courseHoles)
-    .where(
-      and(eq(courseHoles.courseId, owned.courseId), eq(courseHoles.par, 3)),
-    );
-  const parThreeHoleSet = new Set(parThreeHoles.map((hole) => hole.hole));
-  const changedGreenies = parsed.data.greenies.filter(
-    (greenie) => greenie.action !== "none",
-  );
-  const invalidGreenie = changedGreenies.find(
-    (greenie) => !parThreeHoleSet.has(greenie.hole),
-  );
-  if (invalidGreenie) {
-    return { ok: false, error: "Greenies can only be recorded on par 3 holes." };
-  }
-
-  try {
-    await db.transaction(async (tx) => {
-      await tx.update(rounds).set({ teeId }).where(eq(rounds.id, roundId));
-
-      if (owned.matchId != null) {
-        await tx
-          .update(rounds)
-          .set({
-            playerIndexOverride:
-              playerIndexOverride === ""
-                ? null
-                : playerIndexOverride.toFixed(1),
-          })
-          .where(eq(rounds.id, roundId));
+  const recorded = await recordScorecardChanges(session.user.id, {
+    scores: scores.map((score) => ({
+      roundId,
+      hole: score.hole,
+      strokes: score.strokes === "" ? null : score.strokes,
+      putts: score.putts === "" ? null : score.putts,
+    })),
+    greenies: parsed.data.greenies.flatMap((greenie): GreenieChange[] => {
+      if (greenie.action === "delete") {
+        return [{ roundId, hole: greenie.hole, distance: null }];
       }
-
-      await tx
-        .insert(roundScores)
-        .values(
-          scores.map((score) => ({
+      if (
+        greenie.action === "upsert" &&
+        greenie.feet !== "" &&
+        greenie.inches !== ""
+      ) {
+        return [
+          {
             roundId,
-            hole: score.hole,
-            strokes: score.strokes === "" ? null : score.strokes,
-            putts: score.putts === "" ? null : score.putts,
-          })),
-        )
-        .onConflictDoUpdate({
-          target: [roundScores.roundId, roundScores.hole],
-          set: {
-            strokes: sql`excluded.strokes`,
-            putts: sql`excluded.putts`,
+            hole: greenie.hole,
+            distance: { feet: greenie.feet, inches: greenie.inches },
           },
-        });
-
-      for (const greenie of changedGreenies) {
-        if (greenie.action === "delete") {
-          await tx
-            .delete(greenies)
-            .where(
-              and(
-                eq(greenies.roundId, roundId),
-                eq(greenies.hole, greenie.hole),
-              ),
-            );
-        }
+        ];
       }
+      return [];
+    }),
+  });
+  if (!recorded.ok) return toActionResult(recorded);
 
-      const greeniesToUpsert = changedGreenies.filter(
-        (
-          greenie,
-        ): greenie is typeof greenie & {
-          action: "upsert";
-          feet: number;
-          inches: number;
-        } =>
-          greenie.action === "upsert" &&
-          greenie.feet !== "" &&
-          greenie.inches !== "",
-      );
+  await db
+    .update(rounds)
+    .set({
+      teeId,
+      ...(round.matchId != null && {
+        playerIndexOverride:
+          playerIndexOverride === "" ? null : playerIndexOverride.toFixed(1),
+      }),
+    })
+    .where(eq(rounds.id, roundId));
 
-      if (greeniesToUpsert.length > 0) {
-        await tx
-          .insert(greenies)
-          .values(
-            greeniesToUpsert.map((greenie) => ({
-              roundId,
-              hole: greenie.hole,
-              feet: greenie.feet,
-              inches: greenie.inches,
-            })),
-          )
-          .onConflictDoUpdate({
-            target: [greenies.roundId, greenies.hole],
-            set: {
-              feet: sql`excluded.feet`,
-              inches: sql`excluded.inches`,
-            },
-          });
-      }
-    });
-  } catch (e: unknown) {
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23514") {
-      return { ok: false, error: "Score is out of allowed range." };
-    }
-    throw e;
-  }
-
-  revalidatePath("/");
-  revalidatePath("/records");
-  revalidatePath("/clubs/[handle]", "page");
-  revalidatePath(`/players/${owned.userId}`);
-  revalidatePath(`/rounds/${roundId}`);
-  if (owned.tournamentId != null) {
-    revalidatePath(`/tournaments/${owned.tournamentId}`);
-  }
-  if (owned.matchId != null) {
-    revalidatePath(`/matches/${owned.matchId}`);
-  }
   return { ok: true };
+}
+
+function toActionResult(
+  result: ScorecardWriteResult,
+): { ok: true } | { ok: false; error: string } {
+  return result.ok ? result : { ok: false, error: result.error };
 }

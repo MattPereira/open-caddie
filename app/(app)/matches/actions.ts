@@ -2,8 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { and, eq, inArray } from "drizzle-orm";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 
+import { auth } from "@/auth";
 import { db } from "@/db";
 import {
   courseTees,
@@ -16,6 +18,10 @@ import {
 } from "@/db/schema";
 import { getCurrentUser } from "@/lib/users/queries";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
+import {
+  importRoundScorecard,
+  type UploadRoundScorecardState,
+} from "@/lib/rounds/scorecard-import";
 import {
   MatchCreateSchema,
   MatchUpdateSchema,
@@ -470,4 +476,22 @@ export async function saveFourBallTeams(
   revalidatePath("/matches");
   revalidatePath(`/matches/${matchId}`);
   return { ok: true };
+}
+
+export async function uploadMatchRoundScorecard(
+  matchId: number,
+  _state: UploadRoundScorecardState,
+  formData: FormData,
+): Promise<UploadRoundScorecardState> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "You must be signed in." };
+
+  const result = await importRoundScorecard({
+    userId: session.user.id,
+    eventKind: "match",
+    eventId: matchId,
+    formData,
+  });
+  if (!result.ok) return { error: result.error };
+  redirect(result.redirectPath);
 }

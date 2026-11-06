@@ -9,14 +9,40 @@ export const RoundConfigSchema = z.object({
 
 export type RoundConfigValues = z.infer<typeof RoundConfigSchema>;
 
-export const RoundScoreSchema = z.object({
-  roundId: z.number().int().positive(),
+// A field left out keeps its stored value; null clears it.
+const holeScoreChangeSchema = z.object({
   hole: z.number().int().min(1).max(18),
-  strokes: z.number().int().min(1).nullable(),
-  putts: z.number().int().min(0).nullable(),
+  strokes: z.number().int().min(1).nullable().optional(),
+  putts: z.number().int().min(0).nullable().optional(),
+});
+
+export const RoundScoreSchema = holeScoreChangeSchema.extend({
+  roundId: z.number().int().positive(),
 });
 
 export type RoundScoreValues = z.infer<typeof RoundScoreSchema>;
+
+export const RoundScorecardChangesSchema = z.object({
+  roundId: z.number().int().positive(),
+  scores: z.array(holeScoreChangeSchema).max(18),
+  greenies: z
+    .array(
+      z.object({
+        hole: z.number().int().min(1).max(18),
+        distance: z
+          .object({
+            feet: z.number().int().min(0),
+            inches: z.number().int().min(0).max(11),
+          })
+          .nullable(),
+      }),
+    )
+    .max(18),
+});
+
+export type RoundScorecardChangesValues = z.infer<
+  typeof RoundScorecardChangesSchema
+>;
 
 export const RoundGreenieSchema = z.object({
   roundId: z.number().int().positive(),
@@ -102,7 +128,18 @@ const roundGreenieFormEntrySchema = z
     }
   });
 
-export const RoundScoresUpdateSchema = z.object({
+// A field left out keeps its stored value; "" clears the override.
+export const RoundSettingsSchema = z.object({
+  roundId: z.number().int().positive(),
+  teeId: z.number().int().positive("Tees are required").optional(),
+  playerIndexOverride: optionalPlayerIndex.optional(),
+});
+
+export type RoundSettingsValues = z.input<typeof RoundSettingsSchema>;
+
+// Form state for the round-page sheet. Only what changed is sent, split into
+// scorecard changes and a settings change.
+export const RoundSheetFormSchema = z.object({
   roundId: z.number().int().positive(),
   teeId: z.number().int().positive("Tees are required"),
   playerIndexOverride: optionalPlayerIndex,
@@ -116,4 +153,4 @@ export const RoundScoresUpdateSchema = z.object({
   greenies: z.array(roundGreenieFormEntrySchema),
 });
 
-export type RoundScoresUpdateValues = z.input<typeof RoundScoresUpdateSchema>;
+export type RoundSheetFormValues = z.input<typeof RoundSheetFormSchema>;

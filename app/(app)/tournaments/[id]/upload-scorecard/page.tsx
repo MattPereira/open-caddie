@@ -3,9 +3,10 @@ import { notFound, redirect } from "next/navigation";
 
 import { PageContent } from "@/components/layout/page-content";
 import { ScorecardUploadForm } from "@/components/features/scorecard-import/scorecard-upload-form";
+import { getScorecardImportPlayers } from "@/lib/rounds/scorecard-import";
 import { getTournamentById } from "@/lib/tournaments/queries";
 import { getCurrentUser } from "@/lib/users/queries";
-import { uploadTournamentRoundScorecard } from "@/lib/rounds/scorecard-import";
+import { uploadTournamentRoundScorecard } from "@/app/(app)/tournaments/actions";
 import { formatDate } from "@/lib/dates";
 
 type UploadScorecardPageProps = {
@@ -31,18 +32,18 @@ export default async function TournamentUploadScorecardPage({
   ]);
 
   if (!tournament) notFound();
-  if (!currentUser?.isAdmin) redirect(`/tournaments/${tournamentId}`);
-
-  const players = tournament.rounds.map((round) => ({
-    roundId: round.id,
-    userId: round.userId,
-    firstName: round.firstName,
-    lastName: round.lastName,
-    username: round.username,
-    image: round.image,
-  }));
+  const players = currentUser
+    ? await getScorecardImportPlayers(
+        currentUser.id,
+        "tournament",
+        tournamentId,
+        tournament.rounds,
+      )
+    : null;
+  if (!currentUser || !players) redirect(`/tournaments/${tournamentId}`);
   const action = uploadTournamentRoundScorecard.bind(null, tournamentId);
-  const uploadCourseHandle = tournament.courseHandle ?? `tournament-${tournamentId}`;
+  const uploadCourseHandle =
+    tournament.courseHandle ?? `tournament-${tournamentId}`;
 
   return (
     <PageContent className="max-w-3xl">

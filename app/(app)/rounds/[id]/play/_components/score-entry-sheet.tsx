@@ -21,7 +21,9 @@ import {
   toGreenieDraft,
 } from "./hole-greenie-manager";
 
-export type ScorePatch = { strokes: number | null; putts: number | null };
+/** Only the fields that changed. A field left out keeps its stored value. */
+export type ScorePatch = { strokes?: number | null; putts?: number | null };
+type ScoreDraft = { strokes: number | null; putts: number | null };
 
 // Each grid ends in a "+" tile. Tapping it turns that cell into the next
 // number and opens one more row, whose last cell becomes the new "+" — a
@@ -109,7 +111,7 @@ export function ScoreEntrySheet({
 }: ScoreEntrySheetProps) {
   // Mounted only while a cell is active, so mount-time props are the open state.
   const allStrokeOptions = strokeOptions(par);
-  const [draft, setDraft] = useState<ScorePatch>({ strokes, putts });
+  const [draft, setDraft] = useState<ScoreDraft>({ strokes, putts });
   // A saved score past the first page opens expanded, or a scored hole would
   // come back looking empty.
   const [strokePage, setStrokePage] = useState(() =>
@@ -121,12 +123,12 @@ export function ScoreEntrySheet({
   const [greenieDraft, setGreenieDraft] = useState<GreenieDraft>(() =>
     toGreenieDraft(greenie),
   );
-  const draftRef = useRef<ScorePatch>({ strokes, putts });
-  const savedRef = useRef<ScorePatch>({ strokes, putts });
+  const draftRef = useRef<ScoreDraft>({ strokes, putts });
+  const savedRef = useRef<ScoreDraft>({ strokes, putts });
   const greenieDraftRef = useRef<GreenieDraft>(toGreenieDraft(greenie));
   const savedGreenieRef = useRef<GreenieValue | null>(greenie);
 
-  const applyDraft = (next: ScorePatch) => {
+  const applyDraft = (next: ScoreDraft) => {
     draftRef.current = next;
     setDraft(next);
   };
@@ -161,11 +163,14 @@ export function ScoreEntrySheet({
   const commitAndClose = () => {
     const next = draftRef.current;
     const saved = savedRef.current;
-    const scoreChanged =
-      next.strokes !== saved.strokes || next.putts !== saved.putts;
-    if (scoreChanged) {
+    // Send only what changed: an untouched putts field must not clear putts
+    // another Scorer entered for this hole.
+    const patch: ScorePatch = {};
+    if (next.strokes !== saved.strokes) patch.strokes = next.strokes;
+    if (next.putts !== saved.putts) patch.putts = next.putts;
+    if (Object.keys(patch).length > 0) {
       savedRef.current = next;
-      onSubmitAction(next);
+      onSubmitAction(patch);
     }
     if (showGreenie) commitGreenie();
     onOpenChangeAction(false);

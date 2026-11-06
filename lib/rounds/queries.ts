@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, asc, count, desc, eq, isNotNull, lt, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   clubs,
@@ -16,7 +16,9 @@ import {
 import { assessHandicap } from "@/lib/handicap";
 import { calculateNetStrokes } from "@/lib/handicap";
 import {
+  groupByRoundId,
   readGreeniesByRounds,
+  readScorecardsByRounds,
   readScoresByRounds,
 } from "@/lib/rounds/scorecards";
 
@@ -83,6 +85,51 @@ export const getRoundsCountByUserId = cache(async (userId: string) => {
     .where(eq(rounds.userId, userId));
   return row?.value ?? 0;
 });
+
+/**
+ * The play page's columns for other players: each Round's player and what's on
+ * their card, in the order given. Callers pass only Rounds the access read says
+ * the viewer may score.
+ */
+export const getScorableRounds = cache(async (roundIds: readonly number[]) => {
+  if (roundIds.length === 0) return [];
+
+  const [players, { scores, greenies: greenieRows }] = await Promise.all([
+    db
+      .select({
+        roundId: rounds.id,
+        userId: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+      })
+      .from(rounds)
+      .innerJoin(users, eq(users.id, rounds.userId))
+      .where(inArray(rounds.id, [...roundIds])),
+    readScorecardsByRounds(inArray(rounds.id, [...roundIds])),
+  ]);
+  const playersByRoundId = new Map(
+    players.map((player) => [player.roundId, player]),
+  );
+  const scoresByRoundId = groupByRoundId(scores);
+  const greeniesByRoundId = groupByRoundId(greenieRows);
+
+  // The form wants only what a player enters, not the reader's wider row.
+  return roundIds.flatMap((roundId) => {
+    const player = playersByRoundId.get(roundId);
+    if (!player) return [];
+    return {
+      ...player,
+      scores: (scoresByRoundId.get(roundId) ?? []).map(
+        ({ hole, par, strokes, putts }) => ({ hole, par, strokes, putts }),
+      ),
+      greenies: (greeniesByRoundId.get(roundId) ?? []).map(
+        ({ hole, feet, inches }) => ({ hole, feet, inches }),
+      ),
+    };
+  });
+});
+
+export type ScorableRound = Awaited<ReturnType<typeof getScorableRounds>>[number];
 
 export const getRoundById = cache(async (roundId: number) => {
   const [round] = await db

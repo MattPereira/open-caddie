@@ -4,8 +4,9 @@ import { notFound, redirect } from "next/navigation";
 import { PageContent } from "@/components/layout/page-content";
 import { ScorecardUploadForm } from "@/components/features/scorecard-import/scorecard-upload-form";
 import { getMatchById } from "@/lib/matches/queries";
+import { getScorecardImportPlayers } from "@/lib/rounds/scorecard-import";
 import { getCurrentUser } from "@/lib/users/queries";
-import { uploadMatchRoundScorecard } from "@/lib/rounds/scorecard-import";
+import { uploadMatchRoundScorecard } from "@/app/(app)/matches/actions";
 import { formatDate } from "@/lib/dates";
 
 type UploadScorecardPageProps = {
@@ -32,21 +33,15 @@ export default async function MatchUploadScorecardPage({
 
   if (!match) notFound();
 
-  const canUpload =
-    currentUser != null &&
-    (currentUser.isAdmin ||
-      currentUser.id === match.createdByUserId ||
-      match.rounds.some((round) => round.userId === currentUser.id));
-  if (!canUpload) redirect(`/matches/${matchId}`);
-
-  const players = match.rounds.map((round) => ({
-    roundId: round.id,
-    userId: round.userId,
-    firstName: round.firstName,
-    lastName: round.lastName,
-    username: round.username,
-    image: round.image,
-  }));
+  const players = currentUser
+    ? await getScorecardImportPlayers(
+        currentUser.id,
+        "match",
+        matchId,
+        match.rounds,
+      )
+    : null;
+  if (!currentUser || !players) redirect(`/matches/${matchId}`);
   const action = uploadMatchRoundScorecard.bind(null, matchId);
 
   return (

@@ -7,10 +7,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Add01Icon, Delete02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import { deleteRound, updateRoundScores } from "@/app/(app)/rounds/actions";
 import {
-  RoundScoresUpdateSchema,
-  type RoundScoresUpdateValues,
+  changeRoundSettings,
+  deleteRound,
+  recordRoundScorecardChanges,
+} from "@/app/(app)/rounds/actions";
+import {
+  RoundSheetFormSchema,
+  type RoundSheetFormValues,
 } from "@/app/(app)/rounds/schema";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -47,6 +51,7 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { calculateCourseHandicap } from "@/lib/handicap";
+import { toRoundSheetChanges } from "./round-sheet-changes";
 
 export type EditableRound = {
   id: number;
@@ -93,7 +98,7 @@ const scoreTabs: {
   { value: "back", label: "Back", holes: holeNumbers.slice(9) },
 ];
 
-function toFormValues(round: EditableRound): RoundScoresUpdateValues {
+function toFormValues(round: EditableRound): RoundSheetFormValues {
   const scoresByHole = new Map(
     round.scores.map((score) => [score.hole, score]),
   );
@@ -135,15 +140,16 @@ function toNumberInputValue(value: number | "") {
 }
 
 export function RoundScoresSheet({
-  initialTab = "tees",
-  onSaved,
+  canManage,
+  initialTab,
   onDeleted,
   open,
   onOpenChange,
   round,
 }: {
+  /** Shows the tee, override and delete controls. Any Scorer may edit scores. */
+  canManage: boolean;
   initialTab?: RoundScoresTab;
-  onSaved?: (values: RoundScoresUpdateValues) => void;
   onDeleted?: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -155,11 +161,14 @@ export function RoundScoresSheet({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
-  const [activeTab, setActiveTab] = useState<RoundScoresTab>(initialTab);
+  const [activeTab, setActiveTab] = useState<RoundScoresTab>(() => {
+    const tab = initialTab ?? "tees";
+    return tab === "tees" && !canManage ? "scores" : tab;
+  });
   const [scoreTab, setScoreTab] = useState<ScoreTab>("front");
 
-  const form = useForm<RoundScoresUpdateValues>({
-    resolver: zodResolver(RoundScoresUpdateSchema),
+  const form = useForm<RoundSheetFormValues>({
+    resolver: zodResolver(RoundSheetFormSchema),
     defaultValues: toFormValues(round),
   });
   const serverError = form.formState.errors.root?.server?.message;
@@ -228,19 +237,30 @@ export function RoundScoresSheet({
     });
   };
 
-  const onSubmit = (values: RoundScoresUpdateValues) => {
+  const onSubmit = (values: RoundSheetFormValues) => {
     form.clearErrors("root.server");
     startTransition(async () => {
-      const result = await updateRoundScores(values);
-
-      if (!result.ok) {
-        form.setError("root.server", {
-          type: "server",
-          message: result.error,
-        });
-        return;
+      const { scorecard, settings } = toRoundSheetChanges(
+        toFormValues(round),
+        values,
+        { canManage },
+      );
+      // Two writes, not one transaction: each is idempotent, so saving again
+      // after a settings failure only repeats what already landed.
+      for (const write of [
+        scorecard && (() => recordRoundScorecardChanges(scorecard)),
+        settings && (() => changeRoundSettings(settings)),
+      ]) {
+        if (!write) continue;
+        const result = await write();
+        if (!result.ok) {
+          form.setError("root.server", {
+            type: "server",
+            message: result.error,
+          });
+          return;
+        }
       }
-      onSaved?.(values);
       closeSheet();
       router.refresh();
     });
@@ -279,9 +299,11 @@ export function RoundScoresSheet({
                   className="gap-3"
                 >
                   <TabsList className="w-full">
-                    <TabsTrigger value="tees" className="text-base">
-                      Tees
-                    </TabsTrigger>
+                    {canManage ? (
+                      <TabsTrigger value="tees" className="text-base">
+                        Tees
+                      </TabsTrigger>
+                    ) : null}
                     <TabsTrigger value="scores" className="text-base">
                       Scores
                     </TabsTrigger>
@@ -290,107 +312,109 @@ export function RoundScoresSheet({
                     </TabsTrigger>
                   </TabsList>
 
-                  <TabsContent value="tees" className="flex flex-col gap-5">
-                    <FormField
-                      control={form.control}
-                      name="teeId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FieldSet>
-                            <FormLabel className="sr-only">Tees</FormLabel>
-                            <FormControl>
-                              <RadioGroup
-                                value={String(field.value)}
-                                onValueChange={(value) =>
-                                  field.onChange(Number(value))
-                                }
-                                className="flex flex-col gap-2"
-                              >
-                                {round.tees.map((tee) => (
-                                  <FieldLabel
-                                    key={tee.id}
-                                    htmlFor={`round-tee-${tee.id}`}
-                                  >
-                                    <Field orientation="horizontal">
-                                      <FieldContent>
-                                        <FieldTitle className="flex items-center gap-2 text-base">
-                                          {tee.color ? (
-                                            <span
-                                              className="size-3 rounded-full border"
-                                              style={{
-                                                backgroundColor: tee.color,
-                                              }}
-                                            />
-                                          ) : null}
-                                          {tee.name}
-                                        </FieldTitle>
-                                        <FieldDescription>
-                                          {Number(tee.rating).toFixed(1)} /{" "}
-                                          {tee.slope}
-                                          {tee.totalYards != null
-                                            ? ` - ${tee.totalYards.toLocaleString()} yds`
-                                            : ""}
-                                        </FieldDescription>
-                                      </FieldContent>
-                                      <RadioGroupItem
-                                        id={`round-tee-${tee.id}`}
-                                        value={String(tee.id)}
-                                        className="size-5"
-                                      />
-                                    </Field>
-                                  </FieldLabel>
-                                ))}
-                              </RadioGroup>
-                            </FormControl>
-                          </FieldSet>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {canEditPlayerIndexOverride ? (
-                      <div className="flex flex-col gap-3">
-                        <Alert variant="info">
-                          <AlertTitle>Course Handicap</AlertTitle>
-                          <AlertDescription className="tabular-nums">
-                            {playerIndex.toFixed(1)} x {selectedSlope} / 113 ={" "}
-                            {courseHandicap.toFixed(1)}
-                          </AlertDescription>
-                        </Alert>
-
-                        <FormField
-                          control={form.control}
-                          name="playerIndexOverride"
-                          render={({ field }) => (
-                            <FormItem className="grid grid-cols-[1fr_8rem] items-center gap-x-3 gap-y-1">
-                              <FormLabel>Player Index</FormLabel>
+                  {canManage ? (
+                    <TabsContent value="tees" className="flex flex-col gap-5">
+                      <FormField
+                        control={form.control}
+                        name="teeId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FieldSet>
+                              <FormLabel className="sr-only">Tees</FormLabel>
                               <FormControl>
-                                <Input
-                                  type="number"
-                                  min={-10}
-                                  max={54}
-                                  step={0.1}
-                                  inputMode="decimal"
-                                  placeholder="Auto"
-                                  className="h-10 text-right"
-                                  {...field}
-                                  value={toNumberInputValue(field.value)}
-                                  onChange={(e) =>
-                                    field.onChange(
-                                      e.target.value === ""
-                                        ? ""
-                                        : Number(e.target.value),
-                                    )
+                                <RadioGroup
+                                  value={String(field.value)}
+                                  onValueChange={(value) =>
+                                    field.onChange(Number(value))
                                   }
-                                />
+                                  className="flex flex-col gap-2"
+                                >
+                                  {round.tees.map((tee) => (
+                                    <FieldLabel
+                                      key={tee.id}
+                                      htmlFor={`round-tee-${tee.id}`}
+                                    >
+                                      <Field orientation="horizontal">
+                                        <FieldContent>
+                                          <FieldTitle className="flex items-center gap-2 text-base">
+                                            {tee.color ? (
+                                              <span
+                                                className="size-3 rounded-full border"
+                                                style={{
+                                                  backgroundColor: tee.color,
+                                                }}
+                                              />
+                                            ) : null}
+                                            {tee.name}
+                                          </FieldTitle>
+                                          <FieldDescription>
+                                            {Number(tee.rating).toFixed(1)} /{" "}
+                                            {tee.slope}
+                                            {tee.totalYards != null
+                                              ? ` - ${tee.totalYards.toLocaleString()} yds`
+                                              : ""}
+                                          </FieldDescription>
+                                        </FieldContent>
+                                        <RadioGroupItem
+                                          id={`round-tee-${tee.id}`}
+                                          value={String(tee.id)}
+                                          className="size-5"
+                                        />
+                                      </Field>
+                                    </FieldLabel>
+                                  ))}
+                                </RadioGroup>
                               </FormControl>
-                              <FormMessage className="col-span-2" />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    ) : null}
-                  </TabsContent>
+                            </FieldSet>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+  
+                      {canEditPlayerIndexOverride ? (
+                        <div className="flex flex-col gap-3">
+                          <Alert variant="info">
+                            <AlertTitle>Course Handicap</AlertTitle>
+                            <AlertDescription className="tabular-nums">
+                              {playerIndex.toFixed(1)} x {selectedSlope} / 113 ={" "}
+                              {courseHandicap.toFixed(1)}
+                            </AlertDescription>
+                          </Alert>
+  
+                          <FormField
+                            control={form.control}
+                            name="playerIndexOverride"
+                            render={({ field }) => (
+                              <FormItem className="grid grid-cols-[1fr_8rem] items-center gap-x-3 gap-y-1">
+                                <FormLabel>Player Index</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    type="number"
+                                    min={-10}
+                                    max={54}
+                                    step={0.1}
+                                    inputMode="decimal"
+                                    placeholder="Auto"
+                                    className="h-10 text-right"
+                                    {...field}
+                                    value={toNumberInputValue(field.value)}
+                                    onChange={(e) =>
+                                      field.onChange(
+                                        e.target.value === ""
+                                          ? ""
+                                          : Number(e.target.value),
+                                      )
+                                    }
+                                  />
+                                </FormControl>
+                                <FormMessage className="col-span-2" />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      ) : null}
+                    </TabsContent>
+                  ) : null}
 
                   <TabsContent value="scores">
                     <Tabs
@@ -482,10 +506,14 @@ export function RoundScoresSheet({
               ) : (
                 <SheetFooterActions
                   isPending={isPending}
-                  onDeleteAction={() => {
-                    setDeleteError(null);
-                    setConfirmingDelete(true);
-                  }}
+                  onDeleteAction={
+                    canManage
+                      ? () => {
+                          setDeleteError(null);
+                          setConfirmingDelete(true);
+                        }
+                      : undefined
+                  }
                   deleteAriaLabel="Delete round"
                 />
               )}
@@ -502,7 +530,7 @@ function ScoreInputRow({
   hole,
   index,
 }: {
-  control: ReturnType<typeof useForm<RoundScoresUpdateValues>>["control"];
+  control: ReturnType<typeof useForm<RoundSheetFormValues>>["control"];
   hole: number;
   index: number;
 }) {
@@ -571,8 +599,8 @@ function GreenieInputRow({
   index,
   existing,
 }: {
-  form: ReturnType<typeof useForm<RoundScoresUpdateValues>>;
-  greenie: RoundScoresUpdateValues["greenies"][number];
+  form: ReturnType<typeof useForm<RoundSheetFormValues>>;
+  greenie: RoundSheetFormValues["greenies"][number];
   index: number;
   existing: boolean;
 }) {
@@ -581,7 +609,7 @@ function GreenieInputRow({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const setAction = (
-    action: RoundScoresUpdateValues["greenies"][number]["action"],
+    action: RoundSheetFormValues["greenies"][number]["action"],
   ) => {
     form.setValue(`greenies.${index}.action`, action, {
       shouldDirty: true,

@@ -10,7 +10,7 @@ import { RoundScoresForm, type SettingsTee } from "./round-scores-form";
 import { MAX_DELEGATES } from "./settings-dialog";
 import { useDelegateRoundIds } from "./use-delegate-round-id";
 
-export type ScoringPeer = {
+export type ScorableRound = {
   roundId: number;
   userId: string;
   firstName: string | null;
@@ -42,10 +42,11 @@ type RoundPlayProps = {
     yards: number | null;
   }[];
   tees: SettingsTee[];
-  scoringPeers: ScoringPeer[];
+  scorableRounds: ScorableRound[];
   // Selected on first open of this Round's play form, so a player keeping their
   // Pairing's card finds their mates already there.
   prefillDelegateRoundIds?: readonly number[];
+  canManage: boolean;
   matchScoreboard: MatchScoreboard | null;
   courseRecords: ReactNode;
 };
@@ -57,8 +58,9 @@ export function RoundPlay({
   leaderboardRounds,
   holes,
   tees,
-  scoringPeers,
+  scorableRounds,
   prefillDelegateRoundIds,
+  canManage,
   matchScoreboard,
   courseRecords,
 }: RoundPlayProps) {
@@ -93,7 +95,8 @@ export function RoundPlay({
       leaderboardRounds={leaderboardRounds}
       holes={holes}
       tees={tees}
-      scoringPeers={scoringPeers}
+      scorableRounds={scorableRounds}
+      canManage={canManage}
       matchScoreboard={matchScoreboard}
       delegateRoundIds={delegateRoundIds}
       setDelegateRoundIdsAction={setDelegateRoundIds}

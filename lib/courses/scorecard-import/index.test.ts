@@ -325,7 +325,9 @@ describe("Course Scorecard Import", async () => {
     expect(paused.outcome).toBe("paused");
     if (paused.outcome !== "paused") return;
 
-    await db.execute(sql.raw("create function fail_course_holes_insert() returns trigger language plpgsql as $$ begin raise exception 'forced publication failure'; end; $$"));
+    // Scoped to this course: suites run in parallel against one database, and
+    // an unconditional trigger breaks every other suite's course fixtures.
+    await db.execute(sql.raw(`create function fail_course_holes_insert() returns trigger language plpgsql as $$ begin if exists (select 1 from courses where id = new.course_id and name = '${name}') then raise exception 'forced publication failure'; end if; return new; end; $$`));
     await db.execute(sql.raw("create trigger fail_course_holes_insert before insert on course_holes for each row execute function fail_course_holes_insert()"));
     await expect(importWithMissingMetadata.continue({ actorId, importId: paused.import.id, expectedRevision: paused.import.revision, intent: { kind: "resolve", teeMetadata: { "tee:0:metadata": { rating: 71, slope: 125 } } } })).rejects.toThrow();
 

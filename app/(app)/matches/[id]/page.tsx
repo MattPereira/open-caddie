@@ -7,6 +7,7 @@ import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/shared/url-tabs";
 import { getCoursesWithTees } from "@/lib/courses/queries";
 import { getMatchById } from "@/lib/matches/queries";
+import { getEventRoundAccess } from "@/lib/rounds/access";
 import { getAllUsers, getCurrentUser } from "@/lib/users/queries";
 import { createPageMetadata } from "@/app/metadata";
 import { matchFormatLabel } from "@/lib/matches";
@@ -62,12 +63,15 @@ export default async function MatchPage({
   const currentUserRound = currentUser
     ? match.rounds.find((round) => round.userId === currentUser.id)
     : null;
-  const canUploadScorecard = canManage || currentUserRound != null;
   const defaultTab = getMatchDefaultTab(resolvedSearchParams?.tab);
 
-  const [courses, players] = canManage
-    ? await Promise.all([getCoursesWithTees(), getAllUsers()])
-    : [[], []];
+  const [courses, players, eventAccess] = await Promise.all([
+    canManage ? getCoursesWithTees() : [],
+    canManage ? getAllUsers() : [],
+    currentUser
+      ? getEventRoundAccess(currentUser.id, "match", match.id)
+      : null,
+  ]);
 
   return (
     <PageContent className="max-w-5xl">
@@ -151,11 +155,11 @@ export default async function MatchPage({
         </TabsList>
 
         <RoundsTabContent
-          currentUser={currentUser}
+          editAccess={eventAccess}
           emptyMessage="No rounds have been recorded for this match."
           rounds={match.rounds}
           actions={
-            canUploadScorecard ? (
+            eventAccess?.canImportScorecard ? (
               <UploadScorecardButton
                 href={`/matches/${match.id}/upload-scorecard`}
               />

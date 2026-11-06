@@ -24,16 +24,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { ImageUploadField } from "@/components/shared/image-upload-field";
 import { ParsingOverlay } from "@/components/shared/parsing-overlay";
 import { PlayerCard } from "@/components/domain/player-card";
-import type { UploadRoundScorecardState } from "@/lib/rounds/scorecard-import";
-
-export type ScorecardPlayer = {
-  roundId: number;
-  userId: string;
-  firstName: string | null;
-  lastName: string | null;
-  username: string | null;
-  image: string | null;
-};
+import type {
+  ScorecardImportPlayer,
+  UploadRoundScorecardState,
+} from "@/lib/rounds/scorecard-import";
 
 type ScorecardUploadFormProps = {
   action: (
@@ -42,7 +36,7 @@ type ScorecardUploadFormProps = {
   ) => Promise<UploadRoundScorecardState>;
   cancelHref: string;
   draftStorageKey: string;
-  players: ScorecardPlayer[];
+  players: ScorecardImportPlayer[];
   uploadPathPrefix: string;
 };
 

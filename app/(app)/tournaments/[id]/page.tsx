@@ -11,6 +11,7 @@ import { CourseRecordsDialog } from "@/components/features/course-records/course
 import { RoundsTabContent } from "@/components/features/scores/rounds-tab-content";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/shared/url-tabs";
+import { getEventRoundAccess } from "@/lib/rounds/access";
 import { getTournamentById } from "@/lib/tournaments/queries";
 import { getCurrentUser } from "@/lib/users/queries";
 import { createPageMetadata } from "@/app/metadata";
@@ -51,7 +52,12 @@ export default async function TournamentPage({
   const tournamentId = Number(id);
   if (!Number.isInteger(tournamentId) || tournamentId <= 0) notFound();
 
-  const tournament = await getTournamentById(tournamentId);
+  const [tournament, eventAccess] = await Promise.all([
+    getTournamentById(tournamentId),
+    currentUser
+      ? getEventRoundAccess(currentUser.id, "tournament", tournamentId)
+      : null,
+  ]);
 
   if (!tournament) notFound();
   const currentUserRound = currentUser
@@ -131,11 +137,11 @@ export default async function TournamentPage({
         </TabsList>
 
         <RoundsTabContent
-          currentUser={currentUser}
+          editAccess={eventAccess}
           emptyMessage="No rounds have been recorded for this tournament."
           rounds={tournament.rounds}
         >
-          {currentUser?.isAdmin ? (
+          {eventAccess?.canImportScorecard ? (
             <div className="flex flex-wrap gap-2">
               <UploadScorecardButton
                 href={`/tournaments/${tournament.id}/upload-scorecard`}

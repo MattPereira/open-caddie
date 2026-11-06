@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, asc, count, desc, eq, gte, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   clubMembers,
@@ -21,7 +21,6 @@ import { getPriorClubScoreDifferentials } from "@/lib/rounds/queries";
 import {
   groupByRoundId,
   readGreeniesByRounds,
-  readScorecardsByRounds,
   readScoresByRounds,
 } from "@/lib/rounds/scorecards";
 
@@ -395,60 +394,3 @@ export type TournamentPairing = Awaited<
 >[number];
 
 export type TournamentPairingMember = TournamentPairing["members"][number];
-
-// The pairing-mates of one Round, with what they have already entered — the
-// play form's peer picker and its score columns, in one read. Deliberately not
-// folded into the cached Tournament-by-id read: that read serves the club
-// standings and Tournament pages, which would pay for a join only this form
-// needs.
-export const getPairingMatesForRound = cache(async (roundId: number) => {
-  const [membership] = await db
-    .select({ pairingId: pairingMembers.pairingId })
-    .from(pairingMembers)
-    .where(eq(pairingMembers.roundId, roundId))
-    .limit(1);
-
-  if (!membership) return [];
-
-  const mates = await db
-    .select({
-      roundId: rounds.id,
-      userId: users.id,
-      firstName: users.firstName,
-      lastName: users.lastName,
-    })
-    .from(pairingMembers)
-    .innerJoin(rounds, eq(rounds.id, pairingMembers.roundId))
-    .innerJoin(users, eq(users.id, rounds.userId))
-    .where(
-      and(
-        eq(pairingMembers.pairingId, membership.pairingId),
-        ne(pairingMembers.roundId, roundId),
-      ),
-    )
-    .orderBy(asc(users.lastName), asc(users.firstName), asc(users.username));
-
-  if (mates.length === 0) return [];
-
-  const mateRoundIds = mates.map((mate) => mate.roundId);
-  const { scores, greenies: greenieRows } = await readScorecardsByRounds(
-    inArray(rounds.id, mateRoundIds),
-  );
-  const scoresByRoundId = groupByRoundId(scores);
-  const greeniesByRoundId = groupByRoundId(greenieRows);
-
-  // The form wants only what a player enters, not the reader's wider row.
-  return mates.map((mate) => ({
-    ...mate,
-    scores: (scoresByRoundId.get(mate.roundId) ?? []).map(
-      ({ hole, par, strokes, putts }) => ({ hole, par, strokes, putts }),
-    ),
-    greenies: (greeniesByRoundId.get(mate.roundId) ?? []).map(
-      ({ hole, feet, inches }) => ({ hole, feet, inches }),
-    ),
-  }));
-});
-
-export type PairingMate = Awaited<
-  ReturnType<typeof getPairingMatesForRound>
->[number];

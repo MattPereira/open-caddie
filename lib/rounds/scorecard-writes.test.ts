@@ -30,7 +30,7 @@ if (!testDatabaseUrl) {
     ]);
     const { readScorecardsByRounds } = await import("./scorecards");
     const { eq } = await import("drizzle-orm");
-    const { getRoundAccess } = await import("./access");
+    const { readRoundAccess } = await import("./access");
     const fixtures = createRoundFixtures(db, schema);
 
     const PAR_THREE = PAR_THREE_HOLES[0];
@@ -450,7 +450,7 @@ if (!testDatabaseUrl) {
 
         expect(await deleteRound(a.user.id, a.round.id)).toEqual({ ok: true });
 
-        expect(await getRoundAccess(a.user.id, a.round.id)).toBeNull();
+        expect(await readRoundAccess(a.user.id, a.round.id)).toBeNull();
         expect(updateTag).toHaveBeenCalledWith("home-events");
         expect(invalidatedPaths()).toEqual(
           sortedPaths([
@@ -472,7 +472,7 @@ if (!testDatabaseUrl) {
           ok: false,
           error: CANNOT_MANAGE,
         });
-        expect(await getRoundAccess(a.user.id, a.round.id)).not.toBeNull();
+        expect(await readRoundAccess(a.user.id, a.round.id)).not.toBeNull();
         expect(revalidatePath).not.toHaveBeenCalled();
       });
 
@@ -484,7 +484,7 @@ if (!testDatabaseUrl) {
         expect(
           await deleteRound(stranger.user.id, player.round.id),
         ).toMatchObject({ ok: false, error: "Round not found." });
-        expect(await getRoundAccess(player.user.id, player.round.id)).not.toBeNull();
+        expect(await readRoundAccess(player.user.id, player.round.id)).not.toBeNull();
       });
     });
   });

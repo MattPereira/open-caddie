@@ -55,10 +55,7 @@ export default async function TournamentPage({
   const [tournament, eventAccess] = await Promise.all([
     getTournamentById(tournamentId),
     currentUser
-      ? getEventRoundAccess(currentUser.id, {
-          kind: "tournament",
-          id: tournamentId,
-        })
+      ? getEventRoundAccess(currentUser.id, "tournament", tournamentId)
       : null,
   ]);
 

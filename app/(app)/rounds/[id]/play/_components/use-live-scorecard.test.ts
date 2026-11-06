@@ -108,7 +108,7 @@ describe("live scorecard lifecycle", () => {
     expect(strokes()).toBe(6);
   });
 
-  it("keeps pending scores over snapshots, for peer Rounds", async () => {
+  it("keeps pending scores over snapshots, for other scorable Rounds", async () => {
     const save = pendingSave();
     vi.mocked(upsertRoundScore).mockReturnValueOnce(save.promise);
     saveScore(5, 2);

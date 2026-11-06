@@ -19,21 +19,21 @@ if (!testDatabaseUrl) {
       ]);
     const fixtures = createRoundFixtures(db, schema);
 
-    const NO_ACCESS = { canScore: false, canManage: false, peers: [] };
+    const NO_ACCESS = { canScore: false, canManage: false, others: [] };
 
     function sorted(ids: number[]) {
       return [...ids].sort((a, b) => a - b);
     }
 
-    // Peer order is by player name, which these fixtures randomise, so
-    // compare peers as a set.
+    // Other Rounds are ordered by player name, which these fixtures
+    // randomise, so compare them as a set.
     async function accessOf(viewerUserId: string, roundId: number) {
       const access = await getRoundAccess(viewerUserId, roundId);
       if (!access) throw new Error("Round not found");
       return {
         canScore: access.canScore,
         canManage: access.canManage,
-        peers: sorted(access.scorablePeerRoundIds),
+        others: sorted(access.otherScorableRoundIds),
       };
     }
 
@@ -41,7 +41,7 @@ if (!testDatabaseUrl) {
       await fixtures.cleanup();
     });
 
-    it("lets the Round's player score and manage, with their Pairing mates as peers", async () => {
+    it("lets the Round's player score and manage, with their Pairing mates' Rounds as others", async () => {
       const t = await fixtures.tournament();
       const player = await fixtures.tournamentPlayer(t);
       const mate = await fixtures.tournamentPlayer(t);
@@ -52,11 +52,11 @@ if (!testDatabaseUrl) {
       ).toMatchObject({
         canScore: true,
         canManage: true,
-        scorablePeerRoundIds: [mate.round.id],
+        otherScorableRoundIds: [mate.round.id],
       });
     });
 
-    it("lets an admin score and manage any Round, with its whole Pairing as peers", async () => {
+    it("lets an admin score and manage any Round, with its whole Pairing as others", async () => {
       const t = await fixtures.tournament();
       const target = await fixtures.tournamentPlayer(t);
       const mate = await fixtures.tournamentPlayer(t);
@@ -66,11 +66,11 @@ if (!testDatabaseUrl) {
       expect(await accessOf(admin.id, target.round.id)).toEqual({
         canScore: true,
         canManage: true,
-        peers: [mate.round.id],
+        others: [mate.round.id],
       });
     });
 
-    it("lets a Pairing mate score but not manage, with the rest of the Pairing as peers", async () => {
+    it("lets a Pairing mate score but not manage, with the rest of the Pairing as others", async () => {
       const t = await fixtures.tournament();
       const marker = await fixtures.tournamentPlayer(t);
       const target = await fixtures.tournamentPlayer(t);
@@ -84,7 +84,7 @@ if (!testDatabaseUrl) {
       expect(await accessOf(marker.user.id, target.round.id)).toEqual({
         canScore: true,
         canManage: false,
-        peers: sorted([marker.round.id, third.round.id]),
+        others: sorted([marker.round.id, third.round.id]),
       });
     });
 
@@ -121,31 +121,31 @@ if (!testDatabaseUrl) {
       expect(await accessOf(ungrouped.user.id, ungrouped.round.id)).toEqual({
         canScore: true,
         canManage: true,
-        peers: [],
+        others: [],
       });
     });
 
-    it("grants no peer access in a Tournament with no Pairings", async () => {
+    it("grants no Scorer access to other players in a Tournament with no Pairings", async () => {
       const t = await fixtures.tournament();
-      const peer = await fixtures.tournamentPlayer(t);
+      const other = await fixtures.tournamentPlayer(t);
       const target = await fixtures.tournamentPlayer(t);
 
-      expect(await accessOf(peer.user.id, target.round.id)).toEqual(NO_ACCESS);
+      expect(await accessOf(other.user.id, target.round.id)).toEqual(NO_ACCESS);
       expect(await accessOf(target.user.id, target.round.id)).toEqual({
         canScore: true,
         canManage: true,
-        peers: [],
+        others: [],
       });
     });
 
-    it("lets a Match peer score but not manage, with the other Match Rounds as peers", async () => {
+    it("lets a Match's other player score but not manage, with the other Match Rounds as others", async () => {
       const { players } = await fixtures.match(3);
       const [marker, target, third] = players;
 
       expect(await accessOf(marker.user.id, target.round.id)).toEqual({
         canScore: true,
         canManage: false,
-        peers: sorted([marker.round.id, third.round.id]),
+        others: sorted([marker.round.id, third.round.id]),
       });
     });
 
@@ -158,7 +158,7 @@ if (!testDatabaseUrl) {
       expect(await accessOf(creator.id, target.round.id)).toEqual({
         canScore: true,
         canManage: false,
-        peers: [other.round.id],
+        others: [other.round.id],
       });
     });
 
@@ -198,7 +198,7 @@ if (!testDatabaseUrl) {
       viewerUserId: string,
       event: { kind: "tournament" | "match"; id: number },
     ) {
-      const access = await getEventRoundAccess(viewerUserId, event);
+      const access = await getEventRoundAccess(viewerUserId, event.kind, event.id);
       return {
         scorable: sorted(access.scorableRoundIds),
         manageable: sorted(access.manageableRoundIds),
@@ -265,12 +265,12 @@ if (!testDatabaseUrl) {
 
     it("lets a Match player score and import every Match Round, managing only their own", async () => {
       const { match, players } = await fixtures.match(2);
-      const [self, peer] = players;
+      const [self, other] = players;
 
       expect(
         await eventAccessOf(self.user.id, { kind: "match", id: match.id }),
       ).toEqual({
-        scorable: sorted([self.round.id, peer.round.id]),
+        scorable: sorted([self.round.id, other.round.id]),
         manageable: [self.round.id],
         canImportScorecard: true,
       });

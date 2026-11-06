@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { CourseRecords } from "@/components/features/course-records/course-records";
 import { getMatchById } from "@/lib/matches/queries";
 import { getRoundAccess } from "@/lib/rounds/access";
-import { getRoundById, getScoringPeers } from "@/lib/rounds/queries";
+import { getRoundById, getScorableRounds } from "@/lib/rounds/queries";
 import { getTournamentById } from "@/lib/tournaments/queries";
 import { getCurrentUser } from "@/lib/users/queries";
 import { RoundPlay } from "./_components/round-play";
@@ -27,19 +27,19 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
   if (!round || !currentUser) notFound();
   const access = await getRoundAccess(currentUser.id, round.id);
   if (!access?.canScore) notFound();
-  const [tournament, match, scoringPeers] = await Promise.all([
+  const [tournament, match, scorableRounds] = await Promise.all([
     round.tournamentId == null
       ? Promise.resolve(null)
       : getTournamentById(round.tournamentId),
     round.matchId == null ? Promise.resolve(null) : getMatchById(round.matchId),
-    getScoringPeers(access.scorablePeerRoundIds),
+    getScorableRounds(access.otherScorableRoundIds),
   ]);
   // A Pairing's card is kept together, so its mates start selected. A Scorer
-  // who can't manage the Round has no Settings to pick peers from, so every
-  // peer starts selected for them.
+  // who can't manage the Round has no Settings to pick players from, so every
+  // scorable Round starts selected for them.
   const prefillDelegateRoundIds =
     round.tournamentId != null || !access.canManage
-      ? access.scorablePeerRoundIds
+      ? access.otherScorableRoundIds
       : undefined;
 
   const tableRound = {
@@ -130,7 +130,7 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
           leaderboardRounds={tournament?.rounds}
           holes={tableRound.holes}
           tees={round.tees}
-          scoringPeers={scoringPeers}
+          scorableRounds={scorableRounds}
           prefillDelegateRoundIds={prefillDelegateRoundIds}
           canManage={access.canManage}
           matchScoreboard={matchScoreboard}

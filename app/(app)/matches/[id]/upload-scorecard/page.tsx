@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { PageContent } from "@/components/layout/page-content";
 import { ScorecardUploadForm } from "@/components/features/scorecard-import/scorecard-upload-form";
 import { getMatchById } from "@/lib/matches/queries";
-import { getEventRoundAccess } from "@/lib/rounds/access";
+import { getScorecardImportPlayers } from "@/lib/rounds/scorecard-import";
 import { getCurrentUser } from "@/lib/users/queries";
 import { uploadMatchRoundScorecard } from "@/app/(app)/matches/actions";
 import { formatDate } from "@/lib/dates";
@@ -33,23 +33,15 @@ export default async function MatchUploadScorecardPage({
 
   if (!match) notFound();
 
-  const access = currentUser
-    ? await getEventRoundAccess(currentUser.id, { kind: "match", id: matchId })
+  const players = currentUser
+    ? await getScorecardImportPlayers(
+        currentUser.id,
+        "match",
+        matchId,
+        match.rounds,
+      )
     : null;
-  if (!currentUser || !access?.canImportScorecard) {
-    redirect(`/matches/${matchId}`);
-  }
-
-  const players = match.rounds
-    .filter((round) => access.scorableRoundIds.includes(round.id))
-    .map((round) => ({
-      roundId: round.id,
-      userId: round.userId,
-      firstName: round.firstName,
-      lastName: round.lastName,
-      username: round.username,
-      image: round.image,
-    }));
+  if (!currentUser || !players) redirect(`/matches/${matchId}`);
   const action = uploadMatchRoundScorecard.bind(null, matchId);
 
   return (

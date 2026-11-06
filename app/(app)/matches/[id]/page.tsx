@@ -69,7 +69,7 @@ export default async function MatchPage({
     canManage ? getCoursesWithTees() : [],
     canManage ? getAllUsers() : [],
     currentUser
-      ? getEventRoundAccess(currentUser.id, { kind: "match", id: match.id })
+      ? getEventRoundAccess(currentUser.id, "match", match.id)
       : null,
   ]);
 

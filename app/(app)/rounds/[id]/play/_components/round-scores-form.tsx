@@ -28,7 +28,7 @@ import {
   type GreenieEntry,
   useLiveScorecard,
 } from "./use-live-scorecard";
-import type { MatchScoreboard, ScoringPeer } from "./round-play";
+import type { MatchScoreboard, ScorableRound } from "./round-play";
 
 export type { SettingsTee };
 
@@ -57,8 +57,7 @@ type RoundScoresFormProps = {
     yards: number | null;
   }[];
   tees: SettingsTee[];
-  scoringPeers: ScoringPeer[];
-  // Settings change the Round itself, so they're offered only to its manager.
+  scorableRounds: ScorableRound[];
   canManage: boolean;
   matchScoreboard: MatchScoreboard | null;
   delegateRoundIds: readonly number[];
@@ -77,7 +76,7 @@ export function RoundScoresForm({
   leaderboardRounds,
   holes,
   tees,
-  scoringPeers,
+  scorableRounds,
   canManage,
   matchScoreboard,
   delegateRoundIds,
@@ -91,11 +90,11 @@ export function RoundScoresForm({
   const delegatePlayers = useMemo(
     () =>
       delegateRoundIds
-        .map((id) => scoringPeers.find((p) => p.roundId === id))
-        .filter((p): p is ScoringPeer => p != null),
-    [delegateRoundIds, scoringPeers],
+        .map((id) => scorableRounds.find((p) => p.roundId === id))
+        .filter((p): p is ScorableRound => p != null),
+    [delegateRoundIds, scorableRounds],
   );
-  const getPlayerName = (player: ScoringPeer) => player.firstName || "Player";
+  const getPlayerName = (player: ScorableRound) => player.firstName || "Player";
   // The grid columns are too narrow for anything but a first name, so the full
   // name is carried separately for the roomier score entry sheet.
   const getFullName = (
@@ -103,26 +102,27 @@ export function RoundScoresForm({
     fallback: string,
   ) =>
     [player.firstName, player.lastName].filter(Boolean).join(" ") || fallback;
-  // All peers stay in the snapshot even while deselected. Selection then only
-  // controls visible columns; it cannot interrupt refresh reconciliation.
+  // All scorable Rounds stay in the snapshot even while deselected. Selection
+  // then only controls visible columns; it cannot interrupt refresh
+  // reconciliation.
   const baseScoresByRoundId = useMemo(() => {
     const map: Record<number, ScoreEntry[]> = {
       [roundId]: buildInitialScores(serverRound.scores, holes),
     };
-    for (const player of scoringPeers) {
+    for (const player of scorableRounds) {
       map[player.roundId] = buildInitialScores(player.scores, holes);
     }
     return map;
-  }, [roundId, serverRound.scores, holes, scoringPeers]);
+  }, [roundId, serverRound.scores, holes, scorableRounds]);
   const baseGreeniesByRoundId = useMemo(() => {
     const map: Record<number, GreenieEntry[]> = {
       [roundId]: serverRound.greenies ?? [],
     };
-    for (const player of scoringPeers) {
+    for (const player of scorableRounds) {
       map[player.roundId] = player.greenies ?? [];
     }
     return map;
-  }, [roundId, serverRound.greenies, scoringPeers]);
+  }, [roundId, serverRound.greenies, scorableRounds]);
 
   const {
     scoresByRoundId,
@@ -427,7 +427,7 @@ export function RoundScoresForm({
                 roundId={roundId}
                 round={round}
                 tees={tees}
-                scoringPeers={scoringPeers}
+                scorableRounds={scorableRounds}
                 delegateRoundIds={delegateRoundIds}
                 setDelegateRoundIdsAction={setDelegateRoundIdsAction}
                 recordPutts={recordPutts}

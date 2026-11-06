@@ -10,7 +10,7 @@ import {
   rounds,
 } from "@/db/schema";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
-import { getRoundAccess, type AccessedRound } from "./access";
+import { readRoundAccess, type AccessedRound } from "./access";
 
 // The one write path for a Round's scorecard and settings. Not a
 // "use server" module: it takes the session user id, so exposing it as an
@@ -27,7 +27,6 @@ export type HoleScoreChange = {
   putts?: number | null;
 };
 
-/** Sets a Greenie to `distance`, or clears it when `distance` is null. */
 export type GreenieChange = {
   roundId: number;
   hole: number;
@@ -129,7 +128,7 @@ export async function recordScorecardChanges(
   if (roundIds.length === 0) return { ok: true };
 
   const accesses = await Promise.all(
-    roundIds.map((roundId) => getRoundAccess(userId, roundId)),
+    roundIds.map((roundId) => readRoundAccess(userId, roundId)),
   );
   const touchedRounds: AccessedRound[] = [];
   for (const access of accesses) {
@@ -222,7 +221,7 @@ export async function changeRoundSettings(
   roundId: number,
   change: RoundSettingsChange,
 ): Promise<RoundSettingsResult> {
-  const access = await getRoundAccess(userId, roundId);
+  const access = await readRoundAccess(userId, roundId);
   if (!access?.canScore) return NOT_FOUND;
   if (!access.canManage) return CANNOT_MANAGE;
   const { round } = access;
@@ -259,12 +258,11 @@ export async function changeRoundSettings(
   return { ok: true };
 }
 
-/** Deletes a Round and its scores. Requires manage access. */
 export async function deleteRound(
   userId: string,
   roundId: number,
 ): Promise<DeleteRoundResult> {
-  const access = await getRoundAccess(userId, roundId);
+  const access = await readRoundAccess(userId, roundId);
   if (!access?.canScore) return NOT_FOUND;
   if (!access.canManage) return CANNOT_MANAGE;
 

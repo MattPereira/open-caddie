@@ -1,16 +1,10 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
-import {
-  courseHoles,
-  matches,
-  roundScorecardUploads,
-  rounds,
-  tournaments,
-  users,
-} from "@/db/schema";
+import { courseHoles, roundScorecardUploads, rounds, users } from "@/db/schema";
 import { isVercelBlobUrl } from "@/lib/images/blob";
-import { getRoundAccess } from "@/lib/rounds/access";
+import { getEventRoundAccess, readRoundAccess } from "@/lib/rounds/access";
+import { EVENT_KINDS, type EventKind } from "@/lib/rounds/events";
 import { recordScorecardChanges } from "@/lib/rounds/scorecard-writes";
 import { parseRoundScorecardImage } from "./parser";
 
@@ -23,11 +17,45 @@ export type UploadRoundScorecardState = {
 
 const MAX_ADDITIONAL_CONTEXT_LENGTH = 1_000;
 
-type EventKind = "tournament" | "match";
+export type ScorecardImportPlayer = {
+  roundId: number;
+  userId: string;
+  firstName: string | null;
+  lastName: string | null;
+  username: string | null;
+  image: string | null;
+};
+
+/**
+ * The event's players the viewer may pick in the Round Scorecard Import, or
+ * null when they may not use it. Offers only Rounds the import would accept.
+ */
+export async function getScorecardImportPlayers(
+  userId: string,
+  eventKind: EventKind,
+  eventId: number,
+  eventRounds: readonly ({ id: number } & Omit<
+    ScorecardImportPlayer,
+    "roundId"
+  >)[],
+): Promise<ScorecardImportPlayer[] | null> {
+  const access = await getEventRoundAccess(userId, eventKind, eventId);
+  if (!access.canImportScorecard) return null;
+
+  return eventRounds
+    .filter((round) => access.scorableRoundIds.includes(round.id))
+    .map((round) => ({
+      roundId: round.id,
+      userId: round.userId,
+      firstName: round.firstName,
+      lastName: round.lastName,
+      username: round.username,
+      image: round.image,
+    }));
+}
 
 export type ImportRoundScorecardResult =
-  | { ok: true; redirectPath: string }
-  | { ok: false; error: string };
+  { ok: true; redirectPath: string } | { ok: false; error: string };
 
 /**
  * The Round Scorecard Import: parses the uploaded image and records the scores
@@ -72,13 +100,10 @@ export async function importRoundScorecard({
     };
   }
 
-  const courseId = await readEventCourseId(eventKind, eventId);
+  const eventConfig = EVENT_KINDS[eventKind];
+  const courseId = await eventConfig.readCourseId(eventId);
   if (courseId == null) {
-    return {
-      ok: false,
-      error:
-        eventKind === "tournament" ? "Tournament not found." : "Match not found.",
-    };
+    return { ok: false, error: eventConfig.notFoundError };
   }
 
   const eventRoundRows = await db
@@ -93,12 +118,7 @@ export async function importRoundScorecard({
     .from(rounds)
     .innerJoin(users, eq(rounds.userId, users.id))
     .where(
-      and(
-        eventKind === "tournament"
-          ? eq(rounds.tournamentId, eventId)
-          : eq(rounds.matchId, eventId),
-        inArray(rounds.id, selectedRoundIds),
-      ),
+      and(eventConfig.roundsOf(eventId), inArray(rounds.id, selectedRoundIds)),
     )
     .orderBy(asc(users.lastName), asc(users.firstName), asc(users.username));
 
@@ -116,7 +136,7 @@ export async function importRoundScorecard({
   // Checked before the parser runs, so a card the uploader can't wholly score
   // costs nothing and writes nothing.
   const accesses = await Promise.all(
-    selectedRoundIds.map((roundId) => getRoundAccess(userId, roundId)),
+    selectedRoundIds.map((roundId) => readRoundAccess(userId, roundId)),
   );
   if (accesses.some((access) => !access?.canScore)) {
     return { ok: false, error: "Round not found." };
@@ -149,14 +169,18 @@ export async function importRoundScorecard({
     }))
     .sort((a, b) => a.order - b.order);
 
-  const image = await fetchImageBytes(scorecardImgUrl);
-  if (!image) {
-    await insertScorecardUpload({
-      eventKind,
-      eventId,
+  const recordUpload = (outcome: UploadOutcome) =>
+    db.insert(roundScorecardUploads).values({
+      ...eventConfig.uploadColumns(eventId),
       uploadedByUserId: userId,
       imageUrl: scorecardImgUrl,
-      additionalContext,
+      additionalContext: additionalContext || null,
+      ...outcome,
+    });
+
+  const image = await fetchImageBytes(scorecardImgUrl);
+  if (!image) {
+    await recordUpload({
       status: "failed",
       error: "Could not retrieve the uploaded scorecard image.",
     });
@@ -175,18 +199,14 @@ export async function importRoundScorecard({
     });
   } catch (error) {
     console.error("Failed to parse round scorecard", error);
-    await insertScorecardUpload({
-      eventKind,
-      eventId,
-      uploadedByUserId: userId,
-      imageUrl: scorecardImgUrl,
-      additionalContext,
+    await recordUpload({
       status: "failed",
       error: "Parser failed.",
     });
     return {
       ok: false,
-      error: "Could not parse that scorecard. Try a clearer image or add notes.",
+      error:
+        "Could not parse that scorecard. Try a clearer image or add notes.",
     };
   }
 
@@ -195,12 +215,7 @@ export async function importRoundScorecard({
     selectedRoundIdSet,
   );
   if (validationError) {
-    await insertScorecardUpload({
-      eventKind,
-      eventId,
-      uploadedByUserId: userId,
-      imageUrl: scorecardImgUrl,
-      additionalContext,
+    await recordUpload({
       status: "failed",
       parsed: parsed.parsed,
       sumCheckIssues: parsed.sumChecks,
@@ -223,12 +238,7 @@ export async function importRoundScorecard({
   );
 
   if (scoreChanges.length === 0) {
-    await insertScorecardUpload({
-      eventKind,
-      eventId,
-      uploadedByUserId: userId,
-      imageUrl: scorecardImgUrl,
-      additionalContext,
+    await recordUpload({
       status: "failed",
       parsed: parsed.parsed,
       sumCheckIssues: parsed.sumChecks,
@@ -248,12 +258,7 @@ export async function importRoundScorecard({
       recorded.reason === "score_out_of_range"
         ? "Parsed score is out of allowed range."
         : recorded.error;
-    await insertScorecardUpload({
-      eventKind,
-      eventId,
-      uploadedByUserId: userId,
-      imageUrl: scorecardImgUrl,
-      additionalContext,
+    await recordUpload({
       status: "failed",
       parsed: parsed.parsed,
       sumCheckIssues: parsed.sumChecks,
@@ -262,12 +267,7 @@ export async function importRoundScorecard({
     return { ok: false, error };
   }
 
-  await insertScorecardUpload({
-    eventKind,
-    eventId,
-    uploadedByUserId: userId,
-    imageUrl: scorecardImgUrl,
-    additionalContext,
+  await recordUpload({
     status: "parsed",
     parsed: parsed.parsed,
     sumCheckIssues: parsed.sumChecks,
@@ -275,10 +275,7 @@ export async function importRoundScorecard({
 
   return {
     ok: true,
-    redirectPath:
-      eventKind === "tournament"
-        ? `/tournaments/${eventId}?tab=rounds`
-        : `/matches/${eventId}?tab=rounds`,
+    redirectPath: `${eventConfig.path(eventId)}?tab=rounds`,
   };
 }
 
@@ -288,7 +285,10 @@ async function fetchImageBytes(
   try {
     const response = await fetch(url);
     if (!response.ok) return null;
-    const mediaType = response.headers.get("content-type")?.split(";")[0].trim();
+    const mediaType = response.headers
+      .get("content-type")
+      ?.split(";")[0]
+      .trim();
     if (!mediaType?.startsWith("image/")) return null;
 
     const buffer = Buffer.from(await response.arrayBuffer());
@@ -298,39 +298,12 @@ async function fetchImageBytes(
   }
 }
 
-async function insertScorecardUpload({
-  eventKind,
-  eventId,
-  uploadedByUserId,
-  imageUrl,
-  additionalContext,
-  status,
-  parsed = null,
-  sumCheckIssues = [],
-  error = null,
-}: {
-  eventKind: EventKind;
-  eventId: number;
-  uploadedByUserId: string;
-  imageUrl: string;
-  additionalContext: string;
+type UploadOutcome = {
   status: "parsed" | "failed";
   parsed?: unknown;
   sumCheckIssues?: string[];
-  error?: string | null;
-}) {
-  await db.insert(roundScorecardUploads).values({
-    uploadedByUserId,
-    tournamentId: eventKind === "tournament" ? eventId : null,
-    matchId: eventKind === "match" ? eventId : null,
-    imageUrl,
-    additionalContext: additionalContext || null,
-    status,
-    parsed,
-    sumCheckIssues,
-    error,
-  });
-}
+  error?: string;
+};
 
 function parseSelectedRoundIds(formData: FormData) {
   return [
@@ -341,25 +314,6 @@ function parseSelectedRoundIds(formData: FormData) {
         .filter((value) => Number.isInteger(value) && value > 0),
     ),
   ];
-}
-
-async function readEventCourseId(
-  eventKind: EventKind,
-  eventId: number,
-): Promise<number | null> {
-  const [event] =
-    eventKind === "tournament"
-      ? await db
-          .select({ courseId: tournaments.courseId })
-          .from(tournaments)
-          .where(eq(tournaments.id, eventId))
-          .limit(1)
-      : await db
-          .select({ courseId: matches.courseId })
-          .from(matches)
-          .where(eq(matches.id, eventId))
-          .limit(1);
-  return event?.courseId ?? null;
 }
 
 function displayName(player: {

@@ -1,7 +1,17 @@
+import { cache } from "react";
 import { and, asc, eq, ne } from "drizzle-orm";
 
 import { db } from "@/db";
 import { matches, pairingMembers, rounds, users } from "@/db/schema";
+import { EVENT_KINDS, type EventKind } from "./events";
+
+const accessedRoundColumns = {
+  id: rounds.id,
+  userId: rounds.userId,
+  courseId: rounds.courseId,
+  tournamentId: rounds.tournamentId,
+  matchId: rounds.matchId,
+};
 
 export type AccessedRound = {
   id: number;
@@ -11,6 +21,8 @@ export type AccessedRound = {
   matchId: number | null;
 };
 
+type Viewer = { id: string; isAdmin: boolean };
+
 export type RoundAccess = {
   round: AccessedRound;
   /** May enter the Round's per-hole scores and Greenies (a Scorer). */
@@ -18,62 +30,71 @@ export type RoundAccess = {
   /** May change the Round itself: its tee, override, or delete it. */
   canManage: boolean;
   /** Other Rounds in the same Pairing or Match the viewer may score. */
-  scorablePeerRoundIds: number[];
+  otherScorableRoundIds: number[];
 };
 
 /**
- * The single answer to "may this viewer score or manage this Round". Encodes
- * the Scorer rule from CONTEXT.md. Returns null when the Round doesn't exist.
+ * The Scorer and manage rules from CONTEXT.md, for one Round. `sameGroup` is
+ * the Rounds of its Pairing mates, or of its Match's other players.
  */
-export async function getRoundAccess(
+function decideAccess(
+  viewer: Viewer,
+  round: AccessedRound,
+  sameGroup: { userId: string }[],
+  matchCreatorId: string | null,
+) {
+  const canManage = round.userId === viewer.id || viewer.isAdmin;
+  const canScore =
+    canManage ||
+    matchCreatorId === viewer.id ||
+    sameGroup.some((other) => other.userId === viewer.id);
+  return { canScore, canManage };
+}
+
+/**
+ * The single answer to "may this viewer score or manage this Round". Returns
+ * null when the Round doesn't exist. Writes call this directly; pages use the
+ * cache()-wrapped getRoundAccess.
+ */
+export async function readRoundAccess(
   viewerUserId: string,
   roundId: number,
 ): Promise<RoundAccess | null> {
   const [round] = await db
-    .select({
-      id: rounds.id,
-      userId: rounds.userId,
-      courseId: rounds.courseId,
-      tournamentId: rounds.tournamentId,
-      matchId: rounds.matchId,
-    })
+    .select(accessedRoundColumns)
     .from(rounds)
     .where(eq(rounds.id, roundId))
     .limit(1);
   if (!round) return null;
 
-  const [[viewer], groupMates, matchCreatorId] = await Promise.all([
-    db
-      .select({ isAdmin: users.isAdmin })
-      .from(users)
-      .where(eq(users.id, viewerUserId))
-      .limit(1),
-    readGroupMates(round),
+  const [viewer, sameGroup, matchCreatorId] = await Promise.all([
+    readViewer(viewerUserId),
+    readPairingOrMatchRounds(round),
     readMatchCreatorId(round.matchId),
   ]);
-
-  const canManage = round.userId === viewerUserId || viewer?.isAdmin === true;
-  const canScore =
-    canManage ||
-    matchCreatorId === viewerUserId ||
-    groupMates.some((mate) => mate.userId === viewerUserId);
+  const { canScore, canManage } = decideAccess(
+    viewer,
+    round,
+    sameGroup,
+    matchCreatorId,
+  );
 
   // Everyone in a Pairing or Match scores the whole group alike, so a Scorer
-  // of this Round is a Scorer of each of its group mates.
+  // of this Round is a Scorer of every other Round in it.
   return {
     round,
     canScore,
     canManage,
-    scorablePeerRoundIds: canScore ? groupMates.map((mate) => mate.roundId) : [],
+    otherScorableRoundIds: canScore
+      ? sameGroup.map((other) => other.roundId)
+      : [],
   };
 }
 
-export type EventRef = { kind: "tournament" | "match"; id: number };
+export const getRoundAccess = cache(readRoundAccess);
 
 export type EventRoundAccess = {
-  /** The event's Rounds the viewer is a Scorer of. */
   scorableRoundIds: number[];
-  /** The event's Rounds the viewer may change or delete. */
   manageableRoundIds: number[];
   /**
    * May use the Round Scorecard Import: a Scorer of some Round besides their
@@ -87,60 +108,98 @@ export type EventRoundAccess = {
  * The Scorer rule across a whole Tournament or Match, for pages that list its
  * Rounds. Agrees with getRoundAccess Round by Round, without reading each one.
  */
-export async function getEventRoundAccess(
-  viewerUserId: string,
-  event: EventRef,
-): Promise<EventRoundAccess> {
-  const [eventRounds, [viewer], matchCreatorId] = await Promise.all([
-    db
-      .select({
-        id: rounds.id,
-        userId: rounds.userId,
-        courseId: rounds.courseId,
-        tournamentId: rounds.tournamentId,
-        matchId: rounds.matchId,
-      })
-      .from(rounds)
-      .where(
-        event.kind === "tournament"
-          ? eq(rounds.tournamentId, event.id)
-          : eq(rounds.matchId, event.id),
-      ),
-    db
-      .select({ isAdmin: users.isAdmin })
-      .from(users)
-      .where(eq(users.id, viewerUserId))
-      .limit(1),
-    event.kind === "match" ? readMatchCreatorId(event.id) : null,
-  ]);
+export const getEventRoundAccess = cache(
+  async (
+    viewerUserId: string,
+    eventKind: EventKind,
+    eventId: number,
+  ): Promise<EventRoundAccess> => {
+    const [eventRounds, viewer, { groupOf, matchCreatorId }] =
+      await Promise.all([
+        db
+          .select(accessedRoundColumns)
+          .from(rounds)
+          .where(EVENT_KINDS[eventKind].roundsOf(eventId)),
+        readViewer(viewerUserId),
+        readEventScoringGroups[eventKind](eventId),
+      ]);
 
-  const allRoundIds = eventRounds.map((round) => round.id);
-  const ownRound = eventRounds.find((round) => round.userId === viewerUserId);
-  const isAdmin = viewer?.isAdmin === true;
+    const scorableRoundIds: number[] = [];
+    const manageableRoundIds: number[] = [];
+    for (const round of eventRounds) {
+      const group = groupOf(round.id);
+      const sameGroup =
+        group == null
+          ? []
+          : eventRounds.filter(
+              (other) => other.id !== round.id && groupOf(other.id) === group,
+            );
+      const { canScore, canManage } = decideAccess(
+        viewer,
+        round,
+        sameGroup,
+        matchCreatorId,
+      );
+      if (canScore) scorableRoundIds.push(round.id);
+      if (canManage) manageableRoundIds.push(round.id);
+    }
 
-  let scorableRoundIds: number[];
-  if (isAdmin) {
-    scorableRoundIds = allRoundIds;
-  } else if (event.kind === "match") {
-    scorableRoundIds =
-      ownRound || matchCreatorId === viewerUserId ? allRoundIds : [];
-  } else if (ownRound) {
-    const mates = await readGroupMates(ownRound);
-    scorableRoundIds = [ownRound.id, ...mates.map((mate) => mate.roundId)];
-  } else {
-    scorableRoundIds = [];
-  }
+    const ownRoundId = eventRounds.find(
+      (round) => round.userId === viewerUserId,
+    )?.id;
+    return {
+      scorableRoundIds,
+      manageableRoundIds,
+      canImportScorecard: scorableRoundIds.some((id) => id !== ownRoundId),
+    };
+  },
+);
 
-  return {
-    scorableRoundIds,
-    manageableRoundIds: isAdmin ? allRoundIds : ownRound ? [ownRound.id] : [],
-    canImportScorecard: scorableRoundIds.some((id) => id !== ownRound?.id),
-  };
+async function readViewer(userId: string): Promise<Viewer> {
+  const [user] = await db
+    .select({ isAdmin: users.isAdmin })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  return { id: userId, isAdmin: user?.isAdmin === true };
 }
 
+type EventScoringGroups = {
+  /** The Round's Pairing, or its Match; undefined when in neither. */
+  groupOf: (roundId: number) => number | undefined;
+  matchCreatorId: string | null;
+};
+
 // A Tournament grants nothing on its own: only a shared Pairing does, so a
-// Round in no Pairing has no group mates.
-async function readGroupMates(
+// Round in no Pairing is in no group.
+const readEventScoringGroups: Record<
+  EventKind,
+  (eventId: number) => Promise<EventScoringGroups>
+> = {
+  tournament: async (tournamentId) => {
+    const members = await db
+      .select({
+        roundId: pairingMembers.roundId,
+        pairingId: pairingMembers.pairingId,
+      })
+      .from(pairingMembers)
+      .where(eq(pairingMembers.tournamentId, tournamentId));
+    const pairingIdByRound = new Map(
+      members.map((member) => [member.roundId, member.pairingId]),
+    );
+    return {
+      groupOf: (roundId) => pairingIdByRound.get(roundId),
+      matchCreatorId: null,
+    };
+  },
+  match: async (matchId) => ({
+    groupOf: () => matchId,
+    matchCreatorId: await readMatchCreatorId(matchId),
+  }),
+};
+
+// As in readEventScoringGroups, a Round in no Pairing has no other Rounds.
+async function readPairingOrMatchRounds(
   round: AccessedRound,
 ): Promise<{ roundId: number; userId: string }[]> {
   const nameOrder = [

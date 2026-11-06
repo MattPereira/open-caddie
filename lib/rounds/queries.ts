@@ -87,11 +87,11 @@ export const getRoundsCountByUserId = cache(async (userId: string) => {
 });
 
 /**
- * The play page's peer columns: each Round's player and what's on their card,
- * in the order given. Callers pass only Rounds the access read says the viewer
- * may score.
+ * The play page's columns for other players: each Round's player and what's on
+ * their card, in the order given. Callers pass only Rounds the access read says
+ * the viewer may score.
  */
-export const getScoringPeers = cache(async (roundIds: readonly number[]) => {
+export const getScorableRounds = cache(async (roundIds: readonly number[]) => {
   if (roundIds.length === 0) return [];
 
   const [players, { scores, greenies: greenieRows }] = await Promise.all([
@@ -129,7 +129,7 @@ export const getScoringPeers = cache(async (roundIds: readonly number[]) => {
   });
 });
 
-export type ScoringPeer = Awaited<ReturnType<typeof getScoringPeers>>[number];
+export type ScorableRound = Awaited<ReturnType<typeof getScorableRounds>>[number];
 
 export const getRoundById = cache(async (roundId: number) => {
   const [round] = await db

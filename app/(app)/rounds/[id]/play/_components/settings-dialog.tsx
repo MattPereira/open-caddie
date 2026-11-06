@@ -53,7 +53,7 @@ import {
   type RoundSettingsValues,
 } from "@/app/(app)/rounds/schema";
 import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
-import type { ScoringPeer } from "./round-play";
+import type { ScorableRound } from "./round-play";
 
 export const MAX_DELEGATES = 3;
 
@@ -77,7 +77,7 @@ export function SettingsDialog({
   roundId,
   round,
   tees,
-  scoringPeers,
+  scorableRounds,
   delegateRoundIds,
   setDelegateRoundIdsAction,
   recordPutts,
@@ -89,7 +89,7 @@ export function SettingsDialog({
   roundId: number;
   round: RoundScoresTableRound;
   tees: SettingsTee[];
-  scoringPeers: ScoringPeer[];
+  scorableRounds: ScorableRound[];
   delegateRoundIds: readonly number[];
   setDelegateRoundIdsAction: (next: readonly number[]) => void;
   recordPutts: boolean;
@@ -291,7 +291,7 @@ export function SettingsDialog({
                 </RadioGroup>
               </FieldSet>
 
-              {scoringPeers.length > 0 ? (
+              {scorableRounds.length > 0 ? (
                 <FieldSet className="gap-2">
                   <FieldLabel className="text-base">
                     Choose Players
@@ -300,7 +300,7 @@ export function SettingsDialog({
                     </span>
                   </FieldLabel>
                   <div className="flex flex-col gap-2">
-                    {scoringPeers.map((player) => {
+                    {scorableRounds.map((player) => {
                       const name =
                         [player.firstName, player.lastName]
                           .filter(Boolean)

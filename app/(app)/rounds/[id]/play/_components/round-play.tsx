@@ -46,6 +46,7 @@ type RoundPlayProps = {
   // Selected on first open of this Round's play form, so a player keeping their
   // Pairing's card finds their mates already there.
   prefillDelegateRoundIds?: readonly number[];
+  canManage: boolean;
   matchScoreboard: MatchScoreboard | null;
   courseRecords: ReactNode;
 };
@@ -59,6 +60,7 @@ export function RoundPlay({
   tees,
   scoringPeers,
   prefillDelegateRoundIds,
+  canManage,
   matchScoreboard,
   courseRecords,
 }: RoundPlayProps) {
@@ -94,6 +96,7 @@ export function RoundPlay({
       holes={holes}
       tees={tees}
       scoringPeers={scoringPeers}
+      canManage={canManage}
       matchScoreboard={matchScoreboard}
       delegateRoundIds={delegateRoundIds}
       setDelegateRoundIdsAction={setDelegateRoundIds}

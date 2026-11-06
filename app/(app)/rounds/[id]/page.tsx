@@ -75,7 +75,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
           courseName={round.courseName}
           courseImgUrl={round.courseImgUrl}
         />
-        {canManage ? (
+        {canScore ? (
           <Button asChild size="xl" className="w-full">
             <Link href={`/rounds/${round.id}/play`}>
               <HugeiconsIcon icon={PlayCircleIcon} data-icon="inline-start" />

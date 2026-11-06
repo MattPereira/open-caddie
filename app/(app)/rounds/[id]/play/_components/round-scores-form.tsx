@@ -58,6 +58,8 @@ type RoundScoresFormProps = {
   }[];
   tees: SettingsTee[];
   scoringPeers: ScoringPeer[];
+  // Settings change the Round itself, so they're offered only to its manager.
+  canManage: boolean;
   matchScoreboard: MatchScoreboard | null;
   delegateRoundIds: readonly number[];
   setDelegateRoundIdsAction: (next: readonly number[]) => void;
@@ -76,6 +78,7 @@ export function RoundScoresForm({
   holes,
   tees,
   scoringPeers,
+  canManage,
   matchScoreboard,
   delegateRoundIds,
   setDelegateRoundIdsAction,
@@ -419,19 +422,21 @@ export function RoundScoresForm({
           </Button>
         ) : (
           <>
-            <SettingsDialog
-              roundId={roundId}
-              round={round}
-              tees={tees}
-              scoringPeers={scoringPeers}
-              delegateRoundIds={delegateRoundIds}
-              setDelegateRoundIdsAction={setDelegateRoundIdsAction}
-              recordPutts={recordPutts}
-              setRecordPuttsAction={setRecordPutts}
-              recordGreenies={recordGreenies}
-              setRecordGreeniesAction={setRecordGreenies}
-              fullWidth={round.tournamentId == null && round.matchId == null}
-            />
+            {canManage ? (
+              <SettingsDialog
+                roundId={roundId}
+                round={round}
+                tees={tees}
+                scoringPeers={scoringPeers}
+                delegateRoundIds={delegateRoundIds}
+                setDelegateRoundIdsAction={setDelegateRoundIdsAction}
+                recordPutts={recordPutts}
+                setRecordPuttsAction={setRecordPutts}
+                recordGreenies={recordGreenies}
+                setRecordGreeniesAction={setRecordGreenies}
+                fullWidth={round.tournamentId == null && round.matchId == null}
+              />
+            ) : null}
             {round.tournamentId != null ? (
               <TournamentLeaderboardDialog
                 currentRound={round}

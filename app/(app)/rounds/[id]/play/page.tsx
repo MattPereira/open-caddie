@@ -2,11 +2,9 @@ import { notFound } from "next/navigation";
 
 import { CourseRecords } from "@/components/features/course-records/course-records";
 import { getMatchById } from "@/lib/matches/queries";
-import { getRoundById } from "@/lib/rounds/queries";
-import {
-  getPairingMatesForRound,
-  getTournamentById,
-} from "@/lib/tournaments/queries";
+import { getRoundAccess } from "@/lib/rounds/access";
+import { getRoundById, getScoringPeers } from "@/lib/rounds/queries";
+import { getTournamentById } from "@/lib/tournaments/queries";
 import { getCurrentUser } from "@/lib/users/queries";
 import { RoundPlay } from "./_components/round-play";
 
@@ -27,44 +25,22 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
   ]);
 
   if (!round || !currentUser) notFound();
-  if (currentUser.id !== round.userId && !currentUser.isAdmin) notFound();
-  const [tournament, match, pairingMates] = await Promise.all([
+  const access = await getRoundAccess(currentUser.id, round.id);
+  if (!access?.canScore) notFound();
+  const [tournament, match, scoringPeers] = await Promise.all([
     round.tournamentId == null
       ? Promise.resolve(null)
       : getTournamentById(round.tournamentId),
     round.matchId == null ? Promise.resolve(null) : getMatchById(round.matchId),
-    // Keyed by this Round rather than its Tournament: the peers a player may
-    // score for are their Pairing's, and the Tournament read is cached for
-    // pages that want none of this.
-    round.tournamentId == null
-      ? Promise.resolve([])
-      : getPairingMatesForRound(round.id),
+    getScoringPeers(access.scorablePeerRoundIds),
   ]);
-
-  const matchPeers =
-    match?.rounds
-      .filter((matchRound) => matchRound.id !== round.id)
-      .map((matchRound) => ({
-        roundId: matchRound.id,
-        userId: matchRound.userId,
-        firstName: matchRound.firstName,
-        lastName: matchRound.lastName,
-        scores: matchRound.scores.map((score) => ({
-          hole: score.hole,
-          par: score.par,
-          strokes: score.strokes,
-          putts: score.putts,
-        })),
-        greenies: matchRound.greenies.map((greenie) => ({
-          hole: greenie.hole,
-          feet: greenie.feet,
-          inches: greenie.inches,
-        })),
-      })) ?? [];
-  // A Round is in a Match or a Tournament, never both, so one of these is
-  // always empty. A Pairing holds at most four Rounds, so a player's mates
-  // never exceed the picker's cap of three.
-  const scoringPeers = [...matchPeers, ...pairingMates];
+  // A Pairing's card is kept together, so its mates start selected. A Scorer
+  // who can't manage the Round has no Settings to pick peers from, so every
+  // peer starts selected for them.
+  const prefillDelegateRoundIds =
+    round.tournamentId != null || !access.canManage
+      ? access.scorablePeerRoundIds
+      : undefined;
 
   const tableRound = {
     id: round.id,
@@ -155,7 +131,8 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
           holes={tableRound.holes}
           tees={round.tees}
           scoringPeers={scoringPeers}
-          prefillDelegateRoundIds={pairingMates.map((mate) => mate.roundId)}
+          prefillDelegateRoundIds={prefillDelegateRoundIds}
+          canManage={access.canManage}
           matchScoreboard={matchScoreboard}
           courseRecords={
             <CourseRecords courseId={round.courseId} variant="tabs" />

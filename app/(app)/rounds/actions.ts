@@ -7,11 +7,7 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { courseTees, courses, rounds, tournaments } from "@/db/schema";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
-import {
-  changeRoundSettings as changeSettings,
-  deleteRound as removeRound,
-  recordScorecardChanges,
-} from "@/lib/rounds/scorecard-writes";
+import * as scorecardWrites from "@/lib/rounds/scorecard-writes";
 import {
   RoundConfigSchema,
   RoundGreenieDeleteSchema,
@@ -134,7 +130,7 @@ export async function deleteRound(roundId: number): Promise<ActionResult> {
     return { ok: false, error: "You must be signed in." };
   }
 
-  return toActionResult(await removeRound(session.user.id, roundId));
+  return scorecardWrites.deleteRound(session.user.id, roundId);
 }
 
 export async function changeRoundSettings(
@@ -151,13 +147,10 @@ export async function changeRoundSettings(
   }
 
   const { roundId, teeId, playerIndexOverride } = parsed.data;
-  return toActionResult(
-    await changeSettings(session.user.id, roundId, {
-      teeId,
-      playerIndexOverride:
-        playerIndexOverride === "" ? null : playerIndexOverride,
-    }),
-  );
+  return scorecardWrites.changeRoundSettings(session.user.id, roundId, {
+    teeId,
+    playerIndexOverride: playerIndexOverride === "" ? null : playerIndexOverride,
+  });
 }
 
 export async function recordRoundScorecardChanges(
@@ -174,12 +167,10 @@ export async function recordRoundScorecardChanges(
   }
 
   const { roundId, scores, greenies } = parsed.data;
-  return toActionResult(
-    await recordScorecardChanges(session.user.id, {
-      scores: scores.map((score) => ({ roundId, ...score })),
-      greenies: greenies.map((greenie) => ({ roundId, ...greenie })),
-    }),
-  );
+  return scorecardWrites.recordScorecardChanges(session.user.id, {
+    scores: scores.map((score) => ({ roundId, ...score })),
+    greenies: greenies.map((greenie) => ({ roundId, ...greenie })),
+  });
 }
 
 export async function upsertRoundScore(
@@ -195,9 +186,9 @@ export async function upsertRoundScore(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  return toActionResult(
-    await recordScorecardChanges(session.user.id, { scores: [parsed.data] }),
-  );
+  return scorecardWrites.recordScorecardChanges(session.user.id, {
+    scores: [parsed.data],
+  });
 }
 
 export async function upsertRoundGreenie(
@@ -214,11 +205,9 @@ export async function upsertRoundGreenie(
   }
 
   const { roundId, hole, feet, inches } = parsed.data;
-  return toActionResult(
-    await recordScorecardChanges(session.user.id, {
-      greenies: [{ roundId, hole, distance: { feet, inches } }],
-    }),
-  );
+  return scorecardWrites.recordScorecardChanges(session.user.id, {
+    greenies: [{ roundId, hole, distance: { feet, inches } }],
+  });
 }
 
 export async function deleteRoundGreenie(
@@ -235,15 +224,7 @@ export async function deleteRoundGreenie(
   }
 
   const { roundId, hole } = parsed.data;
-  return toActionResult(
-    await recordScorecardChanges(session.user.id, {
-      greenies: [{ roundId, hole, distance: null }],
-    }),
-  );
-}
-
-function toActionResult(
-  result: { ok: true } | { ok: false; error: string },
-): ActionResult {
-  return result.ok ? { ok: true } : { ok: false, error: result.error };
+  return scorecardWrites.recordScorecardChanges(session.user.id, {
+    greenies: [{ roundId, hole, distance: null }],
+  });
 }

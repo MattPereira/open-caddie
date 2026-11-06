@@ -13,9 +13,11 @@ import {
 } from "./round-scores-sheet";
 
 export function RoundActions({
+  canManage,
   initialTab = "tees",
   round,
 }: {
+  canManage: boolean;
   initialTab?: RoundScoresTab;
   round: EditableRound;
 }) {
@@ -34,6 +36,7 @@ export function RoundActions({
       </Button>
       {sheetOpen ? (
         <RoundScoresSheet
+          canManage={canManage}
           initialTab={initialTab}
           open={sheetOpen}
           onOpenChange={setSheetOpen}

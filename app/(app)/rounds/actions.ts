@@ -7,24 +7,27 @@ import { auth } from "@/auth";
 import { db } from "@/db";
 import { courseTees, courses, rounds, tournaments } from "@/db/schema";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
-import { getRoundAccess } from "@/lib/rounds/access";
 import {
+  changeRoundSettings as changeSettings,
+  deleteRound as removeRound,
   recordScorecardChanges,
-  type GreenieChange,
-  type ScorecardWriteResult,
 } from "@/lib/rounds/scorecard-writes";
 import {
   RoundConfigSchema,
   RoundGreenieDeleteSchema,
   RoundGreenieSchema,
+  RoundScorecardChangesSchema,
   RoundScoreSchema,
-  RoundScoresUpdateSchema,
+  RoundSettingsSchema,
   type RoundConfigValues,
   type RoundGreenieDeleteValues,
   type RoundGreenieValues,
+  type RoundScorecardChangesValues,
   type RoundScoreValues,
-  type RoundScoresUpdateValues,
+  type RoundSettingsValues,
 } from "./schema";
+
+type ActionResult = { ok: true } | { ok: false; error: string };
 
 export async function createRound(
   values: RoundConfigValues,
@@ -125,48 +128,58 @@ export async function createRound(
   }
 }
 
-export async function deleteRound(
-  roundId: number,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function deleteRound(roundId: number): Promise<ActionResult> {
   const session = await auth();
   if (!session?.user?.id) {
     return { ok: false, error: "You must be signed in." };
   }
 
-  const access = await getRoundAccess(session.user.id, roundId);
-  if (!access?.canManage) {
-    return { ok: false, error: "Round not found." };
+  return toActionResult(await removeRound(session.user.id, roundId));
+}
+
+export async function changeRoundSettings(
+  values: RoundSettingsValues,
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { ok: false, error: "You must be signed in." };
   }
 
-  const result = await db
-    .delete(rounds)
-    .where(eq(rounds.id, roundId))
-    .returning({
-      id: rounds.id,
-      tournamentId: rounds.tournamentId,
-      matchId: rounds.matchId,
-      userId: rounds.userId,
-    });
-
-  if (result.length === 0) {
-    return { ok: false, error: "Round not found." };
+  const parsed = RoundSettingsSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  if (result[0].tournamentId != null || result[0].matchId != null) {
-    invalidateHomeEventsCache();
+  const { roundId, teeId, playerIndexOverride } = parsed.data;
+  return toActionResult(
+    await changeSettings(session.user.id, roundId, {
+      teeId,
+      playerIndexOverride:
+        playerIndexOverride === "" ? null : playerIndexOverride,
+    }),
+  );
+}
+
+export async function recordRoundScorecardChanges(
+  values: RoundScorecardChangesValues,
+): Promise<ActionResult> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { ok: false, error: "You must be signed in." };
   }
-  revalidatePath("/");
-  revalidatePath("/records");
-  revalidatePath("/clubs/[handle]", "page");
-  revalidatePath(`/players/${result[0].userId}`);
-  revalidatePath(`/rounds/${roundId}`);
-  if (result[0].tournamentId != null) {
-    revalidatePath(`/tournaments/${result[0].tournamentId}`);
+
+  const parsed = RoundScorecardChangesSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
   }
-  if (result[0].matchId != null) {
-    revalidatePath(`/matches/${result[0].matchId}`);
-  }
-  return { ok: true };
+
+  const { roundId, scores, greenies } = parsed.data;
+  return toActionResult(
+    await recordScorecardChanges(session.user.id, {
+      scores: scores.map((score) => ({ roundId, ...score })),
+      greenies: greenies.map((greenie) => ({ roundId, ...greenie })),
+    }),
+  );
 }
 
 export async function upsertRoundScore(
@@ -229,83 +242,8 @@ export async function deleteRoundGreenie(
   );
 }
 
-// The round-page sheet. Still owner-or-admin and still a full 18-hole submit
-// with the tee and override; splitting settings out is the next step (#57).
-export async function updateRoundScores(
-  values: RoundScoresUpdateValues,
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { ok: false, error: "You must be signed in." };
-  }
-
-  const parsed = RoundScoresUpdateSchema.safeParse(values);
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0].message };
-  }
-
-  const { playerIndexOverride, roundId, scores, teeId } = parsed.data;
-
-  const access = await getRoundAccess(session.user.id, roundId);
-  if (!access?.canManage) {
-    return { ok: false, error: "Round not found." };
-  }
-  const { round } = access;
-
-  const [tee] = await db
-    .select({ id: courseTees.id })
-    .from(courseTees)
-    .where(and(eq(courseTees.id, teeId), eq(courseTees.courseId, round.courseId)))
-    .limit(1);
-  if (!tee) {
-    return { ok: false, error: "Selected tees do not belong to this course." };
-  }
-
-  const recorded = await recordScorecardChanges(session.user.id, {
-    scores: scores.map((score) => ({
-      roundId,
-      hole: score.hole,
-      strokes: score.strokes === "" ? null : score.strokes,
-      putts: score.putts === "" ? null : score.putts,
-    })),
-    greenies: parsed.data.greenies.flatMap((greenie): GreenieChange[] => {
-      if (greenie.action === "delete") {
-        return [{ roundId, hole: greenie.hole, distance: null }];
-      }
-      if (
-        greenie.action === "upsert" &&
-        greenie.feet !== "" &&
-        greenie.inches !== ""
-      ) {
-        return [
-          {
-            roundId,
-            hole: greenie.hole,
-            distance: { feet: greenie.feet, inches: greenie.inches },
-          },
-        ];
-      }
-      return [];
-    }),
-  });
-  if (!recorded.ok) return toActionResult(recorded);
-
-  await db
-    .update(rounds)
-    .set({
-      teeId,
-      ...(round.matchId != null && {
-        playerIndexOverride:
-          playerIndexOverride === "" ? null : playerIndexOverride.toFixed(1),
-      }),
-    })
-    .where(eq(rounds.id, roundId));
-
-  return { ok: true };
-}
-
 function toActionResult(
-  result: ScorecardWriteResult,
-): { ok: true } | { ok: false; error: string } {
-  return result.ok ? result : { ok: false, error: result.error };
+  result: { ok: true } | { ok: false; error: string },
+): ActionResult {
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
 }

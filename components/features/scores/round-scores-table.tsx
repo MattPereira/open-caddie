@@ -245,6 +245,8 @@ function RoundScoresCardEditAction({ round }: { round: EditableRound }) {
       </TooltipProvider>
       {sheetOpen ? (
         <RoundScoresSheet
+          // Shown only to the Round's player or an admin, who manage it.
+          canManage
           open={sheetOpen}
           onOpenChange={setSheetOpen}
           onDeleted={() => router.refresh()}

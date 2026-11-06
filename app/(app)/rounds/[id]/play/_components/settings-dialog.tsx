@@ -47,10 +47,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { deleteRound, updateRoundScores } from "@/app/(app)/rounds/actions";
+import { changeRoundSettings, deleteRound } from "@/app/(app)/rounds/actions";
 import {
-  RoundScoresUpdateSchema,
-  type RoundScoresUpdateValues,
+  RoundSettingsSchema,
+  type RoundSettingsValues,
 } from "@/app/(app)/rounds/schema";
 import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
 import type { ScoringPeer } from "./round-play";
@@ -69,31 +69,8 @@ export type SettingsTee = {
 function buildSettingsFormValues(
   round: RoundScoresTableRound,
   tees: SettingsTee[],
-): RoundScoresUpdateValues {
-  const fallbackTeeId = tees[0]?.id ?? 0;
-  return {
-    roundId: round.id,
-    teeId: round.teeId ?? fallbackTeeId,
-    playerIndexOverride:
-      round.playerIndexOverride == null
-        ? ""
-        : Number(round.playerIndexOverride),
-    scores: Array.from({ length: 18 }, (_, index) => {
-      const hole = index + 1;
-      const existing = round.scores.find((s) => s.hole === hole);
-      return {
-        hole,
-        strokes: existing?.strokes ?? "",
-        putts: existing?.putts ?? "",
-      };
-    }),
-    greenies: (round.greenies ?? []).map((greenie) => ({
-      hole: greenie.hole,
-      feet: greenie.feet,
-      inches: greenie.inches,
-      action: "upsert" as const,
-    })),
-  };
+): RoundSettingsValues {
+  return { roundId: round.id, teeId: round.teeId ?? tees[0]?.id };
 }
 
 export function SettingsDialog({
@@ -128,8 +105,8 @@ export function SettingsDialog({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const form = useForm<RoundScoresUpdateValues>({
-    resolver: zodResolver(RoundScoresUpdateSchema),
+  const form = useForm<RoundSettingsValues>({
+    resolver: zodResolver(RoundSettingsSchema),
     defaultValues: buildSettingsFormValues(round, tees),
   });
   const serverError = form.formState.errors.root?.server?.message;
@@ -145,10 +122,19 @@ export function SettingsDialog({
     setOpen(nextOpen);
   };
 
-  const onSubmit = (values: RoundScoresUpdateValues) => {
+  const onSubmit = (values: RoundSettingsValues) => {
     form.clearErrors("root.server");
+    // Settings carry only the tee. Scores stay with live entry, so a tee change
+    // can't overwrite holes another Scorer entered from their phone.
+    if (!form.formState.isDirty) {
+      setOpen(false);
+      return;
+    }
     startTransition(async () => {
-      const result = await updateRoundScores(values);
+      const result = await changeRoundSettings({
+        roundId: values.roundId,
+        teeId: values.teeId,
+      });
       if (!result.ok) {
         form.setError("root.server", {
           type: "server",

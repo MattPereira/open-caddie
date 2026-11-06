@@ -11,6 +11,7 @@ import { displayName } from "@/lib/players/player-name";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getRoundAccess } from "@/lib/rounds/access";
 import { getRoundById } from "@/lib/rounds/queries";
 import { getCurrentUser } from "@/lib/users/queries";
 import { formatDate } from "@/lib/dates";
@@ -46,7 +47,11 @@ export default async function RoundPage({ params }: RoundPageProps) {
   ]);
 
   if (!round) notFound();
-  const canEdit = currentUser?.isAdmin || currentUser?.id === round.userId;
+  const access = currentUser
+    ? await getRoundAccess(currentUser.id, round.id)
+    : null;
+  const canScore = access?.canScore ?? false;
+  const canManage = access?.canManage ?? false;
 
   return (
     <PageContent className="min-w-0">
@@ -70,7 +75,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
           courseName={round.courseName}
           courseImgUrl={round.courseImgUrl}
         />
-        {canEdit ? (
+        {canManage ? (
           <Button asChild size="xl" className="w-full">
             <Link href={`/rounds/${round.id}/play`}>
               <HugeiconsIcon icon={PlayCircleIcon} data-icon="inline-start" />
@@ -84,7 +89,9 @@ export default async function RoundPage({ params }: RoundPageProps) {
         <section className="flex min-w-0 flex-col gap-3">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold tracking-normal">Scores</h2>
-            {canEdit ? <RoundActions round={round} /> : null}
+            {canScore ? (
+              <RoundActions canManage={canManage} round={round} />
+            ) : null}
           </div>
           <RoundScoresCard row={toRoundScoreRow(round)} showMobileTotals />
         </section>
@@ -92,8 +99,12 @@ export default async function RoundPage({ params }: RoundPageProps) {
         <section className="flex min-w-0 flex-col gap-3">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold tracking-normal">Greenies</h2>
-            {canEdit ? (
-              <RoundActions initialTab="greenies" round={round} />
+            {canScore ? (
+              <RoundActions
+                canManage={canManage}
+                initialTab="greenies"
+                round={round}
+              />
             ) : null}
           </div>
           {round.greenies.length === 0 ? (

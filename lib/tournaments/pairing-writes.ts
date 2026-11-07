@@ -2,7 +2,8 @@ import { revalidatePath } from "next/cache";
 import { count, desc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { pairingMembers, pairings, rounds, tournaments, users } from "@/db/schema";
+import { pairingMembers, pairings, rounds, tournaments } from "@/db/schema";
+import { requireAdmin } from "@/lib/users/admin";
 import { PAIRING_MAX_MEMBERS } from "./pairings";
 
 // Plain module: only route actions authenticate and parse untrusted input.
@@ -11,22 +12,14 @@ import { PAIRING_MAX_MEMBERS } from "./pairings";
 
 type PairingWriteResult = { ok: true; id?: number } | { ok: false; error: string };
 
-async function isAdmin(userId: string) {
-  const [user] = await db
-    .select({ isAdmin: users.isAdmin })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-  return user?.isAdmin === true;
-}
+const NOT_ADMIN = "Only admins can manage Pairings.";
 
 export async function createPairing(
   userId: string,
   values: { tournamentId: number },
 ): Promise<PairingWriteResult> {
-  if (!(await isAdmin(userId))) {
-    return { ok: false, error: "Only admins can manage Pairings." };
-  }
+  const admin = await requireAdmin(userId, NOT_ADMIN);
+  if (!admin.ok) return admin;
 
   const { tournamentId } = values;
   const [tournament] = await db
@@ -77,9 +70,8 @@ export async function renamePairing(
   userId: string,
   values: { pairingId: number; name: string },
 ): Promise<PairingWriteResult> {
-  if (!(await isAdmin(userId))) {
-    return { ok: false, error: "Only admins can manage Pairings." };
-  }
+  const admin = await requireAdmin(userId, NOT_ADMIN);
+  if (!admin.ok) return admin;
 
   const { pairingId } = values;
   const name = values.name.trim();
@@ -99,9 +91,8 @@ export async function deletePairing(
   userId: string,
   values: { pairingId: number },
 ): Promise<PairingWriteResult> {
-  if (!(await isAdmin(userId))) {
-    return { ok: false, error: "Only admins can manage Pairings." };
-  }
+  const admin = await requireAdmin(userId, NOT_ADMIN);
+  if (!admin.ok) return admin;
 
   const { pairingId } = values;
   const tournamentId = await getPairingTournamentId(pairingId);
@@ -120,9 +111,8 @@ export async function assignRoundToPairing(
   userId: string,
   values: { pairingId: number; roundId: number },
 ): Promise<PairingWriteResult> {
-  if (!(await isAdmin(userId))) {
-    return { ok: false, error: "Only admins can manage Pairings." };
-  }
+  const admin = await requireAdmin(userId, NOT_ADMIN);
+  if (!admin.ok) return admin;
 
   const { pairingId, roundId } = values;
   const assigned = await db.transaction(async (tx) => {
@@ -193,9 +183,8 @@ export async function removeRoundFromPairing(
   userId: string,
   values: { roundId: number },
 ): Promise<PairingWriteResult> {
-  if (!(await isAdmin(userId))) {
-    return { ok: false, error: "Only admins can manage Pairings." };
-  }
+  const admin = await requireAdmin(userId, NOT_ADMIN);
+  if (!admin.ok) return admin;
 
   const { roundId } = values;
   const [member] = await db

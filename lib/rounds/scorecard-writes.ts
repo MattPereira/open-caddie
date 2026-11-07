@@ -1,4 +1,3 @@
-import { revalidatePath } from "next/cache";
 import { and, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
@@ -9,8 +8,13 @@ import {
   roundScores,
   rounds,
 } from "@/db/schema";
-import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import { readRoundAccess, type AccessedRound } from "./access";
+import {
+  CANNOT_MANAGE_ROUND as CANNOT_MANAGE,
+  ROUND_NOT_FOUND as NOT_FOUND,
+  invalidateRoundChanged,
+  type RoundManageFailure,
+} from "./lifecycle";
 
 // The one write path for a Round's scorecard and settings. Not a
 // "use server" module: it takes the session user id, so exposing it as an
@@ -53,10 +57,6 @@ export type RoundSettingsChange = {
   playerIndexOverride?: number | null;
 };
 
-export type RoundManageFailure =
-  | { ok: false; reason: "not_found"; error: string }
-  | { ok: false; reason: "cannot_manage"; error: string };
-
 export type RoundSettingsFailure =
   | RoundManageFailure
   | { ok: false; reason: "tee_not_on_course"; error: string }
@@ -64,18 +64,7 @@ export type RoundSettingsFailure =
   | { ok: false; reason: "override_out_of_range"; error: string };
 
 export type RoundSettingsResult = { ok: true } | RoundSettingsFailure;
-export type DeleteRoundResult = { ok: true } | RoundManageFailure;
 
-const NOT_FOUND = {
-  ok: false,
-  reason: "not_found",
-  error: "Round not found.",
-} as const;
-const CANNOT_MANAGE = {
-  ok: false,
-  reason: "cannot_manage",
-  error: "You can't change this Round's settings.",
-} as const;
 const TEE_NOT_ON_COURSE = {
   ok: false,
   reason: "tee_not_on_course",
@@ -258,29 +247,6 @@ export async function changeRoundSettings(
   return { ok: true };
 }
 
-export async function deleteRound(
-  userId: string,
-  roundId: number,
-): Promise<DeleteRoundResult> {
-  const access = await readRoundAccess(userId, roundId);
-  if (!access?.canScore) return NOT_FOUND;
-  if (!access.canManage) return CANNOT_MANAGE;
-
-  const deleted = await db
-    .delete(rounds)
-    .where(eq(rounds.id, roundId))
-    .returning({ id: rounds.id });
-  if (deleted.length === 0) return NOT_FOUND;
-
-  const { round } = access;
-  // Event Rounds appear in the home page's event list (ADR 0005).
-  if (round.tournamentId != null || round.matchId != null) {
-    invalidateHomeEventsCache();
-  }
-  invalidateRoundChanged([round]);
-  return { ok: true };
-}
-
 function isPlayerIndex(value: number) {
   const tenths = value * 10;
   return (
@@ -328,24 +294,4 @@ async function readParThreeHoles(courseIds: number[]) {
     byCourse.set(row.courseId, holes);
   }
   return byCourse;
-}
-
-// The fixed "Round changed" page set. The home events cache is left to Round
-// creation and deletion: the home page shows no scores, and invalidating it on
-// every hole entry would wake the database for anonymous traffic (ADR 0005).
-function invalidateRoundChanged(changed: AccessedRound[]) {
-  const paths = new Set<string>();
-  for (const round of changed) {
-    paths.add(`/players/${round.userId}`);
-    paths.add(`/rounds/${round.id}`);
-    if (round.tournamentId != null) {
-      paths.add(`/tournaments/${round.tournamentId}`);
-    }
-    if (round.matchId != null) paths.add(`/matches/${round.matchId}`);
-  }
-
-  revalidatePath("/");
-  revalidatePath("/records");
-  revalidatePath("/clubs/[handle]", "page");
-  for (const path of paths) revalidatePath(path);
 }

@@ -19,6 +19,12 @@ import {
 import { getCurrentUser } from "@/lib/users/queries";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import {
+  deleteEventRounds,
+  insertEventRounds,
+  invalidateRoundsAddedOrRemoved,
+  type ChangedRound,
+} from "@/lib/rounds/lifecycle";
+import {
   importRoundScorecard,
   type UploadRoundScorecardState,
 } from "@/lib/rounds/scorecard-import";
@@ -108,7 +114,7 @@ export async function createMatch(
   }
 
   try {
-    const matchId = await db.transaction(async (tx) => {
+    const created = await db.transaction(async (tx) => {
       const [match] = await tx
         .insert(matches)
         .values({
@@ -119,20 +125,14 @@ export async function createMatch(
         })
         .returning({ id: matches.id });
 
-      const insertedRounds = await tx
-        .insert(rounds)
-        .values(
-          playerUserIds.map((userId) => ({
-            matchId: match.id,
-            userId,
-            courseId,
-            teeId,
-            date,
-          })),
-        )
-        .returning({ id: rounds.id, userId: rounds.userId });
+      const insertedRounds = await insertEventRounds(
+        tx,
+        { matchId: match.id, teeId },
+        playerUserIds,
+      );
+      const result = { matchId: match.id, insertedRounds };
 
-      if (format !== "four_ball_match_play") return match.id;
+      if (format !== "four_ball_match_play") return result;
 
       const roundIdByUserId = new Map(
         insertedRounds.map((round) => [round.userId, round.id]),
@@ -168,13 +168,12 @@ export async function createMatch(
         }),
       );
 
-      return match.id;
+      return result;
     });
 
-    invalidateHomeEventsCache();
-    revalidatePath("/");
+    invalidateRoundsAddedOrRemoved(created.insertedRounds);
     revalidatePath("/matches");
-    return { ok: true, id: matchId };
+    return { ok: true, id: created.matchId };
   } catch (e: unknown) {
     const code =
       (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
@@ -277,6 +276,7 @@ export async function updateMatch(
     }
   }
 
+  let insertedRounds: ChangedRound[] = [];
   try {
     await db.transaction(async (tx) => {
       await tx
@@ -295,18 +295,11 @@ export async function updateMatch(
         );
 
         if (missingUserIds.length > 0) {
-          const insertedRounds = await tx
-            .insert(rounds)
-            .values(
-              missingUserIds.map((userId) => ({
-                matchId: parsed.data.id,
-                userId,
-                courseId,
-                teeId,
-                date,
-              })),
-            )
-            .returning({ id: rounds.id, userId: rounds.userId });
+          insertedRounds = await insertEventRounds(
+            tx,
+            { matchId: parsed.data.id, teeId },
+            missingUserIds,
+          );
 
           for (const round of insertedRounds) {
             roundIdByUserId.set(round.userId, round.id);
@@ -356,6 +349,9 @@ export async function updateMatch(
     throw e;
   }
 
+  if (insertedRounds.length > 0) {
+    invalidateRoundsAddedOrRemoved(insertedRounds);
+  }
   invalidateHomeEventsCache();
   revalidatePath("/matches");
   revalidatePath(`/matches/${parsed.data.id}`);
@@ -367,10 +363,12 @@ export async function deleteMatch(id: number): Promise<ActionResult> {
   const manage = await canManageMatch(id, me.id, me.isAdmin);
   if (!manage.ok) return manage;
 
-  await db.transaction(async (tx) => {
-    await tx.delete(rounds).where(eq(rounds.matchId, id));
+  const deletedRounds = await db.transaction(async (tx) => {
+    const deleted = await deleteEventRounds(tx, { matchId: id });
     await tx.delete(matches).where(eq(matches.id, id));
+    return deleted;
   });
+  invalidateRoundsAddedOrRemoved(deletedRounds);
   invalidateHomeEventsCache();
   revalidatePath("/matches");
   return { ok: true };

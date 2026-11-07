@@ -15,6 +15,8 @@ import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import {
   insertEventRounds,
   invalidateRoundChanged,
+  syncEventRounds,
+  type ChangedRound,
 } from "@/lib/rounds/lifecycle";
 import { requireAdmin } from "@/lib/users/admin";
 
@@ -100,31 +102,36 @@ export async function updateTournament(
     return { ok: false, error: "Selected club or course does not exist." };
   }
 
-  const [current] = await db
-    .select({ id: tournaments.id })
-    .from(tournaments)
-    .where(eq(tournaments.id, id))
-    .limit(1);
-  if (!current) {
-    return { ok: false, error: "Tournament not found." };
-  }
-
   if (!(await isTeeForCourse(values.teeId, courseId))) {
     return { ok: false, error: "Selected tee does not belong to this course." };
   }
 
+  let synced: ChangedRound[];
   try {
-    const season = await getSeason(db, values.seasonId, clubId);
-    await db.update(tournaments).set({
-      seasonId: season.id,
-      date: parseDateOnly(values.date),
-      courseId,
-      teeId: values.teeId,
-    }).where(eq(tournaments.id, id));
+    const result = await db.transaction(async (tx) => {
+      const [previous] = await tx
+        .select({ courseId: tournaments.courseId, teeId: tournaments.teeId, date: tournaments.date })
+        .from(tournaments)
+        .where(eq(tournaments.id, id))
+        .for("update");
+      if (!previous) return null;
+
+      const season = await getSeason(tx, values.seasonId, clubId);
+      await tx.update(tournaments).set({
+        seasonId: season.id,
+        date: parseDateOnly(values.date),
+        courseId,
+        teeId: values.teeId,
+      }).where(eq(tournaments.id, id));
+      return syncEventRounds(tx, { tournamentId: id }, previous);
+    });
+    if (!result) return { ok: false, error: "Tournament not found." };
+    synced = result;
   } catch (e: unknown) {
     return writeFailure(e, "Could not update Tournament.");
   }
 
+  if (synced.length > 0) invalidateRoundChanged(synced);
   invalidateTournamentChanged(id);
   return { ok: true };
 }

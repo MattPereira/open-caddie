@@ -20,8 +20,11 @@ import { getCurrentUser } from "@/lib/users/queries";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import {
   deleteEventRounds,
+  EventCourseLockedError,
   insertEventRounds,
+  invalidateRoundChanged,
   invalidateRoundsAddedOrRemoved,
+  syncEventRounds,
   type ChangedRound,
 } from "@/lib/rounds/lifecycle";
 import {
@@ -214,6 +217,16 @@ export async function updateMatch(
     return { ok: false, error: "Selected course does not exist." };
   }
 
+  const [current] = await db
+    .select({ courseId: matches.courseId })
+    .from(matches)
+    .where(eq(matches.id, parsed.data.id))
+    .limit(1);
+  // A course change moves the Rounds onto the submitted tee.
+  if (current?.courseId !== courseId && !(await isTeeForCourse(teeId, courseId))) {
+    return { ok: false, error: "Selected tee does not belong to this course." };
+  }
+
   const matchRounds = await db
     .select({ id: rounds.id, userId: rounds.userId })
     .from(rounds)
@@ -277,12 +290,26 @@ export async function updateMatch(
   }
 
   let insertedRounds: ChangedRound[] = [];
+  let syncedRounds: ChangedRound[] = [];
   try {
     await db.transaction(async (tx) => {
+      const [previous] = await tx
+        .select({ courseId: matches.courseId, date: matches.date })
+        .from(matches)
+        .where(eq(matches.id, parsed.data.id))
+        .for("update");
+      if (!previous) throw new Error("Match not found.");
       await tx
       .update(matches)
       .set({ courseId, date, format })
       .where(eq(matches.id, parsed.data.id));
+      // Before the Four-Ball repair, so repaired Rounds share the existing
+      // Rounds' course.
+      syncedRounds = await syncEventRounds(
+        tx,
+        { matchId: parsed.data.id, teeId },
+        previous,
+      );
       await tx.delete(matchTeams).where(eq(matchTeams.matchId, parsed.data.id));
 
       if (format !== "four_ball_match_play") return;
@@ -340,6 +367,9 @@ export async function updateMatch(
       await tx.insert(matchTeamMembers).values(memberValues);
     });
   } catch (e: unknown) {
+    if (e instanceof EventCourseLockedError) {
+      return { ok: false, error: e.message };
+    }
     const code =
       (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
       (e as { code?: string })?.code;
@@ -349,6 +379,7 @@ export async function updateMatch(
     throw e;
   }
 
+  if (syncedRounds.length > 0) invalidateRoundChanged(syncedRounds);
   if (insertedRounds.length > 0) {
     invalidateRoundsAddedOrRemoved(insertedRounds);
   }

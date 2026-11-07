@@ -194,6 +194,97 @@ if (!testDatabaseUrl) {
       expect(revalidatePath).not.toHaveBeenCalled();
     });
 
+    describe("update syncs the Tournament's Rounds", () => {
+      type TournamentFixture = Awaited<ReturnType<typeof fixtures.tournament>>;
+
+      async function update(t: TournamentFixture, next: { courseHandle?: string; teeId?: number; date?: string }) {
+        const [club] = await db.select({ handle: schema.clubs.handle }).from(schema.clubs).innerJoin(schema.seasons, eq(schema.seasons.clubId, schema.clubs.id)).where(eq(schema.seasons.id, t.tournament.seasonId));
+        return mutations.updateTournament(admin.id, {
+          id: t.tournament.id,
+          clubHandle: club.handle,
+          seasonId: t.tournament.seasonId,
+          date: next.date ?? "2026-01-01",
+          courseHandle: next.courseHandle ?? t.course.handle,
+          teeId: next.teeId ?? t.tee.id,
+        });
+      }
+
+      async function tournamentRounds(id: number) {
+        return db.select().from(schema.rounds).where(eq(schema.rounds.tournamentId, id));
+      }
+
+      const tournamentChanged = (id: number) => ["/", "/clubs/[handle] page", "/tournaments", `/tournaments/${id}`, `/tournaments/${id}/edit`];
+
+      it("moves unscored Rounds to the new course and tee, refreshing their pages", async () => {
+        const t = await fixtures.tournament();
+        const a = await fixtures.tournamentPlayer(t);
+        const b = await fixtures.tournamentPlayer(t);
+        const next = await fixtures.course();
+
+        expect(await update(t, { courseHandle: next.course.handle, teeId: next.tee.id })).toEqual({ ok: true });
+
+        for (const round of await tournamentRounds(t.tournament.id)) {
+          expect(round).toMatchObject({ courseId: next.course.id, teeId: next.tee.id });
+        }
+        expect(updateTag).toHaveBeenCalledWith("home-events");
+        expect(invalidatedPaths()).toEqual([
+          ...tournamentChanged(t.tournament.id), "/records",
+          ...[a, b].flatMap((p) => [`/players/${p.user.id}`, `/rounds/${p.round.id}`]),
+        ].sort());
+      });
+
+      it("refuses a course change while a Round has scores, naming the player and changing nothing", async () => {
+        const t = await fixtures.tournament();
+        const scored = await fixtures.tournamentPlayer(t);
+        await fixtures.tournamentPlayer(t);
+        await db.insert(schema.roundScores).values({ roundId: scored.round.id, hole: 1, strokes: 5 });
+        const next = await fixtures.course();
+
+        expect(await update(t, { courseHandle: next.course.handle, teeId: next.tee.id, date: "2026-04-04" })).toEqual({
+          ok: false,
+          error: `Can't change the course: Player ${scored.user.lastName} already has scores or Greenies.`,
+        });
+
+        const [tournament] = await db.select().from(schema.tournaments).where(eq(schema.tournaments.id, t.tournament.id));
+        expect(tournament).toEqual(t.tournament);
+        for (const round of await tournamentRounds(t.tournament.id)) {
+          expect(round).toMatchObject({ courseId: t.course.id, teeId: t.tee.id, date: t.tournament.date });
+        }
+        expect(revalidatePath).not.toHaveBeenCalled();
+      });
+
+      it("carries a date change to scored Rounds", async () => {
+        const t = await fixtures.tournament();
+        const scored = await fixtures.tournamentPlayer(t);
+        await db.insert(schema.roundScores).values({ roundId: scored.round.id, hole: 1, strokes: 5 });
+
+        expect(await update(t, { date: "2026-04-04" })).toEqual({ ok: true });
+
+        const [round] = await tournamentRounds(t.tournament.id);
+        expect(round.date).toEqual(new Date("2026-04-04T00:00:00.000Z"));
+        expect(invalidatedPaths()).toContain(`/rounds/${scored.round.id}`);
+      });
+
+      it("moves Rounds on the old Tournament tee on a tee-only change, leaving player-chosen tees", async () => {
+        const t = await fixtures.tournament();
+        const onEventTee = await fixtures.tournamentPlayer(t);
+        const chosen = await fixtures.tournamentPlayer(t);
+        const red = await fixtures.tee(t.course.id, "Red");
+        await db.update(schema.rounds).set({ teeId: red.id }).where(eq(schema.rounds.id, chosen.round.id));
+        const white = await fixtures.tee(t.course.id);
+
+        expect(await update(t, { teeId: white.id })).toEqual({ ok: true });
+
+        const byId = new Map((await tournamentRounds(t.tournament.id)).map((round) => [round.id, round]));
+        expect(byId.get(onEventTee.round.id)?.teeId).toBe(white.id);
+        expect(byId.get(chosen.round.id)?.teeId).toBe(red.id);
+        expect(invalidatedPaths()).toEqual([
+          ...tournamentChanged(t.tournament.id), "/records",
+          `/players/${onEventTee.user.id}`, `/rounds/${onEventTee.round.id}`,
+        ].sort());
+      });
+    });
+
     describe("add players", () => {
       it("gives each player a Round on the Tournament's course, tee and date", async () => {
         const t = await fixtures.tournament();

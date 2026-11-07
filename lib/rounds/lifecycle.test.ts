@@ -162,6 +162,26 @@ if (!testDatabaseUrl) {
         );
       });
 
+      it("joins a Tournament on its date and course whatever the form says", async () => {
+        const t = await fixtures.tournament();
+        const other = await fixtures.course();
+        const player = await fixtures.user();
+
+        const result = await lifecycle.createRound(player.id, {
+          courseHandle: other.course.handle,
+          date: "2026-05-05",
+          tournamentId: t.tournament.id,
+          teeId: other.tee.id,
+        });
+
+        if (!result.ok) throw new Error(result.error);
+        expect(await roundRow(result.roundId)).toMatchObject({
+          courseId: t.course.id,
+          teeId: t.tee.id,
+          date: t.tournament.date,
+        });
+      });
+
       it("refuses joining a Tournament twice", async () => {
         const t = await fixtures.tournament();
         const player = await fixtures.tournamentPlayer(t);
@@ -330,6 +350,248 @@ if (!testDatabaseUrl) {
             matchId: match.id,
           }),
         );
+      });
+    });
+
+    describe("event Round sync", () => {
+      type TournamentFixture = Awaited<ReturnType<typeof fixtures.tournament>>;
+
+      // Edits the Tournament row the way an authorized caller would, then
+      // syncs its Rounds in the same transaction.
+      async function editTournament(
+        t: TournamentFixture,
+        next: { courseId?: number; teeId?: number; date?: Date },
+      ) {
+        const previous = {
+          courseId: t.tournament.courseId,
+          teeId: t.tournament.teeId,
+          date: t.tournament.date,
+        };
+        return db.transaction(async (tx) => {
+          await tx
+            .update(schema.tournaments)
+            .set(next)
+            .where(eq(schema.tournaments.id, t.tournament.id));
+          return lifecycle.syncEventRounds(
+            tx,
+            { tournamentId: t.tournament.id },
+            previous,
+          );
+        });
+      }
+
+      async function score(roundId: number) {
+        await db
+          .insert(schema.roundScores)
+          .values({ roundId, hole: 1, strokes: 4, putts: 2 });
+      }
+
+      async function greenie(roundId: number) {
+        await db.insert(schema.roundScores).values({ roundId, hole: 3 });
+        await db
+          .insert(schema.greenies)
+          .values({ roundId, hole: 3, feet: 6, inches: 0 });
+      }
+
+      it("moves every unscored Tournament Round to the new course and the Tournament's tee", async () => {
+        const t = await fixtures.tournament();
+        const a = await fixtures.tournamentPlayer(t);
+        const b = await fixtures.tournamentPlayer(t);
+        const next = await fixtures.course();
+
+        const moved = await editTournament(t, {
+          courseId: next.course.id,
+          teeId: next.tee.id,
+        });
+
+        expect(moved.map((r) => r.id).sort()).toEqual(
+          [a.round.id, b.round.id].sort(),
+        );
+        for (const p of [a, b]) {
+          expect(await roundRow(p.round.id)).toMatchObject({
+            courseId: next.course.id,
+            teeId: next.tee.id,
+            date: t.tournament.date,
+          });
+        }
+      });
+
+      it("refuses a course change naming the players with scores or only Greenies, changing nothing", async () => {
+        const t = await fixtures.tournament();
+        const scored = await fixtures.tournamentPlayer(t);
+        const greenieOnly = await fixtures.tournamentPlayer(t);
+        const unscored = await fixtures.tournamentPlayer(t);
+        await score(scored.round.id);
+        await greenie(greenieOnly.round.id);
+        const next = await fixtures.course();
+
+        const error = await editTournament(t, {
+          courseId: next.course.id,
+          teeId: next.tee.id,
+        }).catch((e: unknown) => e);
+
+        expect(error).toBeInstanceOf(lifecycle.EventCourseLockedError);
+        const message = (error as Error).message;
+        expect(message).toContain(`Player ${scored.user.lastName}`);
+        expect(message).toContain(`Player ${greenieOnly.user.lastName}`);
+        expect(message).not.toContain(unscored.user.lastName);
+        const [tournament] = await db
+          .select()
+          .from(schema.tournaments)
+          .where(eq(schema.tournaments.id, t.tournament.id));
+        expect(tournament.courseId).toBe(t.course.id);
+        for (const p of [scored, greenieOnly, unscored]) {
+          expect(await roundRow(p.round.id)).toMatchObject({
+            courseId: t.course.id,
+            teeId: t.tee.id,
+          });
+        }
+      });
+
+      it("refuses a course change when the only Round has just Greenies", async () => {
+        const t = await fixtures.tournament();
+        const p = await fixtures.tournamentPlayer(t);
+        await greenie(p.round.id);
+        const next = await fixtures.course();
+
+        await expect(
+          editTournament(t, { courseId: next.course.id, teeId: next.tee.id }),
+        ).rejects.toThrow(`Player ${p.user.lastName} already has scores or Greenies`);
+      });
+
+      it("carries a date change to every Round, scored or not", async () => {
+        const t = await fixtures.tournament();
+        const scored = await fixtures.tournamentPlayer(t);
+        const unscored = await fixtures.tournamentPlayer(t);
+        await score(scored.round.id);
+        const date = new Date("2026-02-14T00:00:00.000Z");
+
+        const changed = await editTournament(t, { date });
+
+        expect(changed.map((r) => r.id).sort()).toEqual(
+          [scored.round.id, unscored.round.id].sort(),
+        );
+        for (const p of [scored, unscored]) {
+          expect(await roundRow(p.round.id)).toMatchObject({
+            date,
+            courseId: t.course.id,
+          });
+        }
+      });
+
+      it("moves unscored Rounds on the old Tournament tee and leaves player-chosen and scored tees", async () => {
+        const t = await fixtures.tournament();
+        const onEventTee = await fixtures.tournamentPlayer(t);
+        const chosen = await fixtures.tournamentPlayer(t);
+        const scored = await fixtures.tournamentPlayer(t);
+        await score(scored.round.id);
+        const red = await fixtures.tee(t.course.id, "Red");
+        await db
+          .update(schema.rounds)
+          .set({ teeId: red.id })
+          .where(eq(schema.rounds.id, chosen.round.id));
+        const white = await fixtures.tee(t.course.id);
+
+        const changed = await editTournament(t, { teeId: white.id });
+
+        expect(changed.map((r) => r.id)).toEqual([onEventTee.round.id]);
+        expect((await roundRow(onEventTee.round.id))?.teeId).toBe(white.id);
+        expect((await roundRow(chosen.round.id))?.teeId).toBe(red.id);
+        expect((await roundRow(scored.round.id))?.teeId).toBe(t.tee.id);
+      });
+
+      describe("Match", () => {
+        type MatchFixture = Awaited<ReturnType<typeof fixtures.match>>;
+
+        async function editMatch(
+          m: MatchFixture,
+          next: { courseId?: number; date?: Date },
+          teeId: number,
+          repairUserIds: string[] = [],
+        ) {
+          const previous = { courseId: m.match.courseId, date: m.match.date };
+          return db.transaction(async (tx) => {
+            await tx
+              .update(schema.matches)
+              .set(next)
+              .where(eq(schema.matches.id, m.match.id));
+            const synced = await lifecycle.syncEventRounds(
+              tx,
+              { matchId: m.match.id, teeId },
+              previous,
+            );
+            const repaired = await lifecycle.insertEventRounds(
+              tx,
+              { matchId: m.match.id, teeId },
+              repairUserIds,
+            );
+            return { synced, repaired };
+          });
+        }
+
+        it("moves unscored Rounds to the new course and the submitted tee, and repairs on the same course", async () => {
+          const m = await fixtures.match(3);
+          const next = await fixtures.course();
+          const fourth = await fixtures.user();
+
+          const { synced, repaired } = await editMatch(
+            m,
+            { courseId: next.course.id },
+            next.tee.id,
+            [fourth.id],
+          );
+
+          expect(synced).toHaveLength(3);
+          expect(repaired).toHaveLength(1);
+          const matchRounds = await db
+            .select()
+            .from(schema.rounds)
+            .where(eq(schema.rounds.matchId, m.match.id));
+          expect(matchRounds).toHaveLength(4);
+          for (const round of matchRounds) {
+            expect(round).toMatchObject({
+              courseId: next.course.id,
+              teeId: next.tee.id,
+            });
+          }
+        });
+
+        it("refuses a course change once any Round has scores", async () => {
+          const m = await fixtures.match(2);
+          await score(m.players[0].round.id);
+          const next = await fixtures.course();
+
+          await expect(
+            editMatch(m, { courseId: next.course.id }, next.tee.id),
+          ).rejects.toThrow(lifecycle.EventCourseLockedError);
+          const [match] = await db
+            .select()
+            .from(schema.matches)
+            .where(eq(schema.matches.id, m.match.id));
+          expect(match.courseId).toBe(m.match.courseId);
+          for (const p of m.players) {
+            expect((await roundRow(p.round.id))?.courseId).toBe(
+              m.match.courseId,
+            );
+          }
+        });
+
+        it("carries a date change to every Round, scored or not, keeping tees", async () => {
+          const m = await fixtures.match(2);
+          await score(m.players[0].round.id);
+          const other = await fixtures.tee(m.match.courseId);
+          const date = new Date("2026-03-01T00:00:00.000Z");
+
+          const { synced } = await editMatch(m, { date }, other.id);
+
+          expect(synced).toHaveLength(2);
+          for (const p of m.players) {
+            expect(await roundRow(p.round.id)).toMatchObject({
+              date,
+              teeId: p.round.teeId,
+            });
+          }
+        });
       });
     });
   });

@@ -14,10 +14,10 @@ import { cn } from "@/lib/utils";
 import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
 import {
   type ScoreEntry,
-  buildInitialScores,
-  buildLiveRound,
+  buildScoreBase,
   isRoundComplete,
-} from "./round-score-state";
+  projectLiveRounds,
+} from "./live-round-projection";
 import { HoleScoreRow } from "./hole-score-row";
 import { ScoreEntrySheet, type ScorePatch } from "./score-entry-sheet";
 import { SettingsDialog, type SettingsTee } from "./settings-dialog";
@@ -102,18 +102,10 @@ export function RoundScoresForm({
     fallback: string,
   ) =>
     [player.firstName, player.lastName].filter(Boolean).join(" ") || fallback;
-  // All scorable Rounds stay in the snapshot even while deselected. Selection
-  // then only controls visible columns; it cannot interrupt refresh
-  // reconciliation.
-  const baseScoresByRoundId = useMemo(() => {
-    const map: Record<number, ScoreEntry[]> = {
-      [roundId]: buildInitialScores(serverRound.scores, holes),
-    };
-    for (const player of scorableRounds) {
-      map[player.roundId] = buildInitialScores(player.scores, holes);
-    }
-    return map;
-  }, [roundId, serverRound.scores, holes, scorableRounds]);
+  const baseScoresByRoundId = useMemo(
+    () => buildScoreBase(serverRound, scorableRounds, holes),
+    [serverRound, scorableRounds, holes],
+  );
   const baseGreeniesByRoundId = useMemo(() => {
     const map: Record<number, GreenieEntry[]> = {
       [roundId]: serverRound.greenies ?? [],
@@ -135,13 +127,19 @@ export function RoundScoresForm({
     baseScoresByRoundId,
     baseGreeniesByRoundId,
   );
-  // This Round is always in the base map, so the merge always returns it — and
-  // a stable identity here is what keeps the live Round below from rebuilding.
+  // This Round is always in the base map, so the merge always returns it.
   const scores = scoresByRoundId[roundId];
-  const round = useMemo(
-    () => buildLiveRound(serverRound, scores),
-    [serverRound, scores],
+  const live = useMemo(
+    () =>
+      projectLiveRounds({
+        round: serverRound,
+        leaderboardRounds,
+        matchScoreboard,
+        scoresByRoundId,
+      }),
+    [serverRound, leaderboardRounds, matchScoreboard, scoresByRoundId],
   );
+  const round = live.round;
   const selfName = round.firstName ?? "You";
 
   const [activeCell, setActiveCell] = useState<{
@@ -191,33 +189,6 @@ export function RoundScoresForm({
     }
   };
 
-  const liveMatchScoreboard = useMemo(() => {
-    if (!matchScoreboard) return null;
-    const rounds = matchScoreboard.rounds.map((scoreboardRound) => {
-      if (scoreboardRound.id === round.id) {
-        return round;
-      }
-      const delegateScores = scoresByRoundId[scoreboardRound.id];
-      if (delegateScores) {
-        return applyScoreEntriesToRound(scoreboardRound, delegateScores);
-      }
-      return scoreboardRound;
-    });
-    const roundsById = new Map(
-      rounds.map((scoreboardRound) => [scoreboardRound.id, scoreboardRound]),
-    );
-
-    return {
-      ...matchScoreboard,
-      rounds,
-      teams: matchScoreboard.teams.map((team) => ({
-        ...team,
-        rounds: team.rounds.map(
-          (teamRound) => roundsById.get(teamRound.id) ?? teamRound,
-        ),
-      })),
-    };
-  }, [scoresByRoundId, matchScoreboard, round]);
 
   const players = [
     {
@@ -439,11 +410,11 @@ export function RoundScoresForm({
             ) : null}
             {round.tournamentId != null ? (
               <TournamentLeaderboardDialog
-                currentRound={round}
-                leaderboardRounds={leaderboardRounds}
+                currentRoundId={round.id}
+                rounds={live.leaderboardRounds}
               />
             ) : round.matchId != null ? (
-              <MatchScoreboardDialog scoreboard={liveMatchScoreboard} />
+              <MatchScoreboardDialog scoreboard={live.matchScoreboard} />
             ) : null}
           </>
         )}
@@ -574,32 +545,4 @@ function toInitials(name: string) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
-}
-
-function applyScoreEntriesToRound(
-  round: RoundScoresTableRound,
-  scores: ScoreEntry[],
-): RoundScoresTableRound {
-  const recordedScores = scores.filter((score) => score.strokes != null);
-  const recordedPutts = scores.filter((score) => score.putts != null);
-
-  return {
-    ...round,
-    recordedStrokesCount: recordedScores.length,
-    recordedPuttsCount: recordedPutts.length,
-    totalStrokes: recordedScores.reduce(
-      (total, score) => total + (score.strokes ?? 0),
-      0,
-    ),
-    totalPutts: recordedPutts.reduce(
-      (total, score) => total + (score.putts ?? 0),
-      0,
-    ),
-    scores: scores.map((score) => ({
-      hole: score.hole,
-      par: score.par,
-      strokes: score.strokes,
-      putts: score.putts,
-    })),
-  };
 }

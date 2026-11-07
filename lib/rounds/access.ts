@@ -23,6 +23,21 @@ export type AccessedRound = {
 
 type Viewer = { id: string; isAdmin: boolean };
 
+export type RoundManageFailure =
+  | { ok: false; reason: "not_found"; error: string }
+  | { ok: false; reason: "cannot_manage"; error: string };
+
+export const ROUND_NOT_FOUND = {
+  ok: false,
+  reason: "not_found",
+  error: "Round not found.",
+} as const;
+export const CANNOT_MANAGE_ROUND = {
+  ok: false,
+  reason: "cannot_manage",
+  error: "You can't change this Round's settings.",
+} as const;
+
 export type RoundAccess = {
   round: AccessedRound;
   /** May enter the Round's per-hole scores and Greenies (a Scorer). */

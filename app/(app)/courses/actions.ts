@@ -14,6 +14,7 @@ import {
 import { getCurrentUser } from "@/lib/users/queries";
 import { safeDeleteBlob } from "@/lib/images/blob";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
+import { pgCode } from "@/lib/pg-errors";
 import {
   DEFAULT_COURSE_SCORECARD_MODEL,
   parseScorecardImage,
@@ -71,13 +72,6 @@ function yardageRows(teeId: number, yardages: TeeFormValues["yardages"]) {
     }
   });
   return rows;
-}
-
-function pgCode(e: unknown): string | undefined {
-  return (
-    (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-    (e as { code?: string })?.code
-  );
 }
 
 function toActionResult(result: ImportOutcome): CourseScorecardImportResult {

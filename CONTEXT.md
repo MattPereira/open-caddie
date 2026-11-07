@@ -7,6 +7,9 @@ Open Caddie records golf courses, rounds, matches, tournaments, and club standin
 **Tournament**:
 A Club-owned competition belonging to exactly one Season, whose Rounds feed that Season's standings and its players' Player Indexes.
 
+**Round**:
+One player's play of one course on one date, casual or within an event (a Tournament or a Match). A Round's course and date follow its event; its tee starts as the event's and is the player's to change. An event's course cannot change once any Round has scores or Greenies.
+
 **Season**:
 A numbered, Club-owned collection of Tournaments whose results contribute to one standings table. Numbers begin at 1 and have no calendar meaning; every Tournament belongs to exactly one Season.
 _Avoid_: Tournament group, date range

@@ -24,3 +24,5 @@ export const db =
         connection: process.env.DATABASE_URL,
         ws,
       });
+
+export type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];

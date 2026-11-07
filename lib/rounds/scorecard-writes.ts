@@ -1,16 +1,16 @@
-import { revalidatePath } from "next/cache";
 import { and, eq, inArray } from "drizzle-orm";
 
-import { db } from "@/db";
+import { db, type Transaction } from "@/db";
+import { courseHoles, greenies, roundScores, rounds } from "@/db/schema";
+import { isTeeForCourse } from "@/lib/courses/tees";
 import {
-  courseHoles,
-  courseTees,
-  greenies,
-  roundScores,
-  rounds,
-} from "@/db/schema";
-import { invalidateHomeEventsCache } from "@/lib/home/cache";
-import { readRoundAccess, type AccessedRound } from "./access";
+  CANNOT_MANAGE_ROUND as CANNOT_MANAGE,
+  ROUND_NOT_FOUND as NOT_FOUND,
+  readRoundAccess,
+  type AccessedRound,
+  type RoundManageFailure,
+} from "./access";
+import { invalidateRoundChanged } from "./lifecycle";
 
 // The one write path for a Round's scorecard and settings. Not a
 // "use server" module: it takes the session user id, so exposing it as an
@@ -53,10 +53,6 @@ export type RoundSettingsChange = {
   playerIndexOverride?: number | null;
 };
 
-export type RoundManageFailure =
-  | { ok: false; reason: "not_found"; error: string }
-  | { ok: false; reason: "cannot_manage"; error: string };
-
 export type RoundSettingsFailure =
   | RoundManageFailure
   | { ok: false; reason: "tee_not_on_course"; error: string }
@@ -64,18 +60,7 @@ export type RoundSettingsFailure =
   | { ok: false; reason: "override_out_of_range"; error: string };
 
 export type RoundSettingsResult = { ok: true } | RoundSettingsFailure;
-export type DeleteRoundResult = { ok: true } | RoundManageFailure;
 
-const NOT_FOUND = {
-  ok: false,
-  reason: "not_found",
-  error: "Round not found.",
-} as const;
-const CANNOT_MANAGE = {
-  ok: false,
-  reason: "cannot_manage",
-  error: "You can't change this Round's settings.",
-} as const;
 const TEE_NOT_ON_COURSE = {
   ok: false,
   reason: "tee_not_on_course",
@@ -139,22 +124,36 @@ export async function recordScorecardChanges(
   if (!scores.every(isScoreInRange)) return SCORE_OUT_OF_RANGE;
   if (!greenieChanges.every(isGreenieInRange)) return GREENIE_OUT_OF_RANGE;
 
-  const roundsById = new Map(touchedRounds.map((round) => [round.id, round]));
-  const parThreesByCourse = await readParThreeHoles(
-    greenieChanges
-      .filter((change) => change.distance != null)
-      .map((change) => roundsById.get(change.roundId)!.courseId),
-  );
-  const offParThree = greenieChanges.some(
-    (change) =>
-      change.distance != null &&
-      !parThreesByCourse
-        .get(roundsById.get(change.roundId)!.courseId)
-        ?.has(change.hole),
-  );
-  if (offParThree) return GREENIE_NOT_PAR_THREE;
+  const written = await db.transaction(async (tx) => {
+    // A course move locks its Rounds FOR UPDATE (syncEventRounds), so FOR
+    // SHARE waits out one in progress and holds off the next until this
+    // commits; the par 3 check below is against the course scores land on.
+    const locked = await tx
+      .select({ id: rounds.id, courseId: rounds.courseId })
+      .from(rounds)
+      .where(inArray(rounds.id, roundIds))
+      .orderBy(rounds.id)
+      .for("share");
+    if (locked.length !== roundIds.length) return NOT_FOUND;
+    const courseIdByRound = new Map(
+      locked.map((round) => [round.id, round.courseId]),
+    );
 
-  await db.transaction(async (tx) => {
+    const parThreesByCourse = await readParThreeHoles(
+      tx,
+      greenieChanges
+        .filter((change) => change.distance != null)
+        .map((change) => courseIdByRound.get(change.roundId)!),
+    );
+    const offParThree = greenieChanges.some(
+      (change) =>
+        change.distance != null &&
+        !parThreesByCourse
+          .get(courseIdByRound.get(change.roundId)!)
+          ?.has(change.hole),
+    );
+    if (offParThree) return GREENIE_NOT_PAR_THREE;
+
     for (const change of scores) {
       const set: { strokes?: number | null; putts?: number | null } = {};
       if (change.strokes !== undefined) set.strokes = change.strokes;
@@ -206,7 +205,9 @@ export async function recordScorecardChanges(
           set: change.distance,
         });
     }
+    return { ok: true } as const;
   });
+  if (!written.ok) return written;
 
   invalidateRoundChanged(touchedRounds);
   return { ok: true };
@@ -232,20 +233,6 @@ export async function changeRoundSettings(
     if (!isPlayerIndex(override)) return OVERRIDE_OUT_OF_RANGE;
   }
 
-  if (change.teeId !== undefined) {
-    const [tee] = await db
-      .select({ id: courseTees.id })
-      .from(courseTees)
-      .where(
-        and(
-          eq(courseTees.id, change.teeId),
-          eq(courseTees.courseId, round.courseId),
-        ),
-      )
-      .limit(1);
-    if (!tee) return TEE_NOT_ON_COURSE;
-  }
-
   const set: { teeId?: number; playerIndexOverride?: string | null } = {};
   if (change.teeId !== undefined) set.teeId = change.teeId;
   if (override !== undefined) {
@@ -253,30 +240,25 @@ export async function changeRoundSettings(
   }
   if (Object.keys(set).length === 0) return { ok: true };
 
-  await db.update(rounds).set(set).where(eq(rounds.id, roundId));
-  invalidateRoundChanged([round]);
-  return { ok: true };
-}
+  const written = await db.transaction(async (tx) => {
+    // Locked so a course move can't land between the tee check and the write.
+    const [locked] = await tx
+      .select({ courseId: rounds.courseId })
+      .from(rounds)
+      .where(eq(rounds.id, roundId))
+      .for("no key update");
+    if (!locked) return NOT_FOUND;
+    if (
+      change.teeId !== undefined &&
+      !(await isTeeForCourse(change.teeId, locked.courseId, tx))
+    ) {
+      return TEE_NOT_ON_COURSE;
+    }
+    await tx.update(rounds).set(set).where(eq(rounds.id, roundId));
+    return { ok: true } as const;
+  });
+  if (!written.ok) return written;
 
-export async function deleteRound(
-  userId: string,
-  roundId: number,
-): Promise<DeleteRoundResult> {
-  const access = await readRoundAccess(userId, roundId);
-  if (!access?.canScore) return NOT_FOUND;
-  if (!access.canManage) return CANNOT_MANAGE;
-
-  const deleted = await db
-    .delete(rounds)
-    .where(eq(rounds.id, roundId))
-    .returning({ id: rounds.id });
-  if (deleted.length === 0) return NOT_FOUND;
-
-  const { round } = access;
-  // Event Rounds appear in the home page's event list (ADR 0005).
-  if (round.tournamentId != null || round.matchId != null) {
-    invalidateHomeEventsCache();
-  }
   invalidateRoundChanged([round]);
   return { ok: true };
 }
@@ -313,12 +295,12 @@ function isGreenieInRange(change: GreenieChange) {
   );
 }
 
-async function readParThreeHoles(courseIds: number[]) {
+async function readParThreeHoles(tx: Transaction, courseIds: number[]) {
   const byCourse = new Map<number, Set<number>>();
   const unique = [...new Set(courseIds)];
   if (unique.length === 0) return byCourse;
 
-  const rows = await db
+  const rows = await tx
     .select({ courseId: courseHoles.courseId, hole: courseHoles.hole })
     .from(courseHoles)
     .where(and(inArray(courseHoles.courseId, unique), eq(courseHoles.par, 3)));
@@ -328,24 +310,4 @@ async function readParThreeHoles(courseIds: number[]) {
     byCourse.set(row.courseId, holes);
   }
   return byCourse;
-}
-
-// The fixed "Round changed" page set. The home events cache is left to Round
-// creation and deletion: the home page shows no scores, and invalidating it on
-// every hole entry would wake the database for anonymous traffic (ADR 0005).
-function invalidateRoundChanged(changed: AccessedRound[]) {
-  const paths = new Set<string>();
-  for (const round of changed) {
-    paths.add(`/players/${round.userId}`);
-    paths.add(`/rounds/${round.id}`);
-    if (round.tournamentId != null) {
-      paths.add(`/tournaments/${round.tournamentId}`);
-    }
-    if (round.matchId != null) paths.add(`/matches/${round.matchId}`);
-  }
-
-  revalidatePath("/");
-  revalidatePath("/records");
-  revalidatePath("/clubs/[handle]", "page");
-  for (const path of paths) revalidatePath(path);
 }

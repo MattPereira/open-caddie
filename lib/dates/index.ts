@@ -28,3 +28,8 @@ export function fromIsoDate(value: string): Date | undefined {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined;
   return new Date(`${value}T00:00:00.000Z`);
 }
+
+/** A validated yyyy-mm-dd string as midnight UTC. */
+export function parseDateOnly(value: string): Date {
+  return new Date(`${value}T00:00:00.000Z`);
+}

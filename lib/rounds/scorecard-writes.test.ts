@@ -1,9 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("next/cache", () => ({
+// Hoisted so the test and the modules share one pair of mocks: the factory
+// can run more than once when the dynamic imports below race.
+const { revalidatePath, updateTag } = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
   updateTag: vi.fn(),
 }));
+vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 
@@ -18,19 +21,16 @@ if (!testDatabaseUrl) {
     const [
       { db },
       schema,
-      { recordScorecardChanges, changeRoundSettings, deleteRound },
+      { recordScorecardChanges, changeRoundSettings },
       { createRoundFixtures, PAR_THREE_HOLES },
-      { revalidatePath, updateTag },
     ] = await Promise.all([
       import("@/db"),
       import("@/db/schema"),
       import("./scorecard-writes"),
       import("./test-fixtures"),
-      import("next/cache"),
     ]);
     const { readScorecardsByRounds } = await import("./scorecards");
     const { eq } = await import("drizzle-orm");
-    const { readRoundAccess } = await import("./access");
     const fixtures = createRoundFixtures(db, schema);
 
     const PAR_THREE = PAR_THREE_HOLES[0];
@@ -440,51 +440,6 @@ if (!testDatabaseUrl) {
           ]),
         );
         expect(updateTag).not.toHaveBeenCalled();
-      });
-    });
-
-    describe("delete Round", () => {
-      it("lets the Round's player delete it, refreshing the home events cache", async () => {
-        const { match, players } = await fixtures.match(2);
-        const [a] = players;
-
-        expect(await deleteRound(a.user.id, a.round.id)).toEqual({ ok: true });
-
-        expect(await readRoundAccess(a.user.id, a.round.id)).toBeNull();
-        expect(updateTag).toHaveBeenCalledWith("home-events");
-        expect(invalidatedPaths()).toEqual(
-          sortedPaths([
-            ["/"],
-            ["/records"],
-            ["/clubs/[handle]", "page"],
-            [`/players/${a.user.id}`],
-            [`/rounds/${a.round.id}`],
-            [`/matches/${match.id}`],
-          ]),
-        );
-      });
-
-      it("gives a Scorer who can't manage the Round a distinct error and keeps it", async () => {
-        const { players } = await fixtures.match(2);
-        const [a, b] = players;
-
-        expect(await deleteRound(b.user.id, a.round.id)).toMatchObject({
-          ok: false,
-          error: CANNOT_MANAGE,
-        });
-        expect(await readRoundAccess(a.user.id, a.round.id)).not.toBeNull();
-        expect(revalidatePath).not.toHaveBeenCalled();
-      });
-
-      it("reports not found to someone who can't score the Round", async () => {
-        const t = await fixtures.tournament();
-        const player = await fixtures.tournamentPlayer(t);
-        const stranger = await fixtures.tournamentPlayer(t);
-
-        expect(
-          await deleteRound(stranger.user.id, player.round.id),
-        ).toMatchObject({ ok: false, error: "Round not found." });
-        expect(await readRoundAccess(player.user.id, player.round.id)).not.toBeNull();
       });
     });
   });

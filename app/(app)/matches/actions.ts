@@ -1,23 +1,33 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
 import {
-  courseTees,
-  courses,
   matches,
   matchTeamMembers,
   matchTeams,
   rounds,
   users,
 } from "@/db/schema";
+import { getCourseIdByHandle, isTeeForCourse } from "@/lib/courses/tees";
+import { parseDateOnly } from "@/lib/dates";
 import { getCurrentUser } from "@/lib/users/queries";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
+import { pgCode } from "@/lib/pg-errors";
+import {
+  deleteEventRounds,
+  EventCourseLockedError,
+  insertEventRounds,
+  invalidateRoundChanged,
+  invalidateRoundsAddedOrRemoved,
+  syncEventRounds,
+  type ChangedRound,
+} from "@/lib/rounds/lifecycle";
 import {
   importRoundScorecard,
   type UploadRoundScorecardState,
@@ -37,28 +47,6 @@ async function requireCurrentUser() {
     throw new Error("Forbidden");
   }
   return me;
-}
-
-async function getCourseIdByHandle(handle: string) {
-  const [course] = await db
-    .select({ id: courses.id })
-    .from(courses)
-    .where(eq(courses.handle, handle))
-    .limit(1);
-  return course?.id ?? null;
-}
-
-async function isTeeForCourse(teeId: number, courseId: number) {
-  const [row] = await db
-    .select({ id: courseTees.id })
-    .from(courseTees)
-    .where(and(eq(courseTees.id, teeId), eq(courseTees.courseId, courseId)))
-    .limit(1);
-  return row != null;
-}
-
-function parseDateOnly(value: string): Date {
-  return new Date(`${value}T00:00:00.000Z`);
 }
 
 async function canManageMatch(matchId: number, userId: string, isAdmin: boolean) {
@@ -108,7 +96,7 @@ export async function createMatch(
   }
 
   try {
-    const matchId = await db.transaction(async (tx) => {
+    const created = await db.transaction(async (tx) => {
       const [match] = await tx
         .insert(matches)
         .values({
@@ -119,20 +107,14 @@ export async function createMatch(
         })
         .returning({ id: matches.id });
 
-      const insertedRounds = await tx
-        .insert(rounds)
-        .values(
-          playerUserIds.map((userId) => ({
-            matchId: match.id,
-            userId,
-            courseId,
-            teeId,
-            date,
-          })),
-        )
-        .returning({ id: rounds.id, userId: rounds.userId });
+      const insertedRounds = await insertEventRounds(
+        tx,
+        { matchId: match.id, teeId },
+        playerUserIds,
+      );
+      const result = { matchId: match.id, insertedRounds };
 
-      if (format !== "four_ball_match_play") return match.id;
+      if (format !== "four_ball_match_play") return result;
 
       const roundIdByUserId = new Map(
         insertedRounds.map((round) => [round.userId, round.id]),
@@ -168,18 +150,14 @@ export async function createMatch(
         }),
       );
 
-      return match.id;
+      return result;
     });
 
-    invalidateHomeEventsCache();
-    revalidatePath("/");
+    invalidateRoundsAddedOrRemoved(created.insertedRounds);
     revalidatePath("/matches");
-    return { ok: true, id: matchId };
+    return { ok: true, id: created.matchId };
   } catch (e: unknown) {
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23503") {
+    if (pgCode(e) === "23503") {
       return { ok: false, error: "Selected user or course does not exist." };
     }
     throw e;
@@ -277,15 +255,37 @@ export async function updateMatch(
     }
   }
 
+  let insertedRounds: ChangedRound[] = [];
+  let syncedRounds: ChangedRound[] = [];
   try {
-    await db.transaction(async (tx) => {
+    const refused = await db.transaction(async (tx) => {
+      const [previous] = await tx
+        .select({ courseId: matches.courseId, date: matches.date })
+        .from(matches)
+        .where(eq(matches.id, parsed.data.id))
+        .for("update");
+      if (!previous) return "Match not found.";
+      // A course change moves the Rounds onto the submitted tee.
+      if (
+        previous.courseId !== courseId &&
+        !(await isTeeForCourse(teeId, courseId, tx))
+      ) {
+        return "Selected tee does not belong to this course.";
+      }
       await tx
       .update(matches)
       .set({ courseId, date, format })
       .where(eq(matches.id, parsed.data.id));
+      // Before the Four-Ball repair, so repaired Rounds share the existing
+      // Rounds' course.
+      syncedRounds = await syncEventRounds(
+        tx,
+        { matchId: parsed.data.id, teeId },
+        previous,
+      );
       await tx.delete(matchTeams).where(eq(matchTeams.matchId, parsed.data.id));
 
-      if (format !== "four_ball_match_play") return;
+      if (format !== "four_ball_match_play") return null;
 
       let teamRoundIds = [teamOneRoundIds, teamTwoRoundIds];
 
@@ -295,18 +295,11 @@ export async function updateMatch(
         );
 
         if (missingUserIds.length > 0) {
-          const insertedRounds = await tx
-            .insert(rounds)
-            .values(
-              missingUserIds.map((userId) => ({
-                matchId: parsed.data.id,
-                userId,
-                courseId,
-                teeId,
-                date,
-              })),
-            )
-            .returning({ id: rounds.id, userId: rounds.userId });
+          insertedRounds = await insertEventRounds(
+            tx,
+            { matchId: parsed.data.id, teeId },
+            missingUserIds,
+          );
 
           for (const round of insertedRounds) {
             roundIdByUserId.set(round.userId, round.id);
@@ -345,17 +338,22 @@ export async function updateMatch(
       );
 
       await tx.insert(matchTeamMembers).values(memberValues);
+      return null;
     });
+    if (refused) return { ok: false, error: refused };
   } catch (e: unknown) {
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23503") {
+    if (e instanceof EventCourseLockedError) {
+      return { ok: false, error: e.message };
+    }
+    if (pgCode(e) === "23503") {
       return { ok: false, error: "Selected course does not exist." };
     }
     throw e;
   }
 
+  const changedRounds = [...syncedRounds, ...insertedRounds];
+  if (changedRounds.length > 0) invalidateRoundChanged(changedRounds);
+  // The Match's own date, course and format show on the home page too.
   invalidateHomeEventsCache();
   revalidatePath("/matches");
   revalidatePath(`/matches/${parsed.data.id}`);
@@ -367,10 +365,13 @@ export async function deleteMatch(id: number): Promise<ActionResult> {
   const manage = await canManageMatch(id, me.id, me.isAdmin);
   if (!manage.ok) return manage;
 
-  await db.transaction(async (tx) => {
-    await tx.delete(rounds).where(eq(rounds.matchId, id));
+  const deletedRounds = await db.transaction(async (tx) => {
+    const deleted = await deleteEventRounds(tx, { matchId: id });
     await tx.delete(matches).where(eq(matches.id, id));
+    return deleted;
   });
+  invalidateRoundChanged(deletedRounds);
+  // The Match leaves the home page even when it has no Rounds left.
   invalidateHomeEventsCache();
   revalidatePath("/matches");
   return { ok: true };

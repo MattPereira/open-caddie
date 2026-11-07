@@ -1,9 +1,6 @@
-export type ResultsPlayer = {
-  userId: string;
-  firstName: string | null;
-  lastName: string | null;
-  username: string | null;
-};
+import { comparePlayers, type SortablePlayer } from "@/lib/players/player-name";
+
+type ResultsPlayer = SortablePlayer;
 
 export type StrokesResultRound = ResultsPlayer & {
   isComplete: boolean;
@@ -74,11 +71,7 @@ export function greenieWinners<T extends GreenieResult>(greenies: readonly T[]) 
   return Array.from(winnersByHole.values());
 }
 
-/**
- * Field Skins: complete Rounds only; a hole counts only when every complete
- * Round scored it; one stroke on holes whose handicap is within half the
- * Playing Handicap; a unique low net wins and ties are dead (no carry).
- */
+// Unlike Match Skins, tied holes are dead: nothing carries forward.
 export function fieldSkins<T extends FieldSkinsRound>(
   rounds: readonly T[],
 ): FieldSkin<T>[] {
@@ -114,15 +107,6 @@ export function fieldSkins<T extends FieldSkinsRound>(
   }
 
   return skins;
-}
-
-export function comparePlayers(a: ResultsPlayer, b: ResultsPlayer) {
-  return (
-    (a.lastName ?? "").localeCompare(b.lastName ?? "") ||
-    (a.firstName ?? "").localeCompare(b.firstName ?? "") ||
-    (a.username ?? "").localeCompare(b.username ?? "") ||
-    a.userId.localeCompare(b.userId)
-  );
 }
 
 function strokedHoleCount(playingHandicap: number) {

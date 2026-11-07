@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { comparePlayers } from "@/lib/players/player-name";
+
 import {
-  comparePlayers,
   fieldSkins,
   greenieWinners,
   rankPutts,
@@ -43,7 +44,7 @@ function round(
 
 const ids = (rounds: { userId: string }[]) => rounds.map((r) => r.userId);
 
-describe("comparePlayers", () => {
+describe("comparePlayers (Tournament ranking tiebreak)", () => {
   it("orders by last name, first name, username, then user id", () => {
     const players = [
       { userId: "4", lastName: "B", firstName: "A", username: "a" },

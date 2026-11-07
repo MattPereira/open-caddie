@@ -20,11 +20,8 @@ import {
   type RoundScoreForPoints,
 } from "@/lib/clubs/standings/points";
 import { assessHandicap } from "@/lib/handicap";
-import {
-  comparePlayers as compareResultsPlayers,
-  rankPutts,
-  rankStrokes,
-} from "@/lib/tournaments/results";
+import { comparePlayers } from "@/lib/players/player-name";
+import { rankPutts, rankStrokes } from "@/lib/tournaments/results";
 import {
   readGreeniesByRounds,
   readScoresByRounds,
@@ -432,16 +429,12 @@ function dedupeDifferentialRounds(roundsToDedupe: CompleteDifferentialRound[]) {
 function compareRoundPointStandings(a: StandingsRound, b: StandingsRound) {
   const pointsCompare = b.points.total - a.points.total;
   if (pointsCompare !== 0) return pointsCompare;
-  return compareUsers(a.user, b.user);
+  return comparePlayers(
+    { ...a.user, userId: a.userId },
+    { ...b.user, userId: b.userId },
+  );
 }
 
-function comparePlayers(a: { user: StandingUser }, b: { user: StandingUser }) {
-  return compareUsers(a.user, b.user);
-}
-
-function compareUsers(a: StandingUser, b: StandingUser) {
-  return compareResultsPlayers({ ...a, userId: a.id }, { ...b, userId: b.id });
-}
 
 function compareMostRecentDifferentialRounds(
   a: CompleteDifferentialRound,

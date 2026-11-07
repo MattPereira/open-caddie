@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { and, asc, count, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
+import { comparePlayers } from "@/lib/players/player-name";
 import {
   clubMembers,
   clubs,
@@ -288,6 +289,7 @@ export const getRoundsCountByTournamentId = cache(async (tournamentId: number) =
 
 function compareTournamentRoundStandings<
   T extends {
+    userId: string;
     firstName: string | null;
     lastName: string | null;
     username: string | null;
@@ -296,7 +298,7 @@ function compareTournamentRoundStandings<
   },
 >(a: T, b: T) {
   if (a.netStrokes == null && b.netStrokes == null) {
-    return compareTournamentRoundPlayers(a, b);
+    return comparePlayers(a, b);
   }
 
   if (a.netStrokes == null) return 1;
@@ -308,26 +310,7 @@ function compareTournamentRoundStandings<
   const grossCompare = a.totalStrokes - b.totalStrokes;
   if (grossCompare !== 0) return grossCompare;
 
-  return compareTournamentRoundPlayers(a, b);
-}
-
-function compareTournamentRoundPlayers(
-  a: {
-    firstName: string | null;
-    lastName: string | null;
-    username: string | null;
-  },
-  b: {
-    firstName: string | null;
-    lastName: string | null;
-    username: string | null;
-  },
-) {
-  return (
-    (a.lastName ?? "").localeCompare(b.lastName ?? "") ||
-    (a.firstName ?? "").localeCompare(b.firstName ?? "") ||
-    (a.username ?? "").localeCompare(b.username ?? "")
-  );
+  return comparePlayers(a, b);
 }
 
 // Every Tournament Round with the Pairing it belongs to, if any. Both Pairing

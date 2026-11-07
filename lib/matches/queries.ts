@@ -2,6 +2,7 @@ import { cache } from "react";
 import { asc, count, desc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
+import { comparePlayers } from "@/lib/players/player-name";
 import {
   courseHoles,
   courseTees,
@@ -239,6 +240,7 @@ export const getMatchById = cache(async (matchId: number) => {
 
 function compareMatchRoundStandings<
   T extends {
+    userId: string;
     firstName: string | null;
     lastName: string | null;
     username: string | null;
@@ -247,7 +249,7 @@ function compareMatchRoundStandings<
   },
 >(a: T, b: T) {
   if (a.netStrokes == null && b.netStrokes == null) {
-    return compareMatchRoundPlayers(a, b);
+    return comparePlayers(a, b);
   }
 
   if (a.netStrokes == null) return 1;
@@ -259,24 +261,5 @@ function compareMatchRoundStandings<
   const grossCompare = a.totalStrokes - b.totalStrokes;
   if (grossCompare !== 0) return grossCompare;
 
-  return compareMatchRoundPlayers(a, b);
-}
-
-function compareMatchRoundPlayers(
-  a: {
-    firstName: string | null;
-    lastName: string | null;
-    username: string | null;
-  },
-  b: {
-    firstName: string | null;
-    lastName: string | null;
-    username: string | null;
-  },
-) {
-  return (
-    (a.lastName ?? "").localeCompare(b.lastName ?? "") ||
-    (a.firstName ?? "").localeCompare(b.firstName ?? "") ||
-    (a.username ?? "").localeCompare(b.username ?? "")
-  );
+  return comparePlayers(a, b);
 }

@@ -189,7 +189,6 @@ export function RoundScoresForm({
     }
   };
 
-
   const players = [
     {
       roundId,

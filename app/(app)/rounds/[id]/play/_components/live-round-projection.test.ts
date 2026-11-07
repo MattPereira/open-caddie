@@ -94,7 +94,7 @@ describe("projectLiveRounds", () => {
     expect(liveMate?.recordedStrokesCount).toBe(1);
   });
 
-  it("shows a mate's edit in both Match rounds and the mate's team", () => {
+  it("shows a mate's edit in both Match Rounds and the mate's team", () => {
     const self = serverRound(1, empty());
     const mate = serverRound(2, empty());
     const base = buildScoreBase(self, [scorable(mate)], holes);

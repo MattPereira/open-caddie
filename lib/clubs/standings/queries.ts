@@ -21,6 +21,11 @@ import {
 } from "@/lib/clubs/standings/points";
 import { assessHandicap } from "@/lib/handicap";
 import {
+  comparePlayers as compareResultsPlayers,
+  rankPutts,
+  rankStrokes,
+} from "@/lib/tournaments/results";
+import {
   readGreeniesByRounds,
   readScoresByRounds,
 } from "@/lib/rounds/scorecards";
@@ -301,13 +306,11 @@ export const getSeasonStandings = cache(
         .filter((round) => round.tournamentId === tournament.id)
         .sort(comparePlayers);
       const strokePoints = assignPositionPoints(
-        tournamentRounds
-          .filter(isEligibleStrokesRound)
-          .sort(compareStrokesRounds),
+        rankStrokes(tournamentRounds),
         pointRules.strokes.positions,
       );
       const puttPoints = assignPositionPoints(
-        tournamentRounds.filter(isEligiblePuttsRound).sort(comparePuttsRounds),
+        rankPutts(tournamentRounds),
         pointRules.putts.positions,
       );
       const roundsWithPoints = tournamentRounds
@@ -426,67 +429,6 @@ function dedupeDifferentialRounds(roundsToDedupe: CompleteDifferentialRound[]) {
   return Array.from(roundsById.values());
 }
 
-function isEligibleStrokesRound(round: {
-  isComplete: boolean;
-  netStrokes: number | null;
-}) {
-  return round.isComplete && round.netStrokes != null;
-}
-
-function isEligiblePuttsRound(round: {
-  isComplete: boolean;
-  recordedPuttsCount: number;
-}) {
-  return round.isComplete && round.recordedPuttsCount >= 18;
-}
-
-function compareStrokesRounds(
-  a: {
-    netStrokes: number | null;
-    totalStrokes: number;
-    user: StandingUser;
-  },
-  b: {
-    netStrokes: number | null;
-    totalStrokes: number;
-    user: StandingUser;
-  },
-) {
-  const netCompare = compareNullableNumbers(a.netStrokes, b.netStrokes);
-  if (netCompare !== 0) return netCompare;
-
-  const grossCompare = a.totalStrokes - b.totalStrokes;
-  if (grossCompare !== 0) return grossCompare;
-
-  return compareUsers(a.user, b.user);
-}
-
-function comparePuttsRounds(
-  a: {
-    totalPutts: number;
-    totalStrokes: number;
-    netStrokes: number | null;
-    user: StandingUser;
-  },
-  b: {
-    totalPutts: number;
-    totalStrokes: number;
-    netStrokes: number | null;
-    user: StandingUser;
-  },
-) {
-  const puttsCompare = a.totalPutts - b.totalPutts;
-  if (puttsCompare !== 0) return puttsCompare;
-
-  const grossCompare = a.totalStrokes - b.totalStrokes;
-  if (grossCompare !== 0) return grossCompare;
-
-  const netCompare = compareNullableNumbers(a.netStrokes, b.netStrokes);
-  if (netCompare !== 0) return netCompare;
-
-  return compareUsers(a.user, b.user);
-}
-
 function compareRoundPointStandings(a: StandingsRound, b: StandingsRound) {
   const pointsCompare = b.points.total - a.points.total;
   if (pointsCompare !== 0) return pointsCompare;
@@ -498,19 +440,7 @@ function comparePlayers(a: { user: StandingUser }, b: { user: StandingUser }) {
 }
 
 function compareUsers(a: StandingUser, b: StandingUser) {
-  return (
-    (a.lastName ?? "").localeCompare(b.lastName ?? "") ||
-    (a.firstName ?? "").localeCompare(b.firstName ?? "") ||
-    (a.username ?? "").localeCompare(b.username ?? "") ||
-    a.id.localeCompare(b.id)
-  );
-}
-
-function compareNullableNumbers(a: number | null, b: number | null) {
-  if (a == null && b == null) return 0;
-  if (a == null) return 1;
-  if (b == null) return -1;
-  return a - b;
+  return compareResultsPlayers({ ...a, userId: a.id }, { ...b, userId: b.id });
 }
 
 function compareMostRecentDifferentialRounds(

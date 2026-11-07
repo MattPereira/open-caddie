@@ -64,8 +64,18 @@ _Avoid_: tournament handicap (a legacy field name for the computed Course Handic
 A per-hole game in which the unique lowest net team score wins the hole. Singles and Three-Ball use 100% relative Playing Handicaps; Four-Ball uses 90% relative Playing Handicaps.
 
 **Greenie**:
-A closest-to-the-pin result on a par 3, recorded as the distance from the hole.
+A closest-to-the-pin result on a par 3, recorded as the distance from the hole. Each recorded Greenie earns standings points by distance tier, whether or not it is the closest on its hole.
 _Avoid_: Closie, CTP
 
 **Skins**:
-A per-hole game using relative Playing Handicaps. A unique low net score wins the hole; tied completed holes carry their skins forward until a later unique low net score wins them.
+A per-hole game using relative Playing Handicaps. A unique low net score wins the hole; tied completed holes carry their skins forward until a later unique low net score wins them. Played in Matches.
+_Avoid_: tournament skins
+
+## Tournament results
+
+**Field Skins**:
+A Tournament's per-hole game across its complete Rounds. Each player gets one stroke on holes whose handicap is at most half their Playing Handicap, rounded down. A unique low net score wins the hole; ties are dead, with no carry-over. A hole any complete Round did not score is not played. Field Skins earn no standings points.
+_Avoid_: Skins, tournament skins
+
+**Tournament ranking**:
+Strokes rank complete Rounds by net, then gross. Putts rank complete Rounds with all 18 putts recorded by putts, then net, then gross. Remaining ties break by player last name, first name, username. Standings position points follow this order exactly; tied Rounds do not share points.

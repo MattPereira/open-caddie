@@ -2,13 +2,17 @@ import { displayName, getInitials } from "@/lib/players/player-name";
 import { GreenieCard } from "@/components/domain/greenie-card";
 import { WinnerCard } from "@/components/domain/winner-card";
 import { TabsContent } from "@/components/ui/tabs";
+import {
+  fieldSkins,
+  greenieWinners,
+  rankPutts,
+  rankStrokes,
+} from "@/lib/tournaments/results";
 import type { getTournamentById } from "@/lib/tournaments/queries";
 
 type Tournament = NonNullable<Awaited<ReturnType<typeof getTournamentById>>>;
 type TournamentRound = Tournament["rounds"][number];
-type TournamentGreenie = Tournament["greenies"][number];
 type WinnerMetric = "strokes" | "putts";
-type TournamentRoundScore = TournamentRound["scores"][number];
 
 type WinnerRow = {
   key: string;
@@ -34,22 +38,16 @@ export function WinnersTabContent({
   greenies: Tournament["greenies"];
 }) {
   const strokesWinners = toWinnerRows(
-    rounds
-      .filter(isEligibleStrokesRound)
-      .sort(compareStrokesWinners)
-      .slice(0, 3),
+    rankStrokes(rounds).slice(0, 3),
     "strokes",
   );
-  const puttsWinners = toWinnerRows(
-    rounds.filter(isEligiblePuttsRound).sort(comparePuttsWinners).slice(0, 3),
-    "putts",
-  );
-  const greenieWinners = getGreenieWinners(greenies);
+  const puttsWinners = toWinnerRows(rankPutts(rounds).slice(0, 3), "putts");
+  const greenieRows = greenieWinners(greenies);
   const skinWinners = toSkinWinnerRows(rounds);
   const hasWinners =
     strokesWinners.length > 0 ||
     puttsWinners.length > 0 ||
-    greenieWinners.length > 0 ||
+    greenieRows.length > 0 ||
     skinWinners.length > 0;
 
   if (!hasWinners) {
@@ -93,7 +91,7 @@ export function WinnersTabContent({
           empty="No greenies recorded yet."
           gridClassName="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3"
         >
-          {greenieWinners.map((greenie) => (
+          {greenieRows.map((greenie) => (
             <GreenieCard
               key={`greenie-${greenie.roundId}-${greenie.hole}`}
               greenie={greenie}
@@ -218,165 +216,17 @@ function toWinnerRows(
   });
 }
 
-function getGreenieWinners(greenies: TournamentGreenie[]) {
-  const winnersByHole = new Map<number, TournamentGreenie>();
-
-  for (const greenie of [...greenies].sort(compareGreenies)) {
-    if (!winnersByHole.has(greenie.hole)) {
-      winnersByHole.set(greenie.hole, greenie);
-    }
-  }
-
-  return Array.from(winnersByHole.values());
-}
-
 function toSkinWinnerRows(rounds: TournamentRound[]): SkinWinnerRow[] {
-  const completeRounds = rounds.filter(isEligibleSkinsRound);
-  const winners: SkinWinnerRow[] = [];
-
-  for (let hole = 1; hole <= 18; hole++) {
-    const scores = completeRounds.flatMap((round) => {
-      const score = round.scores.find((roundScore) => roundScore.hole === hole);
-
-      if (!isEligibleSkinsScore(score)) {
-        return [];
-      }
-
-      const adjustedStrokes = getAdjustedSkinsStrokes({
-        strokes: score.strokes,
-        holeHandicap: score.handicap,
-        playingHandicap: round.playingHandicap,
-      });
-
-      return [
-        {
-          round,
-          rawStrokes: score.strokes,
-          adjustedStrokes,
-        },
-      ];
-    });
-
-    if (scores.length !== completeRounds.length) {
-      continue;
-    }
-
-    const lowestScore = Math.min(
-      ...scores.map((score) => score.adjustedStrokes),
-    );
-    const lowScores = scores.filter(
-      (score) => score.adjustedStrokes === lowestScore,
-    );
-
-    if (lowScores.length !== 1) {
-      continue;
-    }
-
-    const [winner] = lowScores;
-    const playerName = displayName({ ...winner.round, email: null });
-
-    winners.push({
-      key: `skin-${winner.round.id}-${hole}`,
-      hole,
-      playerName,
-      initials: getInitials({ ...winner.round, email: null }),
-      image: winner.round.image,
-      primaryLabel: "Score",
-      primaryValue: winner.adjustedStrokes.toString(),
-      primaryValueAdjusted: winner.rawStrokes !== winner.adjustedStrokes,
-    });
-  }
-
-  return winners;
-}
-
-function isEligibleStrokesRound(round: TournamentRound) {
-  return round.isComplete && round.netStrokes != null;
-}
-
-function isEligiblePuttsRound(round: TournamentRound) {
-  return round.isComplete && round.recordedPuttsCount >= 18;
-}
-
-function isEligibleSkinsRound(round: TournamentRound) {
-  return round.isComplete;
-}
-
-function isEligibleSkinsScore(
-  score: TournamentRoundScore | undefined,
-): score is TournamentRoundScore & {
-  handicap: number;
-  strokes: number;
-} {
-  return score?.strokes != null && score.handicap != null;
-}
-
-function getAdjustedSkinsStrokes({
-  strokes,
-  holeHandicap,
-  playingHandicap,
-}: {
-  strokes: number;
-  holeHandicap: number;
-  playingHandicap: number;
-}) {
-  const strokedHoleCount = Math.min(
-    18,
-    Math.max(0, Math.floor(playingHandicap / 2)),
-  );
-
-  return holeHandicap <= strokedHoleCount ? strokes - 1 : strokes;
-}
-
-function compareStrokesWinners(a: TournamentRound, b: TournamentRound) {
-  const netCompare = compareNullableNumbers(a.netStrokes, b.netStrokes);
-  if (netCompare !== 0) return netCompare;
-
-  const grossCompare = a.totalStrokes - b.totalStrokes;
-  if (grossCompare !== 0) return grossCompare;
-
-  return comparePlayers(a, b);
-}
-
-function comparePuttsWinners(a: TournamentRound, b: TournamentRound) {
-  const puttsCompare = a.totalPutts - b.totalPutts;
-  if (puttsCompare !== 0) return puttsCompare;
-
-  const netCompare = compareNullableNumbers(a.netStrokes, b.netStrokes);
-  if (netCompare !== 0) return netCompare;
-
-  const handicapCompare = b.playingHandicap - a.playingHandicap;
-  if (handicapCompare !== 0) return handicapCompare;
-
-  return comparePlayers(a, b);
-}
-
-function compareGreenies(a: TournamentGreenie, b: TournamentGreenie) {
-  const holeCompare = a.hole - b.hole;
-  if (holeCompare !== 0) return holeCompare;
-
-  const feetCompare = a.feet - b.feet;
-  if (feetCompare !== 0) return feetCompare;
-
-  const inchesCompare = a.inches - b.inches;
-  if (inchesCompare !== 0) return inchesCompare;
-
-  return displayName({ ...a, email: null }).localeCompare(
-    displayName({ ...b, email: null }),
-  );
-}
-
-function compareNullableNumbers(a: number | null, b: number | null) {
-  if (a == null && b == null) return 0;
-  if (a == null) return 1;
-  if (b == null) return -1;
-  return a - b;
-}
-
-function comparePlayers(a: TournamentRound, b: TournamentRound) {
-  return displayName({ ...a, email: null }).localeCompare(
-    displayName({ ...b, email: null }),
-  );
+  return fieldSkins(rounds).map((skin) => ({
+    key: `skin-${skin.round.id}-${skin.hole}`,
+    hole: skin.hole,
+    playerName: displayName({ ...skin.round, email: null }),
+    initials: getInitials({ ...skin.round, email: null }),
+    image: skin.round.image,
+    primaryLabel: "Score",
+    primaryValue: skin.netStrokes.toString(),
+    primaryValueAdjusted: skin.strokes !== skin.netStrokes,
+  }));
 }
 
 function formatWholeScore(score: number | null) {

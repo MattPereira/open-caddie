@@ -25,3 +25,19 @@ export function getInitials(player: PlayerCardPlayer) {
   const fallback = (player.username ?? player.email ?? "?").trim();
   return fallback.slice(0, 2).toUpperCase();
 }
+
+export type SortablePlayer = {
+  userId: string;
+  firstName: string | null;
+  lastName: string | null;
+  username: string | null;
+};
+
+export function comparePlayers(a: SortablePlayer, b: SortablePlayer) {
+  return (
+    (a.lastName ?? "").localeCompare(b.lastName ?? "") ||
+    (a.firstName ?? "").localeCompare(b.firstName ?? "") ||
+    (a.username ?? "").localeCompare(b.username ?? "") ||
+    a.userId.localeCompare(b.userId)
+  );
+}

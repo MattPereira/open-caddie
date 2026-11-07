@@ -1,23 +1,24 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { auth } from "@/auth";
 import { db } from "@/db";
 import {
-  courseTees,
-  courses,
   matches,
   matchTeamMembers,
   matchTeams,
   rounds,
   users,
 } from "@/db/schema";
+import { getCourseIdByHandle, isTeeForCourse } from "@/lib/courses/tees";
+import { parseDateOnly } from "@/lib/dates";
 import { getCurrentUser } from "@/lib/users/queries";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
+import { pgCode } from "@/lib/pg-errors";
 import {
   deleteEventRounds,
   EventCourseLockedError,
@@ -46,28 +47,6 @@ async function requireCurrentUser() {
     throw new Error("Forbidden");
   }
   return me;
-}
-
-async function getCourseIdByHandle(handle: string) {
-  const [course] = await db
-    .select({ id: courses.id })
-    .from(courses)
-    .where(eq(courses.handle, handle))
-    .limit(1);
-  return course?.id ?? null;
-}
-
-async function isTeeForCourse(teeId: number, courseId: number) {
-  const [row] = await db
-    .select({ id: courseTees.id })
-    .from(courseTees)
-    .where(and(eq(courseTees.id, teeId), eq(courseTees.courseId, courseId)))
-    .limit(1);
-  return row != null;
-}
-
-function parseDateOnly(value: string): Date {
-  return new Date(`${value}T00:00:00.000Z`);
 }
 
 async function canManageMatch(matchId: number, userId: string, isAdmin: boolean) {
@@ -178,10 +157,7 @@ export async function createMatch(
     revalidatePath("/matches");
     return { ok: true, id: created.matchId };
   } catch (e: unknown) {
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23503") {
+    if (pgCode(e) === "23503") {
       return { ok: false, error: "Selected user or course does not exist." };
     }
     throw e;
@@ -215,16 +191,6 @@ export async function updateMatch(
 
   if (!courseId) {
     return { ok: false, error: "Selected course does not exist." };
-  }
-
-  const [current] = await db
-    .select({ courseId: matches.courseId })
-    .from(matches)
-    .where(eq(matches.id, parsed.data.id))
-    .limit(1);
-  // A course change moves the Rounds onto the submitted tee.
-  if (current?.courseId !== courseId && !(await isTeeForCourse(teeId, courseId))) {
-    return { ok: false, error: "Selected tee does not belong to this course." };
   }
 
   const matchRounds = await db
@@ -292,13 +258,20 @@ export async function updateMatch(
   let insertedRounds: ChangedRound[] = [];
   let syncedRounds: ChangedRound[] = [];
   try {
-    await db.transaction(async (tx) => {
+    const refused = await db.transaction(async (tx) => {
       const [previous] = await tx
         .select({ courseId: matches.courseId, date: matches.date })
         .from(matches)
         .where(eq(matches.id, parsed.data.id))
         .for("update");
-      if (!previous) throw new Error("Match not found.");
+      if (!previous) return "Match not found.";
+      // A course change moves the Rounds onto the submitted tee.
+      if (
+        previous.courseId !== courseId &&
+        !(await isTeeForCourse(teeId, courseId, tx))
+      ) {
+        return "Selected tee does not belong to this course.";
+      }
       await tx
       .update(matches)
       .set({ courseId, date, format })
@@ -312,7 +285,7 @@ export async function updateMatch(
       );
       await tx.delete(matchTeams).where(eq(matchTeams.matchId, parsed.data.id));
 
-      if (format !== "four_ball_match_play") return;
+      if (format !== "four_ball_match_play") return null;
 
       let teamRoundIds = [teamOneRoundIds, teamTwoRoundIds];
 
@@ -365,24 +338,22 @@ export async function updateMatch(
       );
 
       await tx.insert(matchTeamMembers).values(memberValues);
+      return null;
     });
+    if (refused) return { ok: false, error: refused };
   } catch (e: unknown) {
     if (e instanceof EventCourseLockedError) {
       return { ok: false, error: e.message };
     }
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23503") {
+    if (pgCode(e) === "23503") {
       return { ok: false, error: "Selected course does not exist." };
     }
     throw e;
   }
 
-  if (syncedRounds.length > 0) invalidateRoundChanged(syncedRounds);
-  if (insertedRounds.length > 0) {
-    invalidateRoundsAddedOrRemoved(insertedRounds);
-  }
+  const changedRounds = [...syncedRounds, ...insertedRounds];
+  if (changedRounds.length > 0) invalidateRoundChanged(changedRounds);
+  // The Match's own date, course and format show on the home page too.
   invalidateHomeEventsCache();
   revalidatePath("/matches");
   revalidatePath(`/matches/${parsed.data.id}`);
@@ -399,7 +370,8 @@ export async function deleteMatch(id: number): Promise<ActionResult> {
     await tx.delete(matches).where(eq(matches.id, id));
     return deleted;
   });
-  invalidateRoundsAddedOrRemoved(deletedRounds);
+  invalidateRoundChanged(deletedRounds);
+  // The Match leaves the home page even when it has no Rounds left.
   invalidateHomeEventsCache();
   revalidatePath("/matches");
   return { ok: true };

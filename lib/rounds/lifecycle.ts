@@ -1,10 +1,8 @@
 import { revalidatePath } from "next/cache";
-import { and, count, eq, exists, isNotNull, not, or, sql } from "drizzle-orm";
+import { and, eq, exists, isNotNull, not, or, sql } from "drizzle-orm";
 
-import { db } from "@/db";
+import { db, type Transaction } from "@/db";
 import {
-  courseTees,
-  courses,
   greenies,
   matches,
   roundScores,
@@ -12,17 +10,23 @@ import {
   tournaments,
   users,
 } from "@/db/schema";
+import { getCourseIdByHandle, isTeeForCourse } from "@/lib/courses/tees";
+import { parseDateOnly } from "@/lib/dates";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
+import { pgCode } from "@/lib/pg-errors";
 import { displayName } from "@/lib/players/player-name";
-import { readRoundAccess } from "./access";
+import {
+  CANNOT_MANAGE_ROUND,
+  ROUND_NOT_FOUND,
+  readRoundAccess,
+  type RoundManageFailure,
+} from "./access";
 
 // Owns whether a Round exists: every Round insert and delete goes through
 // here. Not a "use server" module: public operations take the session user id
 // (ADR 0003). The event helpers expect an already-authorized caller, take a
 // transaction, and return the Rounds they changed so the caller can refresh
 // after commit.
-
-export type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 /** A Round as the "Round changed" refresh needs it. */
 export type ChangedRound = {
@@ -47,21 +51,11 @@ export type CreateRoundResult =
   | { ok: true; roundId: number }
   | { ok: false; error: string };
 
-export type RoundManageFailure =
-  | { ok: false; reason: "not_found"; error: string }
-  | { ok: false; reason: "cannot_manage"; error: string };
-
 export type DeleteRoundResult = { ok: true } | RoundManageFailure;
 
-export const ROUND_NOT_FOUND = {
-  ok: false,
-  reason: "not_found",
-  error: "Round not found.",
-} as const;
-export const CANNOT_MANAGE_ROUND = {
-  ok: false,
-  reason: "cannot_manage",
-  error: "You can't change this Round's settings.",
+const CANNOT_DELETE_ROUND = {
+  ...CANNOT_MANAGE_ROUND,
+  error: "You can't delete this Round.",
 } as const;
 
 const changedRoundColumns = {
@@ -81,61 +75,50 @@ export async function createRound(
 ): Promise<CreateRoundResult> {
   const { courseHandle, date, tournamentId, teeId } = values;
 
-  let roundValues: typeof rounds.$inferInsert;
-  if (tournamentId != null) {
-    const event = await readEventRoundValues(db, { tournamentId });
-    if (!event) {
-      return { ok: false, error: "Tournament not found." };
-    }
-    roundValues = { ...event, userId };
-  } else {
-    const [course] = await db
-      .select({ id: courses.id })
-      .from(courses)
-      .where(eq(courses.handle, courseHandle))
-      .limit(1);
-    if (!course) {
+  let casualValues: typeof rounds.$inferInsert | null = null;
+  if (tournamentId == null) {
+    const courseId = await getCourseIdByHandle(courseHandle);
+    if (!courseId) {
       return { ok: false, error: "Course not found." };
     }
     if (teeId == null) {
       return { ok: false, error: "Tees are required." };
     }
-    const [tee] = await db
-      .select({ id: courseTees.id })
-      .from(courseTees)
-      .where(and(eq(courseTees.id, teeId), eq(courseTees.courseId, course.id)))
-      .limit(1);
-    if (!tee) {
+    if (!(await isTeeForCourse(teeId, courseId))) {
       return {
         ok: false,
         error: "Selected tees do not belong to this course.",
       };
     }
-    roundValues = {
-      userId,
-      courseId: course.id,
-      teeId,
-      date: new Date(`${date}T00:00:00.000Z`),
-    };
+    casualValues = { userId, courseId, teeId, date: parseDateOnly(date) };
   }
 
-  let created: ChangedRound;
+  let created: ChangedRound | null;
   try {
-    [created] = await db
-      .insert(rounds)
-      .values(roundValues)
-      .returning(changedRoundColumns);
+    created = await db.transaction(async (tx) => {
+      let roundValues = casualValues;
+      if (tournamentId != null) {
+        const event = await readEventRoundValues(tx, { tournamentId });
+        if (!event) return null;
+        roundValues = { ...event, userId };
+      }
+      const [row] = await tx
+        .insert(rounds)
+        .values(roundValues!)
+        .returning(changedRoundColumns);
+      return row;
+    });
   } catch (e: unknown) {
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23505") {
+    if (pgCode(e) === "23505") {
       return {
         ok: false,
         error: "You already have a round for this tournament.",
       };
     }
     throw e;
+  }
+  if (!created) {
+    return { ok: false, error: "Tournament not found." };
   }
 
   invalidateRoundsAddedOrRemoved([created]);
@@ -149,7 +132,7 @@ export async function deleteRound(
 ): Promise<DeleteRoundResult> {
   const access = await readRoundAccess(userId, roundId);
   if (!access?.canScore) return ROUND_NOT_FOUND;
-  if (!access.canManage) return CANNOT_MANAGE_ROUND;
+  if (!access.canManage) return CANNOT_DELETE_ROUND;
 
   const deleted = await db
     .delete(rounds)
@@ -210,18 +193,21 @@ export async function syncEventRounds(
   };
 
   if (values.courseId !== previous.courseId) {
-    // Check and move in one statement, then compare counts, so a score that
-    // lands mid-edit blocks the move instead of being re-attributed.
+    // Scorecard writes hold their Rounds FOR SHARE, so this waits out any in
+    // flight and holds off new ones; the guarded update then sees every
+    // committed score and a refusal can't race a late one.
+    const locked = await tx
+      .select({ id: rounds.id })
+      .from(rounds)
+      .where(inEvent)
+      .orderBy(rounds.id)
+      .for("update");
     const moved = await tx
       .update(rounds)
       .set({ courseId: values.courseId, teeId: values.teeId })
       .where(and(inEvent, not(hasScoresOrGreenies(tx))))
       .returning(changedRoundColumns);
-    const [{ total }] = await tx
-      .select({ total: count() })
-      .from(rounds)
-      .where(inEvent);
-    if (moved.length !== total) {
+    if (moved.length !== locked.length) {
       const blocking = await tx
         .select({
           email: users.email,
@@ -234,7 +220,9 @@ export async function syncEventRounds(
         .innerJoin(users, eq(users.id, rounds.userId))
         .where(and(inEvent, hasScoresOrGreenies(tx)));
       throw new EventCourseLockedError(
-        `Can't change the course: ${blocking.map(displayName).join(", ")} already ${blocking.length === 1 ? "has" : "have"} scores or Greenies.`,
+        blocking.length === 0
+          ? "Can't change the course: a Round already has scores or Greenies."
+          : `Can't change the course: ${blocking.map(displayName).join(", ")} already ${blocking.length === 1 ? "has" : "have"} scores or Greenies.`,
       );
     }
     record(moved);
@@ -299,10 +287,9 @@ export async function deleteEventRounds(
     .returning(changedRoundColumns);
 }
 
-async function readEventRoundValues(
-  tx: Pick<typeof db, "select">,
-  event: EventRef,
-) {
+// FOR SHARE waits out an edit of the event (which locks its row FOR UPDATE),
+// so a Round added alongside one never lands on the old course, tee or date.
+async function readEventRoundValues(tx: Transaction, event: EventRef) {
   if ("tournamentId" in event) {
     const [tournament] = await tx
       .select({
@@ -312,7 +299,7 @@ async function readEventRoundValues(
       })
       .from(tournaments)
       .where(eq(tournaments.id, event.tournamentId))
-      .limit(1);
+      .for("share");
     return tournament
       ? { ...tournament, tournamentId: event.tournamentId }
       : null;
@@ -322,7 +309,7 @@ async function readEventRoundValues(
     .select({ courseId: matches.courseId, date: matches.date })
     .from(matches)
     .where(eq(matches.id, event.matchId))
-    .limit(1);
+    .for("share");
   return match
     ? { ...match, teeId: event.teeId, matchId: event.matchId }
     : null;

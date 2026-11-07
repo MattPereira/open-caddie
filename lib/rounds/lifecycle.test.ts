@@ -20,14 +20,16 @@ if (!testDatabaseUrl) {
       { db },
       schema,
       lifecycle,
+      scorecardWrites,
       { createRoundFixtures },
     ] = await Promise.all([
       import("@/db"),
       import("@/db/schema"),
       import("./lifecycle"),
+      import("./scorecard-writes"),
       import("./test-fixtures"),
     ]);
-    const { eq } = await import("drizzle-orm");
+    const { and, eq, sql } = await import("drizzle-orm");
     const fixtures = createRoundFixtures(db, schema);
 
     function invalidatedPaths() {
@@ -63,6 +65,38 @@ if (!testDatabaseUrl) {
         .from(schema.rounds)
         .where(eq(schema.rounds.id, id));
       return round ?? null;
+    }
+
+    type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+    // Runs `body` in a transaction on its own connection and keeps it open,
+    // holding its locks, until release() is called.
+    async function holdTransaction(body: (tx: Tx) => Promise<unknown>) {
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => (release = resolve));
+      let ready!: () => void;
+      const started = new Promise<void>((resolve) => (ready = resolve));
+      const done = db.transaction(async (tx) => {
+        await body(tx);
+        ready();
+        await gate;
+      });
+      await Promise.race([started, done]);
+      return { release, done };
+    }
+
+    // Waits until `count` queries touching `table` are queued behind a lock.
+    async function waitForLockWaits(table: string, count: number) {
+      for (let attempt = 0; attempt < 100; attempt++) {
+        const { rows } = await db.execute<{ waiting: number }>(sql`
+          select count(*)::int as waiting from pg_stat_activity
+          where datname = current_database()
+            and wait_event_type = 'Lock'
+            and query ilike ${`%${table}%`}`);
+        if (rows[0].waiting >= count) return;
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      throw new Error(`Expected ${count} queries on ${table} waiting on a lock.`);
     }
 
     beforeEach(() => {
@@ -182,6 +216,43 @@ if (!testDatabaseUrl) {
         });
       });
 
+      it("joins on the Tournament's new course when an edit of it is in flight", async () => {
+        const t = await fixtures.tournament();
+        const next = await fixtures.course();
+        const player = await fixtures.user();
+        const edit = await holdTransaction(async (tx) => {
+          await tx
+            .select({ id: schema.tournaments.id })
+            .from(schema.tournaments)
+            .where(eq(schema.tournaments.id, t.tournament.id))
+            .for("update");
+          await tx
+            .update(schema.tournaments)
+            .set({ courseId: next.course.id, teeId: next.tee.id })
+            .where(eq(schema.tournaments.id, t.tournament.id));
+        });
+
+        const join = lifecycle.createRound(player.id, {
+          courseHandle: t.course.handle,
+          date: "2026-01-01",
+          tournamentId: t.tournament.id,
+          teeId: null,
+        });
+        try {
+          await waitForLockWaits("tournaments", 1);
+        } finally {
+          edit.release();
+          await edit.done;
+        }
+        const result = await join;
+
+        if (!result.ok) throw new Error(result.error);
+        expect(await roundRow(result.roundId)).toMatchObject({
+          courseId: next.course.id,
+          teeId: next.tee.id,
+        });
+      });
+
       it("refuses joining a Tournament twice", async () => {
         const t = await fixtures.tournament();
         const player = await fixtures.tournamentPlayer(t);
@@ -237,7 +308,7 @@ if (!testDatabaseUrl) {
 
         expect(await lifecycle.deleteRound(b.user.id, a.round.id)).toMatchObject({
           ok: false,
-          error: "You can't change this Round's settings.",
+          error: "You can't delete this Round.",
         });
         expect(await roundRow(a.round.id)).not.toBeNull();
         expect(revalidatePath).not.toHaveBeenCalled();
@@ -457,6 +528,51 @@ if (!testDatabaseUrl) {
         await expect(
           editTournament(t, { courseId: next.course.id, teeId: next.tee.id }),
         ).rejects.toThrow(`Player ${p.user.lastName} already has scores or Greenies`);
+      });
+
+      it("refuses a course change behind a scorecard write in flight, keeping its score on the old course", async () => {
+        const t = await fixtures.tournament();
+        const p = await fixtures.tournamentPlayer(t);
+        // Filling in an existing hole row never touches the Round's foreign key.
+        await db.insert(schema.roundScores).values({ roundId: p.round.id, hole: 1 });
+        const next = await fixtures.course();
+        // Pins the hole row so the scorecard write stalls mid-transaction.
+        const pin = await holdTransaction((tx) =>
+          tx
+            .select({ hole: schema.roundScores.hole })
+            .from(schema.roundScores)
+            .where(
+              and(
+                eq(schema.roundScores.roundId, p.round.id),
+                eq(schema.roundScores.hole, 1),
+              ),
+            )
+            .for("update"),
+        );
+
+        const writing = scorecardWrites.recordScorecardChanges(p.user.id, {
+          scores: [{ roundId: p.round.id, hole: 1, strokes: 4 }],
+        });
+        let editing: Promise<unknown> | undefined;
+        try {
+          await waitForLockWaits("round_scores", 1);
+          editing = editTournament(t, {
+            courseId: next.course.id,
+            teeId: next.tee.id,
+          }).catch((e: unknown) => e);
+          await waitForLockWaits("rounds", 1);
+        } finally {
+          pin.release();
+          await pin.done;
+        }
+        const [write, edit] = await Promise.all([writing, editing]);
+
+        expect(write).toEqual({ ok: true });
+        expect(edit).toBeInstanceOf(lifecycle.EventCourseLockedError);
+        expect(await roundRow(p.round.id)).toMatchObject({
+          courseId: t.course.id,
+          teeId: t.tee.id,
+        });
       });
 
       it("carries a date change to every Round, scored or not", async () => {

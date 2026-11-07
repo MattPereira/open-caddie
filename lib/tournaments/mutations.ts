@@ -2,16 +2,11 @@ import { revalidatePath } from "next/cache";
 import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import {
-  clubs,
-  courseTees,
-  courses,
-  rounds,
-  seasons,
-  tournaments,
-  users,
-} from "@/db/schema";
+import { clubs, rounds, seasons, tournaments, users } from "@/db/schema";
+import { getCourseIdByHandle, isTeeForCourse } from "@/lib/courses/tees";
+import { parseDateOnly } from "@/lib/dates";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
+import { pgCode } from "@/lib/pg-errors";
 import {
   insertEventRounds,
   invalidateRoundChanged,
@@ -96,15 +91,9 @@ export async function updateTournament(
   if (!admin.ok) return admin;
 
   const { id } = values;
-  const clubId = await getClubIdByHandle(values.clubHandle);
-  const courseId = await getCourseIdByHandle(values.courseHandle);
-  if (!clubId || !courseId) {
-    return { ok: false, error: "Selected club or course does not exist." };
-  }
-
-  if (!(await isTeeForCourse(values.teeId, courseId))) {
-    return { ok: false, error: "Selected tee does not belong to this course." };
-  }
+  const resolved = await resolveTournamentFields(values);
+  if (!resolved.ok) return resolved;
+  const { clubId, courseId } = resolved;
 
   let synced: ChangedRound[];
   try {
@@ -211,10 +200,7 @@ function invalidateTournamentChanged(id: number) {
 }
 
 function writeFailure(e: unknown, fallback: string) {
-  const code =
-    (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-    (e as { code?: string })?.code;
-  if (code === "23503") {
+  if (pgCode(e) === "23503") {
     return { ok: false as const, error: "Selected club or course does not exist." };
   }
   return { ok: false as const, error: e instanceof Error ? e.message : fallback };
@@ -239,28 +225,6 @@ async function getClubIdByHandle(handle: string) {
     .where(eq(clubs.handle, handle))
     .limit(1);
   return club?.id ?? null;
-}
-
-async function getCourseIdByHandle(handle: string) {
-  const [course] = await db
-    .select({ id: courses.id })
-    .from(courses)
-    .where(eq(courses.handle, handle))
-    .limit(1);
-  return course?.id ?? null;
-}
-
-async function isTeeForCourse(teeId: number, courseId: number) {
-  const [row] = await db
-    .select({ id: courseTees.id })
-    .from(courseTees)
-    .where(and(eq(courseTees.id, teeId), eq(courseTees.courseId, courseId)))
-    .limit(1);
-  return row != null;
-}
-
-function parseDateOnly(value: string): Date {
-  return new Date(`${value}T00:00:00.000Z`);
 }
 
 type SeasonReader = Pick<typeof db, "select">;

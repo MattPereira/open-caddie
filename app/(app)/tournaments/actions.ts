@@ -32,11 +32,10 @@ export async function createTournament(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  const { seasonId, teeId, ...rest } = parsed.data;
+  const { seasonId, ...rest } = parsed.data;
   return mutations.createTournament(session.user.id, {
     ...rest,
     seasonId: seasonId === "" ? null : seasonId,
-    teeId: teeId as number,
   });
 }
 
@@ -53,15 +52,7 @@ export async function updateTournament(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  const { id, clubHandle, courseHandle, date, seasonId, teeId } = parsed.data;
-  return mutations.updateTournament(session.user.id, {
-    id,
-    clubHandle,
-    courseHandle,
-    date,
-    seasonId: seasonId as number,
-    teeId: teeId as number,
-  });
+  return mutations.updateTournament(session.user.id, parsed.data);
 }
 
 export async function deleteTournament(id: number): Promise<ActionResult> {

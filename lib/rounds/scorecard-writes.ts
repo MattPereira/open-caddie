@@ -1,20 +1,16 @@
 import { and, eq, inArray } from "drizzle-orm";
 
-import { db } from "@/db";
-import {
-  courseHoles,
-  courseTees,
-  greenies,
-  roundScores,
-  rounds,
-} from "@/db/schema";
-import { readRoundAccess, type AccessedRound } from "./access";
+import { db, type Transaction } from "@/db";
+import { courseHoles, greenies, roundScores, rounds } from "@/db/schema";
+import { isTeeForCourse } from "@/lib/courses/tees";
 import {
   CANNOT_MANAGE_ROUND as CANNOT_MANAGE,
   ROUND_NOT_FOUND as NOT_FOUND,
-  invalidateRoundChanged,
+  readRoundAccess,
+  type AccessedRound,
   type RoundManageFailure,
-} from "./lifecycle";
+} from "./access";
+import { invalidateRoundChanged } from "./lifecycle";
 
 // The one write path for a Round's scorecard and settings. Not a
 // "use server" module: it takes the session user id, so exposing it as an
@@ -128,22 +124,36 @@ export async function recordScorecardChanges(
   if (!scores.every(isScoreInRange)) return SCORE_OUT_OF_RANGE;
   if (!greenieChanges.every(isGreenieInRange)) return GREENIE_OUT_OF_RANGE;
 
-  const roundsById = new Map(touchedRounds.map((round) => [round.id, round]));
-  const parThreesByCourse = await readParThreeHoles(
-    greenieChanges
-      .filter((change) => change.distance != null)
-      .map((change) => roundsById.get(change.roundId)!.courseId),
-  );
-  const offParThree = greenieChanges.some(
-    (change) =>
-      change.distance != null &&
-      !parThreesByCourse
-        .get(roundsById.get(change.roundId)!.courseId)
-        ?.has(change.hole),
-  );
-  if (offParThree) return GREENIE_NOT_PAR_THREE;
+  const written = await db.transaction(async (tx) => {
+    // A course move locks its Rounds FOR UPDATE (syncEventRounds), so FOR
+    // SHARE waits out one in progress and holds off the next until this
+    // commits; the par 3 check below is against the course scores land on.
+    const locked = await tx
+      .select({ id: rounds.id, courseId: rounds.courseId })
+      .from(rounds)
+      .where(inArray(rounds.id, roundIds))
+      .orderBy(rounds.id)
+      .for("share");
+    if (locked.length !== roundIds.length) return NOT_FOUND;
+    const courseIdByRound = new Map(
+      locked.map((round) => [round.id, round.courseId]),
+    );
 
-  await db.transaction(async (tx) => {
+    const parThreesByCourse = await readParThreeHoles(
+      tx,
+      greenieChanges
+        .filter((change) => change.distance != null)
+        .map((change) => courseIdByRound.get(change.roundId)!),
+    );
+    const offParThree = greenieChanges.some(
+      (change) =>
+        change.distance != null &&
+        !parThreesByCourse
+          .get(courseIdByRound.get(change.roundId)!)
+          ?.has(change.hole),
+    );
+    if (offParThree) return GREENIE_NOT_PAR_THREE;
+
     for (const change of scores) {
       const set: { strokes?: number | null; putts?: number | null } = {};
       if (change.strokes !== undefined) set.strokes = change.strokes;
@@ -195,7 +205,9 @@ export async function recordScorecardChanges(
           set: change.distance,
         });
     }
+    return { ok: true } as const;
   });
+  if (!written.ok) return written;
 
   invalidateRoundChanged(touchedRounds);
   return { ok: true };
@@ -221,20 +233,6 @@ export async function changeRoundSettings(
     if (!isPlayerIndex(override)) return OVERRIDE_OUT_OF_RANGE;
   }
 
-  if (change.teeId !== undefined) {
-    const [tee] = await db
-      .select({ id: courseTees.id })
-      .from(courseTees)
-      .where(
-        and(
-          eq(courseTees.id, change.teeId),
-          eq(courseTees.courseId, round.courseId),
-        ),
-      )
-      .limit(1);
-    if (!tee) return TEE_NOT_ON_COURSE;
-  }
-
   const set: { teeId?: number; playerIndexOverride?: string | null } = {};
   if (change.teeId !== undefined) set.teeId = change.teeId;
   if (override !== undefined) {
@@ -242,7 +240,25 @@ export async function changeRoundSettings(
   }
   if (Object.keys(set).length === 0) return { ok: true };
 
-  await db.update(rounds).set(set).where(eq(rounds.id, roundId));
+  const written = await db.transaction(async (tx) => {
+    // Locked so a course move can't land between the tee check and the write.
+    const [locked] = await tx
+      .select({ courseId: rounds.courseId })
+      .from(rounds)
+      .where(eq(rounds.id, roundId))
+      .for("no key update");
+    if (!locked) return NOT_FOUND;
+    if (
+      change.teeId !== undefined &&
+      !(await isTeeForCourse(change.teeId, locked.courseId, tx))
+    ) {
+      return TEE_NOT_ON_COURSE;
+    }
+    await tx.update(rounds).set(set).where(eq(rounds.id, roundId));
+    return { ok: true } as const;
+  });
+  if (!written.ok) return written;
+
   invalidateRoundChanged([round]);
   return { ok: true };
 }
@@ -279,12 +295,12 @@ function isGreenieInRange(change: GreenieChange) {
   );
 }
 
-async function readParThreeHoles(courseIds: number[]) {
+async function readParThreeHoles(tx: Transaction, courseIds: number[]) {
   const byCourse = new Map<number, Set<number>>();
   const unique = [...new Set(courseIds)];
   if (unique.length === 0) return byCourse;
 
-  const rows = await db
+  const rows = await tx
     .select({ courseId: courseHoles.courseId, hole: courseHoles.hole })
     .from(courseHoles)
     .where(and(inArray(courseHoles.courseId, unique), eq(courseHoles.par, 3)));

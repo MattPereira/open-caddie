@@ -266,13 +266,11 @@ export const getRoundById = cache(async (roundId: number) => {
     ...round,
     courseHandicap,
     playingHandicap,
-    netStrokes:
-      playingHandicap == null
-        ? null
-        : calculateNetStrokes(
-            round.isComplete ? round.totalStrokes : null,
-            playingHandicap,
-          ),
+    netStrokes: calculateNetStrokes({
+      totalStrokes: round.totalStrokes,
+      isComplete: round.isComplete,
+      playingHandicap,
+    }),
     scores,
     holes,
     tees,

@@ -87,8 +87,7 @@ function toScoreEntries(
   });
 }
 
-// Mirrors the round_summaries view: totals over recorded holes, net only once
-// all 18 holes have strokes.
+// Totals mirror the round_summaries view: sums over recorded holes.
 function projectLiveRound(
   round: RoundScoresTableRound,
   scores: ScoreEntry[],
@@ -97,8 +96,6 @@ function projectLiveRound(
   const totalPutts = scores.reduce((s, x) => s + (x.putts ?? 0), 0);
   const recordedStrokesCount = scores.filter((s) => s.strokes != null).length;
   const recordedPuttsCount = scores.filter((s) => s.putts != null).length;
-  const completeTotalStrokes =
-    recordedStrokesCount === HOLE_NUMBERS.length ? totalStrokes : null;
 
   return {
     ...round,
@@ -106,10 +103,11 @@ function projectLiveRound(
     totalPutts,
     recordedStrokesCount,
     recordedPuttsCount,
-    netStrokes:
-      round.playingHandicap == null
-        ? null
-        : calculateNetStrokes(completeTotalStrokes, round.playingHandicap),
+    netStrokes: calculateNetStrokes({
+      totalStrokes,
+      isComplete: recordedStrokesCount === HOLE_NUMBERS.length,
+      playingHandicap: round.playingHandicap,
+    }),
     scores: scores.map(({ hole, par, strokes, putts }) => ({
       hole,
       par,

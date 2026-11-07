@@ -5,8 +5,16 @@ export function calculateCourseHandicap(playerIndex: number | null, courseSlope:
   return (playerIndex * courseSlope) / standardSlopeRating;
 }
 
-export function calculateNetStrokes(totalStrokes: number | null, playingHandicap: number) {
-  if (totalStrokes == null) return null;
+export function calculateNetStrokes({
+  totalStrokes,
+  isComplete,
+  playingHandicap,
+}: {
+  totalStrokes: number | null;
+  isComplete: boolean;
+  playingHandicap: number | null;
+}) {
+  if (!isComplete || totalStrokes == null || playingHandicap == null) return null;
   return totalStrokes - playingHandicap;
 }
 
@@ -110,10 +118,11 @@ export function assessHandicap({
   }
 
   const courseHandicap = calculateCourseHandicap(playerIndex, slope);
-  const netStrokes = calculateNetStrokes(
-    isComplete ? totalStrokes : null,
-    courseHandicap,
-  );
+  const netStrokes = calculateNetStrokes({
+    totalStrokes,
+    isComplete,
+    playingHandicap: courseHandicap,
+  });
 
   return { playerIndex, courseHandicap, netStrokes, usedDifferentialIndexes };
 }

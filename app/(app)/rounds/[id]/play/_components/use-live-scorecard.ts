@@ -18,7 +18,7 @@ import {
 } from "../../../actions";
 
 import type { GreenieValue } from "./hole-greenie-manager";
-import type { ScoreEntry } from "./live-round-projection";
+import type { ScoreEntry } from "./live-scores";
 import type { ScorePatch } from "./score-entry-sheet";
 
 export type GreenieEntry = GreenieValue & { hole: number };

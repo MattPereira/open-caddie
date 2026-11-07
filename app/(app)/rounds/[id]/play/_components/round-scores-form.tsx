@@ -17,7 +17,7 @@ import {
   buildScoreBase,
   isRoundComplete,
   projectLiveRounds,
-} from "./live-round-projection";
+} from "./live-scores";
 import { HoleScoreRow } from "./hole-score-row";
 import { ScoreEntrySheet, type ScorePatch } from "./score-entry-sheet";
 import { SettingsDialog, type SettingsTee } from "./settings-dialog";

@@ -6,7 +6,7 @@ import {
   buildScoreBase,
   projectLiveRounds,
   type ScoreEntry,
-} from "./live-round-projection";
+} from "./live-scores";
 import type { MatchScoreboard } from "./round-play";
 
 const holes = HOLE_NUMBERS.map((hole) => ({ hole, par: 4, yards: 400 }));

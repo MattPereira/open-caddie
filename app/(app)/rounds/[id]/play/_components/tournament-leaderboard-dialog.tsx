@@ -24,24 +24,17 @@ import {
 import { toRoundScoreRow } from "@/components/features/scores/round-scores";
 
 export function TournamentLeaderboardDialog({
-  currentRound,
-  leaderboardRounds,
+  currentRoundId,
+  rounds,
 }: {
-  currentRound: RoundScoresTableRound;
-  leaderboardRounds?: RoundScoresTableRound[];
+  currentRoundId: number;
+  // Already live: this device's unsaved edits are projected in by the caller.
+  rounds?: RoundScoresTableRound[];
 }) {
-  if (currentRound.tournamentId == null || !leaderboardRounds?.length) {
-    return null;
-  }
+  if (!rounds?.length) return null;
 
-  const leaderboardRows = leaderboardRounds
-    .map((leaderboardRound) =>
-      toLeaderboardRow(
-        leaderboardRound.id === currentRound.id
-          ? currentRound
-          : leaderboardRound,
-      ),
-    )
+  const leaderboardRows = rounds
+    .map(toLeaderboardRow)
     .sort(compareLeaderboardRows);
 
   return (
@@ -74,7 +67,7 @@ export function TournamentLeaderboardDialog({
                 <TableRow
                   key={leaderboardRow.roundId}
                   data-state={
-                    leaderboardRow.roundId === currentRound.id
+                    leaderboardRow.roundId === currentRoundId
                       ? "selected"
                       : undefined
                   }

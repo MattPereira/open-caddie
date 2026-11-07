@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { assessHandicap } from "./index";
+import { assessHandicap, calculateNetStrokes } from "./index";
 
 describe("assessHandicap", () => {
   it("derives a Course Handicap and net strokes from a Player Index Override", () => {
@@ -96,5 +96,25 @@ describe("assessHandicap", () => {
     expect(result.netStrokes).toBeNull();
     // the Course Handicap is still derived
     expect(result.courseHandicap).toBe(10);
+  });
+});
+
+describe("calculateNetStrokes", () => {
+  it("subtracts the Playing Handicap from a complete Round's total", () => {
+    expect(
+      calculateNetStrokes({ totalStrokes: 90, isComplete: true, playingHandicap: 12 }),
+    ).toBe(78);
+  });
+
+  it("is null until the Round is complete", () => {
+    expect(
+      calculateNetStrokes({ totalStrokes: 45, isComplete: false, playingHandicap: 12 }),
+    ).toBeNull();
+  });
+
+  it("is null without a Playing Handicap", () => {
+    expect(
+      calculateNetStrokes({ totalStrokes: 90, isComplete: true, playingHandicap: null }),
+    ).toBeNull();
   });
 });

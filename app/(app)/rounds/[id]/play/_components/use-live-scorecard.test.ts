@@ -9,7 +9,7 @@ import {
   upsertRoundGreenie,
   upsertRoundScore,
 } from "../../../actions";
-import type { ScoreEntry } from "./round-score-state";
+import type { ScoreEntry } from "./live-scores";
 import { useLiveScorecard, type GreenieEntry } from "./use-live-scorecard";
 
 const { router } = vi.hoisted(() => ({ router: { refresh: vi.fn() } }));

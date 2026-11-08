@@ -1,21 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
 import {
   HOLE_NUMBERS,
   buildScoreBase,
   projectLiveRounds,
+  type MatchScoreboard,
   type ScoreEntry,
 } from "./live-scores";
-import type { MatchScoreboard } from "./round-play";
 
-const holes = HOLE_NUMBERS.map((hole) => ({ hole, par: 4, yards: 400 }));
+const holes = HOLE_NUMBERS.map((hole) => ({ hole, par: 4, handicap: hole }));
 
 function serverRound(
   id: number,
   strokesByHole: (number | null)[],
   playingHandicap: number | null = 10,
-): RoundScoresTableRound {
+  teeYards = 400,
+) {
   const scores = strokesByHole.map((strokes, i) => ({
     hole: i + 1,
     par: 4,
@@ -26,10 +26,6 @@ function serverRound(
   const totalStrokes = recorded.reduce((t, s) => t + (s.strokes ?? 0), 0);
   return {
     id,
-    firstName: `P${id}`,
-    lastName: null,
-    username: null,
-    image: null,
     recordedStrokesCount: recorded.length,
     recordedPuttsCount: recorded.length,
     totalStrokes,
@@ -40,15 +36,14 @@ function serverRound(
         ? totalStrokes - playingHandicap
         : null,
     scores,
+    yards: HOLE_NUMBERS.map((hole) => ({ hole, yards: teeYards })),
   };
 }
 
+type Round = ReturnType<typeof serverRound>;
+
 const empty = () => HOLE_NUMBERS.map(() => null);
 const allFives = () => HOLE_NUMBERS.map(() => 5);
-
-function scorable(round: RoundScoresTableRound) {
-  return { roundId: round.id, scores: round.scores };
-}
 
 function edit(
   entries: ScoreEntry[],
@@ -62,9 +57,7 @@ function edit(
   );
 }
 
-function matchScoreboard(
-  rounds: RoundScoresTableRound[],
-): MatchScoreboard {
+function matchScoreboard(rounds: Round[]): MatchScoreboard<Round> {
   return {
     format: "singles_match_play",
     rounds,
@@ -76,11 +69,23 @@ function matchScoreboard(
   };
 }
 
+describe("buildScoreBase", () => {
+  it("gives each Round the course's pars and the yards of its own tee", () => {
+    const self = serverRound(1, empty(), 10, 400);
+    const mate = serverRound(2, empty(), 10, 300);
+
+    const base = buildScoreBase([self, mate], holes);
+
+    expect(base[1][0]).toMatchObject({ hole: 1, par: 4, yards: 400 });
+    expect(base[2][0]).toMatchObject({ hole: 1, par: 4, yards: 300 });
+  });
+});
+
 describe("projectLiveRounds", () => {
   it("shows a Pairing mate's unsaved edit on the Tournament leaderboard", () => {
     const self = serverRound(1, empty());
     const mate = serverRound(2, empty());
-    const base = buildScoreBase(self, [scorable(mate)], holes);
+    const base = buildScoreBase([self, mate], holes);
 
     const live = projectLiveRounds({
       round: self,
@@ -97,7 +102,7 @@ describe("projectLiveRounds", () => {
   it("shows a mate's edit in both Match Rounds and the mate's team", () => {
     const self = serverRound(1, empty());
     const mate = serverRound(2, empty());
-    const base = buildScoreBase(self, [scorable(mate)], holes);
+    const base = buildScoreBase([self, mate], holes);
 
     const live = projectLiveRounds({
       round: self,
@@ -113,7 +118,7 @@ describe("projectLiveRounds", () => {
 
   it("lowers totals and drops net when a complete Round's hole is cleared", () => {
     const self = serverRound(1, allFives(), 10);
-    const base = buildScoreBase(self, [], holes);
+    const base = buildScoreBase([self], holes);
 
     const live = projectLiveRounds({
       round: self,
@@ -131,11 +136,7 @@ describe("projectLiveRounds", () => {
     const partial = serverRound(1, [...allFives().slice(0, 17), null], 10);
     const complete = serverRound(2, allFives(), 10);
     const noHandicap = serverRound(3, allFives(), null);
-    const base = buildScoreBase(
-      partial,
-      [scorable(complete), scorable(noHandicap)],
-      holes,
-    );
+    const base = buildScoreBase([partial, complete, noHandicap], holes);
 
     const live = projectLiveRounds({
       round: partial,
@@ -153,7 +154,7 @@ describe("projectLiveRounds", () => {
   it("passes a Round this device cannot score through untouched", () => {
     const self = serverRound(1, empty());
     const otherPairing = serverRound(9, allFives());
-    const base = buildScoreBase(self, [], holes);
+    const base = buildScoreBase([self], holes);
 
     const live = projectLiveRounds({
       round: self,
@@ -169,7 +170,7 @@ describe("projectLiveRounds", () => {
   it("matches the server's totals when nothing has been edited", () => {
     const self = serverRound(1, [...allFives().slice(0, 9), ...empty().slice(9)]);
     const mate = serverRound(2, allFives(), 12);
-    const base = buildScoreBase(self, [scorable(mate)], holes);
+    const base = buildScoreBase([self, mate], holes);
 
     const live = projectLiveRounds({
       round: self,

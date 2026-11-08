@@ -86,22 +86,14 @@ export const getMatchById = cache(async (matchId: number) => {
 
   if (!match) return match;
 
-  const roundsWithScores = matchRounds.map((round) => ({
-    ...round,
-    courseHandle: match.courseHandle,
-    courseName: match.courseName,
-    courseImgUrl: match.courseImgUrl,
-    holes: course.holes,
-    tees: course.tees,
-  }));
-  const roundsById = new Map(roundsWithScores.map((round) => [round.id, round]));
+  const roundsById = new Map(matchRounds.map((round) => [round.id, round]));
   const teams = matchTeamRows.reduce<
     {
       id: number;
       matchId: number;
       name: string;
       sortOrder: number;
-      rounds: typeof roundsWithScores;
+      rounds: typeof matchRounds;
     }[]
   >((acc, row) => {
     let team = acc.find((candidate) => candidate.id === row.id);
@@ -125,7 +117,8 @@ export const getMatchById = cache(async (matchId: number) => {
 
   return {
     ...match,
-    rounds: roundsWithScores,
+    course,
+    rounds: matchRounds,
     teams,
     greenies: eventGreenies(matchRounds),
   };

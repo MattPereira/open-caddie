@@ -36,6 +36,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   RoundScoresSheet,
+  type EditableCourse,
   type EditableRound,
 } from "@/app/(app)/rounds/[id]/_components/round-scores-sheet";
 
@@ -50,18 +51,23 @@ export type RoundsEditAccess = {
   manageableRoundIds: readonly number[];
 };
 
+/** A table row's Round, editable from the table by its Scorers. */
+export type EditableTableRound = RoundScoresTableRound & EditableRound;
+
 type RoundScoresTableProps = {
   editAccess?: RoundsEditAccess | null;
-  rounds: RoundScoresTableRound[];
+  rounds: EditableTableRound[];
+  course: EditableCourse;
   showMobileTotals?: boolean;
 };
 
 export function RoundScoresTable({
   editAccess,
   rounds,
+  course,
   showMobileTotals = true,
 }: RoundScoresTableProps) {
-  const rows = rounds.map(toRoundScoreRow);
+  const rows = rounds.map((round) => ({ ...toRoundScoreRow(round), round }));
 
   return (
     <ResponsiveTable
@@ -69,6 +75,7 @@ export function RoundScoresTable({
       mobile={
         <MobileRoundScoresCards
           editAccess={editAccess}
+          course={course}
           rows={rows}
           showMobileTotals={showMobileTotals}
         />
@@ -83,7 +90,7 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
     metric === "strokes" ? rows : [...rows].sort(compareRoundScoreRowsByPutts);
   const greenieHoles = new Set(
     rows.flatMap(
-      (row) => row.round.greenies?.map((greenie) => greenie.hole) ?? [],
+      (row) => row.round.greenies.map((greenie) => greenie.hole),
     ),
   );
 
@@ -192,20 +199,20 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
 
 function MobileRoundScoresCards({
   editAccess,
+  course,
   rows,
   showMobileTotals,
 }: {
   editAccess?: RoundScoresTableProps["editAccess"];
-  rows: RoundScoreRow[];
+  course: EditableCourse;
+  rows: (RoundScoreRow & { round: EditableTableRound })[];
   showMobileTotals: boolean;
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-4">
       {rows.map((row) => {
-        const editableRound = toEditableRound(row.round);
         const canEdit =
-          editableRound != null &&
-          (editAccess?.scorableRoundIds.includes(editableRound.id) ?? false);
+          editAccess?.scorableRoundIds.includes(row.round.id) ?? false;
         const canManage =
           editAccess?.manageableRoundIds.includes(row.round.id) ?? false;
 
@@ -216,7 +223,8 @@ function MobileRoundScoresCards({
               canEdit ? (
                 <RoundScoresCardEditAction
                   canManage={canManage}
-                  round={editableRound}
+                  round={row.round}
+                  course={course}
                 />
               ) : null
             }
@@ -232,9 +240,11 @@ function MobileRoundScoresCards({
 function RoundScoresCardEditAction({
   canManage,
   round,
+  course,
 }: {
   canManage: boolean;
   round: EditableRound;
+  course: EditableCourse;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const router = useRouter();
@@ -264,6 +274,7 @@ function RoundScoresCardEditAction({
           onOpenChange={setSheetOpen}
           onDeleted={() => router.refresh()}
           round={round}
+          course={course}
         />
       ) : null}
     </>
@@ -312,33 +323,6 @@ function DerivedScoreCell({
       {formatDecimalScore(value)}
     </TableCell>
   );
-}
-
-function toEditableRound(round: RoundScoresTableRound): EditableRound | null {
-  if (
-    !round.userId ||
-    !round.teeId ||
-    !round.holes ||
-    !round.tees ||
-    !round.greenies ||
-    !round.courseSlope
-  ) {
-    return null;
-  }
-
-  return {
-    id: round.id,
-    matchId: round.matchId ?? null,
-    teeId: round.teeId,
-    userId: round.userId,
-    firstName: round.firstName,
-    courseSlope: round.courseSlope,
-    playerIndexOverride: round.playerIndexOverride ?? null,
-    holes: round.holes,
-    tees: round.tees,
-    scores: round.scores,
-    greenies: round.greenies,
-  };
 }
 
 function compareRoundScoreRowsByPutts(a: RoundScoreRow, b: RoundScoreRow) {

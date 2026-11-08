@@ -1,10 +1,11 @@
 import { TableFrame } from "@/components/shared/responsive-table";
-import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-table";
 import {
   isEligibleSkinsRound,
   toSkinsView,
   type SkinHoleRow,
   type SkinPlayerView,
+  type SkinsHole,
+  type SkinsRound,
 } from "@/components/features/scores/skins";
 import {
   Accordion,
@@ -25,7 +26,13 @@ import {
 import { WinnerCard } from "@/components/domain/winner-card";
 import { cn } from "@/lib/utils";
 
-export function SkinsContent({ rounds }: { rounds: RoundScoresTableRound[] }) {
+export function SkinsContent({
+  rounds,
+  holes,
+}: {
+  rounds: SkinsRound[];
+  holes: SkinsHole[];
+}) {
   const skinsRounds = rounds.filter(isEligibleSkinsRound);
 
   if (skinsRounds.length < 2) {
@@ -41,7 +48,7 @@ export function SkinsContent({ rounds }: { rounds: RoundScoresTableRound[] }) {
     );
   }
 
-  const skins = toSkinsView(skinsRounds);
+  const skins = toSkinsView(skinsRounds, holes);
 
   return (
     <>

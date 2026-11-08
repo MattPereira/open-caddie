@@ -52,8 +52,7 @@ import {
   RoundSettingsSchema,
   type RoundSettingsValues,
 } from "@/app/(app)/rounds/schema";
-import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
-import type { ScorableRound } from "./round-play";
+import type { PlayRound } from "./round-play";
 
 export const MAX_DELEGATES = 3;
 
@@ -67,10 +66,9 @@ export type SettingsTee = {
 };
 
 function buildSettingsFormValues(
-  round: RoundScoresTableRound,
-  tees: SettingsTee[],
+  round: Pick<PlayRound, "id" | "teeId">,
 ): RoundSettingsValues {
-  return { roundId: round.id, teeId: round.teeId ?? tees[0]?.id };
+  return { roundId: round.id, teeId: round.teeId };
 }
 
 export function SettingsDialog({
@@ -87,9 +85,9 @@ export function SettingsDialog({
   fullWidth,
 }: {
   roundId: number;
-  round: RoundScoresTableRound;
+  round: Pick<PlayRound, "id" | "teeId">;
   tees: SettingsTee[];
-  scorableRounds: ScorableRound[];
+  scorableRounds: Pick<PlayRound, "id" | "firstName" | "lastName">[];
   delegateRoundIds: readonly number[];
   setDelegateRoundIdsAction: (next: readonly number[]) => void;
   recordPutts: boolean;
@@ -107,14 +105,14 @@ export function SettingsDialog({
 
   const form = useForm<RoundSettingsValues>({
     resolver: zodResolver(RoundSettingsSchema),
-    defaultValues: buildSettingsFormValues(round, tees),
+    defaultValues: buildSettingsFormValues(round),
   });
   const serverError = form.formState.errors.root?.server?.message;
   useEffect(() => {
     if (open) {
-      form.reset(buildSettingsFormValues(round, tees));
+      form.reset(buildSettingsFormValues(round));
     }
-  }, [open, round, tees, form]);
+  }, [open, round, form]);
 
   const handleOpenChange = (nextOpen: boolean) => {
     setConfirmingDelete(false);
@@ -305,13 +303,13 @@ export function SettingsDialog({
                         [player.firstName, player.lastName]
                           .filter(Boolean)
                           .join(" ") || "Player";
-                      const checked = delegateRoundIds.includes(player.roundId);
+                      const checked = delegateRoundIds.includes(player.id);
                       const atCap =
                         !checked && delegateRoundIds.length >= MAX_DELEGATES;
-                      const checkboxId = `delegate-${player.roundId}`;
+                      const checkboxId = `delegate-${player.id}`;
                       return (
                         <FieldLabel
-                          key={player.roundId}
+                          key={player.id}
                           htmlFor={checkboxId}
                           data-disabled={atCap || undefined}
                         >
@@ -323,9 +321,9 @@ export function SettingsDialog({
                               onCheckedChange={(next) =>
                                 setDelegateRoundIdsAction(
                                   next
-                                    ? [...delegateRoundIds, player.roundId]
+                                    ? [...delegateRoundIds, player.id]
                                     : delegateRoundIds.filter(
-                                        (id) => id !== player.roundId,
+                                        (id) => id !== player.id,
                                       ),
                                 )
                               }

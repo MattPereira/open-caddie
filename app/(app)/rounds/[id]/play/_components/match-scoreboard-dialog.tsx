@@ -12,12 +12,16 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MatchPlayContent } from "@/app/(app)/matches/[id]/_components/match-play-tab-content";
 import { SkinsContent } from "@/components/features/scores/skins-content";
-import type { MatchScoreboard } from "./round-play";
+import type { CourseHole } from "@/lib/rounds/reads";
+import type { MatchScoreboard } from "./live-scores";
+import type { PlayRound } from "./round-play";
 
 export function MatchScoreboardDialog({
   scoreboard,
+  holes,
 }: {
-  scoreboard: MatchScoreboard | null;
+  scoreboard: MatchScoreboard<PlayRound> | null;
+  holes: CourseHole[];
 }) {
   return (
     <Dialog>
@@ -53,11 +57,12 @@ export function MatchScoreboardDialog({
               <MatchPlayContent
                 format={scoreboard.format}
                 rounds={scoreboard.rounds}
+                holes={holes}
                 teams={scoreboard.teams}
               />
             </TabsContent>
             <TabsContent value="skins" className="flex flex-col gap-5">
-              <SkinsContent rounds={scoreboard.rounds} />
+              <SkinsContent rounds={scoreboard.rounds} holes={holes} />
             </TabsContent>
           </Tabs>
         ) : (

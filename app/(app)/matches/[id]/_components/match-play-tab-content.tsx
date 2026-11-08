@@ -1,4 +1,3 @@
-import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-table";
 import { Card, CardContent } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 import type { MatchFormat } from "../../schema";
@@ -6,6 +5,8 @@ import { FourBallMatchPlayContent } from "./four-ball-match-play";
 import {
   getMatchPlayTeams,
   isMatchPlayRound,
+  type MatchPlayHole,
+  type MatchPlayRound,
   type StoredMatchPlayTeam,
 } from "./match-play-shared";
 import { SinglesMatchPlayContent } from "./singles-match-play";
@@ -16,15 +17,22 @@ export type { StoredMatchPlayTeam };
 export function MatchPlayTabContent({
   format,
   rounds,
+  holes,
   teams = [],
 }: {
   format: MatchFormat;
-  rounds: RoundScoresTableRound[];
+  rounds: MatchPlayRound[];
+  holes: MatchPlayHole[];
   teams?: StoredMatchPlayTeam[];
 }) {
   return (
     <TabsContent value="match" className="flex flex-col gap-5">
-      <MatchPlayContent format={format} rounds={rounds} teams={teams} />
+      <MatchPlayContent
+        format={format}
+        rounds={rounds}
+        holes={holes}
+        teams={teams}
+      />
     </TabsContent>
   );
 }
@@ -32,10 +40,12 @@ export function MatchPlayTabContent({
 export function MatchPlayContent({
   format,
   rounds,
+  holes,
   teams = [],
 }: {
   format: MatchFormat;
-  rounds: RoundScoresTableRound[];
+  rounds: MatchPlayRound[];
+  holes: MatchPlayHole[];
   teams?: StoredMatchPlayTeam[];
 }) {
   const matchPlayTeams = getMatchPlayTeams({
@@ -49,14 +59,14 @@ export function MatchPlayContent({
   }
 
   if (format === "three_ball_match_play") {
-    return <ThreeBallMatchPlayContent teams={matchPlayTeams} />;
+    return <ThreeBallMatchPlayContent teams={matchPlayTeams} holes={holes} />;
   }
 
   if (format === "four_ball_match_play") {
-    return <FourBallMatchPlayContent teams={matchPlayTeams} />;
+    return <FourBallMatchPlayContent teams={matchPlayTeams} holes={holes} />;
   }
 
-  return <SinglesMatchPlayContent teams={matchPlayTeams} />;
+  return <SinglesMatchPlayContent teams={matchPlayTeams} holes={holes} />;
 }
 
 function MatchPlayUnavailable() {

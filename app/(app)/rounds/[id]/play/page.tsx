@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 
 import { CourseRecords } from "@/components/features/course-records/course-records";
 import { getMatchById } from "@/lib/matches/queries";
-import { getRoundAccess } from "@/lib/rounds/access";
-import { getRoundById, getScorableRounds } from "@/lib/rounds/queries";
+import { getRoundAccess, type AccessedRound } from "@/lib/rounds/access";
+import { getRoundById } from "@/lib/rounds/queries";
 import { getTournamentById } from "@/lib/tournaments/queries";
 import { getCurrentUser } from "@/lib/users/queries";
 import { RoundPlay } from "./_components/round-play";
@@ -14,129 +14,93 @@ type PlayPageProps = {
 
 export const dynamic = "force-dynamic";
 
+// The played Round's event, read once: its own Round, its mates' columns and
+// both scoreboards all come out of the same Rounds.
+async function readPlayEvent(round: AccessedRound) {
+  if (round.tournamentId != null) {
+    const tournament = await getTournamentById(round.tournamentId);
+    return (
+      tournament && {
+        event: { kind: "tournament" as const, id: tournament.id },
+        courseId: tournament.courseId,
+        courseName: tournament.courseName,
+        course: tournament.course,
+        rounds: tournament.rounds,
+        leaderboardRounds: tournament.rounds,
+        matchScoreboard: null,
+      }
+    );
+  }
+  if (round.matchId != null) {
+    const match = await getMatchById(round.matchId);
+    return (
+      match && {
+        event: { kind: "match" as const, id: match.id },
+        courseId: match.courseId,
+        courseName: match.courseName,
+        course: match.course,
+        rounds: match.rounds,
+        leaderboardRounds: undefined,
+        matchScoreboard: {
+          format: match.format,
+          rounds: match.rounds,
+          teams: match.teams,
+        },
+      }
+    );
+  }
+  const casual = await getRoundById(round.id);
+  return (
+    casual && {
+      event: null,
+      courseId: casual.courseId,
+      courseName: casual.courseName,
+      course: casual.course,
+      rounds: [casual],
+      leaderboardRounds: undefined,
+      matchScoreboard: null,
+    }
+  );
+}
+
 export default async function PlayRoundPage({ params }: PlayPageProps) {
   const { id } = await params;
   const roundId = Number(id);
   if (!Number.isInteger(roundId) || roundId <= 0) notFound();
 
-  const [round, currentUser] = await Promise.all([
-    getRoundById(roundId),
-    getCurrentUser(),
-  ]);
-
-  if (!round || !currentUser) notFound();
-  const access = await getRoundAccess(currentUser.id, round.id);
+  const currentUser = await getCurrentUser();
+  if (!currentUser) notFound();
+  const access = await getRoundAccess(currentUser.id, roundId);
   if (!access?.canScore) notFound();
-  const [tournament, match, scorableRounds] = await Promise.all([
-    round.tournamentId == null
-      ? Promise.resolve(null)
-      : getTournamentById(round.tournamentId),
-    round.matchId == null ? Promise.resolve(null) : getMatchById(round.matchId),
-    getScorableRounds(access.otherScorableRoundIds),
-  ]);
+  const play = await readPlayEvent(access.round);
+  const round = play?.rounds.find((candidate) => candidate.id === roundId);
+  if (!play || !round) notFound();
+
+  const scorableRounds = access.otherScorableRoundIds.flatMap(
+    (otherId) => play.rounds.find((candidate) => candidate.id === otherId) ?? [],
+  );
   // A Pairing's card is kept together, so its mates start selected. A Scorer
   // who can't manage the Round has no Settings to pick players from, so every
   // scorable Round starts selected for them.
   const prefillDelegateRoundIds =
-    round.tournamentId != null || !access.canManage
+    play.event?.kind === "tournament" || !access.canManage
       ? access.otherScorableRoundIds
       : undefined;
-
-  const tableRound = {
-    id: round.id,
-    matchId: round.matchId,
-    tournamentId: round.tournamentId,
-    teeId: round.teeId,
-    userId: round.userId,
-    courseName: round.courseName,
-    firstName: round.firstName,
-    lastName: round.lastName,
-    username: round.username,
-    image: round.image,
-    courseSlope: round.courseSlope,
-    recordedStrokesCount: round.recordedStrokesCount,
-    recordedPuttsCount: round.recordedPuttsCount,
-    totalStrokes: round.totalStrokes,
-    totalPutts: round.totalPutts,
-    playerIndexOverride: round.playerIndexOverride,
-    playingHandicap: round.playingHandicap,
-    netStrokes: round.netStrokes,
-    scores: round.scores.map((score) => ({
-      hole: score.hole,
-      par: score.par,
-      handicap: null,
-      strokes: score.strokes,
-      putts: score.putts,
-    })),
-    holes: round.holes.map((hole) => ({
-      hole: hole.hole,
-      par: hole.par,
-      handicap: hole.handicap,
-      yards: hole.yards,
-    })),
-    greenies: round.greenies.map((greenie) => ({
-      hole: greenie.hole,
-      feet: greenie.feet,
-      inches: greenie.inches,
-    })),
-  };
-  const scoreboardRounds =
-    match?.rounds.map((matchRound) => ({
-      id: matchRound.id,
-      matchId: matchRound.matchId,
-      tournamentId: null,
-      teeId: matchRound.teeId,
-      userId: matchRound.userId,
-      courseName: matchRound.courseName,
-      firstName: matchRound.firstName,
-      lastName: matchRound.lastName,
-      username: matchRound.username,
-      image: matchRound.image,
-      recordedStrokesCount: matchRound.recordedStrokesCount,
-      recordedPuttsCount: matchRound.recordedPuttsCount,
-      totalStrokes: matchRound.totalStrokes,
-      totalPutts: matchRound.totalPutts,
-      playerIndexOverride: matchRound.playerIndexOverride,
-      playingHandicap: matchRound.playingHandicap,
-      netStrokes: matchRound.netStrokes,
-      scores: matchRound.scores,
-      holes: matchRound.holes,
-      greenies: matchRound.greenies,
-    })) ?? [];
-  const scoreboardRoundsById = new Map(
-    scoreboardRounds.map((matchRound) => [matchRound.id, matchRound]),
-  );
-  const matchScoreboard = match
-    ? {
-        format: match.format,
-        rounds: scoreboardRounds,
-        teams: match.teams.map((team) => ({
-          id: team.id,
-          name: team.name,
-          rounds: team.rounds
-            .map((teamRound) => scoreboardRoundsById.get(teamRound.id))
-            .filter((teamRound) => teamRound != null),
-        })),
-      }
-    : null;
 
   return (
     <main className="flex min-h-[calc(100svh-3.5rem)] flex-col items-center p-5">
       <section className="flex w-full max-w-md flex-1 flex-col gap-6 sm:flex-none">
         <RoundPlay
-          roundId={round.id}
           currentUserId={currentUser.id}
-          tableRound={tableRound}
-          leaderboardRounds={tournament?.rounds}
-          holes={tableRound.holes}
-          tees={round.tees}
+          round={round}
+          event={play.event}
+          course={{ name: play.courseName, ...play.course }}
+          leaderboardRounds={play.leaderboardRounds}
           scorableRounds={scorableRounds}
           prefillDelegateRoundIds={prefillDelegateRoundIds}
           canManage={access.canManage}
-          matchScoreboard={matchScoreboard}
-          courseRecords={
-            <CourseRecords courseId={round.courseId} variant="tabs" />
-          }
+          matchScoreboard={play.matchScoreboard}
+          courseRecords={<CourseRecords courseId={play.courseId} variant="tabs" />}
         />
       </section>
     </main>

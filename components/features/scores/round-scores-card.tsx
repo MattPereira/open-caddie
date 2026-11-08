@@ -41,7 +41,7 @@ export function RoundScoresCard({
   const [metric, setMetric] = useState<ScoreMetric>("strokes");
   const values = row.metrics[metric];
   const greenieHoles = new Set(
-    row.round.greenies?.map((greenie) => greenie.hole) ?? [],
+    row.round.greenies.map((greenie) => greenie.hole),
   );
 
   return (

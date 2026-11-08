@@ -8,16 +8,19 @@ import {
   MatchPlaySection,
   MatchPlayTable,
   type MatchPlayTeamCardProps,
+  type MatchPlayHole,
   type MatchPlayTeamView,
   toMatchPlayView,
 } from "./match-play-shared";
 
 export function FourBallMatchPlayContent({
   teams,
+  holes,
 }: {
   teams: MatchPlayTeamView[];
+  holes: MatchPlayHole[];
 }) {
-  const matchPlay = toMatchPlayView(teams, "four_ball_match_play");
+  const matchPlay = toMatchPlayView(teams, "four_ball_match_play", holes);
 
   return (
     <>

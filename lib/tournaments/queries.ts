@@ -96,20 +96,10 @@ export const getTournamentById = cache(async (tournamentId: number) => {
     return tournament;
   }
 
-  // Tournament holes stay without handicaps until consumers branch on kind:
-  // Skins and Match Play treat a hole handicap as "this is a Match Round".
-  const holes = course.holes.map(({ hole, par }) => ({ hole, par }));
-
   return {
     ...tournament,
-    rounds: tournamentRounds.map((round) => ({
-      ...round,
-      courseHandle: tournament.courseHandle,
-      courseName: tournament.courseName,
-      courseImgUrl: tournament.courseImgUrl,
-      holes,
-      tees: course.tees,
-    })),
+    course,
+    rounds: tournamentRounds,
     greenies: eventGreenies(tournamentRounds),
   };
 });

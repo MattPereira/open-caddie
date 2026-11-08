@@ -3,14 +3,17 @@ import {
   MatchPlayRules,
   MatchPlaySection,
   MatchPlayTable,
+  type MatchPlayHole,
   type MatchPlayTeamView,
   toMatchPlayView,
 } from "./match-play-shared";
 
 export function ThreeBallMatchPlayContent({
   teams,
+  holes,
 }: {
   teams: MatchPlayTeamView[];
+  holes: MatchPlayHole[];
 }) {
   return (
     <>
@@ -25,6 +28,7 @@ export function ThreeBallMatchPlayContent({
           const matchPlay = toMatchPlayView(
             [firstTeam, secondTeam],
             "singles_match_play",
+            holes,
           );
 
           return (

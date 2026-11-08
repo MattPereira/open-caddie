@@ -1,7 +1,6 @@
-import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
+import type { MatchFormat } from "@/app/(app)/matches/schema";
 import { calculateNetStrokes } from "@/lib/handicap";
-
-import type { MatchScoreboard, ScorableRound } from "./round-play";
+import type { CourseHole, DisplayRound } from "@/lib/rounds/reads";
 
 // Converts server Round snapshots into per-hole score entries for the live
 // scorecard, and projects those entries back onto Rounds so the score grid and
@@ -18,38 +17,60 @@ export type ScoreEntry = {
 
 export type ScoresByRoundId = Record<number, ScoreEntry[]>;
 
-type Hole = { hole: number; par: number; yards: number | null };
+/** What the projection reads and rewrites of a Round. */
+export type LiveRound = Pick<
+  DisplayRound,
+  | "id"
+  | "playingHandicap"
+  | "totalStrokes"
+  | "totalPutts"
+  | "recordedStrokesCount"
+  | "recordedPuttsCount"
+  | "netStrokes"
+> & {
+  scores: Pick<
+    DisplayRound["scores"][number],
+    "hole" | "par" | "strokes" | "putts"
+  >[];
+};
+
+export type MatchScoreboard<R extends LiveRound> = {
+  format: MatchFormat;
+  rounds: R[];
+  teams: { id: number; name: string; rounds: R[] }[];
+};
+
+type ScoredRound = Pick<LiveRound, "id" | "scores"> &
+  Pick<DisplayRound, "yards">;
 
 export const HOLE_NUMBERS = Array.from({ length: 18 }, (_, i) => i + 1);
 
-// Every scorable Round is included, selected or not, so deselecting a column
-// never interrupts refresh reconciliation and mates stay live on scoreboards.
+// Pass this Round and every Round the Scorer may score, selected or not, so
+// deselecting a column never interrupts refresh reconciliation and mates stay
+// live on scoreboards.
 export function buildScoreBase(
-  round: RoundScoresTableRound,
-  scorableRounds: Pick<ScorableRound, "roundId" | "scores">[],
-  holes: Hole[],
+  rounds: ScoredRound[],
+  holes: Pick<CourseHole, "hole" | "par">[],
 ): ScoresByRoundId {
-  const base: ScoresByRoundId = {
-    [round.id]: toScoreEntries(round.scores, holes),
-  };
-  for (const scorable of scorableRounds) {
-    base[scorable.roundId] = toScoreEntries(scorable.scores, holes);
+  const base: ScoresByRoundId = {};
+  for (const round of rounds) {
+    base[round.id] = toScoreEntries(round, holes);
   }
   return base;
 }
 
-export function projectLiveRounds({
+export function projectLiveRounds<R extends LiveRound>({
   round,
   leaderboardRounds,
   matchScoreboard,
   scoresByRoundId,
 }: {
-  round: RoundScoresTableRound;
-  leaderboardRounds: RoundScoresTableRound[] | undefined;
-  matchScoreboard: MatchScoreboard | null;
+  round: R;
+  leaderboardRounds: R[] | undefined;
+  matchScoreboard: MatchScoreboard<R> | null;
   scoresByRoundId: ScoresByRoundId;
 }) {
-  const project = (target: RoundScoresTableRound) => {
+  const project = (target: R) => {
     const scores = scoresByRoundId[target.id];
     return scores ? projectLiveRound(target, scores) : target;
   };
@@ -61,7 +82,9 @@ export function projectLiveRounds({
   };
 }
 
-export function isRoundComplete(round: RoundScoresTableRound) {
+export function isRoundComplete(
+  round: Pick<LiveRound, "recordedStrokesCount" | "recordedPuttsCount">,
+) {
   return (
     round.recordedStrokesCount === HOLE_NUMBERS.length &&
     round.recordedPuttsCount === HOLE_NUMBERS.length
@@ -69,18 +92,18 @@ export function isRoundComplete(round: RoundScoresTableRound) {
 }
 
 function toScoreEntries(
-  roundScores: RoundScoresTableRound["scores"],
-  holes: Hole[],
+  round: ScoredRound,
+  holes: Pick<CourseHole, "hole" | "par">[],
 ): ScoreEntry[] {
-  const scoreByHole = new Map(roundScores.map((s) => [s.hole, s]));
-  const holeByNumber = new Map(holes.map((h) => [h.hole, h]));
+  const scoreByHole = new Map(round.scores.map((s) => [s.hole, s]));
+  const parByHole = new Map(holes.map((h) => [h.hole, h.par]));
+  const yardsByHole = new Map(round.yards.map((y) => [y.hole, y.yards]));
   return HOLE_NUMBERS.map((hole) => {
     const existing = scoreByHole.get(hole);
-    const courseHole = holeByNumber.get(hole);
     return {
       hole,
-      par: existing?.par ?? courseHole?.par ?? null,
-      yards: courseHole?.yards ?? null,
+      par: existing?.par ?? parByHole.get(hole) ?? null,
+      yards: yardsByHole.get(hole) ?? null,
       strokes: existing?.strokes ?? null,
       putts: existing?.putts ?? null,
     };
@@ -88,10 +111,10 @@ function toScoreEntries(
 }
 
 // Totals mirror the round_summaries view: sums over recorded holes.
-function projectLiveRound(
-  round: RoundScoresTableRound,
+function projectLiveRound<R extends LiveRound>(
+  round: R,
   scores: ScoreEntry[],
-): RoundScoresTableRound {
+): R {
   const totalStrokes = scores.reduce((s, x) => s + (x.strokes ?? 0), 0);
   const totalPutts = scores.reduce((s, x) => s + (x.putts ?? 0), 0);
   const recordedStrokesCount = scores.filter((s) => s.strokes != null).length;
@@ -117,10 +140,10 @@ function projectLiveRound(
   };
 }
 
-function projectMatchScoreboard(
-  scoreboard: MatchScoreboard,
-  project: (round: RoundScoresTableRound) => RoundScoresTableRound,
-): MatchScoreboard {
+function projectMatchScoreboard<R extends LiveRound>(
+  scoreboard: MatchScoreboard<R>,
+  project: (round: R) => R,
+): MatchScoreboard<R> {
   const rounds = scoreboard.rounds.map(project);
   const roundsById = new Map(rounds.map((r) => [r.id, r]));
   return {

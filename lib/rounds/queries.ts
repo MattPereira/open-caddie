@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, asc, count, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, count, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
   clubs,
@@ -11,10 +11,6 @@ import {
   users,
 } from "@/db/schema";
 import { readRound } from "@/lib/rounds/reads";
-import {
-  groupByRoundId,
-  readScorecardsByRounds,
-} from "@/lib/rounds/scorecards";
 
 export const getLowestRounds = cache(async (limit = 10) => {
   return db
@@ -73,51 +69,6 @@ export const getRoundsCountByUserId = cache(async (userId: string) => {
   return row?.value ?? 0;
 });
 
-/**
- * The play page's columns for other players: each Round's player and what's on
- * their card, in the order given. Callers pass only Rounds the access read says
- * the viewer may score.
- */
-export const getScorableRounds = cache(async (roundIds: readonly number[]) => {
-  if (roundIds.length === 0) return [];
-
-  const [players, { scores, greenies: greenieRows }] = await Promise.all([
-    db
-      .select({
-        roundId: rounds.id,
-        userId: users.id,
-        firstName: users.firstName,
-        lastName: users.lastName,
-      })
-      .from(rounds)
-      .innerJoin(users, eq(users.id, rounds.userId))
-      .where(inArray(rounds.id, [...roundIds])),
-    readScorecardsByRounds(inArray(rounds.id, [...roundIds])),
-  ]);
-  const playersByRoundId = new Map(
-    players.map((player) => [player.roundId, player]),
-  );
-  const scoresByRoundId = groupByRoundId(scores);
-  const greeniesByRoundId = groupByRoundId(greenieRows);
-
-  // The form wants only what a player enters, not the reader's wider row.
-  return roundIds.flatMap((roundId) => {
-    const player = playersByRoundId.get(roundId);
-    if (!player) return [];
-    return {
-      ...player,
-      scores: (scoresByRoundId.get(roundId) ?? []).map(
-        ({ hole, par, strokes, putts }) => ({ hole, par, strokes, putts }),
-      ),
-      greenies: (greeniesByRoundId.get(roundId) ?? []).map(
-        ({ hole, feet, inches }) => ({ hole, feet, inches }),
-      ),
-    };
-  });
-});
-
-export type ScorableRound = Awaited<ReturnType<typeof getScorableRounds>>[number];
-
 export const getRoundById = cache(async (roundId: number) => {
   const [[header], read] = await Promise.all([
     db
@@ -141,20 +92,5 @@ export const getRoundById = cache(async (roundId: number) => {
 
   if (!header || !read) return undefined;
 
-  const [round] = read.rounds;
-  const yardsByHole = new Map(round.yards.map(({ hole, yards }) => [hole, yards]));
-
-  return {
-    ...round,
-    ...header,
-    tournamentId: round.kind === "tournament" ? round.tournamentId : null,
-    matchId: round.kind === "match" ? round.matchId : null,
-    playerIndexOverride:
-      round.kind === "match" ? round.playerIndexOverride : null,
-    holes: read.course.holes.map((hole) => ({
-      ...hole,
-      yards: yardsByHole.get(hole.hole) ?? null,
-    })),
-    tees: read.course.tees,
-  };
+  return { ...read.rounds[0], ...header, course: read.course };
 });

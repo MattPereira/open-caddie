@@ -1,51 +1,27 @@
 import { displayName, getInitials } from "@/lib/players/player-name";
+import type { DisplayRound } from "@/lib/rounds/reads";
 
 const holes = Array.from({ length: 18 }, (_, index) => index + 1);
 
-export type RoundScoresTableRound = {
-  id: number;
-  matchId?: number | null;
-  tournamentId?: number | null;
-  teeId?: number;
-  userId?: string;
-  courseName?: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  username: string | null;
-  image: string | null;
-  courseSlope?: number;
-  recordedStrokesCount: number;
-  recordedPuttsCount: number;
-  totalStrokes: number;
-  totalPutts: number;
-  playerIndexOverride?: string | number | null;
-  playingHandicap: number | null;
-  netStrokes: number | null;
-  scores: {
-    hole: number;
-    par: number | null;
-    handicap?: number | null;
-    strokes: number | null;
-    putts: number | null;
-  }[];
-  holes?: {
-    hole: number;
-    par: number;
-    handicap?: number | null;
-  }[];
-  tees?: {
-    id: number;
-    name: string;
-    color: string | null;
-    rating: string | number;
-    slope: number;
-    totalYards?: number | null;
-  }[];
-  greenies?: {
-    hole: number;
-    feet: number;
-    inches: number;
-  }[];
+export type RoundScoresTableRound = Pick<
+  DisplayRound,
+  | "id"
+  | "firstName"
+  | "lastName"
+  | "username"
+  | "image"
+  | "recordedStrokesCount"
+  | "recordedPuttsCount"
+  | "totalStrokes"
+  | "totalPutts"
+  | "playingHandicap"
+  | "netStrokes"
+> & {
+  scores: Pick<
+    DisplayRound["scores"][number],
+    "hole" | "par" | "strokes" | "putts"
+  >[];
+  greenies: Pick<DisplayRound["greenies"][number], "hole" | "feet" | "inches">[];
 };
 
 export type ScoreMetric = "strokes" | "putts";

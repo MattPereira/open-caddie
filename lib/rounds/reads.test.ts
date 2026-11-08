@@ -293,6 +293,29 @@ if (!testDatabaseUrl) {
       ]);
     });
 
+    it("carries each Round's per-hole scores and Greenies", async () => {
+      const { match, players } = await fixtures.match(2);
+      const mate = players[1];
+      await db.insert(schema.roundScores).values([
+        { roundId: mate.round.id, hole: 1, strokes: 5, putts: 2 },
+        { roundId: mate.round.id, hole: 3, strokes: 3, putts: 1 },
+      ]);
+      await db
+        .insert(schema.greenies)
+        .values({ roundId: mate.round.id, hole: 3, feet: 12, inches: 6 });
+
+      const { rounds } = await reads.readMatchRounds(match.id);
+
+      expect(rounds.find((round) => round.id === mate.round.id)).toMatchObject({
+        userId: mate.user.id,
+        scores: [
+          { hole: 1, par: 4, strokes: 5, putts: 2 },
+          { hole: 3, par: 3, strokes: 3, putts: 1 },
+        ],
+        greenies: [{ hole: 3, feet: 12, inches: 6 }],
+      });
+    });
+
     describe("course data", () => {
       async function yardage(teeId: number, firstHoleYards: number) {
         await db.insert(schema.teeYardages).values(

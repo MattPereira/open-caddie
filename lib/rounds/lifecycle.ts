@@ -134,10 +134,32 @@ export async function deleteRound(
   if (!access?.canScore) return ROUND_NOT_FOUND;
   if (!access.canManage) return CANNOT_DELETE_ROUND;
 
-  const deleted = await db
-    .delete(rounds)
-    .where(eq(rounds.id, roundId))
-    .returning(changedRoundColumns);
+  const deleted = await db.transaction(async (tx) => {
+    const [round] = await tx
+      .select({ tournamentId: rounds.tournamentId, matchId: rounds.matchId })
+      .from(rounds)
+      .where(eq(rounds.id, roundId));
+    if (!round) return [];
+    // FOR SHARE waits out an edit of the event, which reads the event's Rounds
+    // under its FOR UPDATE lock and must not see one vanish mid-edit.
+    if (round.matchId != null) {
+      await tx
+        .select({ id: matches.id })
+        .from(matches)
+        .where(eq(matches.id, round.matchId))
+        .for("share");
+    } else if (round.tournamentId != null) {
+      await tx
+        .select({ id: tournaments.id })
+        .from(tournaments)
+        .where(eq(tournaments.id, round.tournamentId))
+        .for("share");
+    }
+    return tx
+      .delete(rounds)
+      .where(eq(rounds.id, roundId))
+      .returning(changedRoundColumns);
+  });
   if (deleted.length === 0) return ROUND_NOT_FOUND;
 
   invalidateRoundsAddedOrRemoved(deleted);

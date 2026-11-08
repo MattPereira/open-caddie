@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { and, asc, count, desc, eq, gte, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { comparePlayers } from "@/lib/players/player-name";
+import { compareTournamentRanking } from "@/lib/tournaments/results";
 import {
   clubMembers,
   clubs,
@@ -210,7 +210,7 @@ export const getTournamentById = cache(async (tournamentId: number) => {
         };
       }),
     )
-  ).sort(compareTournamentRoundStandings);
+  ).sort(compareTournamentRanking);
 
   return {
     ...tournament,
@@ -283,32 +283,6 @@ export const getRoundsCountByTournamentId = cache(async (tournamentId: number) =
     .where(eq(rounds.tournamentId, tournamentId));
   return row?.value ?? 0;
 });
-
-function compareTournamentRoundStandings<
-  T extends {
-    userId: string;
-    firstName: string | null;
-    lastName: string | null;
-    username: string | null;
-    netStrokes: number | null;
-    totalStrokes: number;
-  },
->(a: T, b: T) {
-  if (a.netStrokes == null && b.netStrokes == null) {
-    return comparePlayers(a, b);
-  }
-
-  if (a.netStrokes == null) return 1;
-  if (b.netStrokes == null) return -1;
-
-  const netCompare = a.netStrokes - b.netStrokes;
-  if (netCompare !== 0) return netCompare;
-
-  const grossCompare = a.totalStrokes - b.totalStrokes;
-  if (grossCompare !== 0) return grossCompare;
-
-  return comparePlayers(a, b);
-}
 
 // Every Tournament Round with the Pairing it belongs to, if any. Both Pairing
 // reads below start here so a Round can never be missing from one and present

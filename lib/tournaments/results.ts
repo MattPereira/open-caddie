@@ -39,12 +39,25 @@ export type FieldSkin<T extends FieldSkinsRound> = {
 export function rankStrokes<T extends StrokesResultRound>(rounds: readonly T[]) {
   return rounds
     .filter((round) => round.isComplete && round.netStrokes != null)
-    .sort(
-      (a, b) =>
-        compareNullableNumbers(a.netStrokes, b.netStrokes) ||
-        a.totalStrokes - b.totalStrokes ||
-        comparePlayers(a, b),
-    );
+    .sort(compareTournamentRanking);
+}
+
+export type RankedRound = ResultsPlayer & {
+  netStrokes: number | null;
+  totalStrokes: number;
+};
+
+/**
+ * Tournament ranking order: Rounds without net strokes last (by player), then
+ * net, then gross, then player. Every leaderboard sorts with this.
+ */
+export function compareTournamentRanking(a: RankedRound, b: RankedRound) {
+  if (a.netStrokes == null && b.netStrokes == null) return comparePlayers(a, b);
+  return (
+    compareNullableNumbers(a.netStrokes, b.netStrokes) ||
+    a.totalStrokes - b.totalStrokes ||
+    comparePlayers(a, b)
+  );
 }
 
 export function rankPutts<T extends PuttsResultRound>(rounds: readonly T[]) {

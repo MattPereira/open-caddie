@@ -2,7 +2,7 @@ import { cache } from "react";
 import { asc, count, desc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { comparePlayers } from "@/lib/players/player-name";
+import { compareTournamentRanking } from "@/lib/tournaments/results";
 import {
   courseHoles,
   courseTees,
@@ -200,7 +200,7 @@ export const getMatchById = cache(async (matchId: number) => {
         greenies: greeniesByRoundId.get(round.id) ?? [],
       };
     })
-    .sort(compareMatchRoundStandings);
+    .sort(compareTournamentRanking);
   const roundsById = new Map(roundsWithScores.map((round) => [round.id, round]));
   const teams = matchTeamRows.reduce<
     {
@@ -237,29 +237,3 @@ export const getMatchById = cache(async (matchId: number) => {
     greenies: matchGreenies,
   };
 });
-
-function compareMatchRoundStandings<
-  T extends {
-    userId: string;
-    firstName: string | null;
-    lastName: string | null;
-    username: string | null;
-    netStrokes: number | null;
-    totalStrokes: number;
-  },
->(a: T, b: T) {
-  if (a.netStrokes == null && b.netStrokes == null) {
-    return comparePlayers(a, b);
-  }
-
-  if (a.netStrokes == null) return 1;
-  if (b.netStrokes == null) return -1;
-
-  const netCompare = a.netStrokes - b.netStrokes;
-  if (netCompare !== 0) return netCompare;
-
-  const grossCompare = a.totalStrokes - b.totalStrokes;
-  if (grossCompare !== 0) return grossCompare;
-
-  return comparePlayers(a, b);
-}

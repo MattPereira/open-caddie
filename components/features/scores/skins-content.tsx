@@ -1,7 +1,6 @@
 import type { HandicapHole, NetScoringRound } from "@/lib/rounds/reads";
 import { TableFrame } from "@/components/shared/responsive-table";
 import {
-  isEligibleSkinsRound,
   toSkinsView,
   type SkinHoleRow,
   type SkinPlayerView,
@@ -24,6 +23,7 @@ import {
 } from "@/components/ui/table";
 import { WinnerCard } from "@/components/domain/winner-card";
 import { cn } from "@/lib/utils";
+import { scoreSkins } from "@/lib/matches";
 
 export function SkinsContent({
   rounds,
@@ -32,9 +32,9 @@ export function SkinsContent({
   rounds: NetScoringRound[];
   holes: HandicapHole[];
 }) {
-  const skinsRounds = rounds.filter(isEligibleSkinsRound);
+  const result = scoreSkins(rounds, holes);
 
-  if (skinsRounds.length < 2) {
+  if (result.status === "unavailable") {
     return (
       <Card className="border-dashed">
         <CardContent className="py-10 text-center">
@@ -47,7 +47,7 @@ export function SkinsContent({
     );
   }
 
-  const skins = toSkinsView(skinsRounds, holes);
+  const skins = toSkinsView(result, rounds);
 
   return (
     <>

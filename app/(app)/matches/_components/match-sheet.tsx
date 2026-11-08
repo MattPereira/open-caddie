@@ -8,10 +8,7 @@ import { Calendar01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { PlayerCard } from "@/components/domain/player-card";
-import {
-  displayName,
-  type PlayerCardPlayer,
-} from "@/lib/players/player-name";
+import { displayName, type PlayerCardPlayer } from "@/lib/players/player-name";
 import { SearchInput } from "@/components/shared/search-input";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -44,15 +41,17 @@ import {
 } from "@/components/shared/sheet-actions";
 import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
+import { matchFormatPolicy } from "@/lib/matches";
 import { createMatch, deleteMatch, updateMatch } from "../actions";
 import {
-  getRequiredPlayerCount,
   MatchCreateSchema,
   MatchFormSchema,
   type MatchCreateValues,
   type MatchFormat,
   type MatchFormValues,
 } from "../schema";
+
+const FOUR_BALL_POLICY = matchFormatPolicy("four_ball_match_play");
 
 export type MatchSheetMatch = {
   id: number;
@@ -169,13 +168,19 @@ function toFormValues(match?: MatchSheetMatch): MatchFormValues {
   if (!match) return emptyDefaults;
   const defaultTeamOneRoundIds =
     match.teams[0]?.rounds.map((round) => round.id) ??
-    (match.format === "four_ball_match_play" && match.rounds.length === 4
-      ? match.rounds.slice(0, 2).map((round) => round.id)
+    (match.format === "four_ball_match_play" &&
+    match.rounds.length === FOUR_BALL_POLICY.playerCount
+      ? match.rounds
+          .slice(0, FOUR_BALL_POLICY.teamSize)
+          .map((round) => round.id)
       : []);
   const defaultTeamTwoRoundIds =
     match.teams[1]?.rounds.map((round) => round.id) ??
-    (match.format === "four_ball_match_play" && match.rounds.length === 4
-      ? match.rounds.slice(2, 4).map((round) => round.id)
+    (match.format === "four_ball_match_play" &&
+    match.rounds.length === FOUR_BALL_POLICY.playerCount
+      ? match.rounds
+          .slice(FOUR_BALL_POLICY.teamSize, FOUR_BALL_POLICY.playerCount)
+          .map((round) => round.id)
       : []);
 
   return {
@@ -184,10 +189,8 @@ function toFormValues(match?: MatchSheetMatch): MatchFormValues {
     format: match.format,
     teeId: match.rounds[0]?.teeId ?? 0,
     playerUserIds: match.rounds.map((round) => round.userId),
-    teamOneUserIds:
-      match.teams[0]?.rounds.map((round) => round.userId) ?? [],
-    teamTwoUserIds:
-      match.teams[1]?.rounds.map((round) => round.userId) ?? [],
+    teamOneUserIds: match.teams[0]?.rounds.map((round) => round.userId) ?? [],
+    teamTwoUserIds: match.teams[1]?.rounds.map((round) => round.userId) ?? [],
     teamOneRoundIds: defaultTeamOneRoundIds,
     teamTwoRoundIds: defaultTeamTwoRoundIds,
   };
@@ -211,7 +214,9 @@ export function MatchSheet({
   const [playerQuery, setPlayerQuery] = useState("");
 
   const form = useForm<MatchFormValues>({
-    resolver: zodResolver(mode === "create" ? MatchCreateSchema : MatchFormSchema),
+    resolver: zodResolver(
+      mode === "create" ? MatchCreateSchema : MatchFormSchema,
+    ),
     defaultValues: toFormValues(match),
   });
   const serverError = form.formState.errors.root?.server?.message;
@@ -246,7 +251,7 @@ export function MatchSheet({
     () => filterPlayers(players, playerQuery.trim().toLowerCase()),
     [players, playerQuery],
   );
-  const requiredPlayerCount = getRequiredPlayerCount(selectedFormat);
+  const requiredPlayerCount = matchFormatPolicy(selectedFormat).playerCount;
   const existingMatchUserIds = useMemo(
     () => new Set(match?.rounds.map((round) => round.userId) ?? []),
     [match],
@@ -254,11 +259,11 @@ export function MatchSheet({
   const canRepairFourBallTeams =
     mode === "edit" &&
     selectedFormat === "four_ball_match_play" &&
-    (match?.rounds.length ?? 0) < 4;
+    (match?.rounds.length ?? 0) < FOUR_BALL_POLICY.playerCount;
   const canAssignExistingTeams =
     mode === "edit" &&
     selectedFormat === "four_ball_match_play" &&
-    match?.rounds.length === 4;
+    match?.rounds.length === FOUR_BALL_POLICY.playerCount;
 
   useEffect(() => {
     if (open) {
@@ -352,18 +357,22 @@ export function MatchSheet({
 
     if (
       format === "four_ball_match_play" &&
-      match?.rounds.length === 4 &&
+      match?.rounds.length === FOUR_BALL_POLICY.playerCount &&
       teamOneRoundIds.length === 0 &&
       teamTwoRoundIds.length === 0
     ) {
       form.setValue(
         "teamOneRoundIds",
-        match.rounds.slice(0, 2).map((round) => round.id),
+        match.rounds
+          .slice(0, FOUR_BALL_POLICY.teamSize)
+          .map((round) => round.id),
         { shouldDirty: true, shouldValidate: false },
       );
       form.setValue(
         "teamTwoRoundIds",
-        match.rounds.slice(2, 4).map((round) => round.id),
+        match.rounds
+          .slice(FOUR_BALL_POLICY.teamSize, FOUR_BALL_POLICY.playerCount)
+          .map((round) => round.id),
         { shouldDirty: true, shouldValidate: false },
       );
     }
@@ -487,7 +496,9 @@ export function MatchSheet({
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent className="flex h-dvh w-full flex-col gap-0 overflow-hidden sm:max-w-md">
         <SheetHeader className="shrink-0">
-          <SheetTitle>{mode === "create" ? "Add match" : "Edit match"}</SheetTitle>
+          <SheetTitle>
+            {mode === "create" ? "Add match" : "Edit match"}
+          </SheetTitle>
           <SheetDescription>
             {mode === "create"
               ? "Schedule a casual match."
@@ -545,8 +556,8 @@ export function MatchSheet({
                         </FormControl>
                         {formatLocked ? (
                           <FormDescription>
-                            Format can only be changed for 2-player,
-                            3-player, or 4-player matches.
+                            Format can only be changed for 2-player, 3-player,
+                            or 4-player matches.
                           </FormDescription>
                         ) : null}
                         <FormMessage />
@@ -620,7 +631,9 @@ export function MatchSheet({
                               <select
                                 className={selectClass}
                                 disabled={disabled || mode === "edit"}
-                                value={field.value === 0 ? "" : String(field.value)}
+                                value={
+                                  field.value === 0 ? "" : String(field.value)
+                                }
                                 onBlur={field.onBlur}
                                 ref={field.ref}
                                 name={field.name}
@@ -742,7 +755,9 @@ export function MatchSheet({
                                             ? "default"
                                             : "outline"
                                         }
-                                        onClick={() => setPlayerTeam(player.id, 1)}
+                                        onClick={() =>
+                                          setPlayerTeam(player.id, 1)
+                                        }
                                       >
                                         Team A
                                       </Button>
@@ -754,7 +769,9 @@ export function MatchSheet({
                                             ? "default"
                                             : "outline"
                                         }
-                                        onClick={() => setPlayerTeam(player.id, 2)}
+                                        onClick={() =>
+                                          setPlayerTeam(player.id, 2)
+                                        }
                                       >
                                         Team B
                                       </Button>

@@ -23,6 +23,7 @@ import {
   type ChangedRound,
 } from "@/lib/rounds/lifecycle";
 import { isAdmin } from "@/lib/users/admin";
+import { matchFormatPolicy } from "./formats";
 
 // Match writes. Plain module: route actions authenticate and parse untrusted
 // input, then pass the session user id in (ADR 0003).
@@ -56,11 +57,7 @@ export type MatchUpdateInput = MatchInput & {
   teamTwoRoundIds: number[];
 };
 
-const MAX_ROUNDS: Record<MatchFormat, number> = {
-  singles_match_play: 2,
-  three_ball_match_play: 3,
-  four_ball_match_play: 4,
-};
+const FOUR_BALL_POLICY = matchFormatPolicy("four_ball_match_play");
 
 export async function createMatch(
   userId: string,
@@ -76,7 +73,10 @@ export async function createMatch(
     return { ok: false, error: "Selected tee does not belong to this course." };
   }
   if (!(await playersExist(playerUserIds))) {
-    return { ok: false, error: "One or more selected players no longer exist." };
+    return {
+      ok: false,
+      error: "One or more selected players no longer exist.",
+    };
   }
 
   try {
@@ -133,10 +133,14 @@ export async function updateMatch(
 
   // Input-only checks for a possible Four-Ball refill, kept out of the
   // transaction so the Match lock is held briefly.
-  const mayRefill = format === "four_ball_match_play" && isFourBallRoster(values);
+  const mayRefill =
+    format === "four_ball_match_play" && isFourBallRoster(values);
   if (mayRefill) {
     if (!(await isTeeForCourse(teeId, courseId))) {
-      return { ok: false, error: "Selected tee does not belong to this course." };
+      return {
+        ok: false,
+        error: "Selected tee does not belong to this course.",
+      };
     }
     if (!(await playersExist(playerUserIds))) {
       return {
@@ -169,7 +173,7 @@ export async function updateMatch(
         if (!plan) {
           return "Four-ball match play requires 4 rounds split into 2 teams.";
         }
-      } else if (matchRounds.length > MAX_ROUNDS[format]) {
+      } else if (matchRounds.length > matchFormatPolicy(format).playerCount) {
         return format === "singles_match_play"
           ? "Singles match play requires 2 or fewer player rounds."
           : "Three-ball match play requires 3 or fewer player rounds.";
@@ -274,11 +278,11 @@ function isFourBallRoster(values: MatchInput) {
   const { playerUserIds, teamOneUserIds, teamTwoUserIds } = values;
   const teamUserIds = [...teamOneUserIds, ...teamTwoUserIds];
   return (
-    new Set(playerUserIds).size === 4 &&
-    playerUserIds.length === 4 &&
-    teamOneUserIds.length === 2 &&
-    teamTwoUserIds.length === 2 &&
-    new Set(teamUserIds).size === 4 &&
+    new Set(playerUserIds).size === FOUR_BALL_POLICY.playerCount &&
+    playerUserIds.length === FOUR_BALL_POLICY.playerCount &&
+    teamOneUserIds.length === FOUR_BALL_POLICY.teamSize &&
+    teamTwoUserIds.length === FOUR_BALL_POLICY.teamSize &&
+    new Set(teamUserIds).size === FOUR_BALL_POLICY.playerCount &&
     teamUserIds.every((u) => playerUserIds.includes(u))
   );
 }
@@ -296,14 +300,14 @@ function planFourBallTeams(
   matchRounds: { id: number; userId: string }[],
   isRoster: boolean,
 ): FourBallPlan | null {
-  if (matchRounds.length === 4) {
+  if (matchRounds.length === FOUR_BALL_POLICY.playerCount) {
     const { teamOneRoundIds, teamTwoRoundIds } = values;
     const selected = [...teamOneRoundIds, ...teamTwoRoundIds];
     const matchRoundIds = new Set(matchRounds.map((r) => r.id));
     const fits =
-      teamOneRoundIds.length === 2 &&
-      teamTwoRoundIds.length === 2 &&
-      new Set(selected).size === 4 &&
+      teamOneRoundIds.length === FOUR_BALL_POLICY.teamSize &&
+      teamTwoRoundIds.length === FOUR_BALL_POLICY.teamSize &&
+      new Set(selected).size === FOUR_BALL_POLICY.playerCount &&
       selected.every((roundId) => matchRoundIds.has(roundId));
     return fits ? { teamRoundIds: [teamOneRoundIds, teamTwoRoundIds] } : null;
   }

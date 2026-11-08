@@ -1,6 +1,7 @@
 import { displayName, getInitials } from "@/lib/players/player-name";
 import type { ReactNode } from "react";
 import { TableFrame } from "@/components/shared/responsive-table";
+import type { NetScoringRound } from "@/lib/rounds/reads";
 import { WinnerCard } from "@/components/domain/winner-card";
 import {
   Accordion,
@@ -18,11 +19,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { evaluateMatchPlay, type MatchPlayStatus } from "@/lib/matches";
-import type { HandicapHole, NetScoringRound } from "@/lib/rounds/reads";
+import type { MatchPlayStatus, ScoredContest } from "@/lib/matches";
 import { cn } from "@/lib/utils";
-import type { MatchFormat } from "../../schema";
-import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
 export type MatchPlayTeamView = {
   id: string;
@@ -32,6 +30,7 @@ export type MatchPlayTeamView = {
   image: string | null;
   rounds: NetScoringRound[];
   receivedStrokes: number;
+  holesWon: number;
 };
 
 export type StoredMatchPlayTeam = {
@@ -40,8 +39,10 @@ export type StoredMatchPlayTeam = {
   rounds: NetScoringRound[];
 };
 
-type MatchPlayHoleView = ReturnType<typeof toMatchPlayView>["holes"][number];
-export type MatchPlayView = ReturnType<typeof toMatchPlayView>;
+type MatchPlayHoleView = ScoredContest["holes"][number];
+export type MatchPlayView = Omit<ScoredContest, "teams"> & {
+  teams: MatchPlayTeamView[];
+};
 
 export type TeamTone = "winning" | "losing" | "neutral";
 
@@ -82,10 +83,9 @@ export function MatchPlayCardRow({
     const primaryValue = formatTeamMatchStatus(team, matchPlay.finalStatus);
     const primaryLabel = formatMatchStatusSubtext({
       team,
-      status: matchPlay.finalStatus,
-      holesCompleted: matchPlay.holesCompleted,
+      matchPlay,
     });
-    const secondary = formatTeamSecondary(team, matchPlay.holes);
+    const secondary = formatTeamSecondary(team);
     const tone = getTeamTone(team, matchPlay.finalStatus);
 
     if (renderTeamCard) {
@@ -477,82 +477,46 @@ function NetScore({
   );
 }
 
+/** Join semantic results to names, images and labels for rendering. */
 export function toMatchPlayView(
-  teams: MatchPlayTeamView[],
-  format: MatchFormat,
-  holes: HandicapHole[],
-) {
-  const allowance = format === "four_ball_match_play" ? 0.9 : 1;
-  const result = evaluateMatchPlay(
-    teams.map((team) => ({
-      id: team.id,
-      players: team.rounds.map((round) => ({
-        id: round.id,
-        playingHandicap: round.playingHandicap,
-        scores: toMatchPlayScores(round, holes),
-      })),
-    })),
-    {
-      allowance,
-    },
+  contest: ScoredContest,
+  rounds: NetScoringRound[],
+  storedTeams: StoredMatchPlayTeam[],
+): MatchPlayView {
+  const roundsById = new Map(
+    [...rounds, ...storedTeams.flatMap((team) => team.rounds)].map((round) => [
+      round.id,
+      round,
+    ]),
   );
-  const holesWithPlayerScores = result.holes.map((hole) => ({
-    ...hole,
-    playerScores: teams.flatMap((team) => {
-      const teamResult = hole.teams.find(
-        (candidate) => candidate.teamId === team.id,
-      );
-      const winningRoundId =
-        hole.winningTeamId === team.id
-          ? (teamResult?.players.find(
-              (player) =>
-                player.netScore != null &&
-                player.netScore === teamResult.netScore,
-            )?.playerId ?? null)
-          : null;
-
-      return team.rounds.map((round) => {
-        const playerResult = teamResult?.players.find(
-          (candidate) => candidate.playerId === round.id,
-        );
-
-        return {
-          roundId: round.id,
-          teamId: team.id,
-          netScore: playerResult?.netScore ?? null,
-          receivedStrokes: playerResult?.receivedStrokes ?? 0,
-          wonHole: round.id === winningRoundId,
-        };
-      });
-    }),
-  }));
-  const teamsWithStrokes = teams.map((team) => {
-    const firstHole = result.holes[0];
-    const totalReceivedStrokes = firstHole
-      ? result.holes.reduce((total, hole) => {
-          const teamResult = hole.teams.find(
-            (candidate) => candidate.teamId === team.id,
-          );
-
-          return total + (teamResult?.receivedStrokes ?? 0);
-        }, 0)
-      : 0;
-
-    return {
-      ...team,
-      receivedStrokes: totalReceivedStrokes,
-    };
-  });
-
-  const holesCompleted = result.holes.filter((hole) =>
-    hole.teams.every((team) => team.netScore != null),
-  ).length;
-
+  const storedTeamsById = new Map(storedTeams.map((team) => [team.id, team]));
   return {
-    teams: teamsWithStrokes,
-    holes: holesWithPlayerScores,
-    finalStatus: result.finalStatus,
-    holesCompleted,
+    ...contest,
+    teams: contest.teams.map((team) => {
+      const teamRounds = team.roundIds.map((id) => roundsById.get(id)!);
+      if (team.side.kind === "team") {
+        const stored = storedTeamsById.get(team.side.matchTeamId)!;
+        const initials = formatTeamPlayerInitials({ rounds: teamRounds });
+        return {
+          ...team,
+          name: initials,
+          label: formatStoredTeamName(stored.name),
+          initials,
+          image: teamRounds.find((round) => round.image)?.image ?? null,
+          rounds: teamRounds,
+        };
+      }
+      const round = teamRounds[0];
+      const name = displayName({ ...round, email: null });
+      return {
+        ...team,
+        name,
+        label: round.firstName || name.split(" ")[0] || name,
+        initials: getInitials({ ...round, email: null }),
+        image: round.image,
+        rounds: teamRounds,
+      };
+    }),
   };
 }
 
@@ -566,29 +530,20 @@ function getTeamTone(
 
 function formatMatchStatusSubtext({
   team,
-  status,
-  holesCompleted,
+  matchPlay,
 }: {
   team: MatchPlayTeamView;
-  status: MatchPlayStatus;
-  holesCompleted: number;
+  matchPlay: MatchPlayView;
 }) {
-  if (holesCompleted === 0) return undefined;
-
-  const holesRemaining = HOLE_COUNT - holesCompleted;
-  const isTied = status.leadingTeamId == null || status.holesUp === 0;
-
-  if (holesRemaining === 0) {
-    return isTied ? "Final" : "Final";
+  if (matchPlay.state === "unstarted") return undefined;
+  if (matchPlay.state === "complete") return "Final";
+  if (
+    matchPlay.state === "closed" &&
+    team.id === matchPlay.finalStatus.leadingTeamId
+  ) {
+    return `${matchPlay.finalStatus.holesUp} & ${matchPlay.holesRemaining}`;
   }
-
-  if (!isTied && status.holesUp > holesRemaining) {
-    return team.id === status.leadingTeamId
-      ? `${status.holesUp} & ${holesRemaining}`
-      : `Thru ${holesCompleted}`;
-  }
-
-  return `Thru ${holesCompleted}`;
+  return `Thru ${matchPlay.holesCompleted}`;
 }
 
 function formatTeamMatchStatus(
@@ -599,93 +554,8 @@ function formatTeamMatchStatus(
   return `${status.holesUp} ${status.leadingTeamId === team.id ? "UP" : "DN"}`;
 }
 
-export function isMatchPlayRound(round: NetScoringRound) {
-  return round.kind === "match";
-}
-
-function toMatchPlayScores(round: NetScoringRound, holes: HandicapHole[]) {
-  const scoresByHole = new Map(
-    round.scores.map((score) => [score.hole, score]),
-  );
-
-  return holes.map((hole) => {
-    const score = scoresByHole.get(hole.hole);
-
-    return {
-      hole: hole.hole,
-      handicap: hole.handicap,
-      strokes: score?.strokes ?? null,
-    };
-  });
-}
-
-export function getMatchPlayTeams({
-  format,
-  rounds,
-  teams,
-}: {
-  format: MatchFormat;
-  rounds: NetScoringRound[];
-  teams: StoredMatchPlayTeam[];
-}) {
-  if (format !== "four_ball_match_play") {
-    const requiredRoundCount = format === "singles_match_play" ? 2 : 3;
-    if (rounds.length !== requiredRoundCount) return null;
-    return rounds.map((round) => {
-      const name = displayName({ ...round, email: null });
-      const label = round.firstName || name.split(" ")[0] || name;
-
-      return {
-        id: round.userId,
-        name,
-        label,
-        initials: getInitials({ ...round, email: null }),
-        image: round.image,
-        rounds: [round],
-        receivedStrokes: 0,
-      };
-    });
-  }
-
-  const matchTeams = teams.map((team) => ({
-    ...team,
-    rounds: team.rounds.filter(isMatchPlayRound),
-  }));
-
-  if (
-    matchTeams.length !== 2 ||
-    matchTeams.some((team) => team.rounds.length !== 2)
-  ) {
-    return null;
-  }
-
-  return matchTeams.map((team) => ({
-    id: String(team.id),
-    name: formatTeamPlayerInitials({ rounds: team.rounds }),
-    label: formatStoredTeamName(team.name),
-    initials: formatTeamPlayerInitials({ rounds: team.rounds }),
-    image: team.rounds.find((round) => round.image)?.image ?? null,
-    rounds: team.rounds,
-    receivedStrokes: 0,
-  }));
-}
-
-function formatTeamSecondary(
-  team: MatchPlayTeamView,
-  holes: MatchPlayHoleView[],
-) {
-  const holesWon = holes.reduce(
-    (count, hole) =>
-      count +
-      (hole.playerScores.some(
-        (score) => score.teamId === team.id && score.wonHole,
-      )
-        ? 1
-        : 0),
-    0,
-  );
-
-  return `${holesWon} ${holesWon === 1 ? "hole" : "holes"} won`;
+function formatTeamSecondary(team: MatchPlayTeamView) {
+  return `${team.holesWon} ${team.holesWon === 1 ? "hole" : "holes"} won`;
 }
 
 function formatRoundLabel(round: NetScoringRound) {

@@ -1,29 +1,22 @@
-import type { HandicapHole } from "@/lib/rounds/reads";
 import {
   MatchPlayCardRow,
   MatchPlayRules,
   MatchPlaySection,
   MatchPlayTable,
-  type MatchPlayTeamView,
-  toMatchPlayView,
+  type MatchPlayView,
 } from "./match-play-shared";
 
 export function SinglesMatchPlayContent({
-  teams,
-  holes,
+  matchPlay,
 }: {
-  teams: MatchPlayTeamView[];
-  holes: HandicapHole[];
+  matchPlay: MatchPlayView;
 }) {
-  const matchPlay = toMatchPlayView(teams, "singles_match_play", holes);
-
   return (
     <>
       <MatchPlayRules>
-        Singles match play compares net scores hole by hole. The
-        lowest-handicap player gets no strokes. The other player gets their
-        handicap difference, applied one stroke at a time on the hardest
-        handicap holes.
+        Singles match play compares net scores hole by hole. The lowest-handicap
+        player gets no strokes. The other player gets their handicap difference,
+        applied one stroke at a time on the hardest handicap holes.
       </MatchPlayRules>
       <MatchPlaySection title="Head-to-Head">
         <MatchPlayCardRow matchPlay={matchPlay} />

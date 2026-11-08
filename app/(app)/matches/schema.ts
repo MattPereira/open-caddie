@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { matchFormatPolicy } from "@/lib/matches";
 
 export const MatchFormatSchema = z.enum([
   "singles_match_play",
@@ -22,7 +23,7 @@ export const MatchFormSchema = MatchBaseSchema.extend({
 });
 
 export const MatchCreateSchema = MatchFormSchema.superRefine((value, ctx) => {
-  const requiredPlayerCount = getRequiredPlayerCount(value.format);
+  const requiredPlayerCount = matchFormatPolicy(value.format).playerCount;
   const uniquePlayerIds = new Set(value.playerUserIds);
 
   if (value.teeId <= 0) {
@@ -51,22 +52,24 @@ export const MatchCreateSchema = MatchFormSchema.superRefine((value, ctx) => {
 
   if (value.format !== "four_ball_match_play") return;
 
+  const policy = matchFormatPolicy(value.format);
   const teamOneIds = new Set(value.teamOneUserIds);
   const teamTwoIds = new Set(value.teamTwoUserIds);
   const teamIds = [...value.teamOneUserIds, ...value.teamTwoUserIds];
   const selectedIds = new Set(value.playerUserIds);
 
   if (
-    value.teamOneUserIds.length !== 2 ||
-    value.teamTwoUserIds.length !== 2 ||
-    teamOneIds.size !== 2 ||
-    teamTwoIds.size !== 2 ||
-    new Set(teamIds).size !== 4 ||
+    value.teamOneUserIds.length !== policy.teamSize ||
+    value.teamTwoUserIds.length !== policy.teamSize ||
+    teamOneIds.size !== policy.teamSize ||
+    teamTwoIds.size !== policy.teamSize ||
+    new Set(teamIds).size !== policy.playerCount ||
     teamIds.some((userId) => !selectedIds.has(userId))
   ) {
     ctx.addIssue({
       code: "custom",
-      message: "Four-ball teams must split the 4 selected players into 2 teams.",
+      message:
+        "Four-ball teams must split the 4 selected players into 2 teams.",
       path: ["teamOneUserIds"],
     });
   }
@@ -87,9 +90,3 @@ export type MatchUpdateFormValues = z.input<typeof MatchBaseSchema>;
 export type MatchFormat = z.infer<typeof MatchFormatSchema>;
 export type MatchCreateValues = z.infer<typeof MatchCreateSchema>;
 export type MatchUpdateValues = z.infer<typeof MatchUpdateSchema>;
-
-export function getRequiredPlayerCount(format: MatchFormat) {
-  if (format === "singles_match_play") return 2;
-  if (format === "three_ball_match_play") return 3;
-  return 4;
-}

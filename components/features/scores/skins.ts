@@ -1,115 +1,26 @@
-import { evaluateMatchPlay } from "@/lib/matches";
+import type { NetScoringRound } from "@/lib/rounds/reads";
+import type { SkinHoleResult, SkinsScoringResult } from "@/lib/matches";
 import { displayName, getInitials } from "@/lib/players/player-name";
-import type { HandicapHole, NetScoringRound } from "@/lib/rounds/reads";
 
-export type SkinHoleRow = {
-  hole: number;
-  holeHandicap: number | null;
-  winningRoundId: number | null;
-  skinsAwarded: number;
-  players: {
-    roundId: number;
-    netScore: number | null;
-    receivedStrokes: number;
-  }[];
-};
+export type SkinHoleRow = SkinHoleResult;
+export type SkinPlayerView = ReturnType<typeof toSkinsView>["players"][number];
 
-export type SkinPlayerView = {
-  id: number;
-  name: string;
-  initials: string;
-  image: string | null;
-  playingHandicap: number | null;
-  receivedStrokes: number;
-  skinsWon: number;
-};
-
-export function toSkinsView(rounds: NetScoringRound[], holes: HandicapHole[]) {
+/** Add display metadata to the scoring result; game rules live in lib/matches. */
+export function toSkinsView(
+  result: Extract<SkinsScoringResult, { status: "ready" }>,
+  rounds: NetScoringRound[],
+) {
   const roundsById = new Map(rounds.map((round) => [round.id, round]));
-  const playersById = new Map(
-    rounds.map((round) => {
-      const name = displayName({ ...round, email: null });
-
-      return [
-        round.id,
-        {
-          id: round.id,
-          name,
-          initials: getInitials({ ...round, email: null }),
-          image: round.image,
-          playingHandicap: round.playingHandicap,
-          receivedStrokes: 0,
-          skinsWon: 0,
-        },
-      ];
+  return {
+    holes: result.holes,
+    players: result.players.map((player) => {
+      const round = roundsById.get(player.id)!;
+      return {
+        ...player,
+        name: displayName({ ...round, email: null }),
+        initials: getInitials({ ...round, email: null }),
+        image: round.image,
+      };
     }),
-  );
-  const players = rounds.map((round) => playersById.get(round.id)!);
-  const result = evaluateMatchPlay(
-    rounds.map((round) => ({
-      id: round.id,
-      players: [
-        {
-          id: round.id,
-          playingHandicap: round.playingHandicap,
-          scores: toSkinsScores(round, holes),
-        },
-      ],
-    })),
-  );
-  const holeRows: SkinHoleRow[] = [];
-  let pendingSkins = 1;
-
-  for (const hole of result.holes) {
-    const isCompleteHole = hole.teams.every((team) => team.netScore != null);
-    const winningRound =
-      hole.winningTeamId == null
-        ? null
-        : roundsById.get(Number(hole.winningTeamId));
-
-    holeRows.push({
-      hole: hole.hole,
-      holeHandicap: hole.holeHandicap,
-      winningRoundId:
-        hole.winningTeamId == null ? null : Number(hole.winningTeamId),
-      skinsAwarded: winningRound == null ? 0 : pendingSkins,
-      players: hole.teams.map((team) => ({
-        roundId: Number(team.teamId),
-        netScore: team.netScore,
-        receivedStrokes: team.receivedStrokes,
-      })),
-    });
-
-    for (const team of hole.teams) {
-      const player = playersById.get(Number(team.teamId));
-      if (player) player.receivedStrokes += team.receivedStrokes;
-    }
-
-    if (winningRound == null) {
-      if (isCompleteHole) pendingSkins += 1;
-      continue;
-    }
-
-    const winningPlayer = playersById.get(winningRound.id);
-    if (winningPlayer) winningPlayer.skinsWon += pendingSkins;
-    pendingSkins = 1;
-  }
-
-  return { players, holes: holeRows };
-}
-
-export function isEligibleSkinsRound(round: NetScoringRound) {
-  return round.kind === "match" && round.recordedStrokesCount > 0;
-}
-
-function toSkinsScores(round: NetScoringRound, holes: HandicapHole[]) {
-  const scoresByHole = new Map(
-    round.scores.map((score) => [score.hole, score]),
-  );
-
-  return holes.map((hole) => ({
-    hole: hole.hole,
-    handicap: hole.handicap,
-    strokes: scoresByHole.get(hole.hole)?.strokes ?? null,
-  }));
+  };
 }

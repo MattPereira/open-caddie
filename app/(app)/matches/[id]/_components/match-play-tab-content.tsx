@@ -2,12 +2,9 @@ import type { HandicapHole, NetScoringRound } from "@/lib/rounds/reads";
 import { Card, CardContent } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 import type { MatchFormat } from "../../schema";
+import { scoreMatchPlay } from "@/lib/matches";
 import { FourBallMatchPlayContent } from "./four-ball-match-play";
-import {
-  getMatchPlayTeams,
-  isMatchPlayRound,
-  type StoredMatchPlayTeam,
-} from "./match-play-shared";
+import { toMatchPlayView, type StoredMatchPlayTeam } from "./match-play-shared";
 import { SinglesMatchPlayContent } from "./singles-match-play";
 import { ThreeBallMatchPlayContent } from "./three-ball-match-play";
 
@@ -47,25 +44,19 @@ export function MatchPlayContent({
   holes: HandicapHole[];
   teams?: StoredMatchPlayTeam[];
 }) {
-  const matchPlayTeams = getMatchPlayTeams({
-    format,
-    rounds: rounds.filter(isMatchPlayRound),
-    teams,
-  });
+  const result = scoreMatchPlay({ format, rounds, teams, holes });
+  if (result.status === "unavailable") return <MatchPlayUnavailable />;
 
-  if (!matchPlayTeams) {
-    return <MatchPlayUnavailable />;
-  }
-
+  const matches = result.contests.map((contest) =>
+    toMatchPlayView(contest, rounds, teams),
+  );
   if (format === "three_ball_match_play") {
-    return <ThreeBallMatchPlayContent teams={matchPlayTeams} holes={holes} />;
+    return <ThreeBallMatchPlayContent matches={matches} />;
   }
-
   if (format === "four_ball_match_play") {
-    return <FourBallMatchPlayContent teams={matchPlayTeams} holes={holes} />;
+    return <FourBallMatchPlayContent matchPlay={matches[0]} />;
   }
-
-  return <SinglesMatchPlayContent teams={matchPlayTeams} holes={holes} />;
+  return <SinglesMatchPlayContent matchPlay={matches[0]} />;
 }
 
 function MatchPlayUnavailable() {

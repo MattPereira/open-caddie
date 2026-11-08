@@ -1,19 +1,15 @@
-import type { HandicapHole } from "@/lib/rounds/reads";
 import {
   MatchPlayCardRow,
   MatchPlayRules,
   MatchPlaySection,
   MatchPlayTable,
-  type MatchPlayTeamView,
-  toMatchPlayView,
+  type MatchPlayView,
 } from "./match-play-shared";
 
 export function ThreeBallMatchPlayContent({
-  teams,
-  holes,
+  matches,
 }: {
-  teams: MatchPlayTeamView[];
-  holes: HandicapHole[];
+  matches: MatchPlayView[];
 }) {
   return (
     <>
@@ -24,16 +20,10 @@ export function ThreeBallMatchPlayContent({
         C. Each pairing is scored independently using singles match play.
       </MatchPlayRules>
       <div className="grid grid-cols-1 gap-6">
-        {getThreeBallPairings(teams).map(([firstTeam, secondTeam]) => {
-          const matchPlay = toMatchPlayView(
-            [firstTeam, secondTeam],
-            "singles_match_play",
-            holes,
-          );
-
+        {matches.map((matchPlay) => {
           return (
             <section
-              key={`${firstTeam.id}-${secondTeam.id}`}
+              key={JSON.stringify(matchPlay.teams.map((team) => team.id))}
               className="grid gap-3"
             >
               <MatchPlaySection title="Head-to-Head">
@@ -46,12 +36,4 @@ export function ThreeBallMatchPlayContent({
       </div>
     </>
   );
-}
-
-function getThreeBallPairings(teams: MatchPlayTeamView[]) {
-  return [
-    [teams[0], teams[1]],
-    [teams[0], teams[2]],
-    [teams[1], teams[2]],
-  ] as const;
 }

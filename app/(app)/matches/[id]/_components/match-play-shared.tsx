@@ -19,11 +19,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { MatchPlayStatus, ScoredContest } from "@/lib/matches/scoring";
+import type { MatchPlayStatus, ScoredContest } from "@/lib/matches";
 import { cn } from "@/lib/utils";
-import type { MatchFormat } from "../../schema";
-
-type MatchPlayRound = NetScoringRound;
 
 export type MatchPlayTeamView = {
   id: string;
@@ -31,7 +28,7 @@ export type MatchPlayTeamView = {
   label: string;
   initials: string;
   image: string | null;
-  rounds: MatchPlayRound[];
+  rounds: NetScoringRound[];
   receivedStrokes: number;
   holesWon: number;
 };
@@ -485,7 +482,6 @@ export function toMatchPlayView(
   contest: ScoredContest,
   rounds: NetScoringRound[],
   storedTeams: StoredMatchPlayTeam[],
-  format: MatchFormat,
 ): MatchPlayView {
   const roundsById = new Map(
     [...rounds, ...storedTeams.flatMap((team) => team.rounds)].map((round) => [
@@ -493,19 +489,19 @@ export function toMatchPlayView(
       round,
     ]),
   );
+  const storedTeamsById = new Map(storedTeams.map((team) => [team.id, team]));
   return {
     ...contest,
     teams: contest.teams.map((team) => {
       const teamRounds = team.roundIds.map((id) => roundsById.get(id)!);
-      if (format === "four_ball_match_play") {
-        const stored = storedTeams.find(
-          (candidate) => String(candidate.id) === team.id,
-        )!;
+      if (team.side.kind === "team") {
+        const stored = storedTeamsById.get(team.side.matchTeamId)!;
+        const initials = formatTeamPlayerInitials({ rounds: teamRounds });
         return {
           ...team,
-          name: formatTeamPlayerInitials({ rounds: teamRounds }),
+          name: initials,
           label: formatStoredTeamName(stored.name),
-          initials: formatTeamPlayerInitials({ rounds: teamRounds }),
+          initials,
           image: teamRounds.find((round) => round.image)?.image ?? null,
           rounds: teamRounds,
         };
@@ -562,16 +558,16 @@ function formatTeamSecondary(team: MatchPlayTeamView) {
   return `${team.holesWon} ${team.holesWon === 1 ? "hole" : "holes"} won`;
 }
 
-function formatRoundLabel(round: MatchPlayRound) {
+function formatRoundLabel(round: NetScoringRound) {
   const name = displayName({ ...round, email: null });
   return round.firstName || name.split(" ")[0] || name;
 }
 
-function formatRoundInitials(round: MatchPlayRound) {
+function formatRoundInitials(round: NetScoringRound) {
   return getInitials({ ...round, email: null });
 }
 
-function formatTeamPlayerInitials(team: { rounds: MatchPlayRound[] }) {
+function formatTeamPlayerInitials(team: { rounds: NetScoringRound[] }) {
   return team.rounds
     .map((round) => getInitials({ ...round, email: null }))
     .join(" · ");

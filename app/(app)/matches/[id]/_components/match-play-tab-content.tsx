@@ -2,7 +2,7 @@ import type { HandicapHole, NetScoringRound } from "@/lib/rounds/reads";
 import { Card, CardContent } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 import type { MatchFormat } from "../../schema";
-import { scoreMatchPlay } from "@/lib/matches/scoring";
+import { scoreMatchPlay } from "@/lib/matches";
 import { FourBallMatchPlayContent } from "./four-ball-match-play";
 import { toMatchPlayView, type StoredMatchPlayTeam } from "./match-play-shared";
 import { SinglesMatchPlayContent } from "./singles-match-play";
@@ -48,7 +48,7 @@ export function MatchPlayContent({
   if (result.status === "unavailable") return <MatchPlayUnavailable />;
 
   const matches = result.contests.map((contest) =>
-    toMatchPlayView(contest, rounds, teams, format),
+    toMatchPlayView(contest, rounds, teams),
   );
   if (format === "three_ball_match_play") {
     return <ThreeBallMatchPlayContent matches={matches} />;

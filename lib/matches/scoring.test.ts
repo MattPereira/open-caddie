@@ -81,6 +81,33 @@ describe("scoreMatchPlay", () => {
     },
   );
 
+  it("identifies each contest side as a Match team or a player", () => {
+    const fourBall = scoreMatchPlay({
+      holes,
+      format: "four_ball_match_play",
+      rounds: [],
+      teams: [
+        { id: 10, rounds: [round(1, 0), round(2, 0)] },
+        { id: 20, rounds: [round(3, 0), round(4, 0)] },
+      ],
+    });
+    const singles = scoreMatchPlay({
+      holes,
+      format: "singles_match_play",
+      rounds: [round(1, 0), round(2, 0)],
+    });
+    if (fourBall.status !== "ready" || singles.status !== "ready")
+      throw new Error("Expected ready Match Play");
+    expect(fourBall.contests[0].teams.map((team) => team.side)).toEqual([
+      { kind: "team", matchTeamId: 10 },
+      { kind: "team", matchTeamId: 20 },
+    ]);
+    expect(singles.contests[0].teams.map((team) => team.side)).toEqual([
+      { kind: "player", userId: "player-1" },
+      { kind: "player", userId: "player-2" },
+    ]);
+  });
+
   it("reports unavailable when Four-Ball teams are incomplete", () => {
     expect(
       scoreMatchPlay({

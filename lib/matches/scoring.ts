@@ -16,8 +16,14 @@ export type ScoringHole = { hole: number; handicap: number | null };
 
 export type ScoringTeam = { id: number; rounds: ScoringRound[] };
 
+/** Who a contest side is, so views can label it without re-deriving format. */
+export type MatchPlaySide =
+  | { kind: "team"; matchTeamId: number }
+  | { kind: "player"; userId: string };
+
 export type ScoredMatchPlayTeam = {
   id: string;
+  side: MatchPlaySide;
   roundIds: number[];
   receivedStrokes: number;
   holesWon: number;
@@ -59,6 +65,7 @@ export function scoreMatchPlay({
   if (format === "four_ball_match_play") {
     const eligibleTeams = teams.map((team) => ({
       id: String(team.id),
+      side: { kind: "team" as const, matchTeamId: team.id },
       rounds: team.rounds.filter(isMatchPlayRound),
     }));
     if (
@@ -79,6 +86,7 @@ export function scoreMatchPlay({
   }
   const individualTeams = eligibleRounds.map((round) => ({
     id: round.userId,
+    side: { kind: "player" as const, userId: round.userId },
     rounds: [round],
   }));
   if (format === "three_ball_match_play") {
@@ -210,7 +218,7 @@ function toPlayer(round: ScoringRound, holes: ScoringHole[]): MatchPlayPlayer {
 }
 
 function scoreContest(
-  teams: { id: string; rounds: ScoringRound[] }[],
+  teams: { id: string; side: MatchPlaySide; rounds: ScoringRound[] }[],
   allowance: number,
   courseHoles: ScoringHole[],
 ): ScoredContest {
@@ -256,6 +264,7 @@ function scoreContest(
   return {
     teams: teams.map((team) => ({
       id: team.id,
+      side: team.side,
       roundIds: team.rounds.map((round) => round.id),
       receivedStrokes: holes.reduce(
         (sum, hole) =>

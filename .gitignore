@@ -38,6 +38,9 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# eslint
+.eslintcache
 next-env.d.ts
 
 .env*.local

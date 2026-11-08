@@ -13,6 +13,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Agent worktrees are full copies of the repo; ESLint ignores .gitignore.
+    ".sandcastle/worktrees/**",
+    ".claude/worktrees/**",
   ]),
 ]);
 

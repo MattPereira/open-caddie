@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push to the same PR/branch cancels the run it supersedes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, typecheck, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      # Reads the pnpm version from package.json "packageManager".
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Saved per commit; restores the newest cache from this branch, then main.
+      # Both tools recheck changed files, so a stale cache is safe.
+      - uses: actions/cache@v6
+        with:
+          path: |
+            .eslintcache
+            tsconfig.tsbuildinfo
+          key: lint-tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          restore-keys: |
+            lint-tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      # `!cancelled()` runs every check even if an earlier one fails, so one
+      # push surfaces all failures.
+      - name: Lint
+        if: ${{ !cancelled() }}
+        run: pnpm lint
+
+      - name: Typecheck
+        if: ${{ !cancelled() }}
+        run: pnpm typecheck
+
+      - name: Test
+        if: ${{ !cancelled() }}
+        run: pnpm test

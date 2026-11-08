@@ -41,7 +41,7 @@ import {
 } from "@/components/shared/sheet-actions";
 import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
-import { matchFormatPolicy } from "@/lib/matches/formats";
+import { matchFormatPolicy } from "@/lib/matches";
 import { createMatch, deleteMatch, updateMatch } from "../actions";
 import {
   MatchCreateSchema,

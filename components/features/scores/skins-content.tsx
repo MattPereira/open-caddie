@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { WinnerCard } from "@/components/domain/winner-card";
 import { cn } from "@/lib/utils";
-import { scoreSkins } from "@/lib/matches/scoring";
+import { scoreSkins } from "@/lib/matches";
 
 export function SkinsContent({
   rounds,

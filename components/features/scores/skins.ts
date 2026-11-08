@@ -1,5 +1,5 @@
 import type { NetScoringRound } from "@/lib/rounds/reads";
-import type { SkinHoleResult, SkinsScoringResult } from "@/lib/matches/scoring";
+import type { SkinHoleResult, SkinsScoringResult } from "@/lib/matches";
 import { displayName, getInitials } from "@/lib/players/player-name";
 
 export type SkinHoleRow = SkinHoleResult;

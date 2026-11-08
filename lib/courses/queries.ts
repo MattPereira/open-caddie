@@ -11,6 +11,7 @@ import {
   teeYardages,
   users,
 } from "@/db/schema";
+import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
 export async function getPrimaryTeeIdByCourseId(
   courseId: number,
@@ -213,11 +214,11 @@ export const getCourseByHandle = cache(async (handle: string) => {
 
   const yardagesByTee = new Map<number, (number | null)[]>();
   for (const tee of tees) {
-    yardagesByTee.set(tee.id, Array<number | null>(18).fill(null));
+    yardagesByTee.set(tee.id, Array<number | null>(HOLE_COUNT).fill(null));
   }
   for (const row of yardageRows) {
     const yardages = yardagesByTee.get(row.teeId);
-    if (yardages && row.hole >= 1 && row.hole <= 18) {
+    if (yardages && row.hole >= 1 && row.hole <= HOLE_COUNT) {
       yardages[row.hole - 1] = row.yards;
     }
   }
@@ -237,7 +238,7 @@ export const getCourseByHandle = cache(async (handle: string) => {
       slope: tee.slope,
       sortOrder: tee.sortOrder,
       yardages:
-        yardagesByTee.get(tee.id) ?? Array<number | null>(18).fill(null),
+        yardagesByTee.get(tee.id) ?? Array<number | null>(HOLE_COUNT).fill(null),
     })),
   };
 });
@@ -316,11 +317,11 @@ export const getCourseForEdit = cache(
 
     const yardagesByTee = new Map<number, (number | null)[]>();
     for (const tee of tees) {
-      yardagesByTee.set(tee.id, Array<number | null>(18).fill(null));
+      yardagesByTee.set(tee.id, Array<number | null>(HOLE_COUNT).fill(null));
     }
     for (const row of yardageRows) {
       const arr = yardagesByTee.get(row.teeId);
-      if (arr && row.hole >= 1 && row.hole <= 18) {
+      if (arr && row.hole >= 1 && row.hole <= HOLE_COUNT) {
         arr[row.hole - 1] = row.yards;
       }
     }
@@ -334,7 +335,7 @@ export const getCourseForEdit = cache(
         rating: t.rating,
         slope: t.slope,
         sortOrder: t.sortOrder,
-        yardages: yardagesByTee.get(t.id) ?? Array<number | null>(18).fill(null),
+        yardages: yardagesByTee.get(t.id) ?? Array<number | null>(HOLE_COUNT).fill(null),
       })),
       holes,
     };
@@ -386,6 +387,7 @@ export const getFewestPuttsRoundsByCourseId = cache(
         and(
           eq(roundSummaries.courseId, courseId),
           eq(roundSummaries.isComplete, true),
+          // Mirrors hasAllPutts in lib/rounds/completeness.ts.
           gte(roundSummaries.recordedPuttsCount, 18),
         ),
       )

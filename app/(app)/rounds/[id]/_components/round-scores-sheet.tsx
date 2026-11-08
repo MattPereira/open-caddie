@@ -58,6 +58,7 @@ import type {
   MatchRound,
 } from "@/lib/rounds/reads";
 import { toRoundSheetChanges } from "./round-sheet-changes";
+import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
 
 export type EditableRound = Pick<
   DisplayRound,
@@ -82,7 +83,6 @@ export type EditableCourse = {
   >[];
 };
 
-const holeNumbers = Array.from({ length: 18 }, (_, index) => index + 1);
 export type RoundScoresTab = "tees" | "scores" | "greenies";
 type ScoreTab = "front" | "back";
 const scoreTabs: {
@@ -90,8 +90,8 @@ const scoreTabs: {
   label: string;
   holes: number[];
 }[] = [
-  { value: "front", label: "Front", holes: holeNumbers.slice(0, 9) },
-  { value: "back", label: "Back", holes: holeNumbers.slice(9) },
+  { value: "front", label: "Front", holes: HOLE_NUMBERS.slice(0, 9) },
+  { value: "back", label: "Back", holes: HOLE_NUMBERS.slice(9) },
 ];
 
 function toFormValues(
@@ -112,7 +112,7 @@ function toFormValues(
       round.kind === "match" && round.playerIndexOverride != null
         ? round.playerIndexOverride
         : "",
-    scores: holeNumbers.map((hole) => {
+    scores: HOLE_NUMBERS.map((hole) => {
       const score = scoresByHole.get(hole);
       return {
         hole,

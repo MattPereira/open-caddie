@@ -1,4 +1,5 @@
 import { comparePlayers, type SortablePlayer } from "@/lib/players/player-name";
+import { HOLE_COUNT, HOLE_NUMBERS, hasAllPutts } from "@/lib/rounds/completeness";
 
 type ResultsPlayer = SortablePlayer;
 
@@ -62,7 +63,7 @@ export function compareTournamentRanking(a: RankedRound, b: RankedRound) {
 
 export function rankPutts<T extends PuttsResultRound>(rounds: readonly T[]) {
   return rounds
-    .filter((round) => round.isComplete && round.recordedPuttsCount >= 18)
+    .filter((round) => round.isComplete && hasAllPutts(round))
     .sort(
       (a, b) =>
         a.totalPutts - b.totalPutts ||
@@ -91,7 +92,7 @@ export function fieldSkins<T extends FieldSkinsRound>(
   const completeRounds = rounds.filter((round) => round.isComplete);
   const skins: FieldSkin<T>[] = [];
 
-  for (let hole = 1; hole <= 18; hole++) {
+  for (const hole of HOLE_NUMBERS) {
     const holeScores = completeRounds.flatMap((round) => {
       const score = round.scores.find((s) => s.hole === hole);
       if (score?.strokes == null || score.handicap == null) return [];
@@ -123,7 +124,7 @@ export function fieldSkins<T extends FieldSkinsRound>(
 }
 
 function strokedHoleCount(playingHandicap: number) {
-  return Math.min(18, Math.max(0, Math.floor(playingHandicap / 2)));
+  return Math.min(HOLE_COUNT, Math.max(0, Math.floor(playingHandicap / 2)));
 }
 
 function compareGreenies(a: GreenieResult, b: GreenieResult) {

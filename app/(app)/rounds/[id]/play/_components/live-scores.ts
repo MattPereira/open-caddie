@@ -1,6 +1,7 @@
 import type { MatchFormat } from "@/app/(app)/matches/schema";
 import { calculateNetStrokes } from "@/lib/handicap";
 import type { CourseHole, DisplayRound } from "@/lib/rounds/reads";
+import { HOLE_NUMBERS, isComplete } from "@/lib/rounds/completeness";
 
 // Converts server Round snapshots into per-hole score entries for the live
 // scorecard, and projects those entries back onto Rounds so the score grid and
@@ -43,8 +44,6 @@ export type MatchScoreboard<R extends LiveRound> = {
 type ScoredRound = Pick<LiveRound, "id" | "scores"> &
   Pick<DisplayRound, "yards">;
 
-export const HOLE_NUMBERS = Array.from({ length: 18 }, (_, i) => i + 1);
-
 // Pass this Round and every Round the Scorer may score, selected or not, so
 // deselecting a column never interrupts refresh reconciliation and mates stay
 // live on scoreboards.
@@ -80,15 +79,6 @@ export function projectLiveRounds<R extends LiveRound>({
     leaderboardRounds: leaderboardRounds?.map(project),
     matchScoreboard: matchScoreboard && projectMatchScoreboard(matchScoreboard, project),
   };
-}
-
-export function isRoundComplete(
-  round: Pick<LiveRound, "recordedStrokesCount" | "recordedPuttsCount">,
-) {
-  return (
-    round.recordedStrokesCount === HOLE_NUMBERS.length &&
-    round.recordedPuttsCount === HOLE_NUMBERS.length
-  );
 }
 
 function toScoreEntries(
@@ -128,7 +118,7 @@ function projectLiveRound<R extends LiveRound>(
     recordedPuttsCount,
     netStrokes: calculateNetStrokes({
       totalStrokes,
-      isComplete: recordedStrokesCount === HOLE_NUMBERS.length,
+      isComplete: isComplete({ recordedStrokesCount }),
       playingHandicap: round.playingHandicap,
     }),
     scores: scores.map(({ hole, par, strokes, putts }) => ({

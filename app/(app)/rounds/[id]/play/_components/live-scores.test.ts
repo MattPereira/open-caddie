@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
 import {
-  HOLE_NUMBERS,
   buildScoreBase,
   projectLiveRounds,
   type MatchScoreboard,

@@ -22,6 +22,7 @@ import { evaluateMatchPlay, type MatchPlayStatus } from "@/lib/matches";
 import type { CourseHole, DisplayRound } from "@/lib/rounds/reads";
 import { cn } from "@/lib/utils";
 import type { MatchFormat } from "../../schema";
+import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
 export type MatchPlayRound = Pick<
   DisplayRound,
@@ -588,7 +589,7 @@ function formatMatchStatusSubtext({
 }) {
   if (holesCompleted === 0) return undefined;
 
-  const holesRemaining = 18 - holesCompleted;
+  const holesRemaining = HOLE_COUNT - holesCompleted;
   const isTied = status.leadingTeamId == null || status.holesUp === 0;
 
   if (holesRemaining === 0) {

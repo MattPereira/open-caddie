@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
 export const RoundConfigSchema = z.object({
   courseHandle: z.string().trim().min(1, "Course is required"),
@@ -11,7 +12,7 @@ export type RoundConfigValues = z.infer<typeof RoundConfigSchema>;
 
 // A field left out keeps its stored value; null clears it.
 const holeScoreChangeSchema = z.object({
-  hole: z.number().int().min(1).max(18),
+  hole: z.number().int().min(1).max(HOLE_COUNT),
   strokes: z.number().int().min(1).nullable().optional(),
   putts: z.number().int().min(0).nullable().optional(),
 });
@@ -24,11 +25,11 @@ export type RoundScoreValues = z.infer<typeof RoundScoreSchema>;
 
 export const RoundScorecardChangesSchema = z.object({
   roundId: z.number().int().positive(),
-  scores: z.array(holeScoreChangeSchema).max(18),
+  scores: z.array(holeScoreChangeSchema).max(HOLE_COUNT),
   greenies: z
     .array(
       z.object({
-        hole: z.number().int().min(1).max(18),
+        hole: z.number().int().min(1).max(HOLE_COUNT),
         distance: z
           .object({
             feet: z.number().int().min(0),
@@ -37,7 +38,7 @@ export const RoundScorecardChangesSchema = z.object({
           .nullable(),
       }),
     )
-    .max(18),
+    .max(HOLE_COUNT),
 });
 
 export type RoundScorecardChangesValues = z.infer<
@@ -46,7 +47,7 @@ export type RoundScorecardChangesValues = z.infer<
 
 export const RoundGreenieSchema = z.object({
   roundId: z.number().int().positive(),
-  hole: z.number().int().min(1).max(18),
+  hole: z.number().int().min(1).max(HOLE_COUNT),
   feet: z.number().int().min(0),
   inches: z.number().int().min(0).max(11),
 });
@@ -96,14 +97,14 @@ const optionalPlayerIndex = z
   });
 
 const roundScoreFormEntrySchema = z.object({
-  hole: z.number().int().min(1).max(18),
+  hole: z.number().int().min(1).max(HOLE_COUNT),
   strokes: optionalInt("Strokes", 1),
   putts: optionalInt("Putts", 0),
 });
 
 const roundGreenieFormEntrySchema = z
   .object({
-    hole: z.number().int().min(1).max(18),
+    hole: z.number().int().min(1).max(HOLE_COUNT),
     feet: optionalInt("Feet", 0),
     inches: optionalInt("Inches", 0, 11),
     action: z.enum(["none", "upsert", "delete"]),
@@ -145,7 +146,7 @@ export const RoundSheetFormSchema = z.object({
   playerIndexOverride: optionalPlayerIndex,
   scores: z
     .array(roundScoreFormEntrySchema)
-    .length(18, "Rounds must have 18 holes")
+    .length(HOLE_COUNT, "Rounds must have 18 holes")
     .refine(
       (scores) => scores.every((score, index) => score.hole === index + 1),
       "Hole numbers must be 1 through 18",

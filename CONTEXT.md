@@ -54,18 +54,18 @@ _Avoid_: Unknown tee, temporary tee
 A single prior round's scoring result, adjusted for course difficulty. The raw input to a Player Index.
 
 **Player Index**:
-A player's handicap index. Normally computed as the average of the best 2 of their last 4 Score Differentials, but a round may carry a hand-entered Player Index Override.
+A player's handicap index. For a Tournament Round, computed as the average of the best 2 of their last 4 Score Differentials from the player's complete Tournament Rounds in the same Club; a Match Round instead carries a hand-entered Player Index Override.
 _Avoid_: handicap index, GHIN
 
 **Player Index Override**:
-A Player Index entered by hand on a round — used for casual match play instead of a computed one. Scaled by course slope into a Course Handicap like any Player Index; it is not applied to net strokes directly.
+A Player Index entered by hand on a Match Round — used for casual match play instead of a computed one. Only Match Rounds may carry one. Scaled by course slope into a Course Handicap like any Player Index; it is not applied to net strokes directly.
 _Avoid_: handicap index override, playing handicap override
 
 **Course Handicap**:
 A Player Index scaled to one course's slope — the strokes received on that course. This codebase applies no allowance or rounding.
 
 **Playing Handicap**:
-The Course Handicap actually applied to compute a round's net strokes. Resolved per round: a Player Index Override's Course Handicap takes precedence over a computed one.
+The Course Handicap applied to a Round's net strokes, set by its event: a Tournament Round's comes from its computed Player Index (scratch until it has 2 prior Rounds); a Match Round's from its Player Index Override (scratch if none); a casual Round has none.
 _Avoid_: tournament handicap (a legacy field name for the computed Course Handicap — not a general term; it also appears outside tournaments).
 
 ## Match scoring

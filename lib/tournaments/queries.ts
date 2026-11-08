@@ -18,7 +18,7 @@ import {
   users,
 } from "@/db/schema";
 import { assessHandicap } from "@/lib/handicap";
-import { getPriorClubScoreDifferentials } from "@/lib/rounds/queries";
+import { getPriorClubScoreDifferentialRounds } from "@/lib/rounds/queries";
 import {
   groupByRoundId,
   readGreeniesByRounds,
@@ -187,16 +187,13 @@ export const getTournamentById = cache(async (tournamentId: number) => {
   const roundsWithScores = (
     await Promise.all(
       tournamentRounds.map(async (round) => {
-        const priorScoreDifferentials = await getPriorClubScoreDifferentials({
+        const priorRounds = await getPriorClubScoreDifferentialRounds({
           userId: round.userId,
           clubId: tournament.clubId,
           beforeDate: tournament.date,
         });
-        const { courseHandicap, netStrokes } = assessHandicap({
-          source: {
-            kind: "computed",
-            priorDifferentials: priorScoreDifferentials,
-          },
+        const { playingHandicap, netStrokes } = assessHandicap({
+          source: { kind: "tournament", priorRounds },
           slope: round.courseSlope,
           totalStrokes: round.totalStrokes,
           isComplete: round.isComplete,
@@ -204,7 +201,7 @@ export const getTournamentById = cache(async (tournamentId: number) => {
 
         return {
           ...round,
-          playingHandicap: courseHandicap,
+          playingHandicap,
           netStrokes,
           scores: scoresByRoundId.get(round.id) ?? [],
           holes: tournamentHoles,

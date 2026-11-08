@@ -50,7 +50,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { calculateCourseHandicap } from "@/lib/handicap";
+import { assessHandicap } from "@/lib/handicap";
 import { toRoundSheetChanges } from "./round-sheet-changes";
 
 export type EditableRound = {
@@ -186,12 +186,19 @@ export function RoundScoresSheet({
   const canEditPlayerIndexOverride = round.matchId != null;
   const selectedTee = round.tees.find((tee) => tee.id === teeId);
   const selectedSlope = selectedTee?.slope ?? round.courseSlope;
-  const playerIndex =
-    typeof playerIndexOverride === "number" &&
-    Number.isFinite(playerIndexOverride)
-      ? playerIndexOverride
-      : 0;
-  const courseHandicap = calculateCourseHandicap(playerIndex, selectedSlope);
+  const { playerIndex, courseHandicap } = assessHandicap({
+    source: {
+      kind: "match",
+      playerIndexOverride:
+        typeof playerIndexOverride === "number" &&
+        Number.isFinite(playerIndexOverride)
+          ? playerIndexOverride
+          : null,
+    },
+    slope: selectedSlope,
+    totalStrokes: null,
+    isComplete: false,
+  });
 
   useEffect(() => {
     if (open) {

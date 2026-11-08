@@ -19,7 +19,7 @@ import {
   type GreenieForPoints,
   type RoundScoreForPoints,
 } from "@/lib/clubs/standings/points";
-import { assessHandicap } from "@/lib/handicap";
+import { assessHandicap, type PriorHandicapRound } from "@/lib/handicap";
 import { comparePlayers } from "@/lib/players/player-name";
 import { rankPutts, rankStrokes } from "@/lib/tournaments/results";
 import {
@@ -47,12 +47,7 @@ type StandingUser = {
   image: string | null;
 };
 
-type CompleteDifferentialRound = {
-  id: number;
-  userId: string;
-  date: Date;
-  scoreDifferential: number;
-};
+type CompleteDifferentialRound = PriorHandicapRound & { userId: string };
 
 export type StandingsRound = {
   roundId: number;

@@ -77,9 +77,9 @@ describe("assessHandicap — Tournament Round", () => {
         priorRounds: [
           priorRound(1, "2026-01-01", 1),
           priorRound(2, "2026-01-01", 20),
-          priorRound(3, "2026-01-01", 20),
-          priorRound(4, "2026-01-01", 20),
-          priorRound(5, "2026-01-01", 20),
+          priorRound(3, "2026-01-01", 19),
+          priorRound(4, "2026-01-01", 18),
+          priorRound(5, "2026-01-01", 17),
         ],
       },
       slope: 113,
@@ -87,9 +87,9 @@ describe("assessHandicap — Tournament Round", () => {
       isComplete: true,
     });
 
-    // Round 1 is the oldest by id, so it drops out of the window
-    expect(result.usedPriorRoundIds).not.toContain(1);
-    expect(result.playerIndex).toBe(20);
+    // Round 1 is the oldest by id, so its best differential drops out
+    expect(result.usedPriorRoundIds).toEqual([5, 4]);
+    expect(result.playerIndex).toBe(17.5);
   });
 
   it("plays scratch with fewer than 2 prior Rounds", () => {

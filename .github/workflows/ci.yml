@@ -5,10 +5,13 @@ on:
   push:
     branches: [main]
 
-# A new push to the same PR/branch cancels the run it supersedes.
+permissions:
+  contents: read
+
+# Only PR runs are cancelled by a newer push; every main commit gets a result.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   checks:
@@ -26,11 +29,15 @@ jobs:
           node-version: 24
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install
+        id: install
+        run: pnpm install --frozen-lockfile
 
-      # Saved per commit; restores the newest cache from this branch, then main.
-      # Both tools recheck changed files, so a stale cache is safe.
-      - uses: actions/cache@v6
+      # Restore/save split so red runs still save (actions/cache only saves on
+      # success). Keyed per commit; restores the newest from this branch, then
+      # main. Both tools recheck changed files, so a stale cache is safe.
+      - name: Restore lint/tsc cache
+        uses: actions/cache/restore@v6
         with:
           path: |
             .eslintcache
@@ -39,16 +46,25 @@ jobs:
           restore-keys: |
             lint-tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
 
-      # `!cancelled()` runs every check even if an earlier one fails, so one
-      # push surfaces all failures.
+      # Each check runs even if an earlier one fails, so one push surfaces all
+      # failures. Skipped if install failed, since every check would fail anyway.
       - name: Lint
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm lint
 
       - name: Typecheck
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm typecheck
 
       - name: Test
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm test
+
+      - name: Save lint/tsc cache
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            .eslintcache
+            tsconfig.tsbuildinfo
+          key: lint-tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}

@@ -314,6 +314,30 @@ if (!testDatabaseUrl) {
         expect(revalidatePath).not.toHaveBeenCalled();
       });
 
+      it("waits for an edit of the Round's Match before deleting", async () => {
+        const { match, players } = await fixtures.match(2);
+        const [a] = players;
+        const edit = await holdTransaction((tx) =>
+          tx
+            .select({ id: schema.matches.id })
+            .from(schema.matches)
+            .where(eq(schema.matches.id, match.id))
+            .for("update"),
+        );
+
+        const deletion = lifecycle.deleteRound(a.user.id, a.round.id);
+        try {
+          await waitForLockWaits("matches", 1);
+          expect(await roundRow(a.round.id)).not.toBeNull();
+        } finally {
+          edit.release();
+          await edit.done;
+        }
+
+        expect(await deletion).toEqual({ ok: true });
+        expect(await roundRow(a.round.id)).toBeNull();
+      });
+
       it("reports not found to someone who can't score the Round", async () => {
         const t = await fixtures.tournament();
         const player = await fixtures.tournamentPlayer(t);

@@ -10,6 +10,13 @@ A Club-owned competition belonging to exactly one Season, whose Rounds feed that
 **Round**:
 One player's play of one course on one date, casual or within an event (a Tournament or a Match). A Round's course and date follow its event; its tee starts as the event's and is the player's to change. An event's course cannot change once any Round has scores or Greenies.
 
+**Match**:
+An event created by one player, its creator, holding the Rounds of the players in it. Its format caps its Rounds: Singles at 2, Three-Ball at 3, and Four-Ball needs exactly 4. Only its creator or an admin may change or delete it.
+
+**Match Team**:
+One of the two sides in a Four-Ball Match, each holding two of its Rounds.
+_Avoid_: pair, side
+
 **Season**:
 A numbered, Club-owned collection of Tournaments whose results contribute to one standings table. Numbers begin at 1 and have no calendar meaning; every Tournament belongs to exactly one Season.
 _Avoid_: Tournament group, date range

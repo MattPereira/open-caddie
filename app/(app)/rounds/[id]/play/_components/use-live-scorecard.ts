@@ -20,6 +20,7 @@ import {
 import type { GreenieValue } from "./hole-greenie-manager";
 import type { ScoreEntry } from "./live-scores";
 import type { ScorePatch } from "./score-entry-sheet";
+import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
 
 export type GreenieEntry = GreenieValue & { hole: number };
 
@@ -203,7 +204,7 @@ function readLiveScorecard(state: LiveScorecardState) {
       (greenie) =>
         visibleEdit(state.edits, "greenie", roundId, greenie.hole) == null,
     );
-    for (let hole = 1; hole <= 18; hole += 1) {
+    for (const hole of HOLE_NUMBERS) {
       const edit = visibleEdit(state.edits, "greenie", roundId, hole);
       if (edit?.kind === "greenie" && edit.value != null) {
         merged.push({ hole, ...edit.value });

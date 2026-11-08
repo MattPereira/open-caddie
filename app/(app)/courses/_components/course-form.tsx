@@ -44,13 +44,14 @@ import {
   type TeeFormValues,
 } from "../schema";
 import type { CourseForEdit, CourseForEditTee } from "@/lib/courses/queries";
+import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
 type CourseFormProps = {
   course: CourseForEdit;
 };
 
 const defaultHoles: CourseFormValues["holes"] = Array.from(
-  { length: 18 },
+  { length: HOLE_COUNT },
   (_, index) => ({
     hole: index + 1,
     par: "" as const,
@@ -66,7 +67,7 @@ function teeToFormValues(tee: CourseForEditTee): TeeFormValues {
     rating: tee.rating,
     slope: tee.slope,
     sortOrder: tee.sortOrder,
-    yardages: Array.from({ length: 18 }, (_, index) => {
+    yardages: Array.from({ length: HOLE_COUNT }, (_, index) => {
       const value = tee.yardages[index];
       return value == null ? ("" as const) : value;
     }),
@@ -207,11 +208,11 @@ function ScorecardTable({ control, selectedTeeIndex }: ScorecardTableProps) {
       ? tees.map((_, index) => index)
       : [selectedTeeIndex];
   const outPar = sumPars(holes, 0, 9);
-  const inPar = sumPars(holes, 9, 18);
+  const inPar = sumPars(holes, 9, HOLE_COUNT);
   const totalPar = outPar + inPar;
   const teeTotals = tees.map((tee) => ({
     out: sumYardages(tee?.yardages, 0, 9),
-    in: sumYardages(tee?.yardages, 9, 18),
+    in: sumYardages(tee?.yardages, 9, HOLE_COUNT),
   }));
 
   const renderHoleRow = (index: number) => {
@@ -260,7 +261,7 @@ function ScorecardTable({ control, selectedTeeIndex }: ScorecardTableProps) {
                   <Input
                     type="number"
                     min={1}
-                    max={18}
+                    max={HOLE_COUNT}
                     step={1}
                     className="mx-auto h-8 w-14 text-center tabular-nums"
                     {...field}

@@ -38,10 +38,9 @@ import {
   RoundScoresSheet,
   type EditableRound,
 } from "@/app/(app)/rounds/[id]/_components/round-scores-sheet";
+import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
 
 export type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
-
-const holes = Array.from({ length: 18 }, (_, index) => index + 1);
 
 export type RoundsEditAccess = {
   /** Rounds the viewer is a Scorer of, so may edit from the table. */
@@ -103,7 +102,7 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
               <TableHead className="sticky left-0 z-10 w-36 bg-muted/60">
                 Player
               </TableHead>
-              {holes.slice(0, 9).map((hole) => (
+              {HOLE_NUMBERS.slice(0, 9).map((hole) => (
                 <TableHead
                   key={hole}
                   className={cn(
@@ -118,7 +117,7 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
               <TableHead className="w-9 border-x bg-muted/60 px-1 text-center">
                 Out
               </TableHead>
-              {holes.slice(9).map((hole) => (
+              {HOLE_NUMBERS.slice(9).map((hole) => (
                 <TableHead
                   key={hole}
                   className={cn(

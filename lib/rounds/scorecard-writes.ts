@@ -11,6 +11,7 @@ import {
   type RoundManageFailure,
 } from "./access";
 import { invalidateRoundChanged } from "./lifecycle";
+import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
 // The one write path for a Round's scorecard and settings. Not a
 // "use server" module: it takes the session user id, so exposing it as an
@@ -275,7 +276,7 @@ function isWholeNumberAtLeast(value: number, min: number) {
 }
 
 function isHole(hole: number) {
-  return Number.isInteger(hole) && hole >= 1 && hole <= 18;
+  return Number.isInteger(hole) && hole >= 1 && hole <= HOLE_COUNT;
 }
 
 function isScoreInRange(change: HoleScoreChange) {

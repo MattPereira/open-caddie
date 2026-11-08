@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
 
 type CourseHole = {
   hole: number;
@@ -35,8 +36,6 @@ type CourseTee = {
   slope: number;
   yardages: (number | null)[];
 };
-
-const HOLE_NUMBERS = Array.from({ length: 18 }, (_, i) => i + 1);
 
 export function CourseHolesTable({
   holes,

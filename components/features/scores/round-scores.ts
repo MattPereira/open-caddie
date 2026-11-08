@@ -1,6 +1,5 @@
 import { displayName, getInitials } from "@/lib/players/player-name";
-
-const holes = Array.from({ length: 18 }, (_, index) => index + 1);
+import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
 
 export type RoundScoresTableRound = {
   id: number;
@@ -75,14 +74,14 @@ export function toRoundScoreRow(round: RoundScoresTableRound): RoundScoreRow {
     round,
     playerName: displayName(player),
     initials: getInitials(player),
-    pars: holes.map((hole) => scoresByHole.get(hole)?.par ?? null),
+    pars: HOLE_NUMBERS.map((hole) => scoresByHole.get(hole)?.par ?? null),
     metrics: {
       strokes: toMetricValues(
-        holes.map((hole) => scoresByHole.get(hole)?.strokes ?? null),
+        HOLE_NUMBERS.map((hole) => scoresByHole.get(hole)?.strokes ?? null),
         toRecordedTotal(round.totalStrokes, round.recordedStrokesCount),
       ),
       putts: toMetricValues(
-        holes.map((hole) => scoresByHole.get(hole)?.putts ?? null),
+        HOLE_NUMBERS.map((hole) => scoresByHole.get(hole)?.putts ?? null),
         toRecordedTotal(round.totalPutts, round.recordedPuttsCount),
       ),
     },

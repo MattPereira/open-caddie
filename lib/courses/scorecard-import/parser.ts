@@ -3,6 +3,7 @@ import { generateText, Output, type LanguageModelUsage } from "ai";
 import { z } from "zod";
 
 import { withGatewayFallback } from "@/lib/ai/gateway-fallback";
+import { HOLE_COUNT, HOLE_NUMBERS } from "@/lib/rounds/completeness";
 
 export const DEFAULT_COURSE_SCORECARD_MODEL = "google/gemini-3.1-flash-lite";
 
@@ -39,7 +40,7 @@ export const ScorecardSchema = z.object({
           ),
         yardages: z
           .array(z.number().int())
-          .length(18)
+          .length(HOLE_COUNT)
           .describe("Yardage per hole, holes 1-18 in order."),
         printedOutYards: z
           .number()
@@ -59,19 +60,19 @@ export const ScorecardSchema = z.object({
   holes: z
     .array(
       z.object({
-        hole: z.number().int().min(1).max(18),
+        hole: z.number().int().min(1).max(HOLE_COUNT),
         par: z.number().int().min(3).max(6),
         handicap: z
           .number()
           .int()
           .min(1)
-          .max(18)
+          .max(HOLE_COUNT)
           .describe(
             "Stroke index / handicap for this hole, 1-18 unique across holes.",
           ),
       }),
     )
-    .length(18),
+    .length(HOLE_COUNT),
   printedOutPar: z.number().int().describe("OUT par total exactly as printed."),
   printedInPar: z.number().int().describe("IN par total exactly as printed."),
   printedTotalPar: z
@@ -121,7 +122,7 @@ export function verifySums(parsed: Scorecard): ScorecardWarning[] {
   const issues: ScorecardWarning[] = [];
   const pars = parsed.holes.map((h) => h.par);
   const outPar = sum(pars.slice(0, 9));
-  const inPar = sum(pars.slice(9, 18));
+  const inPar = sum(pars.slice(9, HOLE_COUNT));
   if (outPar !== parsed.printedOutPar)
     issues.push({ scope: "hole", message: `par OUT: summed ${outPar} vs printed ${parsed.printedOutPar}` });
   if (inPar !== parsed.printedInPar)
@@ -133,7 +134,7 @@ export function verifySums(parsed: Scorecard): ScorecardWarning[] {
     });
   for (const tee of parsed.tees) {
     const out = sum(tee.yardages.slice(0, 9));
-    const i = sum(tee.yardages.slice(9, 18));
+    const i = sum(tee.yardages.slice(9, HOLE_COUNT));
     if (out !== tee.printedOutYards)
       issues.push({
         scope: "tee",
@@ -151,8 +152,7 @@ export function verifySums(parsed: Scorecard): ScorecardWarning[] {
       });
   }
   const sis = parsed.holes.map((h) => h.handicap).sort((a, b) => a - b);
-  const expected = Array.from({ length: 18 }, (_, i) => i + 1);
-  if (sis.join(",") !== expected.join(","))
+  if (sis.join(",") !== HOLE_NUMBERS.join(","))
     issues.push({ scope: "hole", message: `handicap not 1-18 unique: got [${sis.join(",")}]` });
   return issues;
 }

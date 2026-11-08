@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
 const teeColorSchema = z
   .string()
@@ -43,14 +44,14 @@ const teeSchema = z.object({
   color: teeColorSchema,
   rating: ratingString,
   slope: requiredInt("Slope", 55, 155),
-  yardages: z.array(yardageCell).length(18, "Tees must have 18 yardages"),
+  yardages: z.array(yardageCell).length(HOLE_COUNT, "Tees must have 18 yardages"),
   sortOrder: z.number().int().nonnegative(),
 });
 
 const holeSchema = z.object({
-  hole: z.number().int().min(1).max(18),
+  hole: z.number().int().min(1).max(HOLE_COUNT),
   par: requiredInt("Par", 2, 7),
-  handicap: requiredInt("Handicap", 1, 18),
+  handicap: requiredInt("Handicap", 1, HOLE_COUNT),
 });
 
 export const CourseFormSchema = z
@@ -70,7 +71,7 @@ export const CourseFormSchema = z
     tees: z.array(teeSchema).min(1, "At least one tee is required"),
     holes: z
       .array(holeSchema)
-      .length(18, "Courses must have 18 holes")
+      .length(HOLE_COUNT, "Courses must have 18 holes")
       .refine(
         (holes) => holes.every((hole, index) => hole.hole === index + 1),
         "Hole numbers must be 1 through 18",
@@ -79,7 +80,7 @@ export const CourseFormSchema = z
         const handicaps = holes
           .map((h) => h.handicap)
           .filter((v): v is number => typeof v === "number");
-        if (handicaps.length !== 18) return true;
+        if (handicaps.length !== HOLE_COUNT) return true;
         const sorted = [...handicaps].sort((a, b) => a - b);
         return sorted.every((v, i) => v === i + 1);
       }, "Handicap values must be 1 through 18 with no duplicates"),

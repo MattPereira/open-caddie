@@ -3,11 +3,12 @@ import { generateText, Output, type LanguageModelUsage } from "ai";
 import { z } from "zod";
 
 import { withGatewayFallback } from "@/lib/ai/gateway-fallback";
+import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
 export const DEFAULT_ROUND_SCORECARD_MODEL = "google/gemini-3.1-flash-lite";
 
 const HoleScoreSchema = z.object({
-  hole: z.number().int().min(1).max(18),
+  hole: z.number().int().min(1).max(HOLE_COUNT),
   strokes: z
     .number()
     .int()
@@ -32,7 +33,7 @@ export const RoundScorecardSchema = z.object({
         roundId: z.number().int().positive(),
         holes: z
           .array(HoleScoreSchema)
-          .length(18)
+          .length(HOLE_COUNT)
           .describe("Hole scores for holes 1-18 in order."),
         printedTotalStrokes: z
           .number()

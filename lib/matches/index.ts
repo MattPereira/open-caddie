@@ -1,4 +1,5 @@
 import type { MatchFormat } from "@/db/schema";
+import { HOLE_COUNT, HOLE_NUMBERS } from "@/lib/rounds/completeness";
 
 const FORMAT_LABELS: Record<MatchFormat, string> = {
   singles_match_play: "Head-to-Head",
@@ -9,8 +10,6 @@ const FORMAT_LABELS: Record<MatchFormat, string> = {
 export function matchFormatLabel(format: MatchFormat | null | undefined) {
   return format ? FORMAT_LABELS[format] : null;
 }
-
-const holes = Array.from({ length: 18 }, (_, index) => index + 1);
 
 export type MatchPlayPlayer = {
   id: string | number;
@@ -76,7 +75,7 @@ export function evaluateMatchPlay(
     teamWins.set(team.id, 0);
   }
 
-  for (const hole of holes) {
+  for (const hole of HOLE_NUMBERS) {
     const teamResults = teams.map((team) => {
       return getTeamHoleResult(team, hole, playerAllowances);
     });
@@ -194,8 +193,8 @@ function getReceivedStrokesOnHole({
   if (holeHandicap == null || totalReceivedStrokes <= 0) return 0;
 
   return (
-    Math.floor(totalReceivedStrokes / 18) +
-    (holeHandicap <= totalReceivedStrokes % 18 ? 1 : 0)
+    Math.floor(totalReceivedStrokes / HOLE_COUNT) +
+    (holeHandicap <= totalReceivedStrokes % HOLE_COUNT ? 1 : 0)
   );
 }
 

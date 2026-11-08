@@ -1,5 +1,6 @@
 import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
 import { calculateNetStrokes } from "@/lib/handicap";
+import { HOLE_NUMBERS, isComplete } from "@/lib/rounds/completeness";
 
 import type { MatchScoreboard, ScorableRound } from "./round-play";
 
@@ -19,8 +20,6 @@ export type ScoreEntry = {
 export type ScoresByRoundId = Record<number, ScoreEntry[]>;
 
 type Hole = { hole: number; par: number; yards: number | null };
-
-export const HOLE_NUMBERS = Array.from({ length: 18 }, (_, i) => i + 1);
 
 // Every scorable Round is included, selected or not, so deselecting a column
 // never interrupts refresh reconciliation and mates stay live on scoreboards.
@@ -61,13 +60,6 @@ export function projectLiveRounds({
   };
 }
 
-export function isRoundComplete(round: RoundScoresTableRound) {
-  return (
-    round.recordedStrokesCount === HOLE_NUMBERS.length &&
-    round.recordedPuttsCount === HOLE_NUMBERS.length
-  );
-}
-
 function toScoreEntries(
   roundScores: RoundScoresTableRound["scores"],
   holes: Hole[],
@@ -105,7 +97,7 @@ function projectLiveRound(
     recordedPuttsCount,
     netStrokes: calculateNetStrokes({
       totalStrokes,
-      isComplete: recordedStrokesCount === HOLE_NUMBERS.length,
+      isComplete: isComplete({ recordedStrokesCount }),
       playingHandicap: round.playingHandicap,
     }),
     scores: scores.map(({ hole, par, strokes, putts }) => ({

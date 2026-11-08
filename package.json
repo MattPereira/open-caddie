@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "check": "pnpm run lint && pnpm run typecheck && pnpm run test",
-    "lint": "eslint --cache --cache-strategy content",
+    "lint": "eslint --cache --cache-strategy content --max-warnings 0",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:integration": "dotenv -e .env.test -- bash -c 'pnpm db:migrate && vitest run'",

@@ -60,6 +60,10 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm test
 
+      - name: Lint workflows
+        if: ${{ !cancelled() }}
+        uses: docker://rhysd/actionlint:1.7.12
+
       - name: Save lint/tsc cache
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         uses: actions/cache/save@v6

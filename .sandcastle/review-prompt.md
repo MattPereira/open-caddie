@@ -47,7 +47,7 @@ Review the code changes on branch `{{BRANCH}}` and improve code clarity, consist
 If you find improvements to make:
 
 1. Make the changes directly on this branch
-2. Run `pnpm typecheck` and `pnpm test` to ensure nothing is broken (this project uses pnpm; never run `npm`)
+2. Run `pnpm check` (lint, typecheck, tests) to ensure nothing is broken (this project uses pnpm; never run `npm`)
 3. Commit describing the refinements
 
 If the code is already clean and well-structured, do nothing.

@@ -13,8 +13,11 @@ import {
   tournaments,
   users,
 } from "@/db/schema";
-import { assessHandicap } from "@/lib/handicap";
-import { calculateNetStrokes } from "@/lib/handicap";
+import {
+  assessHandicap,
+  type HandicapSource,
+  PLAYER_INDEX_ROUND_LIMIT,
+} from "@/lib/handicap";
 import {
   groupByRoundId,
   readGreeniesByRounds,
@@ -220,71 +223,54 @@ export const getRoundById = cache(async (roundId: number) => {
       .orderBy(asc(courseTees.sortOrder), asc(courseTees.id)),
   ]);
 
+  const tournamentClubId =
+    round.tournamentId == null ? null : round.clubId;
   const priorHandicapRounds =
-    round.clubId == null
+    tournamentClubId == null
       ? []
       : await getPriorClubScoreDifferentialRounds({
           userId: round.userId,
-          clubId: round.clubId,
+          clubId: tournamentClubId,
           beforeDate: round.date,
         });
-  const priorScoreDifferentials = priorHandicapRounds.map(
-    (priorRound) => priorRound.scoreDifferential,
-  );
-  const computed = assessHandicap({
-    source: { kind: "computed", priorDifferentials: priorScoreDifferentials },
+  const source: HandicapSource =
+    round.matchId != null
+      ? {
+          kind: "match",
+          playerIndexOverride:
+            round.playerIndexOverride == null
+              ? null
+              : Number(round.playerIndexOverride),
+        }
+      : tournamentClubId != null
+        ? { kind: "tournament", priorRounds: priorHandicapRounds }
+        : { kind: "casual" };
+  const handicap = assessHandicap({
+    source,
     slope: round.courseSlope,
     totalStrokes: round.totalStrokes,
     isComplete: round.isComplete,
   });
-  const override = assessHandicap({
-    source: {
-      kind: "override",
-      playerIndex:
-        round.playerIndexOverride == null
-          ? 0
-          : Number(round.playerIndexOverride),
-    },
-    slope: round.courseSlope,
-    totalStrokes: round.totalStrokes,
-    isComplete: round.isComplete,
-  });
-  const playerIndex = computed.playerIndex;
-  const courseHandicap =
-    round.clubId == null ? null : computed.courseHandicap;
-  const matchHandicap = round.matchId == null ? null : override.courseHandicap;
-  // A Player Index Override's Course Handicap takes precedence over the
-  // computed one when resolving this round's Playing Handicap.
-  const playingHandicap = matchHandicap ?? courseHandicap;
-  const usedPriorRoundIds = new Set(
-    computed.usedDifferentialIndexes.map(
-      (index) => priorHandicapRounds[index].id,
-    ),
-  );
+  const usedPriorRoundIds = new Set(handicap.usedPriorRoundIds);
 
   return {
     ...round,
-    courseHandicap,
-    playingHandicap,
-    netStrokes: calculateNetStrokes({
-      totalStrokes: round.totalStrokes,
-      isComplete: round.isComplete,
-      playingHandicap,
-    }),
+    playingHandicap: handicap.playingHandicap,
+    netStrokes: handicap.netStrokes,
     scores,
     holes,
     tees,
     greenies: roundGreenies,
     handicapDetails:
-      round.tournamentId == null || round.clubId == null
+      source.kind !== "tournament"
         ? null
         : {
             priorRounds: priorHandicapRounds.map((priorRound) => ({
               ...priorRound,
               usedForPlayerIndex: usedPriorRoundIds.has(priorRound.id),
             })),
-            playerIndex,
-            courseHandicap,
+            playerIndex: handicap.playerIndex,
+            courseHandicap: handicap.courseHandicap,
           },
   };
 });
@@ -294,7 +280,7 @@ export const getPriorClubScoreDifferentialRounds = cache(
     userId,
     clubId,
     beforeDate,
-    limit = 4,
+    limit = PLAYER_INDEX_ROUND_LIMIT,
   }: PriorClubScoreDifferentialsParams) => {
     const rows = await db
       .select({
@@ -330,20 +316,3 @@ export const getPriorClubScoreDifferentialRounds = cache(
   },
 );
 
-export const getPriorClubScoreDifferentials = cache(
-  async ({
-    userId,
-    clubId,
-    beforeDate,
-    limit = 4,
-  }: PriorClubScoreDifferentialsParams) => {
-    const rows = await getPriorClubScoreDifferentialRounds({
-      userId,
-      clubId,
-      beforeDate,
-      limit,
-    });
-
-    return rows.map((row) => row.scoreDifferential);
-  },
-);

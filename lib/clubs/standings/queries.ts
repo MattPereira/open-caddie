@@ -19,7 +19,7 @@ import {
   type GreenieForPoints,
   type RoundScoreForPoints,
 } from "@/lib/clubs/standings/points";
-import { assessHandicap } from "@/lib/handicap";
+import { assessHandicap, type PriorHandicapRound } from "@/lib/handicap";
 import { comparePlayers } from "@/lib/players/player-name";
 import { rankPutts, rankStrokes } from "@/lib/tournaments/results";
 import {
@@ -47,12 +47,7 @@ type StandingUser = {
   image: string | null;
 };
 
-type CompleteDifferentialRound = {
-  id: number;
-  userId: string;
-  date: Date;
-  scoreDifferential: number;
-};
+type CompleteDifferentialRound = PriorHandicapRound & { userId: string };
 
 export type StandingsRound = {
   roundId: number;
@@ -261,19 +256,12 @@ export const getSeasonStandings = cache(
     ]);
 
     const roundsWithHandicap = seasonRounds.map((round) => {
-      const priorScoreDifferentials = completeDifferentialRounds
-        .filter(
-          (priorRound) =>
-            priorRound.userId === round.userId && priorRound.date < round.date,
-        )
-        .sort(compareMostRecentDifferentialRounds)
-        .slice(0, 4)
-        .map((priorRound) => priorRound.scoreDifferential);
+      const priorRounds = completeDifferentialRounds.filter(
+        (priorRound) =>
+          priorRound.userId === round.userId && priorRound.date < round.date,
+      );
       const { playerIndex, courseHandicap, netStrokes } = assessHandicap({
-        source: {
-          kind: "computed",
-          priorDifferentials: priorScoreDifferentials,
-        },
+        source: { kind: "tournament", priorRounds },
         slope: round.courseSlope,
         totalStrokes: round.totalStrokes,
         isComplete: round.isComplete,
@@ -433,14 +421,4 @@ function compareRoundPointStandings(a: StandingsRound, b: StandingsRound) {
     { ...a.user, userId: a.userId },
     { ...b.user, userId: b.userId },
   );
-}
-
-
-function compareMostRecentDifferentialRounds(
-  a: CompleteDifferentialRound,
-  b: CompleteDifferentialRound,
-) {
-  const dateCompare = b.date.getTime() - a.date.getTime();
-  if (dateCompare !== 0) return dateCompare;
-  return b.id - a.id;
 }

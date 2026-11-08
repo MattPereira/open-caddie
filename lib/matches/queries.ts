@@ -177,12 +177,12 @@ export const getMatchById = cache(async (matchId: number) => {
 
   const roundsWithScores = matchRounds
     .map((round) => {
-      const { courseHandicap: playingHandicap, netStrokes } = assessHandicap({
+      const { playingHandicap, netStrokes } = assessHandicap({
         source: {
-          kind: "override",
-          playerIndex:
+          kind: "match",
+          playerIndexOverride:
             round.playerIndexOverride == null
-              ? 0
+              ? null
               : Number(round.playerIndexOverride),
         },
         slope: round.courseSlope,

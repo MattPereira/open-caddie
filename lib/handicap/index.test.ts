@@ -2,10 +2,22 @@ import { describe, expect, it } from "vitest";
 
 import { assessHandicap, calculateNetStrokes } from "./index";
 
-describe("assessHandicap", () => {
-  it("derives a Course Handicap and net strokes from a Player Index Override", () => {
+function priorRound(id: number, date: string, scoreDifferential: number) {
+  return { id, date: new Date(date), scoreDifferential };
+}
+
+describe("assessHandicap — Tournament Round", () => {
+  it("computes a Player Index from the best 2 prior differentials", () => {
     const result = assessHandicap({
-      source: { kind: "override", playerIndex: 10 },
+      source: {
+        kind: "tournament",
+        priorRounds: [
+          priorRound(1, "2026-04-01", 12),
+          priorRound(2, "2026-03-01", 8),
+          priorRound(3, "2026-02-01", 20),
+          priorRound(4, "2026-01-01", 16),
+        ],
+      },
       slope: 113,
       totalStrokes: 90,
       isComplete: true,
@@ -13,89 +25,151 @@ describe("assessHandicap", () => {
 
     expect(result.playerIndex).toBe(10);
     expect(result.courseHandicap).toBe(10);
+    expect(result.playingHandicap).toBe(10);
     expect(result.netStrokes).toBe(80);
-    expect(result.usedDifferentialIndexes).toEqual([]);
-  });
-
-  it("populates playerIndex for an override even when the value is 0", () => {
-    const result = assessHandicap({
-      source: { kind: "override", playerIndex: 0 },
-      slope: 113,
-      totalStrokes: 90,
-      isComplete: true,
-    });
-
-    expect(result.playerIndex).toBe(0);
-    expect(result.courseHandicap).toBe(0);
-    expect(result.netStrokes).toBe(90);
-  });
-
-  it("computes a Player Index from prior differentials", () => {
-    const result = assessHandicap({
-      source: { kind: "computed", priorDifferentials: [12, 8, 20, 16] },
-      slope: 113,
-      totalStrokes: 90,
-      isComplete: true,
-    });
-
-    // best 2 of [12, 8, 20, 16] are 8 and 12 -> index 10
-    expect(result.playerIndex).toBe(10);
-    expect(result.courseHandicap).toBe(10);
-    expect(result.netStrokes).toBe(80);
+    expect(result.usedPriorRoundIds).toEqual([2, 1]);
   });
 
   it("scales the Player Index by the course slope", () => {
     const result = assessHandicap({
-      source: { kind: "computed", priorDifferentials: [12, 8] },
+      source: {
+        kind: "tournament",
+        priorRounds: [
+          priorRound(1, "2026-02-01", 12),
+          priorRound(2, "2026-01-01", 8),
+        ],
+      },
       slope: 120,
       totalStrokes: 90,
       isComplete: true,
     });
 
     expect(result.playerIndex).toBe(10);
-    expect(result.courseHandicap).toBeCloseTo((10 * 120) / 113, 10);
+    expect(result.playingHandicap).toBeCloseTo((10 * 120) / 113, 10);
   });
 
-  it("returns a null Player Index when there are too few differentials", () => {
+  it("windows to the 4 most recent prior Rounds regardless of input order", () => {
     const result = assessHandicap({
-      source: { kind: "computed", priorDifferentials: [15] },
+      // the oldest Round has the best differential but falls outside the window
+      source: {
+        kind: "tournament",
+        priorRounds: [
+          priorRound(1, "2026-01-01", 6),
+          priorRound(5, "2026-05-01", 10),
+          priorRound(3, "2026-03-01", 8),
+          priorRound(4, "2026-04-01", 9),
+          priorRound(2, "2026-02-01", 7),
+        ],
+      },
+      slope: 113,
+      totalStrokes: 90,
+      isComplete: true,
+    });
+
+    expect(result.usedPriorRoundIds).toEqual([2, 3]);
+    expect(result.playerIndex).toBe(7.5);
+  });
+
+  it("breaks same-date ties by the newer Round id", () => {
+    const result = assessHandicap({
+      source: {
+        kind: "tournament",
+        priorRounds: [
+          priorRound(1, "2026-01-01", 1),
+          priorRound(2, "2026-01-01", 20),
+          priorRound(3, "2026-01-01", 19),
+          priorRound(4, "2026-01-01", 18),
+          priorRound(5, "2026-01-01", 17),
+        ],
+      },
+      slope: 113,
+      totalStrokes: 90,
+      isComplete: true,
+    });
+
+    // Round 1 is the oldest by id, so its best differential drops out
+    expect(result.usedPriorRoundIds).toEqual([5, 4]);
+    expect(result.playerIndex).toBe(17.5);
+  });
+
+  it("plays scratch with fewer than 2 prior Rounds", () => {
+    const result = assessHandicap({
+      source: { kind: "tournament", priorRounds: [priorRound(1, "2026-01-01", 15)] },
       slope: 113,
       totalStrokes: 90,
       isComplete: true,
     });
 
     expect(result.playerIndex).toBeNull();
-    expect(result.usedDifferentialIndexes).toEqual([]);
-    // a null index scales to a zero Course Handicap
+    expect(result.usedPriorRoundIds).toEqual([]);
     expect(result.courseHandicap).toBe(0);
+    expect(result.playingHandicap).toBe(0);
     expect(result.netStrokes).toBe(90);
-  });
-
-  it("selects the best 2 of the last 4 differentials and reports their indexes", () => {
-    const result = assessHandicap({
-      // only the last 4 ([10, 9, 8, 7]) are eligible; the best-scoring 6 at
-      // index 4 is excluded, so this is best-2-of-4, not best-2-of-all
-      source: { kind: "computed", priorDifferentials: [10, 9, 8, 7, 6] },
-      slope: 113,
-      totalStrokes: 90,
-      isComplete: true,
-    });
-
-    expect(result.usedDifferentialIndexes).toEqual([3, 2]);
-    expect(result.playerIndex).toBe(7.5);
   });
 
   it("returns null net strokes for an incomplete round", () => {
     const result = assessHandicap({
-      source: { kind: "computed", priorDifferentials: [12, 8] },
+      source: {
+        kind: "tournament",
+        priorRounds: [
+          priorRound(1, "2026-02-01", 12),
+          priorRound(2, "2026-01-01", 8),
+        ],
+      },
       slope: 113,
       totalStrokes: 90,
       isComplete: false,
     });
 
     expect(result.netStrokes).toBeNull();
-    // the Course Handicap is still derived
+    expect(result.playingHandicap).toBe(10);
+  });
+});
+
+describe("assessHandicap — Match Round", () => {
+  it("applies the Player Index Override's Course Handicap", () => {
+    const result = assessHandicap({
+      source: { kind: "match", playerIndexOverride: 10 },
+      slope: 113,
+      totalStrokes: 90,
+      isComplete: true,
+    });
+
+    expect(result.playerIndex).toBe(10);
     expect(result.courseHandicap).toBe(10);
+    expect(result.playingHandicap).toBe(10);
+    expect(result.netStrokes).toBe(80);
+    expect(result.usedPriorRoundIds).toEqual([]);
+  });
+
+  it("plays scratch without an override", () => {
+    const result = assessHandicap({
+      source: { kind: "match", playerIndexOverride: null },
+      slope: 130,
+      totalStrokes: 90,
+      isComplete: true,
+    });
+
+    expect(result.playerIndex).toBe(0);
+    expect(result.playingHandicap).toBe(0);
+    expect(result.netStrokes).toBe(90);
+  });
+});
+
+describe("assessHandicap — casual Round", () => {
+  it("has no Playing Handicap and no net strokes", () => {
+    const result = assessHandicap({
+      source: { kind: "casual" },
+      slope: 113,
+      totalStrokes: 90,
+      isComplete: true,
+    });
+
+    expect(result.playerIndex).toBeNull();
+    expect(result.courseHandicap).toBeNull();
+    expect(result.playingHandicap).toBeNull();
+    expect(result.netStrokes).toBeNull();
+    expect(result.usedPriorRoundIds).toEqual([]);
   });
 });
 

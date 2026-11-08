@@ -14,6 +14,9 @@ strokes, holes won, progress and close-out state.
 and scoring require the exact count. Editing Singles/Three-Ball only enforces
 the cap; Four-Ball requires two teams of two. Skins scores individuals at 100%,
 independently of Four-Ball's 90% Match Play allowance. Field Skins remains separate.
+Skins uses the full Match roster for handicap allowances and waits for every
+player's score before awarding a hole or carrying a tie forward. The view becomes
+available once at least two players have recorded a score.
 
 ## Deferred scoring corrections
 
@@ -24,9 +27,6 @@ and regression tests against the intended rules:
   recompute it. Currently later holes can change a decided result.
 - Mark Four-Ball outcomes provisional while partner scores are missing.
   Currently one recorded score per team can produce an unmarked winner.
-- Use the full Skins roster for handicap allowances and await everyone's score
-  before awarding a hole. Currently unstarted players are excluded, so their
-  first scores can change earlier results.
 
 Tests cover agreed rules through the public scoring functions. The deferred
 behaviors are not asserted as the correct rules.

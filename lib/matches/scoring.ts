@@ -138,10 +138,8 @@ export function scoreSkins(
   rounds: ScoringRound[],
   holes: ScoringHole[],
 ): SkinsScoringResult {
-  const eligibleRounds = rounds.filter(
-    (round) => round.kind === "match" && round.recordedStrokesCount > 0,
-  );
-  if (eligibleRounds.length < 2)
+  const eligibleRounds = rounds.filter(isMatchPlayRound);
+  if (eligibleRounds.filter((round) => round.recordedStrokesCount > 0).length < 2)
     return { status: "unavailable", reason: "players_with_scores" };
 
   const players = eligibleRounds.map((round) => ({

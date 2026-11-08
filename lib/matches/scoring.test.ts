@@ -246,7 +246,7 @@ describe("scoreMatchPlay", () => {
 });
 
 describe("scoreSkins", () => {
-  it("excludes unstarted, Tournament and casual Rounds", () => {
+  it("includes the full Match roster and excludes Tournament and casual Rounds", () => {
     const result = scoreSkins(
       [
         round(1, 0, { 1: 4 }),
@@ -258,8 +258,39 @@ describe("scoreSkins", () => {
       holes,
     );
     if (result.status !== "ready") throw new Error("Expected ready Skins");
-    expect(result.players.map((player) => player.id)).toEqual([1, 2]);
-    expect(result.holes[0].winningRoundId).toBe(1);
+    expect(result.players.map((player) => player.id)).toEqual([1, 2, 3]);
+    expect(result.holes[0]).toMatchObject({
+      winningRoundId: null,
+      skinsAwarded: 0,
+    });
+  });
+
+  it("keeps handicaps stable when an unstarted player records their first score", () => {
+    const started = [round(1, 4, { 5: 4, 6: 4 }), round(2, 5, { 5: 5, 6: 5 })];
+    const before = scoreSkins([...started, round(3, 0)], holes);
+    const after = scoreSkins([...started, round(3, 0, { 6: 6 })], holes);
+    if (before.status !== "ready" || after.status !== "ready") {
+      throw new Error("Expected ready Skins");
+    }
+    expect(before.holes[4]).toMatchObject({
+      winningRoundId: null,
+      skinsAwarded: 0,
+      players: [
+        { roundId: 1, netScore: 4, receivedStrokes: 0 },
+        { roundId: 2, netScore: 4, receivedStrokes: 1 },
+        { roundId: 3, netScore: null, receivedStrokes: 0 },
+      ],
+    });
+    expect(after.holes[4]).toEqual(before.holes[4]);
+
+    const completed = scoreSkins([...started, round(3, 0, { 5: 5, 6: 6 })], holes);
+    if (completed.status !== "ready") throw new Error("Expected ready Skins");
+    expect(completed.holes[4]).toMatchObject({
+      winningRoundId: null,
+      skinsAwarded: 0,
+    });
+    expect(after.holes[5]).toMatchObject({ winningRoundId: 1, skinsAwarded: 1 });
+    expect(completed.holes[5]).toMatchObject({ winningRoundId: 1, skinsAwarded: 2 });
   });
   it("reports unavailable until at least two players can be scored", () => {
     expect(scoreSkins([], holes)).toEqual({

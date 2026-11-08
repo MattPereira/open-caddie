@@ -23,3 +23,9 @@ approval_mode = "approve"
 
 [mcp_servers.shadcn.tools.get_audit_checklist]
 approval_mode = "approve"
+
+[mcp_servers.vercel]
+url = "https://mcp.vercel.com"
+
+[plugins."vercel@openai-curated"]
+enabled = true

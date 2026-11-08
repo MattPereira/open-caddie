@@ -1,6 +1,5 @@
 import { and, asc, eq, type SQL } from "drizzle-orm";
 import { db } from "@/db";
-import { groupBy } from "@/lib/group-by";
 import {
   courseHoles,
   courses,
@@ -78,10 +77,6 @@ export async function readScorecardsByRounds(where: SQL) {
     readGreeniesByRounds(where),
   ]);
   return { scores, greenies: roundGreenies };
-}
-
-export function groupByRoundId<T extends { roundId: number }>(rows: readonly T[]) {
-  return groupBy(rows, (row) => row.roundId);
 }
 
 export type RoundScoreRow = Awaited<

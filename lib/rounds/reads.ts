@@ -26,9 +26,7 @@ import {
   users,
 } from "@/db/schema";
 import { assessHandicap, PLAYER_INDEX_ROUND_LIMIT } from "@/lib/handicap";
-import { groupBy } from "@/lib/group-by";
 import {
-  groupByRoundId,
   readScorecardsByRounds,
   type RoundGreenieRow,
   type RoundScoreRow,
@@ -333,14 +331,13 @@ async function readPriorRounds(where: SQL) {
     .where(lte(ranked.recency, PLAYER_INDEX_ROUND_LIMIT))
     .orderBy(asc(ranked.forRoundId), desc(ranked.date), desc(ranked.id));
 
-  return groupBy(
+  return Map.groupBy(
     rows.flatMap(({ forRoundId, prior: { scoreDifferential, ...prior } }) =>
       scoreDifferential == null
         ? []
         : [{ forRoundId, prior: { ...prior, scoreDifferential } }],
     ),
     (row) => row.forRoundId,
-    (row) => row.prior,
   );
 }
 
@@ -357,13 +354,9 @@ async function readRounds({ by, id }: Scope) {
       readPriorRounds(where),
     ]);
 
-  const scoresByRoundId = groupByRoundId(scores);
-  const greeniesByRoundId = groupByRoundId(greenies);
-  const yardsByTeeId = groupBy(
-    teeYards,
-    (row) => row.teeId,
-    ({ hole, yards }) => ({ hole, yards }),
-  );
+  const scoresByRoundId = Map.groupBy(scores, (row) => row.roundId);
+  const greeniesByRoundId = Map.groupBy(greenies, (row) => row.roundId);
+  const yardsByTeeId = Map.groupBy(teeYards, (row) => row.teeId);
 
   const handicapDetails = new Map<number, HandicapDetails>();
   const assessed = rows.map((row): DisplayRound => {
@@ -372,7 +365,10 @@ async function readRounds({ by, id }: Scope) {
       ...fields,
       scores: scoresByRoundId.get(row.id) ?? [],
       greenies: greeniesByRoundId.get(row.id) ?? [],
-      yards: yardsByTeeId.get(row.teeId) ?? [],
+      yards: (yardsByTeeId.get(row.teeId) ?? []).map(({ hole, yards }) => ({
+        hole,
+        yards,
+      })),
     };
     const strokes = {
       slope: row.courseSlope,
@@ -381,7 +377,9 @@ async function readRounds({ by, id }: Scope) {
     };
 
     if (tournamentId != null) {
-      const priorRounds = priorByRoundId.get(row.id) ?? [];
+      const priorRounds = (priorByRoundId.get(row.id) ?? []).map(
+        ({ prior }) => prior,
+      );
       const handicap = assessHandicap({
         source: { kind: "tournament", priorRounds },
         ...strokes,

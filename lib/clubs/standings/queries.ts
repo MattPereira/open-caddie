@@ -23,7 +23,6 @@ import { assessHandicap, type PriorHandicapRound } from "@/lib/handicap";
 import { comparePlayers } from "@/lib/players/player-name";
 import { rankPutts, rankStrokes } from "@/lib/tournaments/results";
 import {
-  groupByRoundId,
   readGreeniesByRounds,
   readScoresByRounds,
 } from "@/lib/rounds/scorecards";
@@ -239,8 +238,8 @@ export const getSeasonStandings = cache(
             beforeDate: maxSeasonDate,
           });
 
-    const scoresByRoundId = groupByRoundId(scores);
-    const greeniesByRoundId = groupByRoundId(seasonGreenies);
+    const scoresByRoundId = Map.groupBy(scores, (row) => row.roundId);
+    const greeniesByRoundId = Map.groupBy(seasonGreenies, (row) => row.roundId);
     const completeDifferentialRounds = dedupeDifferentialRounds([
       ...priorDifferentialRounds,
       ...seasonRounds.flatMap((round) => {

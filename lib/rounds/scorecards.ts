@@ -79,16 +79,6 @@ export async function readScorecardsByRounds(where: SQL) {
   return { scores, greenies: roundGreenies };
 }
 
-export function groupByRoundId<T extends { roundId: number }>(rows: readonly T[]) {
-  const byRoundId = new Map<number, T[]>();
-  for (const row of rows) {
-    const existing = byRoundId.get(row.roundId);
-    if (existing) existing.push(row);
-    else byRoundId.set(row.roundId, [row]);
-  }
-  return byRoundId;
-}
-
 export type RoundScoreRow = Awaited<
   ReturnType<typeof readScoresByRounds>
 >[number];

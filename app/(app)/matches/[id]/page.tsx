@@ -158,6 +158,7 @@ export default async function MatchPage({
           editAccess={eventAccess}
           emptyMessage="No rounds have been recorded for this match."
           rounds={match.rounds}
+          course={match.course}
           actions={
             eventAccess?.canImportScorecard ? (
               <UploadScorecardButton
@@ -169,9 +170,10 @@ export default async function MatchPage({
         <MatchPlayTabContent
           format={match.format}
           rounds={match.rounds}
+          holes={match.course.holes}
           teams={match.teams}
         />
-        <SkinsTabContent rounds={match.rounds} />
+        <SkinsTabContent rounds={match.rounds} holes={match.course.holes} />
       </UrlTabs>
     </PageContent>
   );

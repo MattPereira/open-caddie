@@ -1,7 +1,6 @@
 import { displayName, getInitials } from "@/lib/players/player-name";
 import type { ReactNode } from "react";
 import { TableFrame } from "@/components/shared/responsive-table";
-import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-table";
 import { WinnerCard } from "@/components/domain/winner-card";
 import {
   Accordion,
@@ -20,18 +19,10 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { evaluateMatchPlay, type MatchPlayStatus } from "@/lib/matches";
+import type { HandicapHole, NetScoringRound } from "@/lib/rounds/reads";
 import { cn } from "@/lib/utils";
 import type { MatchFormat } from "../../schema";
 import { HOLE_COUNT } from "@/lib/rounds/completeness";
-
-export type MatchPlayRound = RoundScoresTableRound & {
-  userId: string;
-  holes: {
-    hole: number;
-    par: number;
-    handicap: number | null;
-  }[];
-};
 
 export type MatchPlayTeamView = {
   id: string;
@@ -39,14 +30,14 @@ export type MatchPlayTeamView = {
   label: string;
   initials: string;
   image: string | null;
-  rounds: MatchPlayRound[];
+  rounds: NetScoringRound[];
   receivedStrokes: number;
 };
 
 export type StoredMatchPlayTeam = {
   id: number;
   name: string;
-  rounds: RoundScoresTableRound[];
+  rounds: NetScoringRound[];
 };
 
 type MatchPlayHoleView = ReturnType<typeof toMatchPlayView>["holes"][number];
@@ -489,6 +480,7 @@ function NetScore({
 export function toMatchPlayView(
   teams: MatchPlayTeamView[],
   format: MatchFormat,
+  holes: HandicapHole[],
 ) {
   const allowance = format === "four_ball_match_play" ? 0.9 : 1;
   const result = evaluateMatchPlay(
@@ -497,7 +489,7 @@ export function toMatchPlayView(
       players: team.rounds.map((round) => ({
         id: round.id,
         playingHandicap: round.playingHandicap,
-        scores: toMatchPlayScores(round),
+        scores: toMatchPlayScores(round, holes),
       })),
     })),
     {
@@ -607,27 +599,21 @@ function formatTeamMatchStatus(
   return `${status.holesUp} ${status.leadingTeamId === team.id ? "UP" : "DN"}`;
 }
 
-export function isMatchPlayRound(
-  round: RoundScoresTableRound,
-): round is MatchPlayRound {
-  return (
-    typeof round.userId === "string" &&
-    Array.isArray(round.holes) &&
-    round.holes.every((hole) => "handicap" in hole)
-  );
+export function isMatchPlayRound(round: NetScoringRound) {
+  return round.kind === "match";
 }
 
-function toMatchPlayScores(round: MatchPlayRound) {
+function toMatchPlayScores(round: NetScoringRound, holes: HandicapHole[]) {
   const scoresByHole = new Map(
     round.scores.map((score) => [score.hole, score]),
   );
 
-  return round.holes.map((hole) => {
+  return holes.map((hole) => {
     const score = scoresByHole.get(hole.hole);
 
     return {
       hole: hole.hole,
-      handicap: hole.handicap ?? null,
+      handicap: hole.handicap,
       strokes: score?.strokes ?? null,
     };
   });
@@ -639,7 +625,7 @@ export function getMatchPlayTeams({
   teams,
 }: {
   format: MatchFormat;
-  rounds: MatchPlayRound[];
+  rounds: NetScoringRound[];
   teams: StoredMatchPlayTeam[];
 }) {
   if (format !== "four_ball_match_play") {
@@ -702,16 +688,16 @@ function formatTeamSecondary(
   return `${holesWon} ${holesWon === 1 ? "hole" : "holes"} won`;
 }
 
-function formatRoundLabel(round: MatchPlayRound) {
+function formatRoundLabel(round: NetScoringRound) {
   const name = displayName({ ...round, email: null });
   return round.firstName || name.split(" ")[0] || name;
 }
 
-function formatRoundInitials(round: MatchPlayRound) {
+function formatRoundInitials(round: NetScoringRound) {
   return getInitials({ ...round, email: null });
 }
 
-function formatTeamPlayerInitials(team: { rounds: MatchPlayRound[] }) {
+function formatTeamPlayerInitials(team: { rounds: NetScoringRound[] }) {
   return team.rounds
     .map((round) => getInitials({ ...round, email: null }))
     .join(" · ");

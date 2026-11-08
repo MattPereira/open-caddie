@@ -11,9 +11,9 @@ import { Button } from "@/components/ui/button";
 import { CourseRecordsDialog } from "@/components/features/course-records/course-records-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
 import { HOLE_COUNT, isComplete as isRoundComplete } from "@/lib/rounds/completeness";
 import {
+  type MatchScoreboard,
   type ScoreEntry,
   buildScoreBase,
   projectLiveRounds,
@@ -28,7 +28,8 @@ import {
   type GreenieEntry,
   useLiveScorecard,
 } from "./use-live-scorecard";
-import type { MatchScoreboard, ScorableRound } from "./round-play";
+import { eventPage } from "./play-rounds";
+import type { PlayCourse, PlayRound } from "./round-play";
 
 export type { SettingsTee };
 
@@ -40,7 +41,6 @@ const nineTabClassName =
   "text-base data-active:bg-primary data-active:text-primary-foreground dark:data-active:border-transparent dark:data-active:bg-primary dark:data-active:text-primary-foreground";
 
 type RoundScoresFormProps = {
-  roundId: number;
   // Whose column gets marked. Read from the session rather than the Round,
   // because an admin may be keeping a card that is not their own — in which
   // case no column is theirs.
@@ -48,18 +48,12 @@ type RoundScoresFormProps = {
   // The server's snapshot of this Round, not what the card is showing: the
   // cells are that snapshot merged with whatever this device has typed and the
   // server has yet to confirm.
-  round: RoundScoresTableRound;
-  leaderboardRounds?: RoundScoresTableRound[];
-  holes: {
-    hole: number;
-    par: number;
-    handicap?: number | null;
-    yards: number | null;
-  }[];
-  tees: SettingsTee[];
-  scorableRounds: ScorableRound[];
+  round: PlayRound;
+  course: PlayCourse;
+  leaderboardRounds?: PlayRound[];
+  scorableRounds: PlayRound[];
   canManage: boolean;
-  matchScoreboard: MatchScoreboard | null;
+  matchScoreboard: MatchScoreboard<PlayRound> | null;
   delegateRoundIds: readonly number[];
   setDelegateRoundIdsAction: (next: readonly number[]) => void;
   onShowSummaryAction: () => void;
@@ -70,12 +64,10 @@ type RoundScoresFormProps = {
 };
 
 export function RoundScoresForm({
-  roundId,
   currentUserId,
   round: serverRound,
+  course,
   leaderboardRounds,
-  holes,
-  tees,
   scorableRounds,
   canManage,
   matchScoreboard,
@@ -85,16 +77,18 @@ export function RoundScoresForm({
   summaryLabel,
   courseRecords,
 }: RoundScoresFormProps) {
+  const roundId = serverRound.id;
+  const { holes } = course;
   const [recordPutts, setRecordPutts] = useState(true);
   const [recordGreenies, setRecordGreenies] = useState(true);
   const delegatePlayers = useMemo(
     () =>
       delegateRoundIds
-        .map((id) => scorableRounds.find((p) => p.roundId === id))
-        .filter((p): p is ScorableRound => p != null),
+        .map((id) => scorableRounds.find((p) => p.id === id))
+        .filter((p): p is PlayRound => p != null),
     [delegateRoundIds, scorableRounds],
   );
-  const getPlayerName = (player: ScorableRound) => player.firstName || "Player";
+  const getPlayerName = (player: PlayRound) => player.firstName || "Player";
   // The grid columns are too narrow for anything but a first name, so the full
   // name is carried separately for the roomier score entry sheet.
   const getFullName = (
@@ -103,15 +97,15 @@ export function RoundScoresForm({
   ) =>
     [player.firstName, player.lastName].filter(Boolean).join(" ") || fallback;
   const baseScoresByRoundId = useMemo(
-    () => buildScoreBase(serverRound, scorableRounds, holes),
+    () => buildScoreBase([serverRound, ...scorableRounds], holes),
     [serverRound, scorableRounds, holes],
   );
   const baseGreeniesByRoundId = useMemo(() => {
     const map: Record<number, GreenieEntry[]> = {
-      [roundId]: serverRound.greenies ?? [],
+      [roundId]: serverRound.greenies,
     };
     for (const player of scorableRounds) {
-      map[player.roundId] = player.greenies ?? [];
+      map[player.id] = player.greenies;
     }
     return map;
   }, [roundId, serverRound.greenies, scorableRounds]);
@@ -157,12 +151,7 @@ export function RoundScoresForm({
   );
 
   const isComplete = isRoundComplete(round);
-  const backLink =
-    round.tournamentId != null
-      ? { href: `/tournaments/${round.tournamentId}`, label: "Tournament" }
-      : round.matchId != null
-        ? { href: `/matches/${round.matchId}`, label: "Match" }
-        : null;
+  const backLink = eventPage(serverRound);
 
   const getGreeniesForRound = (targetRoundId: number): GreenieEntry[] =>
     greeniesByRoundId[targetRoundId] ?? [];
@@ -198,11 +187,11 @@ export function RoundScoresForm({
       scores,
     },
     ...delegatePlayers.map((player) => ({
-      roundId: player.roundId,
+      roundId: player.id,
       name: getPlayerName(player),
       fullName: getFullName(player, getPlayerName(player)),
       isSelf: player.userId === currentUserId,
-      scores: scoresByRoundId[player.roundId] ?? [],
+      scores: scoresByRoundId[player.id] ?? [],
     })),
   ];
   // Score columns keep a fixed width so cells stay the same size whoever you are
@@ -223,10 +212,7 @@ export function RoundScoresForm({
     activeEntry?.par ??
     holes.find((hole) => hole.hole === activeCell?.hole)?.par ??
     4;
-  const activeYards =
-    activeEntry?.yards ??
-    holes.find((hole) => hole.hole === activeCell?.hole)?.yards ??
-    null;
+  const activeYards = activeEntry?.yards ?? null;
   const activeGreenie =
     activeCell == null
       ? null
@@ -243,11 +229,11 @@ export function RoundScoresForm({
       <div className="mx-auto flex w-fit max-w-full flex-col gap-1.5">
         <div className="flex items-center justify-between gap-3">
           <p className="truncate text-base text-muted-foreground">
-            {round.courseName}
+            {course.name}
           </p>
           {courseRecords ? (
             <CourseRecordsDialog
-              courseName={round.courseName}
+              courseName={course.name}
               trigger={
                 <Button
                   variant="ghost"
@@ -337,7 +323,7 @@ export function RoundScoresForm({
       >
         <div className="flex items-center justify-between gap-3">
           <h1 className="sr-only">
-            {`${round.courseName ?? "Round"} scorecard`}
+            {`${course.name} scorecard`}
           </h1>
           {/* The card itself says whose it is — the tinted column and the
               column headers — so the heading slot is spent on the way out
@@ -396,7 +382,7 @@ export function RoundScoresForm({
               <SettingsDialog
                 roundId={roundId}
                 round={round}
-                tees={tees}
+                tees={course.tees}
                 scorableRounds={scorableRounds}
                 delegateRoundIds={delegateRoundIds}
                 setDelegateRoundIdsAction={setDelegateRoundIdsAction}
@@ -404,16 +390,19 @@ export function RoundScoresForm({
                 setRecordPuttsAction={setRecordPutts}
                 recordGreenies={recordGreenies}
                 setRecordGreeniesAction={setRecordGreenies}
-                fullWidth={round.tournamentId == null && round.matchId == null}
+                fullWidth={serverRound.kind === "casual"}
               />
             ) : null}
-            {round.tournamentId != null ? (
+            {serverRound.kind === "tournament" ? (
               <TournamentLeaderboardDialog
                 currentRoundId={round.id}
                 rounds={live.leaderboardRounds}
               />
-            ) : round.matchId != null ? (
-              <MatchScoreboardDialog scoreboard={live.matchScoreboard} />
+            ) : serverRound.kind === "match" ? (
+              <MatchScoreboardDialog
+                scoreboard={live.matchScoreboard}
+                holes={holes}
+              />
             ) : null}
           </>
         )}

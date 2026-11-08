@@ -1,26 +1,16 @@
 import { cache } from "react";
-import { asc, count, desc, eq, sql } from "drizzle-orm";
+import { asc, count, desc, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { comparePlayers } from "@/lib/players/player-name";
 import {
-  courseHoles,
-  courseTees,
   courses,
   matches,
   matchTeamMembers,
   matchTeams,
-  roundSummaries,
   rounds,
-  teeYardages,
   users,
 } from "@/db/schema";
-import { assessHandicap } from "@/lib/handicap";
-import {
-  groupByRoundId,
-  readGreeniesByRounds,
-  readScoresByRounds,
-} from "@/lib/rounds/scorecards";
+import { eventGreenies, readMatchRounds } from "@/lib/rounds/reads";
 
 export const getAllMatches = cache(async () => {
   return db
@@ -55,106 +45,28 @@ export const getAllMatches = cache(async () => {
 });
 
 export const getMatchById = cache(async (matchId: number) => {
-  const [match] = await db
-    .select({
-      id: matches.id,
-      createdByUserId: matches.createdByUserId,
-      creatorFirstName: users.firstName,
-      creatorLastName: users.lastName,
-      creatorUsername: users.username,
-      date: matches.date,
-      format: matches.format,
-      courseId: matches.courseId,
-      courseHandle: courses.handle,
-      courseName: courses.name,
-      courseImgUrl: courses.imgUrl,
-    })
-    .from(matches)
-    .innerJoin(users, eq(matches.createdByUserId, users.id))
-    .innerJoin(courses, eq(matches.courseId, courses.id))
-    .where(eq(matches.id, matchId))
-    .limit(1);
-
-  if (!match) return match;
-
-  const [
-    matchRounds,
-    matchRoundScores,
-    matchGreenies,
-    matchHoles,
-    matchTees,
-    matchTeamRows,
-  ] = await Promise.all([
+  const [[match], { course, rounds: matchRounds }, matchTeamRows] =
+    await Promise.all([
       db
         .select({
-          id: roundSummaries.roundId,
-          matchId: roundSummaries.matchId,
-          teeId: rounds.teeId,
-          userId: roundSummaries.userId,
-          date: roundSummaries.date,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          username: users.username,
-          image: users.image,
-          courseId: roundSummaries.courseId,
+          id: matches.id,
+          createdByUserId: matches.createdByUserId,
+          creatorFirstName: users.firstName,
+          creatorLastName: users.lastName,
+          creatorUsername: users.username,
+          date: matches.date,
+          format: matches.format,
+          courseId: matches.courseId,
           courseHandle: courses.handle,
           courseName: courses.name,
           courseImgUrl: courses.imgUrl,
-          courseRating: roundSummaries.courseRating,
-          courseSlope: roundSummaries.courseSlope,
-          playerIndexOverride: roundSummaries.playerIndexOverride,
-          recordedStrokesCount: roundSummaries.recordedStrokesCount,
-          recordedPuttsCount: roundSummaries.recordedPuttsCount,
-          totalStrokes: roundSummaries.totalStrokes,
-          totalPutts: roundSummaries.totalPutts,
-          isComplete: roundSummaries.isComplete,
-          scoreDifferential: roundSummaries.scoreDifferential,
         })
-        .from(roundSummaries)
-        .innerJoin(rounds, eq(rounds.id, roundSummaries.roundId))
-        .innerJoin(users, eq(roundSummaries.userId, users.id))
-        .innerJoin(courses, eq(roundSummaries.courseId, courses.id))
-        .where(eq(roundSummaries.matchId, matchId))
-        .orderBy(
-          asc(users.lastName),
-          asc(users.firstName),
-          asc(users.username),
-        ),
-      readScoresByRounds(eq(rounds.matchId, matchId)),
-      readGreeniesByRounds(eq(rounds.matchId, matchId)),
-      db
-        .select({
-          hole: courseHoles.hole,
-          par: courseHoles.par,
-          handicap: courseHoles.handicap,
-        })
-        .from(courseHoles)
-        .where(eq(courseHoles.courseId, match.courseId))
-        .orderBy(asc(courseHoles.hole)),
-      db
-        .select({
-          id: courseTees.id,
-          name: courseTees.name,
-          color: courseTees.color,
-          rating: courseTees.rating,
-          slope: courseTees.slope,
-          totalYards:
-            sql<number | null>`sum(${teeYardages.yards})::int`.mapWith(
-              (value) => (value == null ? null : Number(value)),
-            ),
-        })
-        .from(courseTees)
-        .leftJoin(teeYardages, eq(teeYardages.teeId, courseTees.id))
-        .where(eq(courseTees.courseId, match.courseId))
-        .groupBy(
-          courseTees.id,
-          courseTees.name,
-          courseTees.color,
-          courseTees.rating,
-          courseTees.slope,
-          courseTees.sortOrder,
-        )
-        .orderBy(asc(courseTees.sortOrder), asc(courseTees.id)),
+        .from(matches)
+        .innerJoin(users, eq(matches.createdByUserId, users.id))
+        .innerJoin(courses, eq(matches.courseId, courses.id))
+        .where(eq(matches.id, matchId))
+        .limit(1),
+      readMatchRounds(matchId),
       db
         .select({
           id: matchTeams.id,
@@ -172,43 +84,16 @@ export const getMatchById = cache(async (matchId: number) => {
         .orderBy(asc(matchTeams.sortOrder), asc(matchTeams.id)),
     ]);
 
-  const scoresByRoundId = groupByRoundId(matchRoundScores);
-  const greeniesByRoundId = groupByRoundId(matchGreenies);
+  if (!match) return match;
 
-  const roundsWithScores = matchRounds
-    .map((round) => {
-      const { playingHandicap, netStrokes } = assessHandicap({
-        source: {
-          kind: "match",
-          playerIndexOverride:
-            round.playerIndexOverride == null
-              ? null
-              : Number(round.playerIndexOverride),
-        },
-        slope: round.courseSlope,
-        totalStrokes: round.totalStrokes,
-        isComplete: round.isComplete,
-      });
-
-      return {
-        ...round,
-        playingHandicap,
-        netStrokes,
-        scores: scoresByRoundId.get(round.id) ?? [],
-        holes: matchHoles,
-        tees: matchTees,
-        greenies: greeniesByRoundId.get(round.id) ?? [],
-      };
-    })
-    .sort(compareMatchRoundStandings);
-  const roundsById = new Map(roundsWithScores.map((round) => [round.id, round]));
+  const roundsById = new Map(matchRounds.map((round) => [round.id, round]));
   const teams = matchTeamRows.reduce<
     {
       id: number;
       matchId: number;
       name: string;
       sortOrder: number;
-      rounds: typeof roundsWithScores;
+      rounds: typeof matchRounds;
     }[]
   >((acc, row) => {
     let team = acc.find((candidate) => candidate.id === row.id);
@@ -232,34 +117,9 @@ export const getMatchById = cache(async (matchId: number) => {
 
   return {
     ...match,
-    rounds: roundsWithScores,
+    course,
+    rounds: matchRounds,
     teams,
-    greenies: matchGreenies,
+    greenies: eventGreenies(matchRounds),
   };
 });
-
-function compareMatchRoundStandings<
-  T extends {
-    userId: string;
-    firstName: string | null;
-    lastName: string | null;
-    username: string | null;
-    netStrokes: number | null;
-    totalStrokes: number;
-  },
->(a: T, b: T) {
-  if (a.netStrokes == null && b.netStrokes == null) {
-    return comparePlayers(a, b);
-  }
-
-  if (a.netStrokes == null) return 1;
-  if (b.netStrokes == null) return -1;
-
-  const netCompare = a.netStrokes - b.netStrokes;
-  if (netCompare !== 0) return netCompare;
-
-  const grossCompare = a.totalStrokes - b.totalStrokes;
-  if (grossCompare !== 0) return grossCompare;
-
-  return comparePlayers(a, b);
-}

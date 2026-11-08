@@ -8,18 +8,21 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { Button } from "@/components/ui/button";
 import {
   RoundScoresSheet,
+  type EditableCourse,
   type EditableRound,
   type RoundScoresTab,
-} from "./round-scores-sheet";
+} from "@/components/features/scores/round-scores-sheet";
 
 export function RoundActions({
   canManage,
   initialTab = "tees",
   round,
+  course,
 }: {
   canManage: boolean;
   initialTab?: RoundScoresTab;
   round: EditableRound;
+  course: EditableCourse;
 }) {
   const [sheetOpen, setSheetOpen] = useState(false);
   const router = useRouter();
@@ -45,6 +48,7 @@ export function RoundActions({
             router.refresh();
           }}
           round={round}
+          course={course}
         />
       ) : null}
     </>

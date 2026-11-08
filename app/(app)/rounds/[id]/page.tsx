@@ -65,7 +65,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
               {round.clubName}
             </Badge>
           ) : null}
-          {round.tournamentId && round.tournamentSeason ? (
+          {round.kind === "tournament" && round.tournamentSeason ? (
             <Badge variant="outline" className="font-light">
               Season {round.tournamentSeason}
             </Badge>
@@ -90,7 +90,11 @@ export default async function RoundPage({ params }: RoundPageProps) {
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold tracking-normal">Scores</h2>
             {canScore ? (
-              <RoundActions canManage={canManage} round={round} />
+              <RoundActions
+                canManage={canManage}
+                round={round}
+                course={round.course}
+              />
             ) : null}
           </div>
           <RoundScoresCard row={toRoundScoreRow(round)} showMobileTotals />
@@ -104,6 +108,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
                 canManage={canManage}
                 initialTab="greenies"
                 round={round}
+                course={round.course}
               />
             ) : null}
           </div>
@@ -144,7 +149,7 @@ async function getRoundFromParams(params: RoundPageProps["params"]) {
     return null;
   }
 
-  return getRoundById(roundId);
+  return getRoundById(roundId, true);
 }
 
 type Round = NonNullable<Awaited<ReturnType<typeof getRoundById>>>;

@@ -51,40 +51,35 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { assessHandicap } from "@/lib/handicap";
-import { toRoundSheetChanges } from "./round-sheet-changes";
 import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
+import type {
+  CourseHole,
+  CourseTee,
+  DisplayRound,
+  MatchRound,
+  RoundHoleGreenie,
+  RoundHoleScore,
+} from "@/lib/rounds/reads";
+import { toRoundSheetChanges } from "./round-sheet-changes";
 
-export type EditableRound = {
-  id: number;
-  matchId: number | null;
-  teeId: number;
-  userId: string;
-  firstName: string | null;
-  courseSlope: number;
-  playerIndexOverride: string | number | null;
-  tees: {
-    id: number;
-    name: string;
-    color: string | null;
-    rating: string | number;
-    slope: number;
-    totalYards?: number | null;
-  }[];
-  holes: {
-    hole: number;
-    par: number;
-  }[];
-  scores: {
-    hole: number;
-    par: number | null;
-    strokes: number | null;
-    putts: number | null;
-  }[];
-  greenies: {
-    hole: number;
-    feet: number;
-    inches: number;
-  }[];
+export type EditableRound = Pick<
+  DisplayRound,
+  "id" | "teeId" | "userId" | "firstName" | "courseSlope"
+> & {
+  scores: RoundHoleScore[];
+  greenies: RoundHoleGreenie[];
+} & (
+    | { kind: "tournament" | "casual" }
+    | Pick<MatchRound, "kind" | "playerIndexOverride">
+  );
+
+/** The course the Round is played on: its holes for Greenies, tees to pick. */
+export type EditableCourse = {
+  holes: Pick<CourseHole, "hole" | "par">[];
+  tees: Pick<
+    CourseTee,
+    "id" | "name" | "color" | "rating" | "slope" | "totalYards"
+  >[];
 };
 
 export type RoundScoresTab = "tees" | "scores" | "greenies";
@@ -98,7 +93,10 @@ const scoreTabs: {
   { value: "back", label: "Back", holes: HOLE_NUMBERS.slice(9) },
 ];
 
-function toFormValues(round: EditableRound): RoundSheetFormValues {
+function toFormValues(
+  round: EditableRound,
+  course: EditableCourse,
+): RoundSheetFormValues {
   const scoresByHole = new Map(
     round.scores.map((score) => [score.hole, score]),
   );
@@ -110,9 +108,9 @@ function toFormValues(round: EditableRound): RoundSheetFormValues {
     roundId: round.id,
     teeId: round.teeId,
     playerIndexOverride:
-      round.playerIndexOverride == null
-        ? ""
-        : Number(round.playerIndexOverride),
+      round.kind === "match" && round.playerIndexOverride != null
+        ? round.playerIndexOverride
+        : "",
     scores: HOLE_NUMBERS.map((hole) => {
       const score = scoresByHole.get(hole);
       return {
@@ -121,7 +119,7 @@ function toFormValues(round: EditableRound): RoundSheetFormValues {
         putts: score?.putts ?? "",
       };
     }),
-    greenies: round.holes
+    greenies: course.holes
       .filter((hole) => hole.par === 3)
       .map((hole) => {
         const greenie = greeniesByHole.get(hole.hole);
@@ -146,6 +144,7 @@ export function RoundScoresSheet({
   open,
   onOpenChange,
   round,
+  course,
 }: {
   /** Shows the tee, override and delete controls. Any Scorer may edit scores. */
   canManage: boolean;
@@ -154,6 +153,7 @@ export function RoundScoresSheet({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   round: EditableRound;
+  course: EditableCourse;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -169,7 +169,7 @@ export function RoundScoresSheet({
 
   const form = useForm<RoundSheetFormValues>({
     resolver: zodResolver(RoundSheetFormSchema),
-    defaultValues: toFormValues(round),
+    defaultValues: toFormValues(round, course),
   });
   const serverError = form.formState.errors.root?.server?.message;
   const greenieRows =
@@ -183,8 +183,8 @@ export function RoundScoresSheet({
     round.greenies.map((greenie) => greenie.hole),
   );
   const isDirty = form.formState.isDirty;
-  const canEditPlayerIndexOverride = round.matchId != null;
-  const selectedTee = round.tees.find((tee) => tee.id === teeId);
+  const canEditPlayerIndexOverride = round.kind === "match";
+  const selectedTee = course.tees.find((tee) => tee.id === teeId);
   const selectedSlope = selectedTee?.slope ?? round.courseSlope;
   const { playerIndex, courseHandicap } = assessHandicap({
     source: {
@@ -202,9 +202,9 @@ export function RoundScoresSheet({
 
   useEffect(() => {
     if (open) {
-      form.reset(toFormValues(round));
+      form.reset(toFormValues(round, course));
     }
-  }, [open, round, form]);
+  }, [open, round, course, form]);
 
   const closeSheet = () => {
     form.clearErrors("root.server");
@@ -248,7 +248,7 @@ export function RoundScoresSheet({
     form.clearErrors("root.server");
     startTransition(async () => {
       const { scorecard, settings } = toRoundSheetChanges(
-        toFormValues(round),
+        toFormValues(round, course),
         values,
         { canManage },
       );
@@ -336,7 +336,7 @@ export function RoundScoresSheet({
                                   }
                                   className="flex flex-col gap-2"
                                 >
-                                  {round.tees.map((tee) => (
+                                  {course.tees.map((tee) => (
                                     <FieldLabel
                                       key={tee.id}
                                       htmlFor={`round-tee-${tee.id}`}
@@ -493,7 +493,7 @@ export function RoundScoresSheet({
                   isPending={isPending}
                   onKeepEditingAction={() => setConfirmingDiscard(false)}
                   onDiscardAction={() => {
-                    form.reset(toFormValues(round));
+                    form.reset(toFormValues(round, course));
                     closeSheet();
                   }}
                 />

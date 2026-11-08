@@ -1,5 +1,5 @@
+import type { HandicapHole, NetScoringRound } from "@/lib/rounds/reads";
 import { TableFrame } from "@/components/shared/responsive-table";
-import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-table";
 import {
   isEligibleSkinsRound,
   toSkinsView,
@@ -25,7 +25,13 @@ import {
 import { WinnerCard } from "@/components/domain/winner-card";
 import { cn } from "@/lib/utils";
 
-export function SkinsContent({ rounds }: { rounds: RoundScoresTableRound[] }) {
+export function SkinsContent({
+  rounds,
+  holes,
+}: {
+  rounds: NetScoringRound[];
+  holes: HandicapHole[];
+}) {
   const skinsRounds = rounds.filter(isEligibleSkinsRound);
 
   if (skinsRounds.length < 2) {
@@ -41,7 +47,7 @@ export function SkinsContent({ rounds }: { rounds: RoundScoresTableRound[] }) {
     );
   }
 
-  const skins = toSkinsView(skinsRounds);
+  const skins = toSkinsView(skinsRounds, holes);
 
   return (
     <>

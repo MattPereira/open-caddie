@@ -238,8 +238,8 @@ export const getSeasonStandings = cache(
             beforeDate: maxSeasonDate,
           });
 
-    const scoresByRoundId = groupByRoundId(scores);
-    const greeniesByRoundId = groupByRoundId(seasonGreenies);
+    const scoresByRoundId = Map.groupBy(scores, (row) => row.roundId);
+    const greeniesByRoundId = Map.groupBy(seasonGreenies, (row) => row.roundId);
     const completeDifferentialRounds = dedupeDifferentialRounds([
       ...priorDifferentialRounds,
       ...seasonRounds.flatMap((round) => {
@@ -390,18 +390,6 @@ async function getPriorCompleteDifferentialRounds({
   return rows.filter(
     (row): row is CompleteDifferentialRound => row.scoreDifferential != null,
   );
-}
-
-function groupByRoundId<T extends { roundId: number }>(rows: T[]) {
-  const rowsByRoundId = new Map<number, T[]>();
-
-  for (const row of rows) {
-    const roundRows = rowsByRoundId.get(row.roundId) ?? [];
-    roundRows.push(row);
-    rowsByRoundId.set(row.roundId, roundRows);
-  }
-
-  return rowsByRoundId;
 }
 
 function dedupeDifferentialRounds(roundsToDedupe: CompleteDifferentialRound[]) {

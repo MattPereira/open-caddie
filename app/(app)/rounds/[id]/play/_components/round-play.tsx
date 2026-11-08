@@ -4,60 +4,43 @@ import { useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
-import type { StoredMatchPlayTeam } from "@/app/(app)/matches/[id]/_components/match-play-tab-content";
-import type { MatchFormat } from "@/app/(app)/matches/schema";
+import type { CourseHole, DisplayRound, RoundEvent } from "@/lib/rounds/reads";
+import type { MatchScoreboard } from "./live-scores";
+import { eventPage } from "./play-rounds";
 import { RoundScoresForm, type SettingsTee } from "./round-scores-form";
 import { MAX_DELEGATES } from "./settings-dialog";
 import { useDelegateRoundIds } from "./use-delegate-round-id";
 
-export type ScorableRound = {
-  roundId: number;
-  userId: string;
-  firstName: string | null;
-  lastName: string | null;
-  scores: {
-    hole: number;
-    par: number | null;
-    strokes: number | null;
-    putts: number | null;
-  }[];
-  greenies: { hole: number; feet: number; inches: number }[];
-};
+/** A Round on the play page: a column, a leaderboard row or a scoreboard player. */
+export type PlayRound = RoundScoresTableRound &
+  Pick<DisplayRound, "userId" | "teeId" | "yards"> &
+  RoundEvent;
 
-export type MatchScoreboard = {
-  format: MatchFormat;
-  rounds: RoundScoresTableRound[];
-  teams: StoredMatchPlayTeam[];
+export type PlayCourse = {
+  name: string;
+  holes: CourseHole[];
+  tees: SettingsTee[];
 };
 
 type RoundPlayProps = {
-  roundId: number;
   currentUserId: string;
-  tableRound: RoundScoresTableRound;
-  leaderboardRounds?: RoundScoresTableRound[];
-  holes: {
-    hole: number;
-    par: number;
-    handicap?: number | null;
-    yards: number | null;
-  }[];
-  tees: SettingsTee[];
-  scorableRounds: ScorableRound[];
+  round: PlayRound;
+  course: PlayCourse;
+  leaderboardRounds?: PlayRound[];
+  scorableRounds: PlayRound[];
   // Selected on first open of this Round's play form, so a player keeping their
   // Pairing's card finds their mates already there.
   prefillDelegateRoundIds?: readonly number[];
   canManage: boolean;
-  matchScoreboard: MatchScoreboard | null;
+  matchScoreboard: MatchScoreboard<PlayRound> | null;
   courseRecords: ReactNode;
 };
 
 export function RoundPlay({
-  roundId,
   currentUserId,
-  tableRound,
+  round,
+  course,
   leaderboardRounds,
-  holes,
-  tees,
   scorableRounds,
   prefillDelegateRoundIds,
   canManage,
@@ -65,6 +48,7 @@ export function RoundPlay({
   courseRecords,
 }: RoundPlayProps) {
   const router = useRouter();
+  const roundId = round.id;
   // A Pairing holds at most four Rounds, so a player's mates already fit the
   // picker's cap; the slice keeps a prefill from ever exceeding what the picker
   // would let the player choose by hand.
@@ -77,24 +61,17 @@ export function RoundPlay({
     prefill,
   );
 
-  const summary =
-    tableRound.tournamentId != null
-      ? {
-          label: "View tournament",
-          href: `/tournaments/${tableRound.tournamentId}`,
-        }
-      : tableRound.matchId != null
-        ? { label: "View match", href: `/matches/${tableRound.matchId}` }
-        : { label: "Round summary", href: `/rounds/${roundId}` };
+  const event = eventPage(round);
+  const summary = event
+    ? { label: `View ${event.label.toLowerCase()}`, href: event.href }
+    : { label: "Round summary", href: `/rounds/${roundId}` };
 
   return (
     <RoundScoresForm
-      roundId={roundId}
       currentUserId={currentUserId}
-      round={tableRound}
+      round={round}
+      course={course}
       leaderboardRounds={leaderboardRounds}
-      holes={holes}
-      tees={tees}
       scorableRounds={scorableRounds}
       canManage={canManage}
       matchScoreboard={matchScoreboard}

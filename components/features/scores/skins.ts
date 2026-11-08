@@ -1,14 +1,6 @@
-import type { RoundScoresTableRound } from "@/components/features/scores/round-scores";
 import { evaluateMatchPlay } from "@/lib/matches";
 import { displayName, getInitials } from "@/lib/players/player-name";
-
-export type SkinsRound = RoundScoresTableRound & {
-  holes: {
-    hole: number;
-    par: number;
-    handicap: number | null;
-  }[];
-};
+import type { HandicapHole, NetScoringRound } from "@/lib/rounds/reads";
 
 export type SkinHoleRow = {
   hole: number;
@@ -32,7 +24,7 @@ export type SkinPlayerView = {
   skinsWon: number;
 };
 
-export function toSkinsView(rounds: SkinsRound[]) {
+export function toSkinsView(rounds: NetScoringRound[], holes: HandicapHole[]) {
   const roundsById = new Map(rounds.map((round) => [round.id, round]));
   const playersById = new Map(
     rounds.map((round) => {
@@ -60,7 +52,7 @@ export function toSkinsView(rounds: SkinsRound[]) {
         {
           id: round.id,
           playingHandicap: round.playingHandicap,
-          scores: toSkinsScores(round),
+          scores: toSkinsScores(round, holes),
         },
       ],
     })),
@@ -106,24 +98,18 @@ export function toSkinsView(rounds: SkinsRound[]) {
   return { players, holes: holeRows };
 }
 
-export function isEligibleSkinsRound(
-  round: RoundScoresTableRound,
-): round is SkinsRound {
-  return (
-    round.recordedStrokesCount > 0 &&
-    Array.isArray(round.holes) &&
-    round.holes.every((hole) => "handicap" in hole)
-  );
+export function isEligibleSkinsRound(round: NetScoringRound) {
+  return round.kind === "match" && round.recordedStrokesCount > 0;
 }
 
-function toSkinsScores(round: SkinsRound) {
+function toSkinsScores(round: NetScoringRound, holes: HandicapHole[]) {
   const scoresByHole = new Map(
     round.scores.map((score) => [score.hole, score]),
   );
 
-  return round.holes.map((hole) => ({
+  return holes.map((hole) => ({
     hole: hole.hole,
-    handicap: hole.handicap ?? null,
+    handicap: hole.handicap,
     strokes: scoresByHole.get(hole.hole)?.strokes ?? null,
   }));
 }

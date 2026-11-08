@@ -4,20 +4,23 @@ import { Card, CardContent } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 import {
   RoundScoresTable,
-  type RoundScoresTableRound,
+  type EditableTableRound,
   type RoundsEditAccess,
 } from "@/components/features/scores/round-scores-table";
+import type { EditableCourse } from "@/components/features/scores/round-scores-sheet";
 
 export function RoundsTabContent({
   editAccess,
   emptyMessage,
   rounds,
+  course,
   actions,
   children,
 }: {
   editAccess: RoundsEditAccess | null;
   emptyMessage: string;
-  rounds: RoundScoresTableRound[];
+  rounds: EditableTableRound[];
+  course: EditableCourse;
   actions?: ReactNode;
   children?: ReactNode;
 }) {
@@ -31,7 +34,11 @@ export function RoundsTabContent({
           </CardContent>
         </Card>
       ) : (
-        <RoundScoresTable editAccess={editAccess} rounds={rounds} />
+        <RoundScoresTable
+          editAccess={editAccess}
+          rounds={rounds}
+          course={course}
+        />
       )}
       {children}
     </TabsContent>

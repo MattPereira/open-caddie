@@ -1,3 +1,4 @@
+import type { HandicapHole } from "@/lib/rounds/reads";
 import {
   MatchPlayCardRow,
   MatchPlayRules,
@@ -9,8 +10,10 @@ import {
 
 export function ThreeBallMatchPlayContent({
   teams,
+  holes,
 }: {
   teams: MatchPlayTeamView[];
+  holes: HandicapHole[];
 }) {
   return (
     <>
@@ -25,6 +28,7 @@ export function ThreeBallMatchPlayContent({
           const matchPlay = toMatchPlayView(
             [firstTeam, secondTeam],
             "singles_match_play",
+            holes,
           );
 
           return (

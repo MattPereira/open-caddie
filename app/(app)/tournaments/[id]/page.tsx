@@ -140,6 +140,7 @@ export default async function TournamentPage({
           editAccess={eventAccess}
           emptyMessage="No rounds have been recorded for this tournament."
           rounds={tournament.rounds}
+          course={tournament.course}
         >
           {eventAccess?.canImportScorecard ? (
             <div className="flex flex-wrap gap-2">

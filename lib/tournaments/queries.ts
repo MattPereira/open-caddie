@@ -1,29 +1,18 @@
 import { cache } from "react";
-import { and, asc, count, desc, eq, gte, isNull, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { compareTournamentRanking } from "@/lib/tournaments/results";
 import {
   clubMembers,
   clubs,
-  courseHoles,
-  courseTees,
   courses,
   pairingMembers,
   pairings,
-  roundSummaries,
   rounds,
   seasons,
-  teeYardages,
   tournaments,
   users,
 } from "@/db/schema";
-import { assessHandicap } from "@/lib/handicap";
-import { getPriorClubScoreDifferentialRounds } from "@/lib/rounds/queries";
-import {
-  groupByRoundId,
-  readGreeniesByRounds,
-  readScoresByRounds,
-} from "@/lib/rounds/scorecards";
+import { eventGreenies, readTournamentRounds } from "@/lib/rounds/reads";
 
 export const getAllTournaments = cache(async () => {
   return db
@@ -77,145 +66,51 @@ export const getTournamentsByClubHandle = cache(async (clubHandle: string) => {
 });
 
 export const getTournamentById = cache(async (tournamentId: number) => {
-  const [tournament] = await db
-    .select({
-      id: tournaments.id,
-      clubId: seasons.clubId,
-      clubHandle: clubs.handle,
-      clubName: clubs.name,
-      date: tournaments.date,
-      season: seasons.number,
-      seasonId: seasons.id,
-      courseId: tournaments.courseId,
-      courseHandle: courses.handle,
-      courseName: courses.name,
-      courseImgUrl: courses.imgUrl,
-      teeId: tournaments.teeId,
-    })
-    .from(tournaments)
-    .innerJoin(seasons, eq(tournaments.seasonId, seasons.id))
-    .innerJoin(clubs, eq(seasons.clubId, clubs.id))
-    .leftJoin(courses, eq(tournaments.courseId, courses.id))
-    .where(eq(tournaments.id, tournamentId))
-    .limit(1);
+  const [[tournament], { course, rounds: tournamentRounds }] =
+    await Promise.all([
+      db
+        .select({
+          id: tournaments.id,
+          clubId: seasons.clubId,
+          clubHandle: clubs.handle,
+          clubName: clubs.name,
+          date: tournaments.date,
+          season: seasons.number,
+          seasonId: seasons.id,
+          courseId: tournaments.courseId,
+          courseHandle: courses.handle,
+          courseName: courses.name,
+          courseImgUrl: courses.imgUrl,
+          teeId: tournaments.teeId,
+        })
+        .from(tournaments)
+        .innerJoin(seasons, eq(tournaments.seasonId, seasons.id))
+        .innerJoin(clubs, eq(seasons.clubId, clubs.id))
+        .innerJoin(courses, eq(tournaments.courseId, courses.id))
+        .where(eq(tournaments.id, tournamentId))
+        .limit(1),
+      readTournamentRounds(tournamentId),
+    ]);
 
   if (!tournament) {
     return tournament;
   }
 
-  const [
-    tournamentRounds,
-    tournamentRoundScores,
-    tournamentGreenies,
-    tournamentHoles,
-    tournamentTees,
-  ] =
-    await Promise.all([
-      db
-        .select({
-          id: roundSummaries.roundId,
-          tournamentId: roundSummaries.tournamentId,
-          teeId: rounds.teeId,
-          userId: roundSummaries.userId,
-          date: roundSummaries.date,
-          firstName: users.firstName,
-          lastName: users.lastName,
-          username: users.username,
-          image: users.image,
-          courseId: roundSummaries.courseId,
-          courseHandle: courses.handle,
-          courseName: courses.name,
-          courseImgUrl: courses.imgUrl,
-          courseRating: roundSummaries.courseRating,
-          courseSlope: roundSummaries.courseSlope,
-          recordedStrokesCount: roundSummaries.recordedStrokesCount,
-          recordedPuttsCount: roundSummaries.recordedPuttsCount,
-          totalStrokes: roundSummaries.totalStrokes,
-          totalPutts: roundSummaries.totalPutts,
-          isComplete: roundSummaries.isComplete,
-          scoreDifferential: roundSummaries.scoreDifferential,
-        })
-        .from(roundSummaries)
-        .innerJoin(rounds, eq(rounds.id, roundSummaries.roundId))
-        .innerJoin(users, eq(roundSummaries.userId, users.id))
-        .innerJoin(courses, eq(roundSummaries.courseId, courses.id))
-        .where(eq(roundSummaries.tournamentId, tournamentId))
-        .orderBy(
-          asc(users.lastName),
-          asc(users.firstName),
-          asc(users.username),
-        ),
-      readScoresByRounds(eq(rounds.tournamentId, tournamentId)),
-      readGreeniesByRounds(eq(rounds.tournamentId, tournamentId)),
-      db
-        .select({
-          hole: courseHoles.hole,
-          par: courseHoles.par,
-        })
-        .from(courseHoles)
-        .where(eq(courseHoles.courseId, tournament.courseId))
-        .orderBy(asc(courseHoles.hole)),
-      db
-        .select({
-          id: courseTees.id,
-          name: courseTees.name,
-          color: courseTees.color,
-          rating: courseTees.rating,
-          slope: courseTees.slope,
-          totalYards:
-            sql<number | null>`sum(${teeYardages.yards})::int`.mapWith(
-              (value) => (value == null ? null : Number(value)),
-            ),
-        })
-        .from(courseTees)
-        .leftJoin(teeYardages, eq(teeYardages.teeId, courseTees.id))
-        .where(eq(courseTees.courseId, tournament.courseId))
-        .groupBy(
-          courseTees.id,
-          courseTees.name,
-          courseTees.color,
-          courseTees.rating,
-          courseTees.slope,
-          courseTees.sortOrder,
-        )
-        .orderBy(asc(courseTees.sortOrder), asc(courseTees.id)),
-    ]);
-
-  const scoresByRoundId = groupByRoundId(tournamentRoundScores);
-  const greeniesByRoundId = groupByRoundId(tournamentGreenies);
-
-  const roundsWithScores = (
-    await Promise.all(
-      tournamentRounds.map(async (round) => {
-        const priorRounds = await getPriorClubScoreDifferentialRounds({
-          userId: round.userId,
-          clubId: tournament.clubId,
-          beforeDate: tournament.date,
-        });
-        const { playingHandicap, netStrokes } = assessHandicap({
-          source: { kind: "tournament", priorRounds },
-          slope: round.courseSlope,
-          totalStrokes: round.totalStrokes,
-          isComplete: round.isComplete,
-        });
-
-        return {
-          ...round,
-          playingHandicap,
-          netStrokes,
-          scores: scoresByRoundId.get(round.id) ?? [],
-          holes: tournamentHoles,
-          tees: tournamentTees,
-          greenies: greeniesByRoundId.get(round.id) ?? [],
-        };
-      }),
-    )
-  ).sort(compareTournamentRanking);
+  // Tournament holes stay without handicaps until consumers branch on kind:
+  // Skins and Match Play treat a hole handicap as "this is a Match Round".
+  const holes = course.holes.map(({ hole, par }) => ({ hole, par }));
 
   return {
     ...tournament,
-    rounds: roundsWithScores,
-    greenies: tournamentGreenies,
+    rounds: tournamentRounds.map((round) => ({
+      ...round,
+      courseHandle: tournament.courseHandle,
+      courseName: tournament.courseName,
+      courseImgUrl: tournament.courseImgUrl,
+      holes,
+      tees: course.tees,
+    })),
+    greenies: eventGreenies(tournamentRounds),
   };
 });
 

@@ -51,24 +51,23 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { assessHandicap } from "@/lib/handicap";
+import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
 import type {
   CourseHole,
   CourseTee,
   DisplayRound,
   MatchRound,
+  RoundHoleGreenie,
+  RoundHoleScore,
 } from "@/lib/rounds/reads";
 import { toRoundSheetChanges } from "./round-sheet-changes";
-import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
 
 export type EditableRound = Pick<
   DisplayRound,
   "id" | "teeId" | "userId" | "firstName" | "courseSlope"
 > & {
-  scores: Pick<
-    DisplayRound["scores"][number],
-    "hole" | "par" | "strokes" | "putts"
-  >[];
-  greenies: Pick<DisplayRound["greenies"][number], "hole" | "feet" | "inches">[];
+  scores: RoundHoleScore[];
+  greenies: RoundHoleGreenie[];
 } & (
     | { kind: "tournament" | "casual" }
     | Pick<MatchRound, "kind" | "playerIndexOverride">

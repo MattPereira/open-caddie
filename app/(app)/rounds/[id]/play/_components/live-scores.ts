@@ -1,6 +1,10 @@
 import type { MatchFormat } from "@/app/(app)/matches/schema";
 import { calculateNetStrokes } from "@/lib/handicap";
-import type { CourseHole, DisplayRound } from "@/lib/rounds/reads";
+import type {
+  CourseHole,
+  DisplayRound,
+  RoundHoleScore,
+} from "@/lib/rounds/reads";
 import { HOLE_NUMBERS, isComplete } from "@/lib/rounds/completeness";
 
 // Converts server Round snapshots into per-hole score entries for the live
@@ -29,10 +33,7 @@ export type LiveRound = Pick<
   | "recordedPuttsCount"
   | "netStrokes"
 > & {
-  scores: Pick<
-    DisplayRound["scores"][number],
-    "hole" | "par" | "strokes" | "putts"
-  >[];
+  scores: RoundHoleScore[];
 };
 
 export type MatchScoreboard<R extends LiveRound> = {

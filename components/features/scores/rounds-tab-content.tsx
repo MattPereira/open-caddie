@@ -7,7 +7,7 @@ import {
   type EditableTableRound,
   type RoundsEditAccess,
 } from "@/components/features/scores/round-scores-table";
-import type { EditableCourse } from "@/app/(app)/rounds/[id]/_components/round-scores-sheet";
+import type { EditableCourse } from "@/components/features/scores/round-scores-sheet";
 
 export function RoundsTabContent({
   editAccess,

@@ -4,18 +4,17 @@ import { useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
-import type { CourseHole, DisplayRound } from "@/lib/rounds/reads";
+import type { CourseHole, DisplayRound, RoundEvent } from "@/lib/rounds/reads";
 import type { MatchScoreboard } from "./live-scores";
+import { eventPage } from "./play-rounds";
 import { RoundScoresForm, type SettingsTee } from "./round-scores-form";
 import { MAX_DELEGATES } from "./settings-dialog";
 import { useDelegateRoundIds } from "./use-delegate-round-id";
 
 /** A Round on the play page: a column, a leaderboard row or a scoreboard player. */
 export type PlayRound = RoundScoresTableRound &
-  Pick<DisplayRound, "kind" | "userId" | "teeId" | "yards">;
-
-/** The event the played Round belongs to, or null for a casual Round. */
-export type PlayEvent = { kind: "tournament" | "match"; id: number } | null;
+  Pick<DisplayRound, "userId" | "teeId" | "yards"> &
+  RoundEvent;
 
 export type PlayCourse = {
   name: string;
@@ -26,7 +25,6 @@ export type PlayCourse = {
 type RoundPlayProps = {
   currentUserId: string;
   round: PlayRound;
-  event: PlayEvent;
   course: PlayCourse;
   leaderboardRounds?: PlayRound[];
   scorableRounds: PlayRound[];
@@ -41,7 +39,6 @@ type RoundPlayProps = {
 export function RoundPlay({
   currentUserId,
   round,
-  event,
   course,
   leaderboardRounds,
   scorableRounds,
@@ -64,18 +61,15 @@ export function RoundPlay({
     prefill,
   );
 
-  const summary =
-    event?.kind === "tournament"
-      ? { label: "View tournament", href: `/tournaments/${event.id}` }
-      : event?.kind === "match"
-        ? { label: "View match", href: `/matches/${event.id}` }
-        : { label: "Round summary", href: `/rounds/${roundId}` };
+  const event = eventPage(round);
+  const summary = event
+    ? { label: `View ${event.label.toLowerCase()}`, href: event.href }
+    : { label: "Round summary", href: `/rounds/${roundId}` };
 
   return (
     <RoundScoresForm
       currentUserId={currentUserId}
       round={round}
-      event={event}
       course={course}
       leaderboardRounds={leaderboardRounds}
       scorableRounds={scorableRounds}

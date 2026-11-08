@@ -26,6 +26,7 @@ import {
   users,
 } from "@/db/schema";
 import { assessHandicap, PLAYER_INDEX_ROUND_LIMIT } from "@/lib/handicap";
+import { groupBy } from "@/lib/group-by";
 import {
   groupByRoundId,
   readScorecardsByRounds,
@@ -84,7 +85,38 @@ export type CasualRound = RoundBase & {
 
 export type DisplayRound = TournamentRound | MatchRound | CasualRound;
 
+/** A Round's kind together with its event's id, kept as one tagged union. */
+export type RoundEvent =
+  | Pick<TournamentRound, "kind" | "tournamentId">
+  | Pick<MatchRound, "kind" | "matchId">
+  | Pick<CasualRound, "kind">;
+
+/** One hole of a Round's scorecard, as the score views render it. */
+export type RoundHoleScore = Pick<
+  RoundScoreRow,
+  "hole" | "par" | "strokes" | "putts"
+>;
+
+export type RoundHoleGreenie = Pick<RoundGreenieRow, "hole" | "feet" | "inches">;
+
+/** A Round as Match Play and Skins score it: strokes against hole handicaps. */
+export type NetScoringRound = Pick<
+  DisplayRound,
+  | "kind"
+  | "id"
+  | "userId"
+  | "firstName"
+  | "lastName"
+  | "username"
+  | "image"
+  | "playingHandicap"
+  | "recordedStrokesCount"
+> & { scores: Pick<RoundHoleScore, "hole" | "strokes">[] };
+
 export type CourseHole = { hole: number; par: number; handicap: number };
+
+/** The hole fields Match Play and Skins allocate received strokes by. */
+export type HandicapHole = Pick<CourseHole, "hole" | "handicap">;
 
 export type CourseTee = {
   id: number;
@@ -118,36 +150,37 @@ export type HandicapDetails = {
   courseHandicap: number | null;
 };
 
-type Scope =
-  | { by: "tournament"; id: number }
-  | { by: "match"; id: number }
-  | { by: "round"; id: number };
+// Per scope: which Rounds a read covers, and where its course comes from. A
+// Round's course follows its event, so an event with no Rounds still has one.
+const scopes = {
+  tournament: {
+    roundsIn: (id: number) => eq(rounds.tournamentId, id),
+    courseOf: (id: number) =>
+      db
+        .select({ id: tournaments.courseId })
+        .from(tournaments)
+        .where(eq(tournaments.id, id)),
+  },
+  match: {
+    roundsIn: (id: number) => eq(rounds.matchId, id),
+    courseOf: (id: number) =>
+      db
+        .select({ id: matches.courseId })
+        .from(matches)
+        .where(eq(matches.id, id)),
+  },
+  round: {
+    roundsIn: (id: number) => eq(rounds.id, id),
+    courseOf: (id: number) =>
+      db
+        .select({ id: rounds.courseId })
+        .from(rounds)
+        .where(eq(rounds.id, id)),
+  },
+};
 
-function roundsIn(scope: Scope): SQL {
-  if (scope.by === "tournament") return eq(rounds.tournamentId, scope.id);
-  if (scope.by === "match") return eq(rounds.matchId, scope.id);
-  return eq(rounds.id, scope.id);
-}
-
-// A Round's course follows its event, so an event with no Rounds still has one.
-function courseOf(scope: Scope) {
-  if (scope.by === "tournament") {
-    return db
-      .select({ id: tournaments.courseId })
-      .from(tournaments)
-      .where(eq(tournaments.id, scope.id));
-  }
-  if (scope.by === "match") {
-    return db
-      .select({ id: matches.courseId })
-      .from(matches)
-      .where(eq(matches.id, scope.id));
-  }
-  return db
-    .select({ id: rounds.courseId })
-    .from(rounds)
-    .where(eq(rounds.id, scope.id));
-}
+type Scope = { by: keyof typeof scopes; id: number };
+type CourseIdQuery = ReturnType<(typeof scopes)[Scope["by"]]["courseOf"]>;
 
 function readRoundRows(where: SQL) {
   return db
@@ -179,7 +212,7 @@ function readRoundRows(where: SQL) {
     .where(where);
 }
 
-function readCourseHoles(scope: Scope) {
+function readCourseHoles(courseId: CourseIdQuery) {
   return db
     .select({
       hole: courseHoles.hole,
@@ -187,11 +220,11 @@ function readCourseHoles(scope: Scope) {
       handicap: courseHoles.handicap,
     })
     .from(courseHoles)
-    .where(inArray(courseHoles.courseId, courseOf(scope)))
+    .where(inArray(courseHoles.courseId, courseId))
     .orderBy(asc(courseHoles.hole));
 }
 
-function readCourseTees(scope: Scope) {
+function readCourseTees(courseId: CourseIdQuery) {
   return db
     .select({
       id: courseTees.id,
@@ -205,7 +238,7 @@ function readCourseTees(scope: Scope) {
     })
     .from(courseTees)
     .leftJoin(teeYardages, eq(teeYardages.teeId, courseTees.id))
-    .where(inArray(courseTees.courseId, courseOf(scope)))
+    .where(inArray(courseTees.courseId, courseId))
     .groupBy(
       courseTees.id,
       courseTees.name,
@@ -285,50 +318,52 @@ async function readPriorRounds(where: SQL) {
   const rows = await db
     .select({
       forRoundId: ranked.forRoundId,
-      id: ranked.id,
-      date: ranked.date,
-      courseHandle: ranked.courseHandle,
-      courseName: ranked.courseName,
-      courseRating: ranked.courseRating,
-      courseSlope: ranked.courseSlope,
-      totalStrokes: ranked.totalStrokes,
-      scoreDifferential: ranked.scoreDifferential,
+      prior: {
+        id: ranked.id,
+        date: ranked.date,
+        courseHandle: ranked.courseHandle,
+        courseName: ranked.courseName,
+        courseRating: ranked.courseRating,
+        courseSlope: ranked.courseSlope,
+        totalStrokes: ranked.totalStrokes,
+        scoreDifferential: ranked.scoreDifferential,
+      },
     })
     .from(ranked)
     .where(lte(ranked.recency, PLAYER_INDEX_ROUND_LIMIT))
     .orderBy(asc(ranked.forRoundId), desc(ranked.date), desc(ranked.id));
 
-  const byRoundId = new Map<number, Omit<PriorHandicapRound, "usedForPlayerIndex">[]>();
-  for (const { forRoundId, scoreDifferential, ...row } of rows) {
-    if (scoreDifferential == null) continue;
-    const prior = { ...row, scoreDifferential };
-    const existing = byRoundId.get(forRoundId);
-    if (existing) existing.push(prior);
-    else byRoundId.set(forRoundId, [prior]);
-  }
-  return byRoundId;
+  return groupBy(
+    rows.flatMap(({ forRoundId, prior: { scoreDifferential, ...prior } }) =>
+      scoreDifferential == null
+        ? []
+        : [{ forRoundId, prior: { ...prior, scoreDifferential } }],
+    ),
+    (row) => row.forRoundId,
+    (row) => row.prior,
+  );
 }
 
-async function readRounds(scope: Scope) {
-  const where = roundsIn(scope);
+async function readRounds({ by, id }: Scope) {
+  const where = scopes[by].roundsIn(id);
+  const courseId = scopes[by].courseOf(id);
   const [rows, { scores, greenies }, holes, tees, teeYards, priorByRoundId] =
     await Promise.all([
       readRoundRows(where),
       readScorecardsByRounds(where),
-      readCourseHoles(scope),
-      readCourseTees(scope),
+      readCourseHoles(courseId),
+      readCourseTees(courseId),
       readTeeYards(where),
       readPriorRounds(where),
     ]);
 
   const scoresByRoundId = groupByRoundId(scores);
   const greeniesByRoundId = groupByRoundId(greenies);
-  const yardsByTeeId = new Map<number, { hole: number; yards: number }[]>();
-  for (const { teeId, hole, yards } of teeYards) {
-    const existing = yardsByTeeId.get(teeId);
-    if (existing) existing.push({ hole, yards });
-    else yardsByTeeId.set(teeId, [{ hole, yards }]);
-  }
+  const yardsByTeeId = groupBy(
+    teeYards,
+    (row) => row.teeId,
+    ({ hole, yards }) => ({ hole, yards }),
+  );
 
   const handicapDetails = new Map<number, HandicapDetails>();
   const assessed = rows.map((row): DisplayRound => {
@@ -434,37 +469,32 @@ export const readMatchRounds = cache(
   },
 );
 
-export type RoundWithHandicapDetails = DisplayRound & {
+export type SingleRoundRead = RoundsRead<DisplayRound> & {
   handicapDetails: HandicapDetails | null;
 };
 
 /**
  * One Round, or null when it doesn't exist. With handicap details, a
- * Tournament Round carries the prior Rounds behind its Player Index, each
- * marked as used or not; Match and casual Rounds carry null.
+ * Tournament Round's read carries the prior Rounds behind its Player Index,
+ * each marked as used or not. Otherwise, and for Match and casual Rounds,
+ * `handicapDetails` is null.
  */
-async function readSingleRound(
-  roundId: number,
-  withHandicapDetails: true,
-): Promise<RoundsRead<RoundWithHandicapDetails> | null>;
-async function readSingleRound(
-  roundId: number,
-  withHandicapDetails?: false,
-): Promise<RoundsRead<DisplayRound> | null>;
-async function readSingleRound(roundId: number, withHandicapDetails = false) {
-  const { course, rounds, handicapDetails } = await readRounds({
-    by: "round",
-    id: roundId,
-  });
-  if (rounds.length === 0) return null;
-  if (!withHandicapDetails) return { course, rounds };
-  return {
-    course,
-    rounds: rounds.map((round) => ({
-      ...round,
-      handicapDetails: handicapDetails.get(round.id) ?? null,
-    })),
-  };
-}
-
-export const readRound = cache(readSingleRound);
+export const readRound = cache(
+  async (
+    roundId: number,
+    withHandicapDetails = false,
+  ): Promise<SingleRoundRead | null> => {
+    const { course, rounds, handicapDetails } = await readRounds({
+      by: "round",
+      id: roundId,
+    });
+    if (rounds.length === 0) return null;
+    return {
+      course,
+      rounds,
+      handicapDetails: withHandicapDetails
+        ? (handicapDetails.get(roundId) ?? null)
+        : null,
+    };
+  },
+);

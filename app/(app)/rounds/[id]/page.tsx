@@ -149,7 +149,7 @@ async function getRoundFromParams(params: RoundPageProps["params"]) {
     return null;
   }
 
-  return getRoundById(roundId);
+  return getRoundById(roundId, true);
 }
 
 type Round = NonNullable<Awaited<ReturnType<typeof getRoundById>>>;

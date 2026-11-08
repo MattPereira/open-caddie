@@ -391,7 +391,7 @@ if (!testDatabaseUrl) {
         const used78 = await priorRound(t, user.id, "2025-04-01", 78);
 
         const read = await reads.readRound(round.id, true);
-        const details = read?.rounds[0].handicapDetails;
+        const details = read?.handicapDetails;
 
         expect(
           details?.priorRounds.map((prior) => [prior.id, prior.usedForPlayerIndex]),
@@ -421,9 +421,9 @@ if (!testDatabaseUrl) {
           reads.readRound(round.id),
         ]);
 
-        expect(match?.rounds[0].handicapDetails).toBeNull();
-        expect(single?.rounds[0].handicapDetails).toBeNull();
-        expect(unasked?.rounds[0]).not.toHaveProperty("handicapDetails");
+        expect(match?.handicapDetails).toBeNull();
+        expect(single?.handicapDetails).toBeNull();
+        expect(unasked?.handicapDetails).toBeNull();
       });
     });
   });

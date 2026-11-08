@@ -1,20 +1,6 @@
 import { evaluateMatchPlay } from "@/lib/matches";
 import { displayName, getInitials } from "@/lib/players/player-name";
-import type { CourseHole, DisplayRound } from "@/lib/rounds/reads";
-
-export type SkinsRound = Pick<
-  DisplayRound,
-  | "kind"
-  | "id"
-  | "firstName"
-  | "lastName"
-  | "username"
-  | "image"
-  | "playingHandicap"
-  | "recordedStrokesCount"
-> & { scores: Pick<DisplayRound["scores"][number], "hole" | "strokes">[] };
-
-export type SkinsHole = Pick<CourseHole, "hole" | "handicap">;
+import type { HandicapHole, NetScoringRound } from "@/lib/rounds/reads";
 
 export type SkinHoleRow = {
   hole: number;
@@ -38,7 +24,7 @@ export type SkinPlayerView = {
   skinsWon: number;
 };
 
-export function toSkinsView(rounds: SkinsRound[], holes: SkinsHole[]) {
+export function toSkinsView(rounds: NetScoringRound[], holes: HandicapHole[]) {
   const roundsById = new Map(rounds.map((round) => [round.id, round]));
   const playersById = new Map(
     rounds.map((round) => {
@@ -112,11 +98,11 @@ export function toSkinsView(rounds: SkinsRound[], holes: SkinsHole[]) {
   return { players, holes: holeRows };
 }
 
-export function isEligibleSkinsRound(round: SkinsRound) {
+export function isEligibleSkinsRound(round: NetScoringRound) {
   return round.kind === "match" && round.recordedStrokesCount > 0;
 }
 
-function toSkinsScores(round: SkinsRound, holes: SkinsHole[]) {
+function toSkinsScores(round: NetScoringRound, holes: HandicapHole[]) {
   const scoresByHole = new Map(
     round.scores.map((score) => [score.hole, score]),
   );

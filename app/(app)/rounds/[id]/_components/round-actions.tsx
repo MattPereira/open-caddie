@@ -11,7 +11,7 @@ import {
   type EditableCourse,
   type EditableRound,
   type RoundScoresTab,
-} from "./round-scores-sheet";
+} from "@/components/features/scores/round-scores-sheet";
 
 export function RoundActions({
   canManage,

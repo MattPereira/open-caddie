@@ -69,28 +69,35 @@ export const getRoundsCountByUserId = cache(async (userId: string) => {
   return row?.value ?? 0;
 });
 
-export const getRoundById = cache(async (roundId: number) => {
-  const [[header], read] = await Promise.all([
-    db
-      .select({
-        clubId: seasons.clubId,
-        clubName: clubs.name,
-        tournamentSeason: seasons.number,
-        courseHandle: courses.handle,
-        courseName: courses.name,
-        courseImgUrl: courses.imgUrl,
-      })
-      .from(rounds)
-      .innerJoin(courses, eq(rounds.courseId, courses.id))
-      .leftJoin(tournaments, eq(rounds.tournamentId, tournaments.id))
-      .leftJoin(seasons, eq(tournaments.seasonId, seasons.id))
-      .leftJoin(clubs, eq(seasons.clubId, clubs.id))
-      .where(eq(rounds.id, roundId))
-      .limit(1),
-    readRound(roundId, true),
-  ]);
+export const getRoundById = cache(
+  async (roundId: number, withHandicapDetails = false) => {
+    const [[header], read] = await Promise.all([
+      db
+        .select({
+          clubId: seasons.clubId,
+          clubName: clubs.name,
+          tournamentSeason: seasons.number,
+          courseHandle: courses.handle,
+          courseName: courses.name,
+          courseImgUrl: courses.imgUrl,
+        })
+        .from(rounds)
+        .innerJoin(courses, eq(rounds.courseId, courses.id))
+        .leftJoin(tournaments, eq(rounds.tournamentId, tournaments.id))
+        .leftJoin(seasons, eq(tournaments.seasonId, seasons.id))
+        .leftJoin(clubs, eq(seasons.clubId, clubs.id))
+        .where(eq(rounds.id, roundId))
+        .limit(1),
+      readRound(roundId, withHandicapDetails),
+    ]);
 
-  if (!header || !read) return undefined;
+    if (!header || !read) return undefined;
 
-  return { ...read.rounds[0], ...header, course: read.course };
-});
+    return {
+      ...read.rounds[0],
+      ...header,
+      course: read.course,
+      handicapDetails: read.handicapDetails,
+    };
+  },
+);

@@ -1,5 +1,6 @@
 import { and, asc, eq, type SQL } from "drizzle-orm";
 import { db } from "@/db";
+import { groupBy } from "@/lib/group-by";
 import {
   courseHoles,
   courses,
@@ -80,13 +81,7 @@ export async function readScorecardsByRounds(where: SQL) {
 }
 
 export function groupByRoundId<T extends { roundId: number }>(rows: readonly T[]) {
-  const byRoundId = new Map<number, T[]>();
-  for (const row of rows) {
-    const existing = byRoundId.get(row.roundId);
-    if (existing) existing.push(row);
-    else byRoundId.set(row.roundId, [row]);
-  }
-  return byRoundId;
+  return groupBy(rows, (row) => row.roundId);
 }
 
 export type RoundScoreRow = Awaited<

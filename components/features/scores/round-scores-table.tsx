@@ -38,7 +38,7 @@ import {
   RoundScoresSheet,
   type EditableCourse,
   type EditableRound,
-} from "@/app/(app)/rounds/[id]/_components/round-scores-sheet";
+} from "@/components/features/scores/round-scores-sheet";
 import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
 
 export type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";

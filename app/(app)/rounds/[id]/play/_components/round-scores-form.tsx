@@ -28,7 +28,8 @@ import {
   type GreenieEntry,
   useLiveScorecard,
 } from "./use-live-scorecard";
-import type { PlayCourse, PlayEvent, PlayRound } from "./round-play";
+import { eventPage } from "./play-rounds";
+import type { PlayCourse, PlayRound } from "./round-play";
 
 export type { SettingsTee };
 
@@ -48,7 +49,6 @@ type RoundScoresFormProps = {
   // cells are that snapshot merged with whatever this device has typed and the
   // server has yet to confirm.
   round: PlayRound;
-  event: PlayEvent;
   course: PlayCourse;
   leaderboardRounds?: PlayRound[];
   scorableRounds: PlayRound[];
@@ -66,7 +66,6 @@ type RoundScoresFormProps = {
 export function RoundScoresForm({
   currentUserId,
   round: serverRound,
-  event,
   course,
   leaderboardRounds,
   scorableRounds,
@@ -152,12 +151,7 @@ export function RoundScoresForm({
   );
 
   const isComplete = isRoundComplete(round);
-  const backLink =
-    event?.kind === "tournament"
-      ? { href: `/tournaments/${event.id}`, label: "Tournament" }
-      : event?.kind === "match"
-        ? { href: `/matches/${event.id}`, label: "Match" }
-        : null;
+  const backLink = eventPage(serverRound);
 
   const getGreeniesForRound = (targetRoundId: number): GreenieEntry[] =>
     greeniesByRoundId[targetRoundId] ?? [];
@@ -396,15 +390,15 @@ export function RoundScoresForm({
                 setRecordPuttsAction={setRecordPutts}
                 recordGreenies={recordGreenies}
                 setRecordGreeniesAction={setRecordGreenies}
-                fullWidth={event == null}
+                fullWidth={serverRound.kind === "casual"}
               />
             ) : null}
-            {event?.kind === "tournament" ? (
+            {serverRound.kind === "tournament" ? (
               <TournamentLeaderboardDialog
                 currentRoundId={round.id}
                 rounds={live.leaderboardRounds}
               />
-            ) : event?.kind === "match" ? (
+            ) : serverRound.kind === "match" ? (
               <MatchScoreboardDialog
                 scoreboard={live.matchScoreboard}
                 holes={holes}

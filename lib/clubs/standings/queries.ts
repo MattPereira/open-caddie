@@ -23,6 +23,7 @@ import { assessHandicap, type PriorHandicapRound } from "@/lib/handicap";
 import { comparePlayers } from "@/lib/players/player-name";
 import { rankPutts, rankStrokes } from "@/lib/tournaments/results";
 import {
+  groupByRoundId,
   readGreeniesByRounds,
   readScoresByRounds,
 } from "@/lib/rounds/scorecards";
@@ -390,18 +391,6 @@ async function getPriorCompleteDifferentialRounds({
   return rows.filter(
     (row): row is CompleteDifferentialRound => row.scoreDifferential != null,
   );
-}
-
-function groupByRoundId<T extends { roundId: number }>(rows: T[]) {
-  const rowsByRoundId = new Map<number, T[]>();
-
-  for (const row of rows) {
-    const roundRows = rowsByRoundId.get(row.roundId) ?? [];
-    roundRows.push(row);
-    rowsByRoundId.set(row.roundId, roundRows);
-  }
-
-  return rowsByRoundId;
 }
 
 function dedupeDifferentialRounds(roundsToDedupe: CompleteDifferentialRound[]) {

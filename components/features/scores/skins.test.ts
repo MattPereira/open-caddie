@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { isEligibleSkinsRound, toSkinsView, type SkinsRound } from "./skins";
+import type { NetScoringRound } from "@/lib/rounds/reads";
+
+import { isEligibleSkinsRound, toSkinsView } from "./skins";
 
 const holes = Array.from({ length: 18 }, (_, index) => ({
   hole: index + 1,
@@ -11,8 +13,8 @@ const holes = Array.from({ length: 18 }, (_, index) => ({
 function round(
   id: number,
   strokesByHole: Partial<Record<number, number | null>>,
-  kind: SkinsRound["kind"] = "match",
-): SkinsRound {
+  kind: NetScoringRound["kind"] = "match",
+): NetScoringRound {
   const scores = holes.map((hole) => ({
     hole: hole.hole,
     strokes: strokesByHole[hole.hole] ?? null,
@@ -21,6 +23,7 @@ function round(
   return {
     kind,
     id,
+    userId: `user-${id}`,
     firstName: `Player ${id}`,
     lastName: null,
     username: null,

@@ -1,11 +1,10 @@
+import type { HandicapHole, NetScoringRound } from "@/lib/rounds/reads";
 import { TableFrame } from "@/components/shared/responsive-table";
 import {
   isEligibleSkinsRound,
   toSkinsView,
   type SkinHoleRow,
   type SkinPlayerView,
-  type SkinsHole,
-  type SkinsRound,
 } from "@/components/features/scores/skins";
 import {
   Accordion,
@@ -30,8 +29,8 @@ export function SkinsContent({
   rounds,
   holes,
 }: {
-  rounds: SkinsRound[];
-  holes: SkinsHole[];
+  rounds: NetScoringRound[];
+  holes: HandicapHole[];
 }) {
   const skinsRounds = rounds.filter(isEligibleSkinsRound);
 

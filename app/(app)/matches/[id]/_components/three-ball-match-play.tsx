@@ -1,9 +1,9 @@
+import type { HandicapHole } from "@/lib/rounds/reads";
 import {
   MatchPlayCardRow,
   MatchPlayRules,
   MatchPlaySection,
   MatchPlayTable,
-  type MatchPlayHole,
   type MatchPlayTeamView,
   toMatchPlayView,
 } from "./match-play-shared";
@@ -13,7 +13,7 @@ export function ThreeBallMatchPlayContent({
   holes,
 }: {
   teams: MatchPlayTeamView[];
-  holes: MatchPlayHole[];
+  holes: HandicapHole[];
 }) {
   return (
     <>

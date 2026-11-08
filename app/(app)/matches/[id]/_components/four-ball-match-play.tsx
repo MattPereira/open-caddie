@@ -1,3 +1,4 @@
+import type { HandicapHole } from "@/lib/rounds/reads";
 import { displayName, getInitials } from "@/lib/players/player-name";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,7 +9,6 @@ import {
   MatchPlaySection,
   MatchPlayTable,
   type MatchPlayTeamCardProps,
-  type MatchPlayHole,
   type MatchPlayTeamView,
   toMatchPlayView,
 } from "./match-play-shared";
@@ -18,7 +18,7 @@ export function FourBallMatchPlayContent({
   holes,
 }: {
   teams: MatchPlayTeamView[];
-  holes: MatchPlayHole[];
+  holes: HandicapHole[];
 }) {
   const matchPlay = toMatchPlayView(teams, "four_ball_match_play", holes);
 

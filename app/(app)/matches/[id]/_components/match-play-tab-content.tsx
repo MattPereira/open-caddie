@@ -1,3 +1,4 @@
+import type { HandicapHole, NetScoringRound } from "@/lib/rounds/reads";
 import { Card, CardContent } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 import type { MatchFormat } from "../../schema";
@@ -5,8 +6,6 @@ import { FourBallMatchPlayContent } from "./four-ball-match-play";
 import {
   getMatchPlayTeams,
   isMatchPlayRound,
-  type MatchPlayHole,
-  type MatchPlayRound,
   type StoredMatchPlayTeam,
 } from "./match-play-shared";
 import { SinglesMatchPlayContent } from "./singles-match-play";
@@ -21,8 +20,8 @@ export function MatchPlayTabContent({
   teams = [],
 }: {
   format: MatchFormat;
-  rounds: MatchPlayRound[];
-  holes: MatchPlayHole[];
+  rounds: NetScoringRound[];
+  holes: HandicapHole[];
   teams?: StoredMatchPlayTeam[];
 }) {
   return (
@@ -44,8 +43,8 @@ export function MatchPlayContent({
   teams = [],
 }: {
   format: MatchFormat;
-  rounds: MatchPlayRound[];
-  holes: MatchPlayHole[];
+  rounds: NetScoringRound[];
+  holes: HandicapHole[];
   teams?: StoredMatchPlayTeam[];
 }) {
   const matchPlayTeams = getMatchPlayTeams({

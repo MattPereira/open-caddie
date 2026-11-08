@@ -1,5 +1,9 @@
 import { displayName, getInitials } from "@/lib/players/player-name";
-import type { DisplayRound } from "@/lib/rounds/reads";
+import type {
+  DisplayRound,
+  RoundHoleGreenie,
+  RoundHoleScore,
+} from "@/lib/rounds/reads";
 import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
 
 export type RoundScoresTableRound = Pick<
@@ -16,11 +20,8 @@ export type RoundScoresTableRound = Pick<
   | "playingHandicap"
   | "netStrokes"
 > & {
-  scores: Pick<
-    DisplayRound["scores"][number],
-    "hole" | "par" | "strokes" | "putts"
-  >[];
-  greenies: Pick<DisplayRound["greenies"][number], "hole" | "feet" | "inches">[];
+  scores: RoundHoleScore[];
+  greenies: RoundHoleGreenie[];
 };
 
 export type ScoreMetric = "strokes" | "putts";

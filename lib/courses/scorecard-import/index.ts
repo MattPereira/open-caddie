@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import type { Scorecard, ScorecardWarning } from "./parser";
 import { courseHandleFromName } from "@/lib/courses/handle";
+import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
 export { TEE_RATING_MIN, TEE_SLOPE_MIN, TEE_SLOPE_MAX } from "./constants";
 import { TEE_RATING_MIN, TEE_SLOPE_MIN, TEE_SLOPE_MAX } from "./constants";
@@ -202,7 +203,7 @@ function promptsFor(document: ImportDocument): CourseScorecardImportView["prompt
       ? [{ id: `${holeIdFor(holeIndex)}:validation`, kind: "hole_validation" as const, holeIndex }]
       : [],
   );
-  const courseHoleValidation = document.existingTees ? [] : document.holes.length === 18
+  const courseHoleValidation = document.existingTees ? [] : document.holes.length === HOLE_COUNT
     ? []
     : [{ id: "course:holes:validation" as const, kind: "course_holes_validation" as const }];
   const warnings = document.warnings
@@ -282,7 +283,7 @@ function toView(row: {
 }
 
 function validTee(tee: ParsedTee) {
-  return Boolean(tee.name.trim()) && tee.rating != null && tee.rating > TEE_RATING_MIN && tee.slope != null && tee.slope >= TEE_SLOPE_MIN && tee.slope <= TEE_SLOPE_MAX && tee.yardages.length === 18 && tee.yardages.every((yards) => Number.isInteger(yards) && yards >= 50 && yards <= 800);
+  return Boolean(tee.name.trim()) && tee.rating != null && tee.rating > TEE_RATING_MIN && tee.slope != null && tee.slope >= TEE_SLOPE_MIN && tee.slope <= TEE_SLOPE_MAX && tee.yardages.length === HOLE_COUNT && tee.yardages.every((yards) => Number.isInteger(yards) && yards >= 50 && yards <= 800);
 }
 
 function validTeeForCourse(tee: ParsedTee, document: ImportDocument, excluded: Set<number>, teeIndex?: number) {
@@ -314,13 +315,13 @@ function isHoleCorrection(value: unknown): value is HoleCorrection {
 }
 
 function validHole(hole: ParsedHole, index: number, holes: ParsedHole[]) {
-  return hole.hole === index + 1 && hole.par >= 2 && hole.par <= 7 && hole.handicap >= 1 && hole.handicap <= 18 && holes.filter((candidate) => candidate.handicap === hole.handicap).length === 1;
+  return hole.hole === index + 1 && hole.par >= 2 && hole.par <= 7 && hole.handicap >= 1 && hole.handicap <= HOLE_COUNT && holes.filter((candidate) => candidate.handicap === hole.handicap).length === 1;
 }
 
 function validNewCourseScorecard(document: ImportDocument) {
   const excluded = new Set(document.excludedTeeIndexes ?? []);
   const tees = document.tees.filter((_, index) => !excluded.has(index));
-  if (tees.length === 0 || document.holes.length !== 18) return false;
+  if (tees.length === 0 || document.holes.length !== HOLE_COUNT) return false;
   const normalizedNames = new Set<string>();
   for (const tee of tees) {
     if (!validTee(tee)) return false;

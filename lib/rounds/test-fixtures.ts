@@ -2,6 +2,7 @@ import { inArray } from "drizzle-orm";
 
 import type { db as Db } from "@/db";
 import type * as Schema from "@/db/schema";
+import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
 // Fixtures shared by the Round suites that run against TEST_DATABASE_URL.
 // Callers import `@/db` themselves after pointing DATABASE_URL at the test
@@ -23,7 +24,7 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
       .values({ courseId: created.id, name: "Blue", rating: "72", slope: 120 })
       .returning();
     await db.insert(schema.courseHoles).values(
-      Array.from({ length: 18 }, (_, index) => ({
+      Array.from({ length: HOLE_COUNT }, (_, index) => ({
         courseId: created.id,
         hole: index + 1,
         par: PAR_THREE_HOLES.includes(index + 1) ? 3 : 4,

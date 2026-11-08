@@ -52,6 +52,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { assessHandicap } from "@/lib/handicap";
 import { toRoundSheetChanges } from "./round-sheet-changes";
+import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
 
 export type EditableRound = {
   id: number;
@@ -86,7 +87,6 @@ export type EditableRound = {
   }[];
 };
 
-const holeNumbers = Array.from({ length: 18 }, (_, index) => index + 1);
 export type RoundScoresTab = "tees" | "scores" | "greenies";
 type ScoreTab = "front" | "back";
 const scoreTabs: {
@@ -94,8 +94,8 @@ const scoreTabs: {
   label: string;
   holes: number[];
 }[] = [
-  { value: "front", label: "Front", holes: holeNumbers.slice(0, 9) },
-  { value: "back", label: "Back", holes: holeNumbers.slice(9) },
+  { value: "front", label: "Front", holes: HOLE_NUMBERS.slice(0, 9) },
+  { value: "back", label: "Back", holes: HOLE_NUMBERS.slice(9) },
 ];
 
 function toFormValues(round: EditableRound): RoundSheetFormValues {
@@ -113,7 +113,7 @@ function toFormValues(round: EditableRound): RoundSheetFormValues {
       round.playerIndexOverride == null
         ? ""
         : Number(round.playerIndexOverride),
-    scores: holeNumbers.map((hole) => {
+    scores: HOLE_NUMBERS.map((hole) => {
       const score = scoresByHole.get(hole);
       return {
         hole,

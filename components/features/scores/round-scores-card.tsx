@@ -11,6 +11,7 @@ import type {
   RoundScoreRow,
   ScoreMetric,
 } from "@/components/features/scores/round-scores";
+import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
 
 export type {
   MetricValues,
@@ -20,9 +21,8 @@ export type {
 } from "@/components/features/scores/round-scores";
 import { StatTile } from "@/components/shared/stat-tile";
 
-const holes = Array.from({ length: 18 }, (_, index) => index + 1);
-const frontNine = holes.slice(0, 9);
-const backNine = holes.slice(9);
+const frontNine = HOLE_NUMBERS.slice(0, 9);
+const backNine = HOLE_NUMBERS.slice(9);
 
 type ScoreSymbol =
   "double-circle" | "circle" | "none" | "square" | "double-square";

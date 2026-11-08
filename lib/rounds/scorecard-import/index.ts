@@ -7,6 +7,7 @@ import { getEventRoundAccess, readRoundAccess } from "@/lib/rounds/access";
 import { EVENT_KINDS, type EventKind } from "@/lib/rounds/events";
 import { recordScorecardChanges } from "@/lib/rounds/scorecard-writes";
 import { parseRoundScorecardImage } from "./parser";
+import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
 // Not a "use server" module: it takes the session user id, so thin actions in
 // the Tournament and Match routes authenticate and wrap it (ADR 0003).
@@ -151,7 +152,7 @@ export async function importRoundScorecard({
     .where(eq(courseHoles.courseId, courseId))
     .orderBy(asc(courseHoles.hole));
   if (
-    holes.length !== 18 ||
+    holes.length !== HOLE_COUNT ||
     holes.some((hole, index) => hole.hole !== index + 1)
   ) {
     return {

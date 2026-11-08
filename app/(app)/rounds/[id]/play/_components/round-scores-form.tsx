@@ -12,10 +12,10 @@ import { CourseRecordsDialog } from "@/components/features/course-records/course
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
+import { isComplete as isRoundComplete } from "@/lib/rounds/completeness";
 import {
   type ScoreEntry,
   buildScoreBase,
-  isRoundComplete,
   projectLiveRounds,
 } from "./live-scores";
 import { HoleScoreRow } from "./hole-score-row";

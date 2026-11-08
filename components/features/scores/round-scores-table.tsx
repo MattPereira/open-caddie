@@ -42,7 +42,6 @@ import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
 
 export type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
 
-
 export type RoundsEditAccess = {
   /** Rounds the viewer is a Scorer of, so may edit from the table. */
   scorableRoundIds: readonly number[];

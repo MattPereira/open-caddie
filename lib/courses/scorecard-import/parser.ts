@@ -152,8 +152,7 @@ export function verifySums(parsed: Scorecard): ScorecardWarning[] {
       });
   }
   const sis = parsed.holes.map((h) => h.handicap).sort((a, b) => a - b);
-  const expected = HOLE_NUMBERS;
-  if (sis.join(",") !== expected.join(","))
+  if (sis.join(",") !== HOLE_NUMBERS.join(","))
     issues.push({ scope: "hole", message: `handicap not 1-18 unique: got [${sis.join(",")}]` });
   return issues;
 }

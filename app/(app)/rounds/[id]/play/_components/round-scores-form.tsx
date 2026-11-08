@@ -12,7 +12,7 @@ import { CourseRecordsDialog } from "@/components/features/course-records/course
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
-import { isComplete as isRoundComplete } from "@/lib/rounds/completeness";
+import { HOLE_COUNT, isComplete as isRoundComplete } from "@/lib/rounds/completeness";
 import {
   type ScoreEntry,
   buildScoreBase,
@@ -237,7 +237,7 @@ export function RoundScoresForm({
   // Only one nine is on screen at a time, so all 18 holes stay reachable in a
   // single tap instead of a ~560px scroll.
   const renderNine = (nine: Nine) => {
-    const [from, to] = nine === "out" ? [1, 9] : [10, 18];
+    const [from, to] = nine === "out" ? [1, 9] : [10, HOLE_COUNT];
 
     return (
       <div className="mx-auto flex w-fit max-w-full flex-col gap-1.5">

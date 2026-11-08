@@ -503,6 +503,7 @@ export const roundSummaries = pgView("round_summaries").as((qb) =>
       isComplete: sql<boolean>`count(${roundScores.strokes}) = 18`.as(
         "is_complete",
       ),
+      // Same completeness rule as isComplete above.
       scoreDifferential:
         sql<number | null>`case when count(${roundScores.strokes}) = 18 then ((113.0 / ${courseTees.slope}) * (sum(${roundScores.strokes}) - ${courseTees.rating}))::double precision else null end`.mapWith(
           (value) => (value == null ? null : Number(value)),

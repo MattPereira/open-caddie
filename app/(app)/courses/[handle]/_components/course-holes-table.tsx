@@ -37,7 +37,6 @@ type CourseTee = {
   yardages: (number | null)[];
 };
 
-
 export function CourseHolesTable({
   holes,
   tees = [],

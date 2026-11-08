@@ -1,7 +1,6 @@
 import { displayName, getInitials } from "@/lib/players/player-name";
 import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
 
-
 export type RoundScoresTableRound = {
   id: number;
   matchId?: number | null;

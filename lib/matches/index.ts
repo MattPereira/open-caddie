@@ -11,7 +11,6 @@ export function matchFormatLabel(format: MatchFormat | null | undefined) {
   return format ? FORMAT_LABELS[format] : null;
 }
 
-
 export type MatchPlayPlayer = {
   id: string | number;
   playingHandicap: number | null;

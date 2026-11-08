@@ -15,7 +15,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "spike:scorecard": "tsx evals/scorecard-import/spike.ts",
-    "sandcastle": "npx tsx .sandcastle/main.mts"
+    "sandcastle": "npx tsx .sandcastle/main.mts",
+    "neon": "neon --config-dir .neon-local --no-analytics"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.112",
@@ -68,6 +69,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "jsdom": "^26.1.0",
+    "neon": "9.2.0",
     "pg": "^8.20.0",
     "shadcn": "^4.7.0",
     "tailwindcss": "^4",

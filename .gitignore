@@ -47,3 +47,6 @@ evals/scorecard-import/runs/
 
 # Image-viewer sidecar metadata
 .comments/
+
+# Project-local Neon CLI credentials and state
+/.neon-local/

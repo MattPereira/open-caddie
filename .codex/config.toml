@@ -27,5 +27,9 @@ approval_mode = "approve"
 [mcp_servers.vercel]
 url = "https://mcp.vercel.com"
 
+[mcp_servers.Neon]
+type = "http"
+url = "https://mcp.neon.tech/mcp"
+
 [plugins."vercel@openai-curated"]
 enabled = true

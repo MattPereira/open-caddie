@@ -4,6 +4,21 @@ Open Caddie records golf courses, rounds, matches, tournaments, and club standin
 
 ## Language
 
+**Player**:
+A person known to Open Caddie, whether or not they have ever signed in. The golf-facing view of a person: they play Rounds, create Matches, belong to Clubs, and carry a Player Index.
+_Avoid_: User (outside sign-in), golfer, member (for the person itself)
+
+**User**:
+A Player's sign-in identity: how a person authenticates and holds a session. Used only when talking about signing in.
+_Avoid_: User as a synonym for Player, account (for the person itself)
+
+**Admin**:
+A Player permitted to manage any Club, Tournament, Match, Round or Player. Admin is a trait of the Player, not of their sign-in.
+
+**Club Member**:
+A Player's membership in a Club. The people themselves are the Club's Players.
+_Avoid_: member (for the Player)
+
 **Tournament**:
 A Club-owned competition belonging to exactly one Season, whose Rounds feed that Season's standings and its players' Player Indexes.
 
@@ -11,7 +26,7 @@ A Club-owned competition belonging to exactly one Season, whose Rounds feed that
 One player's play of one course on one date, casual or within an event (a Tournament or a Match). A Round's course and date follow its event; its tee starts as the event's and is the player's to change. An event's course cannot change once any Round has scores or Greenies.
 
 **Match**:
-An event created by one player, its creator, holding the Rounds of the players in it. Its format caps its Rounds: Singles at 2, Three-Ball at 3, and Four-Ball needs exactly 4. Only its creator or an admin may change or delete it.
+An event created by one Player, its creator, holding the Rounds of the Players in it. Its format caps its Rounds: Singles at 2, Three-Ball at 3, and Four-Ball needs exactly 4. Only its creator or an Admin may change or delete it.
 
 **Match Team**:
 One of the two sides in a Four-Ball Match, each holding two of its Rounds.
@@ -29,11 +44,11 @@ Any Season below its Club's highest-numbered Season. Past Seasons remain editabl
 _Avoid_: Archived Season
 
 **Pairing**:
-An admin-defined set of up to four Rounds within one Tournament, representing the players who are playing together. Its members may enter each other's scores.
+An Admin-defined set of up to four Rounds within one Tournament, representing the Players who are playing together. Its Players may enter each other's scores.
 _Avoid_: Tournament group (already a rejected synonym for Season), foursome (a Pairing may hold fewer than four)
 
 **Scorer**:
-Someone who may enter a Round's per-hole scores and Greenies: the Round's player, an admin, the Round's Pairing mates, and, for a Match Round, the Match's other players and its creator. Only the Round's player or an admin may change the Round itself (its tee, its Player Index Override, or deleting it).
+Someone who may enter a Round's per-hole scores and Greenies: the Round's Player, an Admin, the Round's Pairing mates, and, for a Match Round, the Match's other Players and its creator. Only the Round's Player or an Admin may change the Round itself (its tee, its Player Index Override, or deleting it).
 _Avoid_: peer scorer, scorekeeper
 
 **Course Scorecard Import**:

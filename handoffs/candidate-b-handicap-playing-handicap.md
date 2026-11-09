@@ -7,7 +7,7 @@ Full context + before/after diagrams: `/tmp/architecture-review-20260721-173806.
 ## Why this exists
 
 `assessHandicap` (`lib/handicap/index.ts:90`) is a deep, tested module — but it stops
-at **Course Handicap**. **Playing Handicap** — a first-class term in `CONTEXT.md`
+at **Course Handicap**. **Playing Handicap** — a first-class term in `GLOSSARY.md`
 ("Match scoring" / "Handicap" sections), defined as the Course Handicap actually
 applied, with a Player Index Override's Course Handicap taking precedence over a
 computed one — has **no home in the module**. Every query caller reconstructs the
@@ -59,9 +59,9 @@ flag if revisited.
 
 ## Domain terms in play
 
-See `CONTEXT.md`: **Player Index**, **Player Index Override**, **Course Handicap**,
+See `GLOSSARY.md`: **Player Index**, **Player Index Override**, **Course Handicap**,
 **Playing Handicap**, **Score Differential**. If the deepened entry introduces a name
-not in `CONTEXT.md`, add it there.
+not in `GLOSSARY.md`, add it there.
 
 ## Suggested skills
 
@@ -70,7 +70,7 @@ not in `CONTEXT.md`, add it there.
 - `/codebase-design` — design the deepened interface (the `assessHandicap` return
   shape / a `resolvePlayingHandicap` entry); use design-it-twice if the interface is
   contested.
-- `/domain-modeling` — if the interface names a concept not yet in `CONTEXT.md`, or
+- `/domain-modeling` — if the interface names a concept not yet in `GLOSSARY.md`, or
   sharpens Playing Handicap's definition.
 - `/tdd` — `lib/handicap` already has `index.test.ts`; extend it to cover Playing
   Handicap resolution before/while changing callers.

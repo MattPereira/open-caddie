@@ -49,7 +49,7 @@ export type RoundAccess = {
 };
 
 /**
- * The Scorer and manage rules from CONTEXT.md, for one Round. `sameGroup` is
+ * The Scorer and manage rules from GLOSSARY.md, for one Round. `sameGroup` is
  * the Rounds of its Pairing mates, or of its Match's other players.
  */
 function decideAccess(

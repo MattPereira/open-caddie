@@ -39,17 +39,17 @@ export type PositionRound = {
   roundId: number;
 };
 
-export type PlayerRoundPoints<TUser> = {
+export type PlayerRoundPoints<TPlayer> = {
   roundId: number;
   playerId: string;
-  user: TUser;
+  player: TPlayer;
   points: RoundPoints;
 };
 
-export type PlayerStanding<TUser, TRound extends PlayerRoundPoints<TUser>> = {
+export type PlayerStanding<TPlayer, TRound extends PlayerRoundPoints<TPlayer>> = {
   position: number;
   playerId: string;
-  user: TUser;
+  player: TPlayer;
   roundsPlayed: number;
   countedRounds: number;
   droppedRounds: number;
@@ -197,18 +197,18 @@ export function buildRoundPoints({
 }
 
 export function buildPlayerStandings<
-  TUser,
-  TRound extends PlayerRoundPoints<TUser>,
+  TPlayer,
+  TRound extends PlayerRoundPoints<TPlayer>,
 >(rounds: TRound[], { roundLimit = 10 }: { roundLimit?: number } = {}) {
-  const roundsByUserId = new Map<string, TRound[]>();
+  const roundsByPlayerId = new Map<string, TRound[]>();
 
   for (const round of rounds) {
-    const playerRounds = roundsByUserId.get(round.playerId) ?? [];
+    const playerRounds = roundsByPlayerId.get(round.playerId) ?? [];
     playerRounds.push(round);
-    roundsByUserId.set(round.playerId, playerRounds);
+    roundsByPlayerId.set(round.playerId, playerRounds);
   }
 
-  return Array.from(roundsByUserId.entries())
+  return Array.from(roundsByPlayerId.entries())
     .map(([playerId, playerRounds]) => {
       const rankedRounds = [...playerRounds].sort(compareRoundPointTotals);
       const counted = rankedRounds.slice(0, roundLimit);
@@ -217,7 +217,7 @@ export function buildPlayerStandings<
       return {
         position: 0,
         playerId,
-        user: playerRounds[0].user,
+        player: playerRounds[0].player,
         roundsPlayed: playerRounds.length,
         countedRounds: counted.length,
         droppedRounds: Math.max(0, playerRounds.length - counted.length),
@@ -232,7 +232,7 @@ export function buildPlayerStandings<
     .map((standing, index) => ({ ...standing, position: index + 1 }));
 }
 
-function compareRoundPointTotals<TUser, TRound extends PlayerRoundPoints<TUser>>(
+function compareRoundPointTotals<TPlayer, TRound extends PlayerRoundPoints<TPlayer>>(
   a: TRound,
   b: TRound,
 ) {
@@ -242,9 +242,9 @@ function compareRoundPointTotals<TUser, TRound extends PlayerRoundPoints<TUser>>
 }
 
 function comparePlayerStandingTotals<
-  TUser,
-  TRound extends PlayerRoundPoints<TUser>,
->(a: PlayerStanding<TUser, TRound>, b: PlayerStanding<TUser, TRound>) {
+  TPlayer,
+  TRound extends PlayerRoundPoints<TPlayer>,
+>(a: PlayerStanding<TPlayer, TRound>, b: PlayerStanding<TPlayer, TRound>) {
   const pointsCompare = b.points.total - a.points.total;
   if (pointsCompare !== 0) return pointsCompare;
 

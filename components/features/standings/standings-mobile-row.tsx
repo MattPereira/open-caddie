@@ -17,7 +17,7 @@ import type { PointKey, PointSummaryColumn } from "@/components/features/standin
 
 export type MobileStanding = {
   playerId: string;
-  user: {
+  player: {
     email: string | null;
     firstName: string | null;
     lastName: string | null;
@@ -43,7 +43,7 @@ export function StandingsMobileRow({
   pointColumns: PointSummaryColumn[];
 }) {
   const [openRoundId, setOpenRoundId] = useState<number | null>(null);
-  const name = displayName(standing.user);
+  const name = displayName(standing.player);
 
   return (
     <Collapsible className="border-b last:border-b-0">
@@ -53,10 +53,10 @@ export function StandingsMobileRow({
           className="group flex w-full min-w-0 items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50 data-[state=open]:bg-muted/50"
         >
           <Avatar className="size-16">
-            {standing.user.image ? (
-              <AvatarImage src={standing.user.image} alt={name} />
+            {standing.player.image ? (
+              <AvatarImage src={standing.player.image} alt={name} />
             ) : null}
-            <AvatarFallback>{getInitials(standing.user)}</AvatarFallback>
+            <AvatarFallback>{getInitials(standing.player)}</AvatarFallback>
           </Avatar>
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="truncate font-medium">{name}</span>

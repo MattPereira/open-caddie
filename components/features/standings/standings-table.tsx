@@ -124,7 +124,7 @@ function formatShortDate(date: Date) {
 function toDesktopStanding(standing: Standing): DesktopStanding {
   return {
     playerId: standing.playerId,
-    playerName: displayName(standing.user),
+    playerName: displayName(standing.player),
     position: standing.position,
     points: standing.points,
     countedRounds: standing.roundBreakdown
@@ -141,7 +141,7 @@ function toDesktopStanding(standing: Standing): DesktopStanding {
 function toMobileStanding(standing: Standing): MobileStanding {
   return {
     playerId: standing.playerId,
-    user: standing.user,
+    player: standing.player,
     roundsPlayed: standing.roundsPlayed,
     droppedRounds: standing.droppedRounds,
     points: standing.points,

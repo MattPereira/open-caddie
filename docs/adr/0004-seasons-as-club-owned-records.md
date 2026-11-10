@@ -1,3 +1,8 @@
+---
+status: accepted
+date: 2026-07-24
+---
+
 # Model Seasons as Club-owned records
 
 Replace the nullable season number on each Tournament with a required reference to a Season record owned by a Club. A Season has a permanent Club-relative sequential number; a Club's current Season is its highest-numbered one and every lower-numbered Season is past. This supports empty Seasons and makes the Tournament's Club derivable through its Season without calendar boundaries.

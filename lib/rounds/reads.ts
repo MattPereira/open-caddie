@@ -1,3 +1,5 @@
+// The one place that reads Rounds for display. New reads that show Rounds go
+// through here rather than writing their own Round select.
 import { cache } from "react";
 import {
   and,

@@ -11,3 +11,19 @@ Renaming the Auth.js `user` table, and its `userId` references in `account` and 
 - A golf table holding a `player_id` that references `"user".id` is deliberate.
 - Admin is a trait of the Player even though it is stored on the Auth.js `user` row.
 - Code resolves the session to a Player at the boundary (`getCurrentPlayer`). Code past that boundary says Player.
+
+## Lint guard
+
+`local/player-domain-term` (`eslint-rules/player-domain-term.mjs`) fails on any declared identifier or JSX prop with a "user" word in its name. Accessing a third-party property (`session.user`, `process.env.DATABASE_USER`) is not flagged; only declaring one is. Allowed:
+
+- Sign-in files, exempted in `eslint.config.mjs`: `auth.ts`, `auth.types.d.ts`, `lib/auth/**`, `app/(app)/login/**`, `app/api/auth/**`.
+- The Auth.js tables in `db/schema.ts`: `users`, and the `account` and `session` tables' `userId` columns, inside a disable block.
+- `users`, the Drizzle export of the Auth.js `user` table, used by domain queries.
+- `username`, the Player's handle. It's one word, so it never matches.
+- Third-party icon components (`User*Icon`).
+- The profile image Blob `users/` prefix. It's a string, so it never matches.
+- The LLM "user" message role (`*UserPrompt`, `USER_PROMPT`).
+- `userAgent` (robots.txt).
+- Inline disables for third-party shapes that have to be declared: Auth.js `unstable_update({ user })` in onboarding, and the Postgres role `user` in `db/index.ts`.
+
+The rule lives in a file imported by `eslint.config.mjs`, so ESLint's cache doesn't see edits to it. Delete `.eslintcache` after changing the rule.

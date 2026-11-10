@@ -5,7 +5,7 @@ import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
 import { getCoursesWithTees } from "@/lib/courses/queries";
 import { getAllMatches } from "@/lib/matches/queries";
-import { getAllUsers, getCurrentUser } from "@/lib/users/queries";
+import { getAllPlayers, getCurrentPlayer } from "@/lib/players/queries";
 import { AddMatchButton } from "./_components/add-match-button";
 import { MatchesBrowser } from "./_components/matches-browser";
 
@@ -16,13 +16,13 @@ export const metadata: Metadata = {
 };
 
 export default async function MatchesPage() {
-  const [matches, currentUser] = await Promise.all([
+  const [matches, currentPlayer] = await Promise.all([
     getAllMatches(),
-    getCurrentUser(),
+    getCurrentPlayer(),
   ]);
 
-  const [courses, players] = currentUser
-    ? await Promise.all([getCoursesWithTees(), getAllUsers()])
+  const [courses, players] = currentPlayer
+    ? await Promise.all([getCoursesWithTees(), getAllPlayers()])
     : [[], []];
 
   return (
@@ -34,7 +34,7 @@ export default async function MatchesPage() {
         >
           Matches
         </PageHeading>
-        {currentUser ? (
+        {currentPlayer ? (
           <AddMatchButton courses={courses} players={players} />
         ) : null}
       </div>

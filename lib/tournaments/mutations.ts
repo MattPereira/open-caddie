@@ -13,7 +13,7 @@ import {
   syncEventRounds,
   type ChangedRound,
 } from "@/lib/rounds/lifecycle";
-import { requireAdmin } from "@/lib/users/admin";
+import { requireAdmin } from "@/lib/players/admin";
 
 // Tournament and Season writes. Plain module: route actions authenticate and
 // parse untrusted input, then pass the session user id in (ADR 0003).

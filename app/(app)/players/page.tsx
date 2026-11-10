@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { appPageIcons } from "@/components/layout/app-nav-items";
 import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
-import { getAllUsers, getCurrentUser } from "@/lib/users/queries";
+import { getAllPlayers, getCurrentPlayer } from "@/lib/players/queries";
 import { AddPlayerButton } from "./_components/add-player-button";
 import { PlayersBrowser } from "./_components/players-browser";
 
@@ -14,9 +14,9 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function PlayersPage() {
-  const [players, currentUser] = await Promise.all([
-    getAllUsers(),
-    getCurrentUser(),
+  const [players, currentPlayer] = await Promise.all([
+    getAllPlayers(),
+    getCurrentPlayer(),
   ]);
 
   return (
@@ -28,7 +28,7 @@ export default async function PlayersPage() {
         >
           Players
         </PageHeading>
-        {currentUser?.isAdmin ? (
+        {currentPlayer?.isAdmin ? (
           <div className="ml-auto">
             <AddPlayerButton />
           </div>

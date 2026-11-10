@@ -10,7 +10,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +21,7 @@ export default async function AppLayout({
 }) {
   const session = await auth();
   const user = session?.user
-    ? ((await getCurrentUser()) ?? session.user)
+    ? ((await getCurrentPlayer()) ?? session.user)
     : null;
   const sidebarUser = user ? getSidebarUser(user) : null;
 

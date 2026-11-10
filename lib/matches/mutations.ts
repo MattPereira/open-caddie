@@ -22,7 +22,7 @@ import {
   syncEventRounds,
   type ChangedRound,
 } from "@/lib/rounds/lifecycle";
-import { isAdmin } from "@/lib/users/admin";
+import { isAdmin } from "@/lib/players/admin";
 import { matchFormatPolicy } from "./formats";
 
 // Match writes. Plain module: route actions authenticate and parse untrusted

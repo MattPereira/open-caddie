@@ -12,7 +12,7 @@ import { StandingsTable } from "@/components/features/standings/standings-table"
 import { Badge } from "@/components/ui/badge";
 import { getClubByHandle, getClubMembersByHandle } from "@/lib/clubs/queries";
 import { getClubSeasons, getSeasonStandings } from "@/lib/clubs/standings/queries";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { PageContent } from "@/components/layout/page-content";
 import { EditClubButton } from "../_components/edit-club-button";
 
@@ -45,10 +45,10 @@ export default async function ClubPage({
 
   if (!club) notFound();
 
-  const [{ season: requestedSeason }, currentUser, members, seasons] =
+  const [{ season: requestedSeason }, currentPlayer, members, seasons] =
     await Promise.all([
       searchParams,
-      getCurrentUser(),
+      getCurrentPlayer(),
       getClubMembersByHandle(club.handle),
       getClubSeasons(club.id),
     ]);
@@ -69,7 +69,7 @@ export default async function ClubPage({
           <h1 className="text-2xl font-semibold tracking-normal">
             {club.name}
           </h1>
-          {currentUser?.isAdmin ? <EditClubButton club={club} /> : null}
+          {currentPlayer?.isAdmin ? <EditClubButton club={club} /> : null}
         </div>
 
         <div className="flex flex-col gap-6">

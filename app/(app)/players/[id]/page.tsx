@@ -6,11 +6,11 @@ import { displayName, getInitials } from "@/lib/players/player-name";
 import { StatTile } from "@/components/shared/stat-tile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  getCurrentUser,
-  getUserById,
-  getUserPlayingStatsById,
-  getUserRoundsById,
-} from "@/lib/users/queries";
+  getCurrentPlayer,
+  getPlayerById,
+  getPlayerStatsById,
+  getPlayerRoundsById,
+} from "@/lib/players/queries";
 import { PageContent } from "@/components/layout/page-content";
 import { PlayerProfileActions } from "./_components/player-profile-actions";
 import { PlayerRoundsBrowser } from "./_components/player-rounds-browser";
@@ -38,14 +38,14 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
 
   if (!player) notFound();
 
-  const [currentUser, stats, rounds] = await Promise.all([
-    getCurrentUser(),
-    getUserPlayingStatsById(player.id),
-    getUserRoundsById(player.id),
+  const [currentPlayer, stats, rounds] = await Promise.all([
+    getCurrentPlayer(),
+    getPlayerStatsById(player.id),
+    getPlayerRoundsById(player.id),
   ]);
   const name = displayName(player);
-  const canManageUsers = currentUser?.isAdmin ?? false;
-  const canEdit = canManageUsers || currentUser?.id === player.id;
+  const canManageUsers = currentPlayer?.isAdmin ?? false;
+  const canEdit = canManageUsers || currentPlayer?.id === player.id;
 
   return (
     <PageContent>
@@ -117,7 +117,7 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
 async function getPlayerFromParams(params: PlayerPageProps["params"]) {
   const { id } = await params;
 
-  return getUserById(id);
+  return getPlayerById(id);
 }
 
 function formatAverage(value: number | null) {

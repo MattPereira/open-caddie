@@ -14,7 +14,7 @@ import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
 import { getCoursesWithTees } from "@/lib/courses/queries";
 import { getActiveRoundForUser } from "@/lib/rounds/queries";
 import { getHomeEvents } from "@/lib/home/queries";
-import { getAllUsers, getCurrentUser } from "@/lib/users/queries";
+import { getAllPlayers, getCurrentPlayer } from "@/lib/players/queries";
 import { createPageMetadata } from "@/app/metadata";
 import { cn } from "@/lib/utils";
 import { AddMatchButton } from "./matches/_components/add-match-button";
@@ -29,15 +29,15 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 export default async function Home() {
-  const currentUser = await getCurrentUser();
+  const currentPlayer = await getCurrentPlayer();
 
   const [homeEvents, activeRound, courses, players, clubs] =
     await Promise.all([
       getHomeEvents(),
-      currentUser ? getActiveRoundForUser(currentUser.id) : null,
-      currentUser ? getCoursesWithTees() : [],
-      currentUser ? getAllUsers() : [],
-      currentUser?.isAdmin ? getAllClubsWithSeasons() : [],
+      currentPlayer ? getActiveRoundForUser(currentPlayer.id) : null,
+      currentPlayer ? getCoursesWithTees() : [],
+      currentPlayer ? getAllPlayers() : [],
+      currentPlayer?.isAdmin ? getAllClubsWithSeasons() : [],
     ]);
 
   const today = getLocalDateKey(new Date());
@@ -95,7 +95,7 @@ export default async function Home() {
           tournaments={recentTournaments}
           matches={recentMatches}
           tournamentAction={
-            currentUser?.isAdmin ? (
+            currentPlayer?.isAdmin ? (
               <AddTournamentButton
                 clubs={clubs}
                 courses={courses}
@@ -104,7 +104,7 @@ export default async function Home() {
             ) : null
           }
           matchAction={
-            currentUser ? (
+            currentPlayer ? (
               <AddMatchButton
                 courses={courses}
                 players={players}

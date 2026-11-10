@@ -6,9 +6,9 @@ import { and, count, eq, ne, sql } from "drizzle-orm";
 import { signIn } from "@/auth";
 import { db } from "@/db";
 import { greenies, rounds, users } from "@/db/schema";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { safeDeleteBlob } from "@/lib/images/blob";
-import { createSignInLink } from "@/lib/users/sign-in-link";
+import { createSignInLink } from "@/lib/auth/sign-in-link";
 import {
   UserCreateSchema,
   UserUpdateSchema,
@@ -19,7 +19,7 @@ import {
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 async function requireAdmin() {
-  const me = await getCurrentUser();
+  const me = await getCurrentPlayer();
   if (!me?.isAdmin) {
     throw new Error("Forbidden");
   }
@@ -102,7 +102,7 @@ export async function createUser(
 export async function updateUser(
   values: UserUpdateValues,
 ): Promise<ActionResult> {
-  const me = await getCurrentUser();
+  const me = await getCurrentPlayer();
   if (!me) {
     return { ok: false, error: "You must be signed in." };
   }

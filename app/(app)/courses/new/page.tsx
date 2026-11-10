@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { PageContent } from "@/components/layout/page-content";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { CourseCreateForm } from "../_components/course-create-form";
 
 export const metadata: Metadata = {
@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function NewCoursePage() {
-  const user = await getCurrentUser();
-  if (!user?.isAdmin) {
+  const player = await getCurrentPlayer();
+  if (!player?.isAdmin) {
     redirect("/courses");
   }
 

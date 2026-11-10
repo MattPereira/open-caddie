@@ -3,7 +3,7 @@ import { count, desc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { pairingMembers, pairings, rounds, tournaments } from "@/db/schema";
-import { requireAdmin } from "@/lib/users/admin";
+import { requireAdmin } from "@/lib/players/admin";
 import { PAIRING_MAX_MEMBERS } from "./pairings";
 
 // Plain module: only route actions authenticate and parse untrusted input.

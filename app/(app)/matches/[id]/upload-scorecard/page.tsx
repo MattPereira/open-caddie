@@ -5,7 +5,7 @@ import { PageContent } from "@/components/layout/page-content";
 import { ScorecardUploadForm } from "@/components/features/scorecard-import/scorecard-upload-form";
 import { getMatchById } from "@/lib/matches/queries";
 import { getScorecardImportPlayers } from "@/lib/rounds/scorecard-import";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { uploadMatchRoundScorecard } from "@/app/(app)/matches/actions";
 import { formatDate } from "@/lib/dates";
 
@@ -26,22 +26,22 @@ export default async function MatchUploadScorecardPage({
   const matchId = Number(id);
   if (!Number.isInteger(matchId) || matchId <= 0) notFound();
 
-  const [match, currentUser] = await Promise.all([
+  const [match, currentPlayer] = await Promise.all([
     getMatchById(matchId),
-    getCurrentUser(),
+    getCurrentPlayer(),
   ]);
 
   if (!match) notFound();
 
-  const players = currentUser
+  const players = currentPlayer
     ? await getScorecardImportPlayers(
-        currentUser.id,
+        currentPlayer.id,
         "match",
         matchId,
         match.rounds,
       )
     : null;
-  if (!currentUser || !players) redirect(`/matches/${matchId}`);
+  if (!currentPlayer || !players) redirect(`/matches/${matchId}`);
   const action = uploadMatchRoundScorecard.bind(null, matchId);
 
   return (
@@ -62,7 +62,7 @@ export default async function MatchUploadScorecardPage({
         cancelHref={`/matches/${matchId}`}
         draftStorageKey={`opencaddie:scorecardUpload:match:${matchId}`}
         players={players}
-        uploadPathPrefix={`round-scorecards/${match.courseHandle}/${currentUser.id}/match-${matchId}`}
+        uploadPathPrefix={`round-scorecards/${match.courseHandle}/${currentPlayer.id}/match-${matchId}`}
       />
     </PageContent>
   );

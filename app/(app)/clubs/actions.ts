@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { clubs } from "@/db/schema";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import {
   ClubCreateSchema,
@@ -16,7 +16,7 @@ import {
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 async function requireAdmin() {
-  const me = await getCurrentUser();
+  const me = await getCurrentPlayer();
   if (!me?.isAdmin) {
     throw new Error("Forbidden");
   }

@@ -26,12 +26,12 @@ export default async function EditCoursePage({
   params,
 }: EditCoursePageProps) {
   const { handle } = await params;
-  const [user, course] = await Promise.all([
+  const [player, course] = await Promise.all([
     getCurrentPlayer(),
     getCourseForEdit(handle),
   ]);
 
-  if (!user?.isAdmin) {
+  if (!player?.isAdmin) {
     redirect(`/courses/${handle}`);
   }
 

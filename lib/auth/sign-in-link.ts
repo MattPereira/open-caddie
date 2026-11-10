@@ -27,10 +27,10 @@ type SignInLinkResult =
  * route or table is involved.
  */
 export async function createSignInLink({
-  userId,
+  playerId,
   origin,
 }: {
-  userId: string;
+  playerId: string;
   origin: string;
 }): Promise<SignInLinkResult> {
   const secret = process.env.AUTH_SECRET;
@@ -41,7 +41,7 @@ export async function createSignInLink({
   const [player] = await db
     .select({ email: users.email })
     .from(users)
-    .where(eq(users.id, userId))
+    .where(eq(users.id, playerId))
     .limit(1);
 
   if (!player) {

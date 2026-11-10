@@ -20,14 +20,14 @@ export default async function AppLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  const user = session?.user
+  const player = session?.user
     ? ((await getCurrentPlayer()) ?? session.user)
     : null;
-  const sidebarUser = user ? getSidebarUser(user) : null;
+  const sidebarPlayer = player ? getSidebarPlayer(player) : null;
 
   return (
     <SidebarProvider>
-      <AppSidebar user={sidebarUser} />
+      <AppSidebar player={sidebarPlayer} />
       <SidebarInset>
         <header className="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b px-3">
           <SidebarTrigger className="size-8 justify-self-start" />
@@ -51,7 +51,7 @@ export default async function AppLayout({
   );
 }
 
-type SidebarSourceUser = {
+type SidebarSourcePlayer = {
   firstName?: string | null;
   lastName?: string | null;
   username?: string | null;
@@ -61,8 +61,8 @@ type SidebarSourceUser = {
   id?: string | null;
 };
 
-function getSidebarUser(user: SidebarSourceUser) {
-  const { firstName, lastName, username, email, image, isAdmin, id } = user;
+function getSidebarPlayer(player: SidebarSourcePlayer) {
+  const { firstName, lastName, username, email, image, isAdmin, id } = player;
   const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
 
   return {

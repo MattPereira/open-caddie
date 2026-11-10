@@ -240,5 +240,5 @@ export async function createPlayerSignInLink(
   }
   const protocol = host.startsWith("localhost") ? "http" : "https";
 
-  return createSignInLink({ userId: id, origin: `${protocol}://${host}` });
+  return createSignInLink({ playerId: id, origin: `${protocol}://${host}` });
 }

@@ -10,13 +10,14 @@ import { getImageUploadMaxBytes } from "@/lib/images/upload-limits";
 const ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 type UploadTarget =
-  | { kind: "user"; id: string }
+  | { kind: "player"; id: string }
   | { kind: "course"; id: string }
   | { kind: "round-scorecard"; id: string };
 
 function parseUploadTarget(pathname: string): UploadTarget | null {
-  const userMatch = pathname.match(/^users\/([^/]+)\//);
-  if (userMatch) return { kind: "user", id: userMatch[1] };
+  // Profile images keep the `users/` Blob prefix: stored image URLs depend on it.
+  const playerMatch = pathname.match(/^users\/([^/]+)\//);
+  if (playerMatch) return { kind: "player", id: playerMatch[1] };
 
   const courseMatch = pathname.match(/^courses\/([^/]+)\//);
   if (courseMatch) return { kind: "course", id: courseMatch[1] };
@@ -55,14 +56,14 @@ export async function POST(request: Request): Promise<NextResponse> {
           throw new Error("Invalid upload path");
         }
 
-        if (target.kind === "user") {
-          const [currentUser] = await db
+        if (target.kind === "player") {
+          const [currentPlayer] = await db
             .select({ username: users.username })
             .from(users)
             .where(eq(users.id, me.id))
             .limit(1);
           const isSelf =
-            me.id === target.id || currentUser?.username === target.id;
+            me.id === target.id || currentPlayer?.username === target.id;
           if (!isSelf && !me.isAdmin) {
             throw new Error("Forbidden");
           }

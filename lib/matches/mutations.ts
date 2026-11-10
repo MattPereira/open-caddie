@@ -26,7 +26,7 @@ import { isAdmin } from "@/lib/players/admin";
 import { matchFormatPolicy } from "./formats";
 
 // Match writes. Plain module: route actions authenticate and parse untrusted
-// input, then pass the session user id in (ADR 0003).
+// input, then pass the acting Player's id in (ADR 0003).
 
 export type MatchWriteResult =
   | { ok: true; id?: number }

@@ -9,7 +9,7 @@ import { recordScorecardChanges } from "@/lib/rounds/scorecard-writes";
 import { parseRoundScorecardImage } from "./parser";
 import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
-// Not a "use server" module: it takes the session user id, so thin actions in
+// Not a "use server" module: it takes the acting Player's id, so thin actions in
 // the Tournament and Match routes authenticate and wrap it (ADR 0003).
 
 export type UploadRoundScorecardState = {

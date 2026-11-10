@@ -14,8 +14,8 @@ import { invalidateRoundChanged } from "./lifecycle";
 import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
 // The one write path for a Round's scorecard and settings. Not a
-// "use server" module: it takes the session user id, so exposing it as an
-// endpoint would let a client claim any user (ADR 0003).
+// "use server" module: it takes the acting Player's id, so exposing it as an
+// endpoint would let a client claim to be any Player (ADR 0003).
 
 /**
  * A change to one hole. A field left out keeps its stored value; an explicit

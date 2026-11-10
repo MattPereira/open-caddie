@@ -16,7 +16,7 @@ import {
 import { requireAdmin } from "@/lib/players/admin";
 
 // Tournament and Season writes. Plain module: route actions authenticate and
-// parse untrusted input, then pass the session user id in (ADR 0003).
+// parse untrusted input, then pass the acting Player's id in (ADR 0003).
 
 export type TournamentWriteResult =
   | { ok: true; id?: number }

@@ -44,8 +44,8 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
     getPlayerRoundsById(player.id),
   ]);
   const name = displayName(player);
-  const canManageUsers = currentPlayer?.isAdmin ?? false;
-  const canEdit = canManageUsers || currentPlayer?.id === player.id;
+  const canManagePlayers = currentPlayer?.isAdmin ?? false;
+  const canEdit = canManagePlayers || currentPlayer?.id === player.id;
 
   return (
     <PageContent>
@@ -80,7 +80,7 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
         {canEdit ? (
           <PlayerProfileActions
             player={player}
-            canManageUsers={canManageUsers}
+            canManagePlayers={canManagePlayers}
           />
         ) : null}
       </div>

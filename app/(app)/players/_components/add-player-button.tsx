@@ -6,7 +6,7 @@ import { UserAdd02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/components/ui/button";
-import { UserSheet } from "./user-sheet";
+import { PlayerSheet } from "./player-sheet";
 
 export function AddPlayerButton() {
   const router = useRouter();
@@ -22,7 +22,7 @@ export function AddPlayerButton() {
       >
         <HugeiconsIcon icon={UserAdd02Icon} />
       </Button>
-      <UserSheet
+      <PlayerSheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         mode="create"

@@ -23,11 +23,11 @@ Renaming the Auth.js `user` table, and its `userId` references in `account` and 
 
 - Sign-in files, exempted in `eslint.config.mjs`: `auth.ts`, `auth.types.d.ts`, `lib/auth/**`, `app/(app)/login/**`, `app/api/auth/**`.
 - The Auth.js tables in `db/schema.ts`: `users`, and the `account` and `session` tables' `userId` columns, inside a disable block.
-- `users`, the Drizzle export of the Auth.js `user` table, used by domain queries.
+- `users`, the Drizzle export of the Auth.js `user` table, only as the binding imported from `@/db/schema` (or inside `db/schema.ts`). A local `users`, or one imported from anywhere else, is reported.
 - `username`, the Player's handle. It's one word, so it never matches.
-- Third-party icon components (`User*Icon`).
+- Third-party icon components (`User*Icon`), only as imported bindings. Declaring a `User*Icon` locally is reported.
 - The profile image Blob `users/` prefix. It's a string, so it never matches.
-- The LLM "user" message role (`*UserPrompt`, `USER_PROMPT`).
+- The LLM "user" message role: names ending in `UserPrompt` or `USER_PROMPT`.
 - `userAgent` (robots.txt).
 - Inline disables for third-party shapes that have to be declared: Auth.js `unstable_update({ user })` in onboarding, and the Postgres role `user` in `db/index.ts`.
 

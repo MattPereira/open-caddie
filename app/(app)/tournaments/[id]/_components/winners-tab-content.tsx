@@ -3,7 +3,7 @@ import { GreenieCard } from "@/components/domain/greenie-card";
 import { WinnerCard } from "@/components/domain/winner-card";
 import { TabsContent } from "@/components/ui/tabs";
 import {
-  fieldSkins,
+  tournamentSkins,
   greenieWinners,
   rankPutts,
   rankStrokes,
@@ -217,7 +217,7 @@ function toWinnerRows(
 }
 
 function toSkinWinnerRows(rounds: TournamentRound[]): SkinWinnerRow[] {
-  return fieldSkins(rounds).map((skin) => ({
+  return tournamentSkins(rounds).map((skin) => ({
     key: `skin-${skin.round.id}-${skin.hole}`,
     hole: skin.hole,
     playerName: displayName({ ...skin.round, email: null }),

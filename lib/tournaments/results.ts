@@ -20,7 +20,7 @@ export type GreenieResult = ResultsPlayer & {
   inches: number;
 };
 
-export type FieldSkinsRound = ResultsPlayer & {
+export type TournamentSkinsRound = ResultsPlayer & {
   isComplete: boolean;
   playingHandicap: number;
   scores: readonly {
@@ -30,7 +30,7 @@ export type FieldSkinsRound = ResultsPlayer & {
   }[];
 };
 
-export type FieldSkin<T extends FieldSkinsRound> = {
+export type TournamentSkin<T extends TournamentSkinsRound> = {
   hole: number;
   round: T;
   strokes: number;
@@ -86,11 +86,11 @@ export function greenieWinners<T extends GreenieResult>(greenies: readonly T[]) 
 }
 
 // Unlike Match Skins, tied holes are dead: nothing carries forward.
-export function fieldSkins<T extends FieldSkinsRound>(
+export function tournamentSkins<T extends TournamentSkinsRound>(
   rounds: readonly T[],
-): FieldSkin<T>[] {
+): TournamentSkin<T>[] {
   const completeRounds = rounds.filter((round) => round.isComplete);
-  const skins: FieldSkin<T>[] = [];
+  const skins: TournamentSkin<T>[] = [];
 
   for (const hole of HOLE_NUMBERS) {
     const holeScores = completeRounds.flatMap((round) => {

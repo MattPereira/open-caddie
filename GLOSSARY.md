@@ -33,7 +33,7 @@ A Club-owned Event belonging to exactly one Season, whose Rounds feed that Seaso
 One Player's play of one course on one date, casual or within an Event. A Round's course and date follow its Event; its tee starts as the Event's and is the Player's to change.
 
 **Complete Round**:
-A Round with strokes recorded on all 18 holes. Only Complete Rounds count toward Player Indexes, Field Skins and Tournament Ranking.
+A Round with strokes recorded on all 18 holes. Only Complete Rounds count toward Player Indexes, Tournament Skins and Tournament Ranking.
 
 **Match**:
 An Event created by one Player, its creator, holding the Rounds of the Players in it. Its format caps its Rounds: Singles at 2, Three-Ball at 3, and Four-Ball needs exactly 4. Only its creator or an Admin may change or delete it.
@@ -102,18 +102,18 @@ A per-hole game in which the unique lowest net team score wins the hole. Singles
 A closest-to-the-pin result on a par 3, recorded as the distance from the hole. Each Greenie recorded in a Tournament earns Standings points by distance tier, whether or not it is the closest on its hole.
 _Avoid_: Closie, CTP
 
-**Skins**:
-A per-hole game using relative Playing Handicaps. A unique low net score wins the hole; tied completed holes carry their skins forward until a later unique low net score wins them. Played in Matches.
-_Avoid_: tournament skins
+**Match Skins**:
+A Match's per-hole game using relative Playing Handicaps. A unique low net score wins the hole; tied completed holes carry their skins forward until a later unique low net score wins them.
+_Avoid_: Skins (alone)
 
 ## Tournament results
 
 **Standings**:
 A Season's points table, built from its Tournaments' results: participation, scoring, Tournament Ranking positions and Greenies.
 
-**Field Skins**:
-A Tournament's per-hole game across its Complete Rounds. Each Player gets one stroke on holes whose handicap is at most half their Playing Handicap, rounded down. A unique low net score wins the hole; ties are dead, with no carry-over. Field Skins earn no Standings points.
-_Avoid_: Skins, tournament skins
+**Tournament Skins**:
+A Tournament's per-hole game across its Complete Rounds. Each Player gets one stroke on holes whose handicap is at most half their Playing Handicap, rounded down. A unique low net score wins the hole; ties are dead, with no carry-over. Tournament Skins earn no Standings points.
+_Avoid_: Skins (alone), Field Skins
 
 **Tournament Ranking**:
 The order of a Tournament's Complete Rounds, either by Strokes (net) or by Putts, that its Standings position points follow. Tied Rounds do not share points.

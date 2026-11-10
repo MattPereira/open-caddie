@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { WinnerCard } from "@/components/domain/winner-card";
 import { cn } from "@/lib/utils";
-import { scoreSkins } from "@/lib/matches";
+import { scoreMatchSkins } from "@/lib/matches";
 
 export function SkinsContent({
   rounds,
@@ -32,7 +32,7 @@ export function SkinsContent({
   rounds: NetScoringRound[];
   holes: HandicapHole[];
 }) {
-  const result = scoreSkins(rounds, holes);
+  const result = scoreMatchSkins(rounds, holes);
 
   if (result.status === "unavailable") {
     return (

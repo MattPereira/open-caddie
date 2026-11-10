@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { scoreMatchPlay, scoreSkins, type ScoringRound } from "./scoring";
+import { scoreMatchPlay, scoreMatchSkins, type ScoringRound } from "./scoring";
 
 const holes = Array.from({ length: 18 }, (_, index) => ({
   hole: index + 1,
@@ -272,9 +272,9 @@ describe("scoreMatchPlay", () => {
   });
 });
 
-describe("scoreSkins", () => {
+describe("scoreMatchSkins", () => {
   it("includes the full Match roster and excludes Tournament and casual Rounds", () => {
-    const result = scoreSkins(
+    const result = scoreMatchSkins(
       [
         round(1, 0, { 1: 4 }),
         round(2, 0, { 1: 5 }),
@@ -294,8 +294,8 @@ describe("scoreSkins", () => {
 
   it("keeps handicaps stable when an unstarted player records their first score", () => {
     const started = [round(1, 4, { 5: 4, 6: 4 }), round(2, 5, { 5: 5, 6: 5 })];
-    const before = scoreSkins([...started, round(3, 0)], holes);
-    const after = scoreSkins([...started, round(3, 0, { 6: 6 })], holes);
+    const before = scoreMatchSkins([...started, round(3, 0)], holes);
+    const after = scoreMatchSkins([...started, round(3, 0, { 6: 6 })], holes);
     if (before.status !== "ready" || after.status !== "ready") {
       throw new Error("Expected ready Skins");
     }
@@ -310,7 +310,7 @@ describe("scoreSkins", () => {
     });
     expect(after.holes[4]).toEqual(before.holes[4]);
 
-    const completed = scoreSkins([...started, round(3, 0, { 5: 5, 6: 6 })], holes);
+    const completed = scoreMatchSkins([...started, round(3, 0, { 5: 5, 6: 6 })], holes);
     if (completed.status !== "ready") throw new Error("Expected ready Skins");
     expect(completed.holes[4]).toMatchObject({
       winningRoundId: null,
@@ -320,18 +320,18 @@ describe("scoreSkins", () => {
     expect(completed.holes[5]).toMatchObject({ winningRoundId: 1, skinsAwarded: 2 });
   });
   it("reports unavailable until at least two players can be scored", () => {
-    expect(scoreSkins([], holes)).toEqual({
+    expect(scoreMatchSkins([], holes)).toEqual({
       status: "unavailable",
       reason: "players_with_scores",
     });
-    expect(scoreSkins([round(1, 0, { 1: 4 })], holes)).toEqual({
+    expect(scoreMatchSkins([round(1, 0, { 1: 4 })], holes)).toEqual({
       status: "unavailable",
       reason: "players_with_scores",
     });
   });
 
   it("awards no Skins on an incomplete hole", () => {
-    const result = scoreSkins(
+    const result = scoreMatchSkins(
       [round(1, 0, { 1: 4, 2: 4 }), round(2, 0, { 2: 5 })],
       holes,
     );
@@ -343,7 +343,7 @@ describe("scoreSkins", () => {
   });
 
   it("uses 100% individual relative handicaps independently of Match Play teams", () => {
-    const result = scoreSkins(
+    const result = scoreMatchSkins(
       [
         round(1, 0, { 10: 4 }),
         round(2, 10, { 10: 4 }),
@@ -364,7 +364,7 @@ describe("scoreSkins", () => {
   });
 
   it("carries tied completed holes into the next unique low score", () => {
-    const result = scoreSkins(
+    const result = scoreMatchSkins(
       [round(1, 0, { 1: 4, 2: 4 }), round(2, 0, { 1: 4, 2: 5 })],
       holes,
     );

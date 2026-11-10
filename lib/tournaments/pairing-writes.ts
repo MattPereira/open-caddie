@@ -15,10 +15,10 @@ type PairingWriteResult = { ok: true; id?: number } | { ok: false; error: string
 const NOT_ADMIN = "Only admins can manage Pairings.";
 
 export async function createPairing(
-  userId: string,
+  playerId: string,
   values: { tournamentId: number },
 ): Promise<PairingWriteResult> {
-  const admin = await requireAdmin(userId, NOT_ADMIN);
+  const admin = await requireAdmin(playerId, NOT_ADMIN);
   if (!admin.ok) return admin;
 
   const { tournamentId } = values;
@@ -67,10 +67,10 @@ async function getPairingTournamentId(pairingId: number) {
 }
 
 export async function renamePairing(
-  userId: string,
+  playerId: string,
   values: { pairingId: number; name: string },
 ): Promise<PairingWriteResult> {
-  const admin = await requireAdmin(userId, NOT_ADMIN);
+  const admin = await requireAdmin(playerId, NOT_ADMIN);
   if (!admin.ok) return admin;
 
   const { pairingId } = values;
@@ -88,10 +88,10 @@ export async function renamePairing(
 }
 
 export async function deletePairing(
-  userId: string,
+  playerId: string,
   values: { pairingId: number },
 ): Promise<PairingWriteResult> {
-  const admin = await requireAdmin(userId, NOT_ADMIN);
+  const admin = await requireAdmin(playerId, NOT_ADMIN);
   if (!admin.ok) return admin;
 
   const { pairingId } = values;
@@ -108,10 +108,10 @@ export async function deletePairing(
 
 // Moving replaces membership atomically; Rounds and their scores stay intact.
 export async function assignRoundToPairing(
-  userId: string,
+  playerId: string,
   values: { pairingId: number; roundId: number },
 ): Promise<PairingWriteResult> {
-  const admin = await requireAdmin(userId, NOT_ADMIN);
+  const admin = await requireAdmin(playerId, NOT_ADMIN);
   if (!admin.ok) return admin;
 
   const { pairingId, roundId } = values;
@@ -180,10 +180,10 @@ export async function assignRoundToPairing(
 
 // Removing membership leaves the Round in its Tournament, unassigned.
 export async function removeRoundFromPairing(
-  userId: string,
+  playerId: string,
   values: { roundId: number },
 ): Promise<PairingWriteResult> {
-  const admin = await requireAdmin(userId, NOT_ADMIN);
+  const admin = await requireAdmin(playerId, NOT_ADMIN);
   if (!admin.ok) return admin;
 
   const { roundId } = values;

@@ -101,7 +101,7 @@ if (!testDatabaseUrl) {
         await db
           .delete(schema.roundScorecardUploads)
           .where(
-            inArray(schema.roundScorecardUploads.uploadedByUserId, uploaderIds),
+            inArray(schema.roundScorecardUploads.uploadedByPlayerId, uploaderIds),
           );
       }
       uploaderIds.length = 0;

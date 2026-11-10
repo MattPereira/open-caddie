@@ -44,7 +44,7 @@ if (!testDatabaseUrl) {
       const [round] = await db
         .insert(schema.rounds)
         .values({
-          userId: player.id,
+          playerId: player.id,
           courseId: course.id,
           teeId: tee.id,
           date: new Date("2026-01-01T00:00:00.000Z"),
@@ -73,7 +73,7 @@ if (!testDatabaseUrl) {
         .insert(schema.rounds)
         .values({
           tournamentId: other.id,
-          userId,
+          playerId: userId,
           courseId: t.course.id,
           teeId: t.tee.id,
           date: other.date,
@@ -178,7 +178,7 @@ if (!testDatabaseUrl) {
           .insert(schema.rounds)
           .values({
             tournamentId: elsewhere.tournament.id,
-            userId: user.id,
+            playerId: user.id,
             courseId: elsewhere.course.id,
             teeId: elsewhere.tee.id,
             date: new Date("2025-04-01T00:00:00.000Z"),

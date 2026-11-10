@@ -31,7 +31,7 @@ import {
 /** A Round as the "Round changed" refresh needs it. */
 export type ChangedRound = {
   id: number;
-  userId: string;
+  playerId: string;
   tournamentId: number | null;
   matchId: number | null;
 };
@@ -60,7 +60,7 @@ const CANNOT_DELETE_ROUND = {
 
 const changedRoundColumns = {
   id: rounds.id,
-  userId: rounds.userId,
+  playerId: rounds.playerId,
   tournamentId: rounds.tournamentId,
   matchId: rounds.matchId,
 };
@@ -90,7 +90,7 @@ export async function createRound(
         error: "Selected tees do not belong to this course.",
       };
     }
-    casualValues = { userId, courseId, teeId, date: parseDateOnly(date) };
+    casualValues = { playerId: userId, courseId, teeId, date: parseDateOnly(date) };
   }
 
   let created: ChangedRound | null;
@@ -100,7 +100,7 @@ export async function createRound(
       if (tournamentId != null) {
         const event = await readEventRoundValues(tx, { tournamentId });
         if (!event) return null;
-        roundValues = { ...event, userId };
+        roundValues = { ...event, playerId: userId };
       }
       const [row] = await tx
         .insert(rounds)
@@ -182,7 +182,7 @@ export async function insertEventRounds(
 
   return tx
     .insert(rounds)
-    .values(userIds.map((userId) => ({ ...values, userId })))
+    .values(userIds.map((userId) => ({ ...values, playerId: userId })))
     .onConflictDoNothing()
     .returning(changedRoundColumns);
 }
@@ -239,7 +239,7 @@ export async function syncEventRounds(
           image: users.image,
         })
         .from(rounds)
-        .innerJoin(users, eq(users.id, rounds.userId))
+        .innerJoin(users, eq(users.id, rounds.playerId))
         .where(and(inEvent, hasScoresOrGreenies(tx)));
       throw new EventCourseLockedError(
         blocking.length === 0
@@ -352,7 +352,7 @@ export function invalidateRoundsAddedOrRemoved(changed: ChangedRound[]) {
 export function invalidateRoundChanged(changed: ChangedRound[]) {
   const paths = new Set<string>();
   for (const round of changed) {
-    paths.add(`/players/${round.userId}`);
+    paths.add(`/players/${round.playerId}`);
     paths.add(`/rounds/${round.id}`);
     if (round.tournamentId != null) {
       paths.add(`/tournaments/${round.tournamentId}`);

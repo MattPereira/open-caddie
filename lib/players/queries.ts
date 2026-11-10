@@ -42,12 +42,12 @@ export const getPlayerStatsById = cache(async (playerId: string) => {
         ),
       })
       .from(roundSummaries)
-      .where(eq(roundSummaries.userId, playerId)),
+      .where(eq(roundSummaries.playerId, playerId)),
     db
       .select({ greeniesCount: count() })
       .from(greenies)
       .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-      .where(eq(rounds.userId, playerId)),
+      .where(eq(rounds.playerId, playerId)),
   ]);
 
   const roundsCount = row?.roundsCount ?? 0;
@@ -81,28 +81,28 @@ export const getPlayerRoundsById = cache(async (playerId: string) => {
     .leftJoin(tournaments, eq(roundSummaries.tournamentId, tournaments.id))
     .leftJoin(seasons, eq(tournaments.seasonId, seasons.id))
     .leftJoin(clubs, eq(seasons.clubId, clubs.id))
-    .where(eq(roundSummaries.userId, playerId))
+    .where(eq(roundSummaries.playerId, playerId))
     .orderBy(desc(roundSummaries.date), desc(roundSummaries.roundId));
 });
 
 export const getAllPlayers = cache(async () => {
   const roundsCountSq = db
     .select({
-      playerId: rounds.userId,
+      playerId: rounds.playerId,
       value: count().as("value"),
     })
     .from(rounds)
-    .groupBy(rounds.userId)
+    .groupBy(rounds.playerId)
     .as("rc");
 
   const greeniesCountSq = db
     .select({
-      playerId: rounds.userId,
+      playerId: rounds.playerId,
       value: count().as("value"),
     })
     .from(greenies)
     .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-    .groupBy(rounds.userId)
+    .groupBy(rounds.playerId)
     .as("gc");
 
   return db

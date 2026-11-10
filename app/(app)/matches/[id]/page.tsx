@@ -59,7 +59,7 @@ export default async function MatchPage({
 
   const canManage =
     currentPlayer != null &&
-    (currentPlayer.isAdmin || currentPlayer.id === match.createdByUserId);
+    (currentPlayer.isAdmin || currentPlayer.id === match.createdByPlayerId);
   const currentPlayerRound = currentPlayer
     ? match.rounds.find((round) => round.userId === currentPlayer.id)
     : null;

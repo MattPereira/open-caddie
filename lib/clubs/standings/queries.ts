@@ -190,7 +190,7 @@ export const getSeasonStandings = cache(
         .select({
           roundId: roundSummaries.roundId,
           tournamentId: roundSummaries.tournamentId,
-          userId: roundSummaries.userId,
+          userId: roundSummaries.playerId,
           date: roundSummaries.date,
           userEmail: users.email,
           firstName: users.firstName,
@@ -208,7 +208,7 @@ export const getSeasonStandings = cache(
           scoreDifferential: roundSummaries.scoreDifferential,
         })
         .from(roundSummaries)
-        .innerJoin(users, eq(roundSummaries.userId, users.id))
+        .innerJoin(users, eq(roundSummaries.playerId, users.id))
         .innerJoin(courses, eq(roundSummaries.courseId, courses.id))
         .innerJoin(tournaments, eq(roundSummaries.tournamentId, tournaments.id))
         .where(inArray(tournaments.id, tournamentIds))
@@ -370,7 +370,7 @@ async function getPriorCompleteDifferentialRounds({
   const rows = await db
     .select({
       id: roundSummaries.roundId,
-      userId: roundSummaries.userId,
+      userId: roundSummaries.playerId,
       date: roundSummaries.date,
       scoreDifferential: roundSummaries.scoreDifferential,
     })
@@ -378,7 +378,7 @@ async function getPriorCompleteDifferentialRounds({
     .where(
       and(
         eq(roundSummaries.clubId, clubId),
-        inArray(roundSummaries.userId, userIds),
+        inArray(roundSummaries.playerId, userIds),
         isNotNull(roundSummaries.tournamentId),
         eq(roundSummaries.isComplete, true),
         isNotNull(roundSummaries.scoreDifferential),

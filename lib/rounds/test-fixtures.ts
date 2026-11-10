@@ -101,7 +101,7 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
       .insert(schema.rounds)
       .values({
         tournamentId: t.tournament.id,
-        userId: player.id,
+        playerId: player.id,
         courseId: t.course.id,
         teeId: t.tee.id,
         date: t.tournament.date,
@@ -135,7 +135,7 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
     const [created] = await db
       .insert(schema.matches)
       .values({
-        createdByUserId: creator.id,
+        createdByPlayerId: creator.id,
         courseId: matchCourse.id,
         date: new Date("2026-01-01T00:00:00.000Z"),
       })
@@ -148,7 +148,7 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
         .insert(schema.rounds)
         .values({
           matchId: created.id,
-          userId: player.id,
+          playerId: player.id,
           courseId: matchCourse.id,
           teeId: tee.id,
           date: created.date,
@@ -163,7 +163,7 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
     if (userIds.length) {
       await db
         .delete(schema.rounds)
-        .where(inArray(schema.rounds.userId, userIds));
+        .where(inArray(schema.rounds.playerId, userIds));
     }
     if (matchIds.length) {
       await db

@@ -63,7 +63,7 @@ if (!testDatabaseUrl) {
         .insert(schema.rounds)
         .values({
           tournamentId: f.tournament.id,
-          userId: user.id,
+          playerId: user.id,
           courseId: f.course.id,
           teeId: f.tee.id,
           date: f.tournament.date,
@@ -98,7 +98,7 @@ if (!testDatabaseUrl) {
 
     afterEach(async () => {
       // Rounds restrict their Tournament, Course and user, so they go first.
-      if (userIds.length) await db.delete(schema.rounds).where(inArray(schema.rounds.userId, userIds));
+      if (userIds.length) await db.delete(schema.rounds).where(inArray(schema.rounds.playerId, userIds));
       if (clubIds.length) {
         const clubSeasonIds = (await db.select({ id: schema.seasons.id }).from(schema.seasons).where(inArray(schema.seasons.clubId, clubIds))).map((season) => season.id);
         if (clubSeasonIds.length) await db.delete(schema.tournaments).where(inArray(schema.tournaments.seasonId, clubSeasonIds));

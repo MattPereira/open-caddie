@@ -110,14 +110,14 @@ export async function importRoundScorecard({
   const eventRoundRows = await db
     .select({
       id: rounds.id,
-      userId: rounds.userId,
+      userId: rounds.playerId,
       firstName: users.firstName,
       lastName: users.lastName,
       username: users.username,
       email: users.email,
     })
     .from(rounds)
-    .innerJoin(users, eq(rounds.userId, users.id))
+    .innerJoin(users, eq(rounds.playerId, users.id))
     .where(
       and(eventConfig.roundsOf(eventId), inArray(rounds.id, selectedRoundIds)),
     )
@@ -173,7 +173,7 @@ export async function importRoundScorecard({
   const recordUpload = (outcome: UploadOutcome) =>
     db.insert(roundScorecardUploads).values({
       ...eventConfig.uploadColumns(eventId),
-      uploadedByUserId: userId,
+      uploadedByPlayerId: userId,
       imageUrl: scorecardImgUrl,
       additionalContext: additionalContext || null,
       ...outcome,

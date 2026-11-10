@@ -52,7 +52,7 @@ describe("Course Scorecard Import", async () => {
   afterEach(async () => {
     await db.execute(sql.raw("drop trigger if exists fail_course_holes_insert on course_holes"));
     await db.execute(sql.raw("drop function if exists fail_course_holes_insert()"));
-    await db.delete(schema.courseScorecardImports).where(eq(schema.courseScorecardImports.createdByUserId, actorId));
+    await db.delete(schema.courseScorecardImports).where(eq(schema.courseScorecardImports.createdByPlayerId, actorId));
     await db.delete(schema.courses).where(like(schema.courses.name, `%${actorId}%`));
     await db.delete(schema.users).where(eq(schema.users.id, actorId));
     await db.delete(schema.users).where(eq(schema.users.id, secondActorId));

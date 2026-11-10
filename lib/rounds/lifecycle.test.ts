@@ -40,7 +40,7 @@ if (!testDatabaseUrl) {
 
     function roundChangedPaths(round: {
       id: number;
-      userId: string;
+      playerId: string;
       tournamentId?: number | null;
       matchId?: number | null;
     }) {
@@ -48,7 +48,7 @@ if (!testDatabaseUrl) {
         ["/"],
         ["/records"],
         ["/clubs/[handle]", "page"],
-        [`/players/${round.userId}`],
+        [`/players/${round.playerId}`],
         [`/rounds/${round.id}`],
         ...(round.tournamentId != null
           ? [[`/tournaments/${round.tournamentId}`]]
@@ -122,7 +122,7 @@ if (!testDatabaseUrl) {
 
         if (!result.ok) throw new Error(result.error);
         expect(await roundRow(result.roundId)).toMatchObject({
-          userId: player.id,
+          playerId: player.id,
           courseId: course.id,
           teeId: tee.id,
           tournamentId: null,
@@ -130,7 +130,7 @@ if (!testDatabaseUrl) {
           date: new Date("2026-03-04T00:00:00.000Z"),
         });
         expect(invalidatedPaths()).toEqual(
-          roundChangedPaths({ id: result.roundId, userId: player.id }),
+          roundChangedPaths({ id: result.roundId, playerId: player.id }),
         );
         expect(updateTag).not.toHaveBeenCalled();
       });
@@ -181,7 +181,7 @@ if (!testDatabaseUrl) {
 
         if (!result.ok) throw new Error(result.error);
         expect(await roundRow(result.roundId)).toMatchObject({
-          userId: player.id,
+          playerId: player.id,
           tournamentId: t.tournament.id,
           courseId: t.course.id,
           teeId: t.tee.id,
@@ -190,7 +190,7 @@ if (!testDatabaseUrl) {
         expect(invalidatedPaths()).toEqual(
           roundChangedPaths({
             id: result.roundId,
-            userId: player.id,
+            playerId: player.id,
             tournamentId: t.tournament.id,
           }),
         );
@@ -285,7 +285,7 @@ if (!testDatabaseUrl) {
         expect(invalidatedPaths()).toEqual(
           roundChangedPaths({
             id: a.round.id,
-            userId: a.user.id,
+            playerId: a.user.id,
             matchId: match.id,
           }),
         );
@@ -374,7 +374,7 @@ if (!testDatabaseUrl) {
             date: t.tournament.date,
           });
         }
-        expect(inserted.map((round) => round.userId).sort()).toEqual(
+        expect(inserted.map((round) => round.playerId).sort()).toEqual(
           [a.id, b.id].sort(),
         );
       });
@@ -392,7 +392,7 @@ if (!testDatabaseUrl) {
           ),
         );
 
-        expect(inserted.map((round) => round.userId)).toEqual([newcomer.id]);
+        expect(inserted.map((round) => round.playerId)).toEqual([newcomer.id]);
       });
 
       it("inserts Match Rounds on the Match's course and date with the given tee", async () => {
@@ -411,7 +411,7 @@ if (!testDatabaseUrl) {
         expect(await roundRow(inserted.id)).toMatchObject({
           matchId: match.id,
           tournamentId: null,
-          userId: player.id,
+          playerId: player.id,
           courseId: match.courseId,
           teeId: white.id,
           date: match.date,
@@ -441,7 +441,7 @@ if (!testDatabaseUrl) {
         expect(invalidatedPaths()).toEqual(
           roundChangedPaths({
             id: round.id,
-            userId: round.userId,
+            playerId: round.playerId,
             matchId: match.id,
           }),
         );

@@ -84,7 +84,7 @@ export async function createMatch(
       const [match] = await tx
         .insert(matches)
         .values({
-          createdByUserId: userId,
+          createdByPlayerId: userId,
           courseId,
           date: parseDateOnly(values.date),
           format,
@@ -97,7 +97,7 @@ export async function createMatch(
         playerUserIds,
       );
       if (format === "four_ball_match_play") {
-        const roundIdByUserId = new Map(inserted.map((r) => [r.userId, r.id]));
+        const roundIdByUserId = new Map(inserted.map((r) => [r.playerId, r.id]));
         await insertMatchTeams(
           tx,
           match.id,
@@ -163,7 +163,7 @@ export async function updateMatch(
       // Read under the lock: Round inserts and deletes for this Match wait
       // on it, so the Rounds can't change before the teams are written.
       const matchRounds = await tx
-        .select({ id: rounds.id, userId: rounds.userId })
+        .select({ id: rounds.id, playerId: rounds.playerId })
         .from(rounds)
         .where(eq(rounds.matchId, id));
 
@@ -254,12 +254,12 @@ async function canManageMatch(
   matchId: number,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const [match] = await db
-    .select({ createdByUserId: matches.createdByUserId })
+    .select({ createdByPlayerId: matches.createdByPlayerId })
     .from(matches)
     .where(eq(matches.id, matchId))
     .limit(1);
   if (!match) return { ok: false, error: "Match not found." };
-  if (match.createdByUserId !== userId && !(await isAdmin(userId))) {
+  if (match.createdByPlayerId !== userId && !(await isAdmin(userId))) {
     return { ok: false, error: "Only the match creator can edit this match." };
   }
   return { ok: true };
@@ -297,7 +297,7 @@ type FourBallPlan =
  */
 function planFourBallTeams(
   values: MatchUpdateInput,
-  matchRounds: { id: number; userId: string }[],
+  matchRounds: { id: number; playerId: string }[],
   isRoster: boolean,
 ): FourBallPlan | null {
   if (matchRounds.length === FOUR_BALL_POLICY.playerCount) {
@@ -314,11 +314,11 @@ function planFourBallTeams(
 
   if (
     !isRoster ||
-    !matchRounds.every((r) => values.playerUserIds.includes(r.userId))
+    !matchRounds.every((r) => values.playerUserIds.includes(r.playerId))
   ) {
     return null;
   }
-  const playing = new Set(matchRounds.map((r) => r.userId));
+  const playing = new Set(matchRounds.map((r) => r.playerId));
   return {
     refillUserIds: values.playerUserIds.filter((u) => !playing.has(u)),
     teamUserIds: [values.teamOneUserIds, values.teamTwoUserIds],
@@ -329,12 +329,12 @@ function planFourBallTeams(
 async function refillFourBallRoster(
   tx: Transaction,
   event: { matchId: number; teeId: number },
-  matchRounds: { id: number; userId: string }[],
+  matchRounds: { id: number; playerId: string }[],
   plan: { refillUserIds: string[]; teamUserIds: [string[], string[]] },
 ) {
   const inserted = await insertEventRounds(tx, event, plan.refillUserIds);
   const roundIdByUserId = new Map(
-    [...matchRounds, ...inserted].map((r) => [r.userId, r.id]),
+    [...matchRounds, ...inserted].map((r) => [r.playerId, r.id]),
   );
   return {
     inserted,

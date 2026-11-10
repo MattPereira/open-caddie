@@ -207,13 +207,13 @@ export async function deletePlayer(id: string): Promise<ActionResult> {
   const [{ value: roundCount }] = await db
     .select({ value: count() })
     .from(rounds)
-    .where(eq(rounds.userId, id));
+    .where(eq(rounds.playerId, id));
 
   const [{ value: greenieCount }] = await db
     .select({ value: count() })
     .from(greenies)
     .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-    .where(eq(rounds.userId, id));
+    .where(eq(rounds.playerId, id));
 
   if (roundCount > 0 || greenieCount > 0) {
     return {

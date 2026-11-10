@@ -187,7 +187,7 @@ function readRoundRows(where: SQL) {
       tournamentId: roundSummaries.tournamentId,
       matchId: roundSummaries.matchId,
       playerIndexOverride: roundSummaries.playerIndexOverride,
-      userId: roundSummaries.userId,
+      userId: roundSummaries.playerId,
       date: roundSummaries.date,
       firstName: users.firstName,
       lastName: users.lastName,
@@ -206,7 +206,7 @@ function readRoundRows(where: SQL) {
     })
     .from(roundSummaries)
     .innerJoin(rounds, eq(rounds.id, roundSummaries.roundId))
-    .innerJoin(users, eq(users.id, roundSummaries.userId))
+    .innerJoin(users, eq(users.id, roundSummaries.playerId))
     .where(where);
 }
 
@@ -269,7 +269,7 @@ async function readPriorRounds(where: SQL) {
   const current = db
     .select({
       currentRoundId: sql<number>`${rounds.id}`.as("current_round_id"),
-      currentUserId: sql<string>`${rounds.userId}`.as("current_user_id"),
+      currentUserId: sql<string>`${rounds.playerId}`.as("current_user_id"),
       currentClubId: sql<number>`${seasons.clubId}`.as("current_club_id"),
       currentDate: sql<Date>`${rounds.date}`.as("current_date"),
     })
@@ -298,7 +298,7 @@ async function readPriorRounds(where: SQL) {
     .innerJoin(
       roundSummaries,
       and(
-        eq(roundSummaries.userId, current.currentUserId),
+        eq(roundSummaries.playerId, current.currentUserId),
         eq(roundSummaries.clubId, current.currentClubId),
         lt(roundSummaries.date, current.currentDate),
       ),

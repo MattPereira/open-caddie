@@ -7,7 +7,7 @@ import { EVENT_KINDS, type EventKind } from "./events";
 
 const accessedRoundColumns = {
   id: rounds.id,
-  userId: rounds.userId,
+  playerId: rounds.playerId,
   courseId: rounds.courseId,
   tournamentId: rounds.tournamentId,
   matchId: rounds.matchId,
@@ -15,7 +15,7 @@ const accessedRoundColumns = {
 
 export type AccessedRound = {
   id: number;
-  userId: string;
+  playerId: string;
   courseId: number;
   tournamentId: number | null;
   matchId: number | null;
@@ -55,14 +55,14 @@ export type RoundAccess = {
 function decideAccess(
   viewer: Viewer,
   round: AccessedRound,
-  sameGroup: { userId: string }[],
+  sameGroup: { playerId: string }[],
   matchCreatorId: string | null,
 ) {
-  const canManage = round.userId === viewer.id || viewer.isAdmin;
+  const canManage = round.playerId === viewer.id || viewer.isAdmin;
   const canScore =
     canManage ||
     matchCreatorId === viewer.id ||
-    sameGroup.some((other) => other.userId === viewer.id);
+    sameGroup.some((other) => other.playerId === viewer.id);
   return { canScore, canManage };
 }
 
@@ -160,7 +160,7 @@ export const getEventRoundAccess = cache(
     }
 
     const ownRoundId = eventRounds.find(
-      (round) => round.userId === viewerUserId,
+      (round) => round.playerId === viewerUserId,
     )?.id;
     return {
       scorableRoundIds,
@@ -216,7 +216,7 @@ const readEventScoringGroups: Record<
 // As in readEventScoringGroups, a Round in no Pairing has no other Rounds.
 async function readPairingOrMatchRounds(
   round: AccessedRound,
-): Promise<{ roundId: number; userId: string }[]> {
+): Promise<{ roundId: number; playerId: string }[]> {
   const nameOrder = [
     asc(users.lastName),
     asc(users.firstName),
@@ -226,9 +226,9 @@ async function readPairingOrMatchRounds(
 
   if (round.matchId != null) {
     return db
-      .select({ roundId: rounds.id, userId: rounds.userId })
+      .select({ roundId: rounds.id, playerId: rounds.playerId })
       .from(rounds)
-      .innerJoin(users, eq(users.id, rounds.userId))
+      .innerJoin(users, eq(users.id, rounds.playerId))
       .where(and(eq(rounds.matchId, round.matchId), ne(rounds.id, round.id)))
       .orderBy(...nameOrder);
   }
@@ -243,10 +243,10 @@ async function readPairingOrMatchRounds(
   if (!membership) return [];
 
   return db
-    .select({ roundId: rounds.id, userId: rounds.userId })
+    .select({ roundId: rounds.id, playerId: rounds.playerId })
     .from(pairingMembers)
     .innerJoin(rounds, eq(rounds.id, pairingMembers.roundId))
-    .innerJoin(users, eq(users.id, rounds.userId))
+    .innerJoin(users, eq(users.id, rounds.playerId))
     .where(
       and(
         eq(pairingMembers.pairingId, membership.pairingId),
@@ -259,9 +259,9 @@ async function readPairingOrMatchRounds(
 async function readMatchCreatorId(matchId: number | null) {
   if (matchId == null) return null;
   const [match] = await db
-    .select({ createdByUserId: matches.createdByUserId })
+    .select({ createdByPlayerId: matches.createdByPlayerId })
     .from(matches)
     .where(eq(matches.id, matchId))
     .limit(1);
-  return match?.createdByUserId ?? null;
+  return match?.createdByPlayerId ?? null;
 }

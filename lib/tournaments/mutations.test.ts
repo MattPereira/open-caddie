@@ -294,7 +294,7 @@ if (!testDatabaseUrl) {
         expect(await mutations.addPlayersToTournament(admin.id, { tournamentId: t.tournament.id, userIds: [a.id, b.id] })).toEqual({ ok: true, added: 2 });
 
         const added = await db.select().from(schema.rounds).where(eq(schema.rounds.tournamentId, t.tournament.id));
-        expect(added.map((round) => round.userId).sort()).toEqual([a.id, b.id].sort());
+        expect(added.map((round) => round.playerId).sort()).toEqual([a.id, b.id].sort());
         for (const round of added) {
           expect(round).toMatchObject({ courseId: t.course.id, teeId: t.tee.id, date: t.tournament.date });
         }
@@ -302,7 +302,7 @@ if (!testDatabaseUrl) {
         expect(invalidatedPaths()).toEqual([
           "/", "/records", "/clubs/[handle] page",
           `/tournaments/${t.tournament.id}`, `/tournaments/${t.tournament.id}/edit`,
-          ...added.flatMap((round) => [`/players/${round.userId}`, `/rounds/${round.id}`]),
+          ...added.flatMap((round) => [`/players/${round.playerId}`, `/rounds/${round.id}`]),
         ].sort());
       });
 

@@ -99,7 +99,7 @@ if (!testDatabaseUrl) {
     // Team name → sorted user ids.
     async function teams(matchId: number) {
       const rows = await db
-        .select({ name: schema.matchTeams.name, userId: schema.rounds.userId })
+        .select({ name: schema.matchTeams.name, userId: schema.rounds.playerId })
         .from(schema.matchTeams)
         .innerJoin(
           schema.matchTeamMembers,
@@ -154,12 +154,12 @@ if (!testDatabaseUrl) {
 
         if (!result.ok || result.id == null) throw new Error("not created");
         expect(await matchRow(result.id)).toMatchObject({
-          createdByUserId: a.id,
+          createdByPlayerId: a.id,
           courseId: c.course.id,
           format: "singles_match_play",
         });
         const rounds = await matchRounds(result.id);
-        expect(rounds.map((r) => r.userId).sort()).toEqual([a.id, b.id].sort());
+        expect(rounds.map((r) => r.playerId).sort()).toEqual([a.id, b.id].sort());
         for (const r of rounds) expect(r.teeId).toBe(c.tee.id);
         expect(updateTag).toHaveBeenCalledWith("home-events");
         expect(invalidatedPaths()).toEqual(
@@ -285,7 +285,7 @@ if (!testDatabaseUrl) {
         );
         if (!created.ok || created.id == null) throw new Error("not created");
         const roundIdByUser = new Map(
-          (await matchRounds(created.id)).map((r) => [r.userId, r.id]),
+          (await matchRounds(created.id)).map((r) => [r.playerId, r.id]),
         );
 
         const result = await mutations.updateMatch(a.id, {
@@ -328,7 +328,7 @@ if (!testDatabaseUrl) {
         expect(result).toEqual({ ok: true });
         const rounds = await matchRounds(m.match.id);
         expect(rounds).toHaveLength(4);
-        expect(rounds.find((r) => r.userId === fourth.id)?.teeId).toBe(
+        expect(rounds.find((r) => r.playerId === fourth.id)?.teeId).toBe(
           round.teeId,
         );
         expect(await teams(m.match.id)).toEqual({
@@ -377,7 +377,7 @@ if (!testDatabaseUrl) {
         );
         if (!created.ok || created.id == null) throw new Error("not created");
         const eRound = (await matchRounds(created.id)).find(
-          (r) => r.userId === e.id,
+          (r) => r.playerId === e.id,
         )!;
         await db.delete(schema.rounds).where(eq(schema.rounds.id, eRound.id));
 

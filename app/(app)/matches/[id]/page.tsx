@@ -61,7 +61,7 @@ export default async function MatchPage({
     currentPlayer != null &&
     (currentPlayer.isAdmin || currentPlayer.id === match.createdByPlayerId);
   const currentPlayerRound = currentPlayer
-    ? match.rounds.find((round) => round.userId === currentPlayer.id)
+    ? match.rounds.find((round) => round.playerId === currentPlayer.id)
     : null;
   const defaultTab = getMatchDefaultTab(resolvedSearchParams?.tab);
 
@@ -94,7 +94,7 @@ export default async function MatchPage({
                     roundCount: match.rounds.length,
                     rounds: match.rounds.map((round) => ({
                       id: round.id,
-                      userId: round.userId,
+                      playerId: round.playerId,
                       teeId: round.teeId,
                       email: null,
                       firstName: round.firstName,
@@ -107,7 +107,7 @@ export default async function MatchPage({
                       name: team.name,
                       rounds: team.rounds.map((round) => ({
                         id: round.id,
-                        userId: round.userId,
+                        playerId: round.playerId,
                       })),
                     })),
                   }}

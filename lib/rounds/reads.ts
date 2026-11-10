@@ -38,7 +38,7 @@ import { compareTournamentRanking } from "@/lib/tournaments/results";
 
 type RoundBase = {
   id: number;
-  userId: string;
+  playerId: string;
   date: Date;
   firstName: string | null;
   lastName: string | null;
@@ -102,7 +102,7 @@ export type NetScoringRound = Pick<
   DisplayRound,
   | "kind"
   | "id"
-  | "userId"
+  | "playerId"
   | "firstName"
   | "lastName"
   | "username"
@@ -187,7 +187,7 @@ function readRoundRows(where: SQL) {
       tournamentId: roundSummaries.tournamentId,
       matchId: roundSummaries.matchId,
       playerIndexOverride: roundSummaries.playerIndexOverride,
-      userId: roundSummaries.playerId,
+      playerId: roundSummaries.playerId,
       date: roundSummaries.date,
       firstName: users.firstName,
       lastName: users.lastName,

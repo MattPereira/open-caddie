@@ -307,7 +307,7 @@ if (!testDatabaseUrl) {
       const { rounds } = await reads.readMatchRounds(match.id);
 
       expect(rounds.find((round) => round.id === mate.round.id)).toMatchObject({
-        userId: mate.user.id,
+        playerId: mate.user.id,
         scores: [
           { hole: 1, par: 4, strokes: 5, putts: 2 },
           { hole: 3, par: 3, strokes: 3, putts: 1 },

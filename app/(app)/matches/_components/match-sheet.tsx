@@ -69,14 +69,14 @@ export type MatchPlayerOption = PlayerCardPlayer & { id: string };
 
 export type MatchSheetRound = PlayerCardPlayer & {
   id: number;
-  userId: string;
+  playerId: string;
   teeId: number;
 };
 
 export type MatchSheetTeam = {
   id: number;
   name: string;
-  rounds: { id: number; userId: string }[];
+  rounds: { id: number; playerId: string }[];
 };
 
 export type CourseOption = {
@@ -188,9 +188,9 @@ function toFormValues(match?: MatchSheetMatch): MatchFormValues {
     courseHandle: match.courseHandle ?? "",
     format: match.format,
     teeId: match.rounds[0]?.teeId ?? 0,
-    playerUserIds: match.rounds.map((round) => round.userId),
-    teamOneUserIds: match.teams[0]?.rounds.map((round) => round.userId) ?? [],
-    teamTwoUserIds: match.teams[1]?.rounds.map((round) => round.userId) ?? [],
+    playerUserIds: match.rounds.map((round) => round.playerId),
+    teamOneUserIds: match.teams[0]?.rounds.map((round) => round.playerId) ?? [],
+    teamTwoUserIds: match.teams[1]?.rounds.map((round) => round.playerId) ?? [],
     teamOneRoundIds: defaultTeamOneRoundIds,
     teamTwoRoundIds: defaultTeamTwoRoundIds,
   };
@@ -253,7 +253,7 @@ export function MatchSheet({
   );
   const requiredPlayerCount = matchFormatPolicy(selectedFormat).playerCount;
   const existingMatchUserIds = useMemo(
-    () => new Set(match?.rounds.map((round) => round.userId) ?? []),
+    () => new Set(match?.rounds.map((round) => round.playerId) ?? []),
     [match],
   );
   const canRepairFourBallTeams =

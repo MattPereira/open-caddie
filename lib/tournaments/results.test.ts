@@ -10,18 +10,18 @@ import {
 } from "./results";
 
 type Player = {
-  userId: string;
+  playerId: string;
   firstName: string | null;
   lastName: string | null;
   username: string | null;
 };
 
-function player(userId: string, lastName: string | null = userId): Player {
-  return { userId, firstName: null, lastName, username: null };
+function player(playerId: string, lastName: string | null = playerId): Player {
+  return { playerId, firstName: null, lastName, username: null };
 }
 
 function round(
-  userId: string,
+  playerId: string,
   overrides: Partial<{
     lastName: string | null;
     isComplete: boolean;
@@ -32,7 +32,7 @@ function round(
   }> = {},
 ) {
   return {
-    ...player(userId, overrides.lastName ?? userId),
+    ...player(playerId, overrides.lastName ?? playerId),
     isComplete: true,
     netStrokes: 72,
     totalStrokes: 80,
@@ -42,16 +42,16 @@ function round(
   };
 }
 
-const ids = (rounds: { userId: string }[]) => rounds.map((r) => r.userId);
+const ids = (rounds: { playerId: string }[]) => rounds.map((r) => r.playerId);
 
 describe("comparePlayers (Tournament ranking tiebreak)", () => {
-  it("orders by last name, first name, username, then user id", () => {
+  it("orders by last name, first name, username, then Player id", () => {
     const players = [
-      { userId: "4", lastName: "B", firstName: "A", username: "a" },
-      { userId: "3", lastName: "A", firstName: "B", username: "a" },
-      { userId: "2", lastName: "A", firstName: "A", username: "b" },
-      { userId: "1", lastName: "A", firstName: "A", username: "b" },
-      { userId: "0", lastName: "A", firstName: "A", username: "a" },
+      { playerId: "4", lastName: "B", firstName: "A", username: "a" },
+      { playerId: "3", lastName: "A", firstName: "B", username: "a" },
+      { playerId: "2", lastName: "A", firstName: "A", username: "b" },
+      { playerId: "1", lastName: "A", firstName: "A", username: "b" },
+      { playerId: "0", lastName: "A", firstName: "A", username: "a" },
     ];
 
     expect(ids([...players].sort(comparePlayers))).toEqual([
@@ -129,7 +129,7 @@ describe("greenieWinners", () => {
       { ...player("d"), hole: 7, feet: 2, inches: 11 },
     ]);
 
-    expect(winners.map((g) => [g.hole, g.userId])).toEqual([
+    expect(winners.map((g) => [g.hole, g.playerId])).toEqual([
       [3, "c"],
       [7, "d"],
     ]);
@@ -141,19 +141,19 @@ describe("greenieWinners", () => {
       { ...player("y", "Same"), hole: 3, feet: 5, inches: 0 },
     ]);
 
-    expect(winners.map((g) => g.userId)).toEqual(["y"]);
+    expect(winners.map((g) => g.playerId)).toEqual(["y"]);
   });
 });
 
 describe("fieldSkins", () => {
   function skinsRound(
-    userId: string,
+    playerId: string,
     playingHandicap: number,
     strokesByHole: Partial<Record<number, number | null>>,
     isComplete = true,
   ) {
     return {
-      ...player(userId),
+      ...player(playerId),
       isComplete,
       playingHandicap,
       scores: Array.from({ length: 18 }, (_, index) => ({
@@ -173,7 +173,7 @@ describe("fieldSkins", () => {
     expect(skins).toEqual([
       expect.objectContaining({ hole: 18, strokes: 3, netStrokes: 3 }),
     ]);
-    expect(skins[0].round.userId).toBe("a");
+    expect(skins[0].round.playerId).toBe("a");
   });
 
   it("does not carry tied holes forward", () => {
@@ -182,7 +182,7 @@ describe("fieldSkins", () => {
       skinsRound("b", 0, { 1: 3 }),
     ]);
 
-    expect(skins.map((skin) => [skin.hole, skin.round.userId])).toEqual([
+    expect(skins.map((skin) => [skin.hole, skin.round.playerId])).toEqual([
       [2, "a"],
     ]);
   });
@@ -203,7 +203,7 @@ describe("fieldSkins", () => {
       skinsRound("c", 0, { 1: 2, 2: null }, false),
     ]);
 
-    expect(skins.map((skin) => [skin.hole, skin.round.userId])).toEqual([
+    expect(skins.map((skin) => [skin.hole, skin.round.playerId])).toEqual([
       [1, "a"],
     ]);
   });
@@ -216,7 +216,7 @@ describe("fieldSkins", () => {
 
     // PH 5 → strokes on hole handicaps 1–2, so a's 4 on hole 2 nets 3.
     expect(
-      skins.map((skin) => [skin.hole, skin.round.userId, skin.netStrokes]),
+      skins.map((skin) => [skin.hole, skin.round.playerId, skin.netStrokes]),
     ).toEqual([
       [1, "a", 3],
       [2, "a", 3],

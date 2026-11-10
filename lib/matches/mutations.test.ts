@@ -99,7 +99,7 @@ if (!testDatabaseUrl) {
     // Team name → sorted user ids.
     async function teams(matchId: number) {
       const rows = await db
-        .select({ name: schema.matchTeams.name, userId: schema.rounds.playerId })
+        .select({ name: schema.matchTeams.name, playerId: schema.rounds.playerId })
         .from(schema.matchTeams)
         .innerJoin(
           schema.matchTeamMembers,
@@ -111,7 +111,7 @@ if (!testDatabaseUrl) {
         )
         .where(eq(schema.matchTeams.matchId, matchId));
       const byName: Record<string, string[]> = {};
-      for (const row of rows) (byName[row.name] ??= []).push(row.userId);
+      for (const row of rows) (byName[row.name] ??= []).push(row.playerId);
       for (const ids of Object.values(byName)) ids.sort();
       return byName;
     }

@@ -41,14 +41,14 @@ export type PositionRound = {
 
 export type PlayerRoundPoints<TUser> = {
   roundId: number;
-  userId: string;
+  playerId: string;
   user: TUser;
   points: RoundPoints;
 };
 
 export type PlayerStanding<TUser, TRound extends PlayerRoundPoints<TUser>> = {
   position: number;
-  userId: string;
+  playerId: string;
   user: TUser;
   roundsPlayed: number;
   countedRounds: number;
@@ -203,20 +203,20 @@ export function buildPlayerStandings<
   const roundsByUserId = new Map<string, TRound[]>();
 
   for (const round of rounds) {
-    const playerRounds = roundsByUserId.get(round.userId) ?? [];
+    const playerRounds = roundsByUserId.get(round.playerId) ?? [];
     playerRounds.push(round);
-    roundsByUserId.set(round.userId, playerRounds);
+    roundsByUserId.set(round.playerId, playerRounds);
   }
 
   return Array.from(roundsByUserId.entries())
-    .map(([userId, playerRounds]) => {
+    .map(([playerId, playerRounds]) => {
       const rankedRounds = [...playerRounds].sort(compareRoundPointTotals);
       const counted = rankedRounds.slice(0, roundLimit);
       const countedRoundIds = new Set(counted.map((round) => round.roundId));
 
       return {
         position: 0,
-        userId,
+        playerId,
         user: playerRounds[0].user,
         roundsPlayed: playerRounds.length,
         countedRounds: counted.length,
@@ -251,5 +251,5 @@ function comparePlayerStandingTotals<
   const roundsCompare = b.countedRounds - a.countedRounds;
   if (roundsCompare !== 0) return roundsCompare;
 
-  return a.userId.localeCompare(b.userId);
+  return a.playerId.localeCompare(b.playerId);
 }

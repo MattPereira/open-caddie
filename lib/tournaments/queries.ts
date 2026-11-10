@@ -181,7 +181,7 @@ const getTournamentRoundPlayers = cache(async (tournamentId: number) => {
       pairingId: pairingMembers.pairingId,
       player: {
         roundId: rounds.id,
-        userId: users.id,
+        playerId: users.id,
         email: users.email,
         firstName: users.firstName,
         lastName: users.lastName,

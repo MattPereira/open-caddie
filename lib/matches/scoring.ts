@@ -5,7 +5,7 @@ import { matchFormatPolicy } from "./formats";
 /** Already-assessed Playing Handicap and recorded scores; no reader or UI types. */
 export type ScoringRound = {
   id: number;
-  userId: string;
+  playerId: string;
   kind: "match" | "tournament" | "casual";
   playingHandicap: number | null;
   recordedStrokesCount: number;
@@ -19,7 +19,7 @@ export type ScoringTeam = { id: number; rounds: ScoringRound[] };
 /** Who a contest side is, so views can label it without re-deriving format. */
 export type MatchPlaySide =
   | { kind: "team"; matchTeamId: number }
-  | { kind: "player"; userId: string };
+  | { kind: "player"; playerId: string };
 
 export type ScoredMatchPlayTeam = {
   id: string;
@@ -85,8 +85,8 @@ export function scoreMatchPlay({
     return { status: "unavailable", reason: "round_count" };
   }
   const individualTeams = eligibleRounds.map((round) => ({
-    id: round.userId,
-    side: { kind: "player" as const, userId: round.userId },
+    id: round.playerId,
+    side: { kind: "player" as const, playerId: round.playerId },
     rounds: [round],
   }));
   if (format === "three_ball_match_play") {

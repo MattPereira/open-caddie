@@ -13,7 +13,7 @@ import { useDelegateRoundIds } from "./use-delegate-round-id";
 
 /** A Round on the play page: a column, a leaderboard row or a scoreboard player. */
 export type PlayRound = RoundScoresTableRound &
-  Pick<DisplayRound, "userId" | "teeId" | "yards"> &
+  Pick<DisplayRound, "playerId" | "teeId" | "yards"> &
   RoundEvent;
 
 export type PlayCourse = {

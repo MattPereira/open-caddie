@@ -183,14 +183,14 @@ export function RoundScoresForm({
       roundId,
       name: selfName,
       fullName: getFullName(round, selfName),
-      isSelf: round.userId === currentUserId,
+      isSelf: round.playerId === currentUserId,
       scores,
     },
     ...delegatePlayers.map((player) => ({
       roundId: player.id,
       name: getPlayerName(player),
       fullName: getFullName(player, getPlayerName(player)),
-      isSelf: player.userId === currentUserId,
+      isSelf: player.playerId === currentUserId,
       scores: scoresByRoundId[player.id] ?? [],
     })),
   ];

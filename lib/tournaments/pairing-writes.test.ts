@@ -193,10 +193,10 @@ if (!testDatabaseUrl) {
       const f = await tournamentFixture();
       const pairingId = await createPairing(f.tournament.id);
       const { user, round } = await playerFixture(f);
-      expect(await queries.getUnassignedRoundsForTournament(f.tournament.id)).toMatchObject([{ roundId: round.id, userId: user.id }]);
+      expect(await queries.getUnassignedRoundsForTournament(f.tournament.id)).toMatchObject([{ roundId: round.id, playerId: user.id }]);
 
       expect(await writes.assignRoundToPairing(adminId, { pairingId, roundId: round.id })).toMatchObject({ ok: true });
-      expect(await queries.getPairingsForTournament(f.tournament.id)).toMatchObject([{ id: pairingId, members: [{ roundId: round.id, userId: user.id }] }]);
+      expect(await queries.getPairingsForTournament(f.tournament.id)).toMatchObject([{ id: pairingId, members: [{ roundId: round.id, playerId: user.id }] }]);
       expect(await queries.getUnassignedRoundsForTournament(f.tournament.id)).toEqual([]);
     });
 

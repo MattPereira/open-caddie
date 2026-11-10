@@ -20,7 +20,7 @@ const MAX_ADDITIONAL_CONTEXT_LENGTH = 1_000;
 
 export type ScorecardImportPlayer = {
   roundId: number;
-  userId: string;
+  playerId: string;
   firstName: string | null;
   lastName: string | null;
   username: string | null;
@@ -47,7 +47,7 @@ export async function getScorecardImportPlayers(
     .filter((round) => access.scorableRoundIds.includes(round.id))
     .map((round) => ({
       roundId: round.id,
-      userId: round.userId,
+      playerId: round.playerId,
       firstName: round.firstName,
       lastName: round.lastName,
       username: round.username,
@@ -110,7 +110,7 @@ export async function importRoundScorecard({
   const eventRoundRows = await db
     .select({
       id: rounds.id,
-      userId: rounds.playerId,
+      playerId: rounds.playerId,
       firstName: users.firstName,
       lastName: users.lastName,
       username: users.username,

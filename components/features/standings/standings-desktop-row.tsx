@@ -15,7 +15,7 @@ import type { PointKey, PointSummaryColumn } from "@/components/features/standin
 import { cn } from "@/lib/utils";
 
 export type DesktopStanding = {
-  userId: string;
+  playerId: string;
   playerName: string;
   position: number;
   points: Record<PointKey, number> & { total: number };
@@ -63,7 +63,7 @@ export function StandingsDesktopRowGroup({
           </TableCell>
           {pointColumns.map((column) => (
             <PointsCell
-              key={`${standing.userId}-${column.key}`}
+              key={`${standing.playerId}-${column.key}`}
               value={standing.points[column.key]}
             />
           ))}
@@ -72,7 +72,7 @@ export function StandingsDesktopRowGroup({
 
         {standing.countedRounds.map((round) => (
           <CollapsibleContent
-            key={`${standing.userId}-round-${round.roundId}`}
+            key={`${standing.playerId}-round-${round.roundId}`}
             asChild
           >
             <TableRow className="bg-muted/25 hover:bg-muted/40">
@@ -92,7 +92,7 @@ export function StandingsDesktopRowGroup({
               </TableCell>
               {pointColumns.map((column) => (
                 <PointsCell
-                  key={`${standing.userId}-round-${round.roundId}-${column.key}`}
+                  key={`${standing.playerId}-round-${round.roundId}-${column.key}`}
                   value={round.points[column.key]}
                   muted
                 />

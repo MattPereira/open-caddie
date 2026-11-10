@@ -47,12 +47,12 @@ type StandingUser = {
   image: string | null;
 };
 
-type CompleteDifferentialRound = PriorHandicapRound & { userId: string };
+type CompleteDifferentialRound = PriorHandicapRound & { playerId: string };
 
 export type StandingsRound = {
   roundId: number;
   tournamentId: number;
-  userId: string;
+  playerId: string;
   user: StandingUser;
   date: Date;
   courseId: number;
@@ -190,7 +190,7 @@ export const getSeasonStandings = cache(
         .select({
           roundId: roundSummaries.roundId,
           tournamentId: roundSummaries.tournamentId,
-          userId: roundSummaries.playerId,
+          playerId: roundSummaries.playerId,
           date: roundSummaries.date,
           userEmail: users.email,
           firstName: users.firstName,
@@ -222,7 +222,7 @@ export const getSeasonStandings = cache(
     ]);
 
     const userIds = Array.from(
-      new Set(seasonRounds.map((round) => round.userId)),
+      new Set(seasonRounds.map((round) => round.playerId)),
     );
     const maxSeasonDate = seasonRounds.reduce<Date | null>((maxDate, round) => {
       if (!maxDate || round.date > maxDate) return round.date;
@@ -247,7 +247,7 @@ export const getSeasonStandings = cache(
         return [
           {
             id: round.roundId,
-            userId: round.userId,
+            playerId: round.playerId,
             date: round.date,
             scoreDifferential: round.scoreDifferential,
           },
@@ -258,7 +258,7 @@ export const getSeasonStandings = cache(
     const roundsWithHandicap = seasonRounds.map((round) => {
       const priorRounds = completeDifferentialRounds.filter(
         (priorRound) =>
-          priorRound.userId === round.userId && priorRound.date < round.date,
+          priorRound.playerId === round.playerId && priorRound.date < round.date,
       );
       const { playerIndex, courseHandicap, netStrokes } = assessHandicap({
         source: { kind: "tournament", priorRounds },
@@ -274,7 +274,7 @@ export const getSeasonStandings = cache(
         courseHandicap,
         netStrokes,
         user: {
-          id: round.userId,
+          id: round.playerId,
           email: round.userEmail,
           firstName: round.firstName,
           lastName: round.lastName,
@@ -305,7 +305,7 @@ export const getSeasonStandings = cache(
           return {
             roundId,
             tournamentId: tournament.id,
-            userId: round.userId,
+            playerId: round.playerId,
             user: round.user,
             date: round.date,
             courseId: round.courseId,
@@ -370,7 +370,7 @@ async function getPriorCompleteDifferentialRounds({
   const rows = await db
     .select({
       id: roundSummaries.roundId,
-      userId: roundSummaries.playerId,
+      playerId: roundSummaries.playerId,
       date: roundSummaries.date,
       scoreDifferential: roundSummaries.scoreDifferential,
     })
@@ -406,7 +406,7 @@ function compareRoundPointStandings(a: StandingsRound, b: StandingsRound) {
   const pointsCompare = b.points.total - a.points.total;
   if (pointsCompare !== 0) return pointsCompare;
   return comparePlayers(
-    { ...a.user, userId: a.userId },
-    { ...b.user, userId: b.userId },
+    { ...a.user, playerId: a.playerId },
+    { ...b.user, playerId: b.playerId },
   );
 }

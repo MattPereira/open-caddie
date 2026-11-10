@@ -89,7 +89,7 @@ function DesktopStandingsTable({ players }: { players: Standing[] }) {
         </TableHeader>
         {players.map((standing) => (
           <StandingsDesktopRowGroup
-            key={standing.userId}
+            key={standing.playerId}
             standing={toDesktopStanding(standing)}
             pointColumns={pointColumns}
           />
@@ -104,7 +104,7 @@ function MobileStandingsList({ players }: { players: Standing[] }) {
     <div className="flex min-w-0 flex-col overflow-hidden rounded-xl ring-1 ring-border">
       {players.map((standing) => (
         <StandingsMobileRow
-          key={standing.userId}
+          key={standing.playerId}
           standing={toMobileStanding(standing)}
           pointColumns={pointColumns}
         />
@@ -123,7 +123,7 @@ function formatShortDate(date: Date) {
 
 function toDesktopStanding(standing: Standing): DesktopStanding {
   return {
-    userId: standing.userId,
+    playerId: standing.playerId,
     playerName: displayName(standing.user),
     position: standing.position,
     points: standing.points,
@@ -140,7 +140,7 @@ function toDesktopStanding(standing: Standing): DesktopStanding {
 
 function toMobileStanding(standing: Standing): MobileStanding {
   return {
-    userId: standing.userId,
+    playerId: standing.playerId,
     user: standing.user,
     roundsPlayed: standing.roundsPlayed,
     droppedRounds: standing.droppedRounds,

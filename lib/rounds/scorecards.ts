@@ -56,7 +56,7 @@ export function readGreeniesByRounds(where: SQL) {
       feet: greenies.feet,
       inches: greenies.inches,
       roundDate: rounds.date,
-      userId: rounds.playerId,
+      playerId: rounds.playerId,
       firstName: users.firstName,
       lastName: users.lastName,
       username: users.username,

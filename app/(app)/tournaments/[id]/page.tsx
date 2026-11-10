@@ -61,7 +61,7 @@ export default async function TournamentPage({
 
   if (!tournament) notFound();
   const currentPlayerRound = currentPlayer
-    ? tournament.rounds.find((round) => round.userId === currentPlayer.id)
+    ? tournament.rounds.find((round) => round.playerId === currentPlayer.id)
     : null;
 
   return (

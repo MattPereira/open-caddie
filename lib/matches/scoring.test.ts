@@ -18,7 +18,7 @@ function round(
   }));
   return {
     id,
-    userId: `player-${id}`,
+    playerId: `player-${id}`,
     kind: "match",
     playingHandicap,
     recordedStrokesCount: scores.filter((score) => score.strokes != null)
@@ -103,8 +103,8 @@ describe("scoreMatchPlay", () => {
       { kind: "team", matchTeamId: 20 },
     ]);
     expect(singles.contests[0].teams.map((team) => team.side)).toEqual([
-      { kind: "player", userId: "player-1" },
-      { kind: "player", userId: "player-2" },
+      { kind: "player", playerId: "player-1" },
+      { kind: "player", playerId: "player-2" },
     ]);
   });
 

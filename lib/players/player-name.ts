@@ -14,7 +14,7 @@ export function displayName(player: PlayerCardPlayer) {
     .filter(Boolean)
     .join(" ")
     .trim();
-  return full || player.username || player.email || "Unnamed user";
+  return full || player.username || player.email || "Unnamed player";
 }
 
 export function getInitials(player: PlayerCardPlayer) {

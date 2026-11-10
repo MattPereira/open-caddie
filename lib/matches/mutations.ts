@@ -112,7 +112,7 @@ export async function createMatch(
     return { ok: true, id: created.matchId };
   } catch (e: unknown) {
     if (pgCode(e) === "23503") {
-      return { ok: false, error: "Selected user or course does not exist." };
+      return { ok: false, error: "Selected player or course does not exist." };
     }
     throw e;
   }

@@ -6,15 +6,15 @@ import { Edit03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/components/ui/button";
-import { UserSheet, type AdminUser } from "../../_components/user-sheet";
+import { PlayerSheet, type EditablePlayer } from "../../_components/player-sheet";
 import { SignInLinkButton } from "./sign-in-link-button";
 
 export function PlayerProfileActions({
   player,
-  canManageUsers,
+  canManagePlayers,
 }: {
-  player: AdminUser;
-  canManageUsers: boolean;
+  player: EditablePlayer;
+  canManagePlayers: boolean;
 }) {
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -34,13 +34,13 @@ export function PlayerProfileActions({
         <HugeiconsIcon icon={Edit03Icon} data-icon="inline-start" />
         Edit Player
       </Button>
-      {canManageUsers ? <SignInLinkButton playerId={player.id} /> : null}
-      <UserSheet
+      {canManagePlayers ? <SignInLinkButton playerId={player.id} /> : null}
+      <PlayerSheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}
         mode="edit"
-        user={player}
-        canManageUsers={canManageUsers}
+        player={player}
+        canManagePlayers={canManagePlayers}
         onSaved={refreshPage}
         onDeleted={refreshPage}
       />

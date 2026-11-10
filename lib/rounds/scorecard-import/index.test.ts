@@ -63,13 +63,13 @@ if (!testDatabaseUrl) {
     }
 
     async function importAs(
-      userId: string,
+      playerId: string,
       event: { kind: "tournament" | "match"; id: number },
       roundIds: number[],
     ) {
-      uploaderIds.push(userId);
+      uploaderIds.push(playerId);
       return importRoundScorecard({
-        userId,
+        playerId,
         eventKind: event.kind,
         eventId: event.id,
         formData: cardFor(roundIds),
@@ -101,7 +101,7 @@ if (!testDatabaseUrl) {
         await db
           .delete(schema.roundScorecardUploads)
           .where(
-            inArray(schema.roundScorecardUploads.uploadedByUserId, uploaderIds),
+            inArray(schema.roundScorecardUploads.uploadedByPlayerId, uploaderIds),
           );
       }
       uploaderIds.length = 0;
@@ -115,7 +115,7 @@ if (!testDatabaseUrl) {
       await fixtures.pairing(t.tournament.id, [marker.round.id, mate.round.id]);
 
       const result = await importAs(
-        marker.user.id,
+        marker.player.id,
         { kind: "tournament", id: t.tournament.id },
         [marker.round.id, mate.round.id],
       );
@@ -137,7 +137,7 @@ if (!testDatabaseUrl) {
       await fixtures.pairing(t.tournament.id, [outsider.round.id]);
 
       const result = await importAs(
-        marker.user.id,
+        marker.player.id,
         { kind: "tournament", id: t.tournament.id },
         [marker.round.id, mate.round.id, outsider.round.id],
       );

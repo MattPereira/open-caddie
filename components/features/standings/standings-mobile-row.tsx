@@ -16,8 +16,8 @@ import {
 import type { PointKey, PointSummaryColumn } from "@/components/features/standings/standings-table";
 
 export type MobileStanding = {
-  userId: string;
-  user: {
+  playerId: string;
+  player: {
     email: string | null;
     firstName: string | null;
     lastName: string | null;
@@ -43,7 +43,7 @@ export function StandingsMobileRow({
   pointColumns: PointSummaryColumn[];
 }) {
   const [openRoundId, setOpenRoundId] = useState<number | null>(null);
-  const name = displayName(standing.user);
+  const name = displayName(standing.player);
 
   return (
     <Collapsible className="border-b last:border-b-0">
@@ -53,10 +53,10 @@ export function StandingsMobileRow({
           className="group flex w-full min-w-0 items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-muted/50 data-[state=open]:bg-muted/50"
         >
           <Avatar className="size-16">
-            {standing.user.image ? (
-              <AvatarImage src={standing.user.image} alt={name} />
+            {standing.player.image ? (
+              <AvatarImage src={standing.player.image} alt={name} />
             ) : null}
-            <AvatarFallback>{getInitials(standing.user)}</AvatarFallback>
+            <AvatarFallback>{getInitials(standing.player)}</AvatarFallback>
           </Avatar>
           <span className="flex min-w-0 flex-1 flex-col">
             <span className="truncate font-medium">{name}</span>
@@ -85,7 +85,7 @@ export function StandingsMobileRow({
           <div className="grid grid-cols-4 gap-2">
             {pointColumns.map((column) => (
               <StatTile
-                key={`${standing.userId}-mobile-${column.key}`}
+                key={`${standing.playerId}-mobile-${column.key}`}
                 label={column.label}
                 value={standing.points[column.key]}
               />
@@ -94,7 +94,7 @@ export function StandingsMobileRow({
           <div className="flex flex-col overflow-hidden rounded-lg border">
             {standing.countedRounds.map((round) => (
               <Collapsible
-                key={`${standing.userId}-round-${round.roundId}`}
+                key={`${standing.playerId}-round-${round.roundId}`}
                 open={openRoundId === round.roundId}
                 onOpenChange={(open) =>
                   setOpenRoundId(open ? round.roundId : null)
@@ -127,7 +127,7 @@ export function StandingsMobileRow({
                   <div className="grid grid-cols-4 gap-2 border-t bg-muted/25 p-2">
                     {pointColumns.map((column) => (
                       <StatTile
-                        key={`${standing.userId}-round-${round.roundId}-${column.key}`}
+                        key={`${standing.playerId}-round-${round.roundId}-${column.key}`}
                         label={column.label}
                         value={round.points[column.key]}
                       />

@@ -1,19 +1,19 @@
 import { redirect } from "next/navigation";
 
-import { auth } from "@/auth";
+import { getSignedInPlayer } from "@/lib/players/queries";
 import { getAllCourses, getCoursesWithTees } from "@/lib/courses/queries";
-import { getUpcomingTournamentsForUser } from "@/lib/tournaments/queries";
+import { getUpcomingTournamentsForPlayer } from "@/lib/tournaments/queries";
 import { toIsoDate } from "@/lib/dates";
 import { RoundSetupForm } from "./_components/round-setup-form";
 
 export default async function NewRoundPage() {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/");
+  const player = await getSignedInPlayer();
+  if (!player) redirect("/");
 
   const [courses, coursesWithTees, tournaments] = await Promise.all([
     getAllCourses(),
     getCoursesWithTees(),
-    getUpcomingTournamentsForUser(session.user.id),
+    getUpcomingTournamentsForPlayer(player.id),
   ]);
 
   const teesByCourseHandle = new Map(

@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { PageContent } from "@/components/layout/page-content";
 import { getCourseForEdit } from "@/lib/courses/queries";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { CourseForm } from "../../_components/course-form";
 
 type EditCoursePageProps = {
@@ -26,12 +26,12 @@ export default async function EditCoursePage({
   params,
 }: EditCoursePageProps) {
   const { handle } = await params;
-  const [user, course] = await Promise.all([
-    getCurrentUser(),
+  const [player, course] = await Promise.all([
+    getCurrentPlayer(),
     getCourseForEdit(handle),
   ]);
 
-  if (!user?.isAdmin) {
+  if (!player?.isAdmin) {
     redirect(`/courses/${handle}`);
   }
 

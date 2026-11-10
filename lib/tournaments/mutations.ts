@@ -13,10 +13,10 @@ import {
   syncEventRounds,
   type ChangedRound,
 } from "@/lib/rounds/lifecycle";
-import { requireAdmin } from "@/lib/users/admin";
+import { requireAdmin } from "@/lib/players/admin";
 
 // Tournament and Season writes. Plain module: route actions authenticate and
-// parse untrusted input, then pass the session user id in (ADR 0003).
+// parse untrusted input, then pass the acting Player's id in (ADR 0003).
 
 export type TournamentWriteResult =
   | { ok: true; id?: number }
@@ -44,10 +44,10 @@ export type TournamentUpdateInput = TournamentInput & {
 const NOT_ADMIN = "Only admins can manage Tournaments.";
 
 export async function createTournament(
-  userId: string,
+  playerId: string,
   values: TournamentCreateInput,
 ): Promise<TournamentWriteResult> {
-  const admin = await requireAdmin(userId, NOT_ADMIN);
+  const admin = await requireAdmin(playerId, NOT_ADMIN);
   if (!admin.ok) return admin;
 
   const resolved = await resolveTournamentFields(values);
@@ -84,10 +84,10 @@ export async function createTournament(
 }
 
 export async function updateTournament(
-  userId: string,
+  playerId: string,
   values: TournamentUpdateInput,
 ): Promise<TournamentWriteResult> {
-  const admin = await requireAdmin(userId, NOT_ADMIN);
+  const admin = await requireAdmin(playerId, NOT_ADMIN);
   if (!admin.ok) return admin;
 
   const { id } = values;
@@ -127,10 +127,10 @@ export async function updateTournament(
 
 /** Refused while the Tournament has Rounds, so played Rounds are never lost. */
 export async function deleteTournament(
-  userId: string,
+  playerId: string,
   id: number,
 ): Promise<TournamentWriteResult> {
-  const admin = await requireAdmin(userId, NOT_ADMIN);
+  const admin = await requireAdmin(playerId, NOT_ADMIN);
   if (!admin.ok) return admin;
 
   const [{ value: roundCount }] = await db
@@ -152,13 +152,13 @@ export async function deleteTournament(
 
 /** Players already in the Tournament are skipped; `added` counts the rest. */
 export async function addPlayersToTournament(
-  userId: string,
-  values: { tournamentId: number; userIds: string[] },
+  playerId: string,
+  values: { tournamentId: number; playerIds: string[] },
 ): Promise<{ ok: true; added: number } | { ok: false; error: string }> {
-  const admin = await requireAdmin(userId, "Only admins can add players.");
+  const admin = await requireAdmin(playerId, "Only admins can add players.");
   if (!admin.ok) return admin;
 
-  const { tournamentId, userIds } = values;
+  const { tournamentId, playerIds } = values;
 
   const [tournament] = await db
     .select({ id: tournaments.id })
@@ -169,16 +169,16 @@ export async function addPlayersToTournament(
     return { ok: false, error: "Tournament not found." };
   }
 
-  const existingUsers = await db
+  const existingPlayers = await db
     .select({ id: users.id })
     .from(users)
-    .where(inArray(users.id, userIds));
-  if (existingUsers.length !== new Set(userIds).size) {
+    .where(inArray(users.id, playerIds));
+  if (existingPlayers.length !== new Set(playerIds).size) {
     return { ok: false, error: "One or more selected players no longer exist." };
   }
 
   const inserted = await db.transaction((tx) =>
-    insertEventRounds(tx, { tournamentId }, userIds),
+    insertEventRounds(tx, { tournamentId }, playerIds),
   );
 
   // Home events and the Tournament page refresh even when no one was added.

@@ -15,16 +15,16 @@ export const MatchBaseSchema = z.object({
 
 export const MatchFormSchema = MatchBaseSchema.extend({
   teeId: z.number().int(),
-  playerUserIds: z.array(z.string().min(1)),
-  teamOneUserIds: z.array(z.string().min(1)),
-  teamTwoUserIds: z.array(z.string().min(1)),
+  playerIds: z.array(z.string().min(1)),
+  teamOnePlayerIds: z.array(z.string().min(1)),
+  teamTwoPlayerIds: z.array(z.string().min(1)),
   teamOneRoundIds: z.array(z.number().int().positive()),
   teamTwoRoundIds: z.array(z.number().int().positive()),
 });
 
 export const MatchCreateSchema = MatchFormSchema.superRefine((value, ctx) => {
   const requiredPlayerCount = matchFormatPolicy(value.format).playerCount;
-  const uniquePlayerIds = new Set(value.playerUserIds);
+  const uniquePlayerIds = new Set(value.playerIds);
 
   if (value.teeId <= 0) {
     ctx.addIssue({
@@ -35,7 +35,7 @@ export const MatchCreateSchema = MatchFormSchema.superRefine((value, ctx) => {
   }
 
   if (
-    value.playerUserIds.length !== requiredPlayerCount ||
+    value.playerIds.length !== requiredPlayerCount ||
     uniquePlayerIds.size !== requiredPlayerCount
   ) {
     ctx.addIssue({
@@ -46,31 +46,31 @@ export const MatchCreateSchema = MatchFormSchema.superRefine((value, ctx) => {
           : value.format === "three_ball_match_play"
             ? "Three-ball match play requires exactly 3 players."
             : "Four-ball match play requires exactly 4 players.",
-      path: ["playerUserIds"],
+      path: ["playerIds"],
     });
   }
 
   if (value.format !== "four_ball_match_play") return;
 
   const policy = matchFormatPolicy(value.format);
-  const teamOneIds = new Set(value.teamOneUserIds);
-  const teamTwoIds = new Set(value.teamTwoUserIds);
-  const teamIds = [...value.teamOneUserIds, ...value.teamTwoUserIds];
-  const selectedIds = new Set(value.playerUserIds);
+  const teamOneIds = new Set(value.teamOnePlayerIds);
+  const teamTwoIds = new Set(value.teamTwoPlayerIds);
+  const teamIds = [...value.teamOnePlayerIds, ...value.teamTwoPlayerIds];
+  const selectedIds = new Set(value.playerIds);
 
   if (
-    value.teamOneUserIds.length !== policy.teamSize ||
-    value.teamTwoUserIds.length !== policy.teamSize ||
+    value.teamOnePlayerIds.length !== policy.teamSize ||
+    value.teamTwoPlayerIds.length !== policy.teamSize ||
     teamOneIds.size !== policy.teamSize ||
     teamTwoIds.size !== policy.teamSize ||
     new Set(teamIds).size !== policy.playerCount ||
-    teamIds.some((userId) => !selectedIds.has(userId))
+    teamIds.some((playerId) => !selectedIds.has(playerId))
   ) {
     ctx.addIssue({
       code: "custom",
       message:
         "Four-ball teams must split the 4 selected players into 2 teams.",
-      path: ["teamOneUserIds"],
+      path: ["teamOnePlayerIds"],
     });
   }
 });
@@ -78,9 +78,9 @@ export const MatchCreateSchema = MatchFormSchema.superRefine((value, ctx) => {
 export const MatchUpdateSchema = MatchBaseSchema.extend({
   id: z.number().int().positive(),
   teeId: z.number().int(),
-  playerUserIds: z.array(z.string().min(1)),
-  teamOneUserIds: z.array(z.string().min(1)),
-  teamTwoUserIds: z.array(z.string().min(1)),
+  playerIds: z.array(z.string().min(1)),
+  teamOnePlayerIds: z.array(z.string().min(1)),
+  teamTwoPlayerIds: z.array(z.string().min(1)),
   teamOneRoundIds: z.array(z.number().int().positive()),
   teamTwoRoundIds: z.array(z.number().int().positive()),
 });

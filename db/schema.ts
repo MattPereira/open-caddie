@@ -51,6 +51,8 @@ export const users = pgTable("user", {
   isAdmin: boolean("isAdmin").notNull().default(false),
 });
 
+// Auth.js adapter tables keep User naming (ADR 0007).
+/* eslint-disable local/player-domain-term */
 export const accounts = pgTable(
   "account",
   {
@@ -81,6 +83,8 @@ export const sessions = pgTable("session", {
   expires: timestamp("expires", { mode: "date" }).notNull(),
 });
 
+/* eslint-enable local/player-domain-term */
+
 export const verificationTokens = pgTable(
   "verificationToken",
   {
@@ -105,12 +109,12 @@ export const clubMembers = pgTable(
     clubId: integer("club_id")
       .notNull()
       .references(() => clubs.id, { onDelete: "cascade" }),
-    userId: text("user_id")
+    playerId: text("player_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     joinedAt: timestamp("joined_at", { mode: "date" }).notNull().defaultNow(),
   },
-  (cm) => [primaryKey({ columns: [cm.clubId, cm.userId] })],
+  (cm) => [primaryKey({ columns: [cm.clubId, cm.playerId] })],
 );
 
 // Club-owned Season records (ADR 0004). Numbers are Club-relative and begin at
@@ -177,10 +181,10 @@ export const courseScorecardImports = pgTable(
     status: text("status").$type<CourseScorecardImportStatus>().notNull(),
     revision: integer("revision").notNull().default(0),
     document: jsonb("document").notNull(),
-    createdByUserId: text("created_by_user_id")
+    createdByPlayerId: text("created_by_player_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
-    lastEditedByUserId: text("last_edited_by_user_id")
+    lastEditedByPlayerId: text("last_edited_by_player_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
     expiresAt: timestamp("expires_at", { mode: "date" }),
@@ -216,7 +220,7 @@ export const matches = pgTable(
   "matches",
   {
     id: serial("id").primaryKey(),
-    createdByUserId: text("created_by_user_id")
+    createdByPlayerId: text("created_by_player_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
     courseId: integer("course_id")
@@ -310,7 +314,7 @@ export const rounds = pgTable(
     matchId: integer("match_id").references(() => matches.id, {
       onDelete: "restrict",
     }),
-    userId: text("user_id")
+    playerId: text("player_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
     courseId: integer("course_id")
@@ -326,13 +330,13 @@ export const rounds = pgTable(
     }),
   },
   (r) => [
-    uniqueIndex("rounds_tournament_user_unique")
-      .on(r.tournamentId, r.userId)
+    uniqueIndex("rounds_tournament_player_unique")
+      .on(r.tournamentId, r.playerId)
       .where(sql`${r.tournamentId} IS NOT NULL`),
     // Referenced by pairing_members so membership cannot cross Tournaments.
     uniqueIndex("rounds_id_tournament_unique").on(r.id, r.tournamentId),
-    uniqueIndex("rounds_match_user_unique")
-      .on(r.matchId, r.userId)
+    uniqueIndex("rounds_match_player_unique")
+      .on(r.matchId, r.playerId)
       .where(sql`${r.matchId} IS NOT NULL`),
     check(
       "rounds_single_event_check",
@@ -420,7 +424,7 @@ export const roundScorecardUploads = pgTable(
   "round_scorecard_uploads",
   {
     id: serial("id").primaryKey(),
-    uploadedByUserId: text("uploaded_by_user_id")
+    uploadedByPlayerId: text("uploaded_by_player_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
     tournamentId: integer("tournament_id").references(() => tournaments.id, {
@@ -477,7 +481,7 @@ export const roundSummaries = pgView("round_summaries").as((qb) =>
       tournamentId: rounds.tournamentId,
       matchId: rounds.matchId,
       clubId: seasons.clubId,
-      userId: rounds.userId,
+      playerId: rounds.playerId,
       courseId: rounds.courseId,
       date: rounds.date,
       playerIndexOverride: rounds.playerIndexOverride,
@@ -519,7 +523,7 @@ export const roundSummaries = pgView("round_summaries").as((qb) =>
       rounds.tournamentId,
       rounds.matchId,
       seasons.clubId,
-      rounds.userId,
+      rounds.playerId,
       rounds.courseId,
       rounds.date,
       rounds.playerIndexOverride,

@@ -14,7 +14,7 @@ export function displayName(player: PlayerCardPlayer) {
     .filter(Boolean)
     .join(" ")
     .trim();
-  return full || player.username || player.email || "Unnamed user";
+  return full || player.username || player.email || "Unnamed player";
 }
 
 export function getInitials(player: PlayerCardPlayer) {
@@ -27,7 +27,7 @@ export function getInitials(player: PlayerCardPlayer) {
 }
 
 export type SortablePlayer = {
-  userId: string;
+  playerId: string;
   firstName: string | null;
   lastName: string | null;
   username: string | null;
@@ -38,6 +38,6 @@ export function comparePlayers(a: SortablePlayer, b: SortablePlayer) {
     (a.lastName ?? "").localeCompare(b.lastName ?? "") ||
     (a.firstName ?? "").localeCompare(b.firstName ?? "") ||
     (a.username ?? "").localeCompare(b.username ?? "") ||
-    a.userId.localeCompare(b.userId)
+    a.playerId.localeCompare(b.playerId)
   );
 }

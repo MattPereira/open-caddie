@@ -356,7 +356,7 @@ export const getLowestRoundsByCourseId = cache(
         image: users.image,
       })
       .from(roundSummaries)
-      .innerJoin(users, eq(roundSummaries.userId, users.id))
+      .innerJoin(users, eq(roundSummaries.playerId, users.id))
       .where(
         and(
           eq(roundSummaries.courseId, courseId),
@@ -382,7 +382,7 @@ export const getFewestPuttsRoundsByCourseId = cache(
         image: users.image,
       })
       .from(roundSummaries)
-      .innerJoin(users, eq(roundSummaries.userId, users.id))
+      .innerJoin(users, eq(roundSummaries.playerId, users.id))
       .where(
         and(
           eq(roundSummaries.courseId, courseId),
@@ -410,7 +410,7 @@ export const getClosestGreeniesByCourseId = cache(async (courseId: number) => {
     })
     .from(greenies)
     .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-    .innerJoin(users, eq(rounds.userId, users.id))
+    .innerJoin(users, eq(rounds.playerId, users.id))
     .where(eq(rounds.courseId, courseId))
     .orderBy(asc(greenies.hole), asc(greenies.feet), asc(greenies.inches));
 

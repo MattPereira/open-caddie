@@ -13,7 +13,7 @@ import { useDelegateRoundIds } from "./use-delegate-round-id";
 
 /** A Round on the play page: a column, a leaderboard row or a scoreboard player. */
 export type PlayRound = RoundScoresTableRound &
-  Pick<DisplayRound, "userId" | "teeId" | "yards"> &
+  Pick<DisplayRound, "playerId" | "teeId" | "yards"> &
   RoundEvent;
 
 export type PlayCourse = {
@@ -23,7 +23,7 @@ export type PlayCourse = {
 };
 
 type RoundPlayProps = {
-  currentUserId: string;
+  currentPlayerId: string;
   round: PlayRound;
   course: PlayCourse;
   leaderboardRounds?: PlayRound[];
@@ -37,7 +37,7 @@ type RoundPlayProps = {
 };
 
 export function RoundPlay({
-  currentUserId,
+  currentPlayerId,
   round,
   course,
   leaderboardRounds,
@@ -68,7 +68,7 @@ export function RoundPlay({
 
   return (
     <RoundScoresForm
-      currentUserId={currentUserId}
+      currentPlayerId={currentPlayerId}
       round={round}
       course={course}
       leaderboardRounds={leaderboardRounds}

@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/auth";
+import { getSignedInPlayer } from "@/lib/players/queries";
 import * as lifecycle from "@/lib/rounds/lifecycle";
 import * as scorecardWrites from "@/lib/rounds/scorecard-writes";
 import {
@@ -23,8 +23,8 @@ type ActionResult = { ok: true } | { ok: false; error: string };
 export async function createRound(
   values: RoundConfigValues,
 ): Promise<{ ok: true; roundId: number } | { ok: false; error: string }> {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const actor = await getSignedInPlayer();
+  if (!actor) {
     return { ok: false, error: "You must be signed in." };
   }
 
@@ -33,23 +33,23 @@ export async function createRound(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  return lifecycle.createRound(session.user.id, parsed.data);
+  return lifecycle.createRound(actor.id, parsed.data);
 }
 
 export async function deleteRound(roundId: number): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const actor = await getSignedInPlayer();
+  if (!actor) {
     return { ok: false, error: "You must be signed in." };
   }
 
-  return lifecycle.deleteRound(session.user.id, roundId);
+  return lifecycle.deleteRound(actor.id, roundId);
 }
 
 export async function changeRoundSettings(
   values: RoundSettingsValues,
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const actor = await getSignedInPlayer();
+  if (!actor) {
     return { ok: false, error: "You must be signed in." };
   }
 
@@ -59,7 +59,7 @@ export async function changeRoundSettings(
   }
 
   const { roundId, teeId, playerIndexOverride } = parsed.data;
-  return scorecardWrites.changeRoundSettings(session.user.id, roundId, {
+  return scorecardWrites.changeRoundSettings(actor.id, roundId, {
     teeId,
     playerIndexOverride: playerIndexOverride === "" ? null : playerIndexOverride,
   });
@@ -68,8 +68,8 @@ export async function changeRoundSettings(
 export async function recordRoundScorecardChanges(
   values: RoundScorecardChangesValues,
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const actor = await getSignedInPlayer();
+  if (!actor) {
     return { ok: false, error: "You must be signed in." };
   }
 
@@ -79,7 +79,7 @@ export async function recordRoundScorecardChanges(
   }
 
   const { roundId, scores, greenies } = parsed.data;
-  return scorecardWrites.recordScorecardChanges(session.user.id, {
+  return scorecardWrites.recordScorecardChanges(actor.id, {
     scores: scores.map((score) => ({ roundId, ...score })),
     greenies: greenies.map((greenie) => ({ roundId, ...greenie })),
   });
@@ -88,8 +88,8 @@ export async function recordRoundScorecardChanges(
 export async function upsertRoundScore(
   values: RoundScoreValues,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const actor = await getSignedInPlayer();
+  if (!actor) {
     return { ok: false, error: "You must be signed in." };
   }
 
@@ -98,7 +98,7 @@ export async function upsertRoundScore(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  return scorecardWrites.recordScorecardChanges(session.user.id, {
+  return scorecardWrites.recordScorecardChanges(actor.id, {
     scores: [parsed.data],
   });
 }
@@ -106,8 +106,8 @@ export async function upsertRoundScore(
 export async function upsertRoundGreenie(
   values: RoundGreenieValues,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const actor = await getSignedInPlayer();
+  if (!actor) {
     return { ok: false, error: "You must be signed in." };
   }
 
@@ -117,7 +117,7 @@ export async function upsertRoundGreenie(
   }
 
   const { roundId, hole, feet, inches } = parsed.data;
-  return scorecardWrites.recordScorecardChanges(session.user.id, {
+  return scorecardWrites.recordScorecardChanges(actor.id, {
     greenies: [{ roundId, hole, distance: { feet, inches } }],
   });
 }
@@ -125,8 +125,8 @@ export async function upsertRoundGreenie(
 export async function deleteRoundGreenie(
   values: RoundGreenieDeleteValues,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const actor = await getSignedInPlayer();
+  if (!actor) {
     return { ok: false, error: "You must be signed in." };
   }
 
@@ -136,7 +136,7 @@ export async function deleteRoundGreenie(
   }
 
   const { roundId, hole } = parsed.data;
-  return scorecardWrites.recordScorecardChanges(session.user.id, {
+  return scorecardWrites.recordScorecardChanges(actor.id, {
     greenies: [{ roundId, hole, distance: null }],
   });
 }

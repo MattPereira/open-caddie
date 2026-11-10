@@ -56,7 +56,7 @@ if (!testDatabaseUrl) {
 
     async function players(count: number) {
       const list = [];
-      for (let i = 0; i < count; i += 1) list.push(await fixtures.user());
+      for (let i = 0; i < count; i += 1) list.push(await fixtures.player());
       return list;
     }
 
@@ -72,9 +72,9 @@ if (!testDatabaseUrl) {
         courseHandle: c.course.handle,
         format,
         teeId: c.tee.id,
-        playerUserIds: playerIds,
-        teamOneUserIds: teams[0],
-        teamTwoUserIds: teams[1],
+        playerIds: playerIds,
+        teamOnePlayerIds: teams[0],
+        teamTwoPlayerIds: teams[1],
       });
       if (result.ok && result.id != null) createdMatchIds.push(result.id);
       return result;
@@ -96,10 +96,10 @@ if (!testDatabaseUrl) {
       return match ?? null;
     }
 
-    // Team name → sorted user ids.
+    // Team name → sorted Player ids.
     async function teams(matchId: number) {
       const rows = await db
-        .select({ name: schema.matchTeams.name, userId: schema.rounds.userId })
+        .select({ name: schema.matchTeams.name, playerId: schema.rounds.playerId })
         .from(schema.matchTeams)
         .innerJoin(
           schema.matchTeamMembers,
@@ -111,7 +111,7 @@ if (!testDatabaseUrl) {
         )
         .where(eq(schema.matchTeams.matchId, matchId));
       const byName: Record<string, string[]> = {};
-      for (const row of rows) (byName[row.name] ??= []).push(row.userId);
+      for (const row of rows) (byName[row.name] ??= []).push(row.playerId);
       for (const ids of Object.values(byName)) ids.sort();
       return byName;
     }
@@ -128,9 +128,9 @@ if (!testDatabaseUrl) {
         courseHandle,
         format: m.match.format,
         teeId,
-        playerUserIds: m.players.map((p) => p.user.id),
-        teamOneUserIds: [],
-        teamTwoUserIds: [],
+        playerIds: m.players.map((p) => p.player.id),
+        teamOnePlayerIds: [],
+        teamTwoPlayerIds: [],
         teamOneRoundIds: [],
         teamTwoRoundIds: [],
         ...overrides,
@@ -154,12 +154,12 @@ if (!testDatabaseUrl) {
 
         if (!result.ok || result.id == null) throw new Error("not created");
         expect(await matchRow(result.id)).toMatchObject({
-          createdByUserId: a.id,
+          createdByPlayerId: a.id,
           courseId: c.course.id,
           format: "singles_match_play",
         });
         const rounds = await matchRounds(result.id);
-        expect(rounds.map((r) => r.userId).sort()).toEqual([a.id, b.id].sort());
+        expect(rounds.map((r) => r.playerId).sort()).toEqual([a.id, b.id].sort());
         for (const r of rounds) expect(r.teeId).toBe(c.tee.id);
         expect(updateTag).toHaveBeenCalledWith("home-events");
         expect(invalidatedPaths()).toEqual(
@@ -220,14 +220,14 @@ if (!testDatabaseUrl) {
           date: "2026-02-01",
         });
 
-        expect(await mutations.updateMatch(m.players[0].user.id, input)).toEqual({
+        expect(await mutations.updateMatch(m.players[0].player.id, input)).toEqual({
           ok: false,
           error: "Only the match creator can edit this match.",
         });
         expect((await matchRow(m.match.id))?.date).toEqual(m.match.date);
 
         expect(await mutations.updateMatch(m.creator.id, input)).toEqual({ ok: true });
-        const admin = await fixtures.user({ isAdmin: true });
+        const admin = await fixtures.player({ isAdmin: true });
         expect(
           await mutations.updateMatch(admin.id, { ...input, date: "2026-03-01" }),
         ).toEqual({ ok: true });
@@ -284,8 +284,8 @@ if (!testDatabaseUrl) {
           ],
         );
         if (!created.ok || created.id == null) throw new Error("not created");
-        const roundIdByUser = new Map(
-          (await matchRounds(created.id)).map((r) => [r.userId, r.id]),
+        const roundIdByPlayer = new Map(
+          (await matchRounds(created.id)).map((r) => [r.playerId, r.id]),
         );
 
         const result = await mutations.updateMatch(a.id, {
@@ -294,11 +294,11 @@ if (!testDatabaseUrl) {
           courseHandle: c.course.handle,
           format: "four_ball_match_play",
           teeId: c.tee.id,
-          playerUserIds: [a.id, b.id, d.id, e.id],
-          teamOneUserIds: [],
-          teamTwoUserIds: [],
-          teamOneRoundIds: [roundIdByUser.get(a.id)!, roundIdByUser.get(e.id)!],
-          teamTwoRoundIds: [roundIdByUser.get(b.id)!, roundIdByUser.get(d.id)!],
+          playerIds: [a.id, b.id, d.id, e.id],
+          teamOnePlayerIds: [],
+          teamTwoPlayerIds: [],
+          teamOneRoundIds: [roundIdByPlayer.get(a.id)!, roundIdByPlayer.get(e.id)!],
+          teamTwoRoundIds: [roundIdByPlayer.get(b.id)!, roundIdByPlayer.get(d.id)!],
         });
 
         expect(result).toEqual({ ok: true });
@@ -312,23 +312,23 @@ if (!testDatabaseUrl) {
         const m = await fixtures.match(3);
         const course = await courseOf(m);
         const [round] = await matchRounds(m.match.id);
-        const fourth = await fixtures.user();
-        const [a, b, d] = m.players.map((p) => p.user.id);
+        const fourth = await fixtures.player();
+        const [a, b, d] = m.players.map((p) => p.player.id);
 
         const result = await mutations.updateMatch(
           m.creator.id,
           updateInput(m, course.handle, round.teeId, {
             format: "four_ball_match_play",
-            playerUserIds: [a, b, d, fourth.id],
-            teamOneUserIds: [a, fourth.id],
-            teamTwoUserIds: [b, d],
+            playerIds: [a, b, d, fourth.id],
+            teamOnePlayerIds: [a, fourth.id],
+            teamTwoPlayerIds: [b, d],
           }),
         );
 
         expect(result).toEqual({ ok: true });
         const rounds = await matchRounds(m.match.id);
         expect(rounds).toHaveLength(4);
-        expect(rounds.find((r) => r.userId === fourth.id)?.teeId).toBe(
+        expect(rounds.find((r) => r.playerId === fourth.id)?.teeId).toBe(
           round.teeId,
         );
         expect(await teams(m.match.id)).toEqual({
@@ -343,16 +343,16 @@ if (!testDatabaseUrl) {
         const course = await courseOf(m);
         const [round] = await matchRounds(m.match.id);
         const [x, y] = await players(2);
-        const [a, b] = m.players.map((p) => p.user.id);
+        const [a, b] = m.players.map((p) => p.player.id);
 
         expect(
           await mutations.updateMatch(
             m.creator.id,
             updateInput(m, course.handle, round.teeId, {
               format: "four_ball_match_play",
-              playerUserIds: [a, b, x.id, y.id],
-              teamOneUserIds: [a, x.id],
-              teamTwoUserIds: [b, y.id],
+              playerIds: [a, b, x.id, y.id],
+              teamOnePlayerIds: [a, x.id],
+              teamTwoPlayerIds: [b, y.id],
             }),
           ),
         ).toEqual({
@@ -377,7 +377,7 @@ if (!testDatabaseUrl) {
         );
         if (!created.ok || created.id == null) throw new Error("not created");
         const eRound = (await matchRounds(created.id)).find(
-          (r) => r.userId === e.id,
+          (r) => r.playerId === e.id,
         )!;
         await db.delete(schema.rounds).where(eq(schema.rounds.id, eRound.id));
 
@@ -387,9 +387,9 @@ if (!testDatabaseUrl) {
           courseHandle: c.course.handle,
           format: "three_ball_match_play",
           teeId: c.tee.id,
-          playerUserIds: [a.id, b.id, d.id],
-          teamOneUserIds: [],
-          teamTwoUserIds: [],
+          playerIds: [a.id, b.id, d.id],
+          teamOnePlayerIds: [],
+          teamTwoPlayerIds: [],
           teamOneRoundIds: [],
           teamTwoRoundIds: [],
         });
@@ -425,7 +425,7 @@ if (!testDatabaseUrl) {
         const m = await fixtures.match(2, { creatorPlays: false });
 
         expect(
-          await mutations.deleteMatch(m.players[0].user.id, m.match.id),
+          await mutations.deleteMatch(m.players[0].player.id, m.match.id),
         ).toEqual({
           ok: false,
           error: "Only the match creator can edit this match.",

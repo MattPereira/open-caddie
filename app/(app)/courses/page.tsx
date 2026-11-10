@@ -8,7 +8,7 @@ import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
 import { Button } from "@/components/ui/button";
 import { getAllCourses } from "@/lib/courses/queries";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { CoursesBrowser } from "./_components/courses-browser";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +18,9 @@ export const metadata: Metadata = {
 };
 
 export default async function CoursesPage() {
-  const [courses, currentUser] = await Promise.all([
+  const [courses, currentPlayer] = await Promise.all([
     getAllCourses(),
-    getCurrentUser(),
+    getCurrentPlayer(),
   ]);
 
   return (
@@ -32,7 +32,7 @@ export default async function CoursesPage() {
         >
           Courses
         </PageHeading>
-        {currentUser?.isAdmin ? (
+        {currentPlayer?.isAdmin ? (
           <div className="ml-auto">
             <Button
               asChild

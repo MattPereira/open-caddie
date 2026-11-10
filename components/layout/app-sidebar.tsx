@@ -40,7 +40,7 @@ import {
 import { signOutAction } from "@/app/(app)/login/actions";
 import { appNavItems } from "@/components/layout/app-nav-items";
 
-type SidebarUser = {
+type SidebarPlayer = {
   name: string;
   email: string;
   image?: string | null;
@@ -48,11 +48,11 @@ type SidebarUser = {
   id: string;
 };
 
-export function AppSidebar({ user }: { user: SidebarUser | null }) {
+export function AppSidebar({ player }: { player: SidebarPlayer | null }) {
   const pathname = usePathname();
   const { setTheme } = useTheme();
   const { isMobile, setOpenMobile } = useSidebar();
-  const initials = user ? getInitials(user.name) : null;
+  const initials = player ? getInitials(player.name) : null;
   const closeMobileSidebar = () => {
     if (isMobile) {
       setOpenMobile(false);
@@ -93,7 +93,7 @@ export function AppSidebar({ user }: { user: SidebarUser | null }) {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      {user ? (
+      {player ? (
         <SidebarFooter>
           <SidebarMenu>
             <SidebarMenuItem>
@@ -104,17 +104,17 @@ export function AppSidebar({ user }: { user: SidebarUser | null }) {
                     className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                   >
                     <Avatar className="size-10">
-                      {user.image ? (
-                        <AvatarImage src={user.image} alt={user.name} />
+                      {player.image ? (
+                        <AvatarImage src={player.image} alt={player.name} />
                       ) : null}
                       <AvatarFallback>{initials}</AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
                       <span className="truncate font-medium text-base">
-                        {user.name}
+                        {player.name}
                       </span>
                       <span className="truncate text-xs text-muted-foreground">
-                        {user.email}
+                        {player.email}
                       </span>
                     </div>
                     <HugeiconsIcon icon={ExpandIcon} className="ml-auto" />
@@ -129,7 +129,7 @@ export function AppSidebar({ user }: { user: SidebarUser | null }) {
                   <DropdownMenuGroup>
                     <DropdownMenuItem asChild className="py-3 text-lg">
                       <Link
-                        href={`/players/${user.id}`}
+                        href={`/players/${player.id}`}
                         onNavigate={closeMobileSidebar}
                       >
                         <HugeiconsIcon icon={UserCircleIcon} className="size-5" />

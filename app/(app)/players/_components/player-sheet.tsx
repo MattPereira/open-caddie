@@ -30,10 +30,10 @@ import {
   SheetFooterActions,
 } from "@/components/shared/sheet-actions";
 import { Switch } from "@/components/ui/switch";
-import { createUser, deleteUser, updateUser } from "../actions";
-import { UserFormSchema, type UserFormValues } from "../schema";
+import { createPlayer, deletePlayer, updatePlayer } from "../actions";
+import { PlayerFormSchema, type PlayerFormValues } from "../schema";
 
-export type AdminUser = {
+export type EditablePlayer = {
   id: string;
   email: string | null;
   firstName: string | null;
@@ -43,17 +43,17 @@ export type AdminUser = {
   isAdmin: boolean;
 };
 
-type UserSheetProps = {
+type PlayerSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode: "create" | "edit";
-  user?: AdminUser;
-  canManageUsers?: boolean;
+  player?: EditablePlayer;
+  canManagePlayers?: boolean;
   onSaved?: () => void;
   onDeleted?: () => void;
 };
 
-const emptyDefaults: UserFormValues = {
+const emptyDefaults: PlayerFormValues = {
   email: "",
   firstName: "",
   lastName: "",
@@ -62,15 +62,15 @@ const emptyDefaults: UserFormValues = {
   isAdmin: false,
 };
 
-function toFormValues(user?: AdminUser): UserFormValues {
-  if (!user) return emptyDefaults;
+function toFormValues(player?: EditablePlayer): PlayerFormValues {
+  if (!player) return emptyDefaults;
   return {
-    email: user.email ?? "",
-    firstName: user.firstName ?? "",
-    lastName: user.lastName ?? "",
-    username: user.username ?? "",
-    image: user.image ?? "",
-    isAdmin: user.isAdmin,
+    email: player.email ?? "",
+    firstName: player.firstName ?? "",
+    lastName: player.lastName ?? "",
+    username: player.username ?? "",
+    image: player.image ?? "",
+    isAdmin: player.isAdmin,
   };
 }
 
@@ -81,15 +81,15 @@ function inferUsername(firstName: string, lastName: string) {
     .join("-");
 }
 
-export function UserSheet({
+export function PlayerSheet({
   open,
   onOpenChange,
   mode,
-  user,
-  canManageUsers = true,
+  player,
+  canManagePlayers = true,
   onSaved,
   onDeleted,
-}: UserSheetProps) {
+}: PlayerSheetProps) {
   const [isPending, startTransition] = useTransition();
   const [isDeleting, startDeleteTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -97,21 +97,21 @@ export function UserSheet({
   const [confirmingDiscard, setConfirmingDiscard] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  const form = useForm<UserFormValues>({
-    resolver: zodResolver(UserFormSchema),
-    defaultValues: toFormValues(user),
+  const form = useForm<PlayerFormValues>({
+    resolver: zodResolver(PlayerFormSchema),
+    defaultValues: toFormValues(player),
   });
   const serverError = form.formState.errors.root?.server?.message;
   const isDirty = form.formState.isDirty;
-  const showAdminControls = mode === "create" || canManageUsers;
-  const showDelete = mode === "edit" && canManageUsers && user;
-  const userImagePathSegment = user?.username?.trim() || user?.id;
+  const showAdminControls = mode === "create" || canManagePlayers;
+  const showDelete = mode === "edit" && canManagePlayers && player;
+  const playerImagePathSegment = player?.username?.trim() || player?.id;
 
   useEffect(() => {
     if (open) {
-      form.reset(toFormValues(user));
+      form.reset(toFormValues(player));
     }
-  }, [open, user, form]);
+  }, [open, player, form]);
 
   const closeSheet = () => {
     form.clearErrors("root.server");
@@ -138,10 +138,10 @@ export function UserSheet({
   };
 
   const onDelete = () => {
-    if (!user) return;
+    if (!player) return;
     setDeleteError(null);
     startDeleteTransition(async () => {
-      const result = await deleteUser(user.id);
+      const result = await deletePlayer(player.id);
       if (!result.ok) {
         setDeleteError(result.error);
         return;
@@ -152,7 +152,7 @@ export function UserSheet({
     });
   };
 
-  const onSubmit = (values: UserFormValues) => {
+  const onSubmit = (values: PlayerFormValues) => {
     form.clearErrors("root.server");
     startTransition(async () => {
       const submitValues =
@@ -164,8 +164,8 @@ export function UserSheet({
           : values;
       const result =
         mode === "create"
-          ? await createUser(submitValues)
-          : await updateUser({ ...submitValues, id: user!.id });
+          ? await createPlayer(submitValues)
+          : await updatePlayer({ ...submitValues, id: player!.id });
 
       if (!result.ok) {
         form.setError("root.server", {
@@ -270,7 +270,7 @@ export function UserSheet({
                   />
                 ) : null}
 
-                {mode === "edit" && user ? (
+                {mode === "edit" && player ? (
                   <FormField
                     control={form.control}
                     name="image"
@@ -281,8 +281,8 @@ export function UserSheet({
                           <ImageUploadField
                             value={field.value || null}
                             onChange={(url) => field.onChange(url ?? "")}
-                            pathPrefix={`users/${userImagePathSegment}`}
-                            fallback={getInitials(user)}
+                            pathPrefix={`users/${playerImagePathSegment}`}
+                            fallback={getInitials(player)}
                             onUploadingChange={setIsUploading}
                           />
                         </FormControl>
@@ -328,15 +328,15 @@ export function UserSheet({
                   isPending={isPending}
                   onKeepEditingAction={() => setConfirmingDiscard(false)}
                   onDiscardAction={() => {
-                    form.reset(toFormValues(user));
+                    form.reset(toFormValues(player));
                     closeSheet();
                   }}
                 />
               ) : confirmingDelete && showDelete ? (
                 <SheetDeleteConfirm
-                  title="Delete this user?"
-                  description="This permanently deletes the user account."
-                  confirmLabel="Hold to delete user"
+                  title="Delete this player?"
+                  description="This permanently deletes the player."
+                  confirmLabel="Hold to delete player"
                   isDeleting={isDeleting}
                   error={deleteError}
                   onConfirmAction={onDelete}
@@ -359,7 +359,7 @@ export function UserSheet({
                         }
                       : undefined
                   }
-                  deleteAriaLabel="Delete user"
+                  deleteAriaLabel="Delete player"
                 />
               )}
             </SheetFooter>

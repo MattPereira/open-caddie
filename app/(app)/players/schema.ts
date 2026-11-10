@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const UserFormSchema = z.object({
+export const PlayerFormSchema = z.object({
   email: z.email("Must be a valid email").max(254),
   firstName: z.string().trim().min(1, "First name is required").max(50),
   lastName: z.string().trim().min(1, "Last name is required").max(50),
@@ -13,11 +13,11 @@ export const UserFormSchema = z.object({
   isAdmin: z.boolean(),
 });
 
-export const UserCreateSchema = UserFormSchema;
-export const UserUpdateSchema = UserFormSchema.extend({
+export const PlayerCreateSchema = PlayerFormSchema;
+export const PlayerUpdateSchema = PlayerFormSchema.extend({
   id: z.string().min(1),
 });
 
-export type UserFormValues = z.infer<typeof UserFormSchema>;
-export type UserCreateValues = z.infer<typeof UserCreateSchema>;
-export type UserUpdateValues = z.infer<typeof UserUpdateSchema>;
+export type PlayerFormValues = z.infer<typeof PlayerFormSchema>;
+export type PlayerCreateValues = z.infer<typeof PlayerCreateSchema>;
+export type PlayerUpdateValues = z.infer<typeof PlayerUpdateSchema>;

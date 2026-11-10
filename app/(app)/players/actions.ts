@@ -6,20 +6,20 @@ import { and, count, eq, ne, sql } from "drizzle-orm";
 import { signIn } from "@/auth";
 import { db } from "@/db";
 import { greenies, rounds, users } from "@/db/schema";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { safeDeleteBlob } from "@/lib/images/blob";
-import { createSignInLink } from "@/lib/users/sign-in-link";
+import { createSignInLink } from "@/lib/auth/sign-in-link";
 import {
-  UserCreateSchema,
-  UserUpdateSchema,
-  type UserCreateValues,
-  type UserUpdateValues,
+  PlayerCreateSchema,
+  PlayerUpdateSchema,
+  type PlayerCreateValues,
+  type PlayerUpdateValues,
 } from "./schema";
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 async function requireAdmin() {
-  const me = await getCurrentUser();
+  const me = await getCurrentPlayer();
   if (!me?.isAdmin) {
     throw new Error("Forbidden");
   }
@@ -36,12 +36,12 @@ function buildName(firstName: string | null, lastName: string | null) {
   return full.length > 0 ? full : null;
 }
 
-export async function createUser(
-  values: UserCreateValues,
+export async function createPlayer(
+  values: PlayerCreateValues,
 ): Promise<ActionResult> {
   await requireAdmin();
 
-  const parsed = UserCreateSchema.safeParse(values);
+  const parsed = PlayerCreateSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
   }
@@ -99,22 +99,22 @@ export async function createUser(
   return { ok: true };
 }
 
-export async function updateUser(
-  values: UserUpdateValues,
+export async function updatePlayer(
+  values: PlayerUpdateValues,
 ): Promise<ActionResult> {
-  const me = await getCurrentUser();
+  const me = await getCurrentPlayer();
   if (!me) {
     return { ok: false, error: "You must be signed in." };
   }
 
-  const parsed = UserUpdateSchema.safeParse(values);
+  const parsed = PlayerUpdateSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
   const { id } = parsed.data;
-  const canManageUsers = me.isAdmin;
-  if (!canManageUsers && me.id !== id) {
+  const canManagePlayers = me.isAdmin;
+  if (!canManagePlayers && me.id !== id) {
     return { ok: false, error: "You can only edit your own profile." };
   }
 
@@ -134,10 +134,10 @@ export async function updateUser(
     .where(eq(users.id, id))
     .limit(1);
   if (!current) {
-    return { ok: false, error: "User not found." };
+    return { ok: false, error: "Player not found." };
   }
 
-  const isAdmin = canManageUsers ? parsed.data.isAdmin : current.isAdmin;
+  const isAdmin = canManagePlayers ? parsed.data.isAdmin : current.isAdmin;
   const emailChanged = current.email?.toLowerCase() !== email;
   const imageChanged = current.image !== image;
 
@@ -197,7 +197,7 @@ export async function updateUser(
   return { ok: true };
 }
 
-export async function deleteUser(id: string): Promise<ActionResult> {
+export async function deletePlayer(id: string): Promise<ActionResult> {
   const me = await requireAdmin();
 
   if (me.id === id) {
@@ -207,18 +207,18 @@ export async function deleteUser(id: string): Promise<ActionResult> {
   const [{ value: roundCount }] = await db
     .select({ value: count() })
     .from(rounds)
-    .where(eq(rounds.userId, id));
+    .where(eq(rounds.playerId, id));
 
   const [{ value: greenieCount }] = await db
     .select({ value: count() })
     .from(greenies)
     .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-    .where(eq(rounds.userId, id));
+    .where(eq(rounds.playerId, id));
 
   if (roundCount > 0 || greenieCount > 0) {
     return {
       ok: false,
-      error: `Cannot delete: user has ${roundCount} round(s) and ${greenieCount} greenie(s).`,
+      error: `Cannot delete: player has ${roundCount} round(s) and ${greenieCount} greenie(s).`,
     };
   }
 
@@ -240,5 +240,5 @@ export async function createPlayerSignInLink(
   }
   const protocol = host.startsWith("localhost") ? "http" : "https";
 
-  return createSignInLink({ userId: id, origin: `${protocol}://${host}` });
+  return createSignInLink({ playerId: id, origin: `${protocol}://${host}` });
 }

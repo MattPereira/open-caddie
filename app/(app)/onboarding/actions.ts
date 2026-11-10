@@ -2,9 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { auth, unstable_update } from "@/auth";
+import { unstable_update } from "@/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { getSignedInPlayer } from "@/lib/players/queries";
 import { slugify } from "./slugify";
 import { OnboardingSchema, type OnboardingValues } from "./schema";
 
@@ -21,8 +22,8 @@ function buildUsername(base: string, attempt: number): string {
 export async function submitOnboarding(
   values: OnboardingValues,
 ): Promise<{ error: string } | void> {
-  const session = await auth();
-  if (!session?.user?.id) redirect("/");
+  const player = await getSignedInPlayer();
+  if (!player) redirect("/");
 
   const parsed = OnboardingSchema.safeParse(values);
   if (!parsed.success) {
@@ -40,7 +41,7 @@ export async function submitOnboarding(
       await db
         .update(users)
         .set({ username: candidate, firstName, lastName, name: fullName })
-        .where(eq(users.id, session.user.id));
+        .where(eq(users.id, player.id));
       savedUsername = candidate;
       break;
     } catch (e: unknown) {
@@ -59,6 +60,7 @@ export async function submitOnboarding(
   }
 
   await unstable_update({
+    // eslint-disable-next-line local/player-domain-term -- Auth.js session shape
     user: { username: savedUsername, firstName, lastName, name: fullName },
   });
 

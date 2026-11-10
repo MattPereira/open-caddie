@@ -26,7 +26,7 @@ if (!testDatabaseUrl) {
     const { getRoundById } = await import("@/lib/rounds/queries");
     const clubIds: number[] = [];
     const courseIds: number[] = [];
-    const userIds: string[] = [];
+    const playerIds: string[] = [];
 
     async function tournamentFixture() {
       const suffix = crypto.randomUUID();
@@ -49,13 +49,13 @@ if (!testDatabaseUrl) {
       return { tournament, course, tee };
     }
 
-    // A Tournament player: a user with a Round in that Tournament, which is
+    // A Tournament Player: a Player with a Round in that Tournament, which is
     // what a Pairing actually holds.
     async function playerFixture(
       f: Awaited<ReturnType<typeof tournamentFixture>>,
     ) {
       const suffix = crypto.randomUUID();
-      const [user] = await db
+      const [player] = await db
         .insert(schema.users)
         .values({ email: `player-${suffix}@example.com`, firstName: "Player", lastName: suffix })
         .returning();
@@ -63,14 +63,14 @@ if (!testDatabaseUrl) {
         .insert(schema.rounds)
         .values({
           tournamentId: f.tournament.id,
-          userId: user.id,
+          playerId: player.id,
           courseId: f.course.id,
           teeId: f.tee.id,
           date: f.tournament.date,
         })
         .returning();
-      userIds.push(user.id);
-      return { user, round };
+      playerIds.push(player.id);
+      return { player, round };
     }
 
     let adminId: string;
@@ -81,34 +81,34 @@ if (!testDatabaseUrl) {
       return result.id;
     }
 
-    async function userFixture(isAdmin = false) {
-      const [user] = await db.insert(schema.users).values({
-        email: `user-${crypto.randomUUID()}@example.com`,
+    async function newPlayerId(isAdmin = false) {
+      const [player] = await db.insert(schema.users).values({
+        email: `player-${crypto.randomUUID()}@example.com`,
         isAdmin,
       }).returning();
-      userIds.push(user.id);
-      return user.id;
+      playerIds.push(player.id);
+      return player.id;
     }
 
     beforeEach(async () => {
-      adminId = await userFixture(true);
+      adminId = await newPlayerId(true);
       cache.revalidatePath.mockClear();
       cache.updateTag.mockClear();
     });
 
     afterEach(async () => {
-      // Rounds restrict their Tournament, Course and user, so they go first.
-      if (userIds.length) await db.delete(schema.rounds).where(inArray(schema.rounds.userId, userIds));
+      // Rounds restrict their Tournament, Course and Player, so they go first.
+      if (playerIds.length) await db.delete(schema.rounds).where(inArray(schema.rounds.playerId, playerIds));
       if (clubIds.length) {
         const clubSeasonIds = (await db.select({ id: schema.seasons.id }).from(schema.seasons).where(inArray(schema.seasons.clubId, clubIds))).map((season) => season.id);
         if (clubSeasonIds.length) await db.delete(schema.tournaments).where(inArray(schema.tournaments.seasonId, clubSeasonIds));
         await db.delete(schema.clubs).where(inArray(schema.clubs.id, clubIds));
       }
       if (courseIds.length) await db.delete(schema.courses).where(inArray(schema.courses.id, courseIds));
-      if (userIds.length) await db.delete(schema.users).where(inArray(schema.users.id, userIds));
+      if (playerIds.length) await db.delete(schema.users).where(inArray(schema.users.id, playerIds));
       clubIds.length = 0;
       courseIds.length = 0;
-      userIds.length = 0;
+      playerIds.length = 0;
     });
 
     it("creates a numbered Pairing for an admin", async () => {
@@ -123,7 +123,7 @@ if (!testDatabaseUrl) {
     it("rejects every Pairing mutation from a non-admin", async () => {
       const { tournament } = await tournamentFixture();
       const pairingId = await createPairing(tournament.id);
-      const nonAdminId = await userFixture();
+      const nonAdminId = await newPlayerId();
 
       expect(await writes.createPairing(nonAdminId, { tournamentId: tournament.id })).toEqual({ ok: false, error: "Only admins can manage Pairings." });
       expect(await writes.renamePairing(nonAdminId, { pairingId, name: "Late tee" })).toEqual({ ok: false, error: "Only admins can manage Pairings." });
@@ -192,11 +192,11 @@ if (!testDatabaseUrl) {
     it("assigns an unassigned Round to a Pairing", async () => {
       const f = await tournamentFixture();
       const pairingId = await createPairing(f.tournament.id);
-      const { user, round } = await playerFixture(f);
-      expect(await queries.getUnassignedRoundsForTournament(f.tournament.id)).toMatchObject([{ roundId: round.id, userId: user.id }]);
+      const { player, round } = await playerFixture(f);
+      expect(await queries.getUnassignedRoundsForTournament(f.tournament.id)).toMatchObject([{ roundId: round.id, playerId: player.id }]);
 
       expect(await writes.assignRoundToPairing(adminId, { pairingId, roundId: round.id })).toMatchObject({ ok: true });
-      expect(await queries.getPairingsForTournament(f.tournament.id)).toMatchObject([{ id: pairingId, members: [{ roundId: round.id, userId: user.id }] }]);
+      expect(await queries.getPairingsForTournament(f.tournament.id)).toMatchObject([{ id: pairingId, members: [{ roundId: round.id, playerId: player.id }] }]);
       expect(await queries.getUnassignedRoundsForTournament(f.tournament.id)).toEqual([]);
     });
 
@@ -300,7 +300,7 @@ if (!testDatabaseUrl) {
       const assigned = await playerFixture(f);
       const unassigned = await playerFixture(f);
       await writes.assignRoundToPairing(adminId, { pairingId, roundId: assigned.round.id });
-      const nonAdminId = await userFixture();
+      const nonAdminId = await newPlayerId();
 
       expect(await writes.assignRoundToPairing(nonAdminId, { pairingId, roundId: unassigned.round.id })).toEqual({ ok: false, error: "Only admins can manage Pairings." });
       expect(await writes.removeRoundFromPairing(nonAdminId, { roundId: assigned.round.id })).toEqual({ ok: false, error: "Only admins can manage Pairings." });

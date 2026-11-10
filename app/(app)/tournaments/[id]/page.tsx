@@ -13,7 +13,7 @@ import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/shared/url-tabs";
 import { getEventRoundAccess } from "@/lib/rounds/access";
 import { getTournamentById } from "@/lib/tournaments/queries";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { createPageMetadata } from "@/app/metadata";
 import { formatDate } from "@/lib/dates";
 import { PageContent } from "@/components/layout/page-content";
@@ -47,21 +47,21 @@ export async function generateMetadata({
 export default async function TournamentPage({
   params,
 }: TournamentPageProps) {
-  const [{ id }, currentUser] = await Promise.all([params, getCurrentUser()]);
+  const [{ id }, currentPlayer] = await Promise.all([params, getCurrentPlayer()]);
 
   const tournamentId = Number(id);
   if (!Number.isInteger(tournamentId) || tournamentId <= 0) notFound();
 
   const [tournament, eventAccess] = await Promise.all([
     getTournamentById(tournamentId),
-    currentUser
-      ? getEventRoundAccess(currentUser.id, "tournament", tournamentId)
+    currentPlayer
+      ? getEventRoundAccess(currentPlayer.id, "tournament", tournamentId)
       : null,
   ]);
 
   if (!tournament) notFound();
-  const currentUserRound = currentUser
-    ? tournament.rounds.find((round) => round.userId === currentUser.id)
+  const currentPlayerRound = currentPlayer
+    ? tournament.rounds.find((round) => round.playerId === currentPlayer.id)
     : null;
 
   return (
@@ -72,7 +72,7 @@ export default async function TournamentPage({
             <h1 className="text-2xl font-semibold tracking-normal">
               Tournament
             </h1>
-            {currentUser?.isAdmin ? (
+            {currentPlayer?.isAdmin ? (
               <EditTournamentLink href={`/tournaments/${tournament.id}/edit`} />
             ) : null}
           </div>
@@ -101,9 +101,9 @@ export default async function TournamentPage({
           >
             <CourseRecords courseId={tournament.courseId} variant="tabs" />
           </CourseRecordsDialog>
-          {currentUserRound ? (
+          {currentPlayerRound ? (
             <PlayRoundButton
-              href={`/rounds/${currentUserRound.id}/play`}
+              href={`/rounds/${currentPlayerRound.id}/play`}
               className="min-w-0 w-full sm:w-full"
             />
           ) : null}

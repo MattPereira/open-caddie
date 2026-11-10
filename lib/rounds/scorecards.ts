@@ -56,7 +56,7 @@ export function readGreeniesByRounds(where: SQL) {
       feet: greenies.feet,
       inches: greenies.inches,
       roundDate: rounds.date,
-      userId: rounds.userId,
+      playerId: rounds.playerId,
       firstName: users.firstName,
       lastName: users.lastName,
       username: users.username,
@@ -65,7 +65,7 @@ export function readGreeniesByRounds(where: SQL) {
     })
     .from(greenies)
     .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-    .innerJoin(users, eq(rounds.userId, users.id))
+    .innerJoin(users, eq(rounds.playerId, users.id))
     .innerJoin(courses, eq(rounds.courseId, courses.id))
     .where(where)
     .orderBy(asc(greenies.hole), asc(greenies.feet), asc(greenies.inches));

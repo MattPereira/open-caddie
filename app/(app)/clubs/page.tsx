@@ -4,7 +4,7 @@ import { appPageIcons } from "@/components/layout/app-nav-items";
 import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
 import { getAllClubsFull } from "@/lib/clubs/queries";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { AddClubButton } from "./_components/add-club-button";
 import { ClubsBrowser } from "./_components/clubs-browser";
 
@@ -15,9 +15,9 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function ClubsPage() {
-  const [clubs, currentUser] = await Promise.all([
+  const [clubs, currentPlayer] = await Promise.all([
     getAllClubsFull(),
-    getCurrentUser(),
+    getCurrentPlayer(),
   ]);
 
   return (
@@ -29,7 +29,7 @@ export default async function ClubsPage() {
         >
           Clubs
         </PageHeading>
-        {currentUser?.isAdmin ? (
+        {currentPlayer?.isAdmin ? (
           <div className="ml-auto">
             <AddClubButton />
           </div>

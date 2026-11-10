@@ -14,8 +14,8 @@ import { invalidateRoundChanged } from "./lifecycle";
 import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
 // The one write path for a Round's scorecard and settings. Not a
-// "use server" module: it takes the session user id, so exposing it as an
-// endpoint would let a client claim any user (ADR 0003).
+// "use server" module: it takes the acting Player's id, so exposing it as an
+// endpoint would let a client claim to be any Player (ADR 0003).
 
 /**
  * A change to one hole. A field left out keeps its stored value; an explicit
@@ -94,12 +94,12 @@ const GREENIE_NOT_PAR_THREE = {
 } as const;
 
 /**
- * Records strokes, putts and Greenies for one or more Rounds. The user must be
+ * Records strokes, putts and Greenies for one or more Rounds. The Player must be
  * a Scorer of every Round touched. Everything is validated before anything is
  * written, and the write is all-or-nothing.
  */
 export async function recordScorecardChanges(
-  userId: string,
+  playerId: string,
   changes: ScorecardChanges,
 ): Promise<ScorecardWriteResult> {
   const scores = changes.scores ?? [];
@@ -114,7 +114,7 @@ export async function recordScorecardChanges(
   if (roundIds.length === 0) return { ok: true };
 
   const accesses = await Promise.all(
-    roundIds.map((roundId) => readRoundAccess(userId, roundId)),
+    roundIds.map((roundId) => readRoundAccess(playerId, roundId)),
   );
   const touchedRounds: AccessedRound[] = [];
   for (const access of accesses) {
@@ -219,11 +219,11 @@ export async function recordScorecardChanges(
  * never touches scores or Greenies, so concurrent Scorers keep their entries.
  */
 export async function changeRoundSettings(
-  userId: string,
+  playerId: string,
   roundId: number,
   change: RoundSettingsChange,
 ): Promise<RoundSettingsResult> {
-  const access = await readRoundAccess(userId, roundId);
+  const access = await readRoundAccess(playerId, roundId);
   if (!access?.canScore) return NOT_FOUND;
   if (!access.canManage) return CANNOT_MANAGE;
   const { round } = access;

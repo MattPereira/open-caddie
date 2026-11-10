@@ -11,7 +11,7 @@ import {
   teeYardages,
   tournaments,
 } from "@/db/schema";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { safeDeleteBlob } from "@/lib/images/blob";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import { pgCode } from "@/lib/pg-errors";
@@ -48,7 +48,7 @@ type UpdateResult =
 type ActionResult = { ok: true } | { ok: false; error: string };
 
 async function requireAdmin() {
-  const me = await getCurrentUser();
+  const me = await getCurrentPlayer();
   if (!me?.isAdmin) {
     throw new Error("Forbidden");
   }
@@ -126,7 +126,7 @@ export async function cleanupExpiredCourseScorecardImportsFromScheduler() {
 export async function startCourseScorecardImport(
   values: CourseCreateInputValues,
 ): Promise<CourseScorecardImportResult> {
-  const actor = await getCurrentUser();
+  const actor = await getCurrentPlayer();
   if (!actor) return { outcome: "rejected", error: "forbidden" };
   const parsed = CourseCreateInputSchema.safeParse(values);
   if (!parsed.success) {
@@ -145,7 +145,7 @@ export async function startExistingCourseScorecardImport(input: {
   courseId: number;
   stagedScorecardImageHandle: string;
 }): Promise<CourseScorecardImportResult> {
-  const actor = await getCurrentUser();
+  const actor = await getCurrentPlayer();
   if (!actor) return { outcome: "rejected", error: "forbidden" };
   const result = await courseScorecardImports.start({
     actorId: actor.id,
@@ -159,7 +159,7 @@ export async function cancelCourseScorecardImport(input: {
   importId: string;
   expectedRevision: number;
 }): Promise<CourseScorecardImportResult> {
-  const actor = await getCurrentUser();
+  const actor = await getCurrentPlayer();
   if (!actor) return { outcome: "rejected", error: "forbidden" };
   const result = await courseScorecardImports.continue({
     actorId: actor.id,
@@ -183,7 +183,7 @@ export async function continueCourseScorecardImport(input: {
   teeResolutions?: Record<string, { kind: "new" } | { kind: "existing"; teeId: number }>;
   placeholderResolutions?: Record<string, { kind: "keep" } | { kind: "map"; teeId: string }>;
 }): Promise<CourseScorecardImportResult> {
-  const actor = await getCurrentUser();
+  const actor = await getCurrentPlayer();
   if (!actor) return { outcome: "rejected", error: "forbidden" };
   const result = await courseScorecardImports.continue({
     actorId: actor.id,
@@ -206,7 +206,7 @@ export async function retryCourseScorecardImport(input: {
   importId: string;
   expectedRevision: number;
 }): Promise<CourseScorecardImportResult> {
-  const actor = await getCurrentUser();
+  const actor = await getCurrentPlayer();
   if (!actor) return { outcome: "rejected", error: "forbidden" };
   const result = await courseScorecardImports.continue({
     actorId: actor.id,
@@ -222,7 +222,7 @@ export async function replaceCourseScorecardImport(input: {
   expectedRevision: number;
   stagedScorecardImageHandle: string;
 }): Promise<CourseScorecardImportResult> {
-  const actor = await getCurrentUser();
+  const actor = await getCurrentPlayer();
   if (!actor) return { outcome: "rejected", error: "forbidden" };
   const result = await courseScorecardImports.continue({
     actorId: actor.id,
@@ -236,7 +236,7 @@ export async function replaceCourseScorecardImport(input: {
 export async function inspectCourseScorecardImport(
   importId: string,
 ): Promise<CourseScorecardImportResult> {
-  const actor = await getCurrentUser();
+  const actor = await getCurrentPlayer();
   if (!actor) return { outcome: "rejected", error: "forbidden" };
   const result = await courseScorecardImports.inspect({ actorId: actor.id, importId });
   return toActionResult(result);

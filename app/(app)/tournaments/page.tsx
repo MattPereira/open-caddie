@@ -6,7 +6,7 @@ import { PageHeading } from "@/components/layout/page-heading";
 import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
 import { getCoursesWithTees } from "@/lib/courses/queries";
 import { getAllTournaments } from "@/lib/tournaments/queries";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { AddTournamentButton } from "./_components/add-tournament-button";
 import { TournamentsBrowser } from "./_components/tournaments-browser";
 
@@ -17,12 +17,12 @@ export const metadata: Metadata = {
 };
 
 export default async function TournamentsPage() {
-  const [tournaments, currentUser] = await Promise.all([
+  const [tournaments, currentPlayer] = await Promise.all([
     getAllTournaments(),
-    getCurrentUser(),
+    getCurrentPlayer(),
   ]);
 
-  const [clubs, courses] = currentUser?.isAdmin
+  const [clubs, courses] = currentPlayer?.isAdmin
     ? await Promise.all([getAllClubsWithSeasons(), getCoursesWithTees()])
     : [[], []];
 
@@ -35,7 +35,7 @@ export default async function TournamentsPage() {
         >
           Tournaments
         </PageHeading>
-        {currentUser?.isAdmin ? (
+        {currentPlayer?.isAdmin ? (
           <AddTournamentButton clubs={clubs} courses={courses} />
         ) : null}
       </div>

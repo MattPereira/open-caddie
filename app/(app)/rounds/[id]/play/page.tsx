@@ -6,7 +6,7 @@ import { getRoundAccess, type AccessedRound } from "@/lib/rounds/access";
 import { getRoundById } from "@/lib/rounds/queries";
 import type { DisplayRound } from "@/lib/rounds/reads";
 import { getTournamentById } from "@/lib/tournaments/queries";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { pickPlayRounds } from "./_components/play-rounds";
 import { RoundPlay } from "./_components/round-play";
 
@@ -67,9 +67,9 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
   const roundId = Number(id);
   if (!Number.isInteger(roundId) || roundId <= 0) notFound();
 
-  const currentUser = await getCurrentUser();
-  if (!currentUser) notFound();
-  const access = await getRoundAccess(currentUser.id, roundId);
+  const currentPlayer = await getCurrentPlayer();
+  if (!currentPlayer) notFound();
+  const access = await getRoundAccess(currentPlayer.id, roundId);
   if (!access?.canScore) notFound();
   const play = await readPlayEvent(access.round);
   const picked =
@@ -93,7 +93,7 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
     <main className="flex min-h-[calc(100svh-3.5rem)] flex-col items-center p-5">
       <section className="flex w-full max-w-md flex-1 flex-col gap-6 sm:flex-none">
         <RoundPlay
-          currentUserId={currentUser.id}
+          currentPlayerId={currentPlayer.id}
           round={round}
           course={{ name: play.courseName, ...play.course }}
           leaderboardRounds={play.leaderboardRounds}

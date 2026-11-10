@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getRoundAccess } from "@/lib/rounds/access";
 import { getRoundById } from "@/lib/rounds/queries";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { formatDate } from "@/lib/dates";
 import { PageContent } from "@/components/layout/page-content";
 import { RoundActions } from "./_components/round-actions";
@@ -41,14 +41,14 @@ export async function generateMetadata({
 }
 
 export default async function RoundPage({ params }: RoundPageProps) {
-  const [round, currentUser] = await Promise.all([
+  const [round, currentPlayer] = await Promise.all([
     getRoundFromParams(params),
-    getCurrentUser(),
+    getCurrentPlayer(),
   ]);
 
   if (!round) notFound();
-  const access = currentUser
-    ? await getRoundAccess(currentUser.id, round.id)
+  const access = currentPlayer
+    ? await getRoundAccess(currentPlayer.id, round.id)
     : null;
   const canScore = access?.canScore ?? false;
   const canManage = access?.canManage ?? false;

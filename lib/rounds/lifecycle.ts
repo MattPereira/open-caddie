@@ -23,7 +23,7 @@ import {
 } from "./access";
 
 // Owns whether a Round exists: every Round insert and delete goes through
-// here. Not a "use server" module: public operations take the session user id
+// here. Not a "use server" module: public operations take the acting Player's id
 // (ADR 0003). The event helpers expect an already-authorized caller, take a
 // transaction, and return the Rounds they changed so the caller can refresh
 // after commit.
@@ -31,7 +31,7 @@ import {
 /** A Round as the "Round changed" refresh needs it. */
 export type ChangedRound = {
   id: number;
-  userId: string;
+  playerId: string;
   tournamentId: number | null;
   matchId: number | null;
 };
@@ -60,17 +60,17 @@ const CANNOT_DELETE_ROUND = {
 
 const changedRoundColumns = {
   id: rounds.id,
-  userId: rounds.userId,
+  playerId: rounds.playerId,
   tournamentId: rounds.tournamentId,
   matchId: rounds.matchId,
 };
 
 /**
- * Creates the user's own Round: casual, or joining a Tournament. A Tournament
+ * Creates the Player's own Round: casual, or joining a Tournament. A Tournament
  * Round takes the Tournament's course, tee and date; the form's are ignored.
  */
 export async function createRound(
-  userId: string,
+  playerId: string,
   values: CreateRoundValues,
 ): Promise<CreateRoundResult> {
   const { courseHandle, date, tournamentId, teeId } = values;
@@ -90,7 +90,7 @@ export async function createRound(
         error: "Selected tees do not belong to this course.",
       };
     }
-    casualValues = { userId, courseId, teeId, date: parseDateOnly(date) };
+    casualValues = { playerId, courseId, teeId, date: parseDateOnly(date) };
   }
 
   let created: ChangedRound | null;
@@ -100,7 +100,7 @@ export async function createRound(
       if (tournamentId != null) {
         const event = await readEventRoundValues(tx, { tournamentId });
         if (!event) return null;
-        roundValues = { ...event, userId };
+        roundValues = { ...event, playerId };
       }
       const [row] = await tx
         .insert(rounds)
@@ -127,10 +127,10 @@ export async function createRound(
 
 /** Only the Round's player or an admin may delete it. */
 export async function deleteRound(
-  userId: string,
+  playerId: string,
   roundId: number,
 ): Promise<DeleteRoundResult> {
-  const access = await readRoundAccess(userId, roundId);
+  const access = await readRoundAccess(playerId, roundId);
   if (!access?.canScore) return ROUND_NOT_FOUND;
   if (!access.canManage) return CANNOT_DELETE_ROUND;
 
@@ -167,22 +167,22 @@ export async function deleteRound(
 }
 
 /**
- * Inserts a Round for each user on the event's course and date and its
- * starting tee. Users who already have a Round in the event are skipped.
+ * Inserts a Round for each Player on the event's course and date and its
+ * starting tee. Players who already have a Round in the event are skipped.
  */
 export async function insertEventRounds(
   tx: Transaction,
   event: EventRef,
-  userIds: string[],
+  playerIds: string[],
 ): Promise<ChangedRound[]> {
-  if (userIds.length === 0) return [];
+  if (playerIds.length === 0) return [];
 
   const values = await readEventRoundValues(tx, event);
   if (!values) throw new Error("Event not found.");
 
   return tx
     .insert(rounds)
-    .values(userIds.map((userId) => ({ ...values, userId })))
+    .values(playerIds.map((playerId) => ({ ...values, playerId })))
     .onConflictDoNothing()
     .returning(changedRoundColumns);
 }
@@ -239,7 +239,7 @@ export async function syncEventRounds(
           image: users.image,
         })
         .from(rounds)
-        .innerJoin(users, eq(users.id, rounds.userId))
+        .innerJoin(users, eq(users.id, rounds.playerId))
         .where(and(inEvent, hasScoresOrGreenies(tx)));
       throw new EventCourseLockedError(
         blocking.length === 0
@@ -352,7 +352,7 @@ export function invalidateRoundsAddedOrRemoved(changed: ChangedRound[]) {
 export function invalidateRoundChanged(changed: ChangedRound[]) {
   const paths = new Set<string>();
   for (const round of changed) {
-    paths.add(`/players/${round.userId}`);
+    paths.add(`/players/${round.playerId}`);
     paths.add(`/rounds/${round.id}`);
     if (round.tournamentId != null) {
       paths.add(`/tournaments/${round.tournamentId}`);

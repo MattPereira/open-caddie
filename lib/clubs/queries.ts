@@ -101,21 +101,21 @@ export const getClubByHandle = cache(async (handle: string) => {
 export const getClubMembersByHandle = cache(async (handle: string) => {
   const roundsCountSq = db
     .select({
-      userId: rounds.userId,
+      playerId: rounds.playerId,
       value: count().as("value"),
     })
     .from(rounds)
-    .groupBy(rounds.userId)
+    .groupBy(rounds.playerId)
     .as("rc");
 
   const greeniesCountSq = db
     .select({
-      userId: rounds.userId,
+      playerId: rounds.playerId,
       value: count().as("value"),
     })
     .from(greenies)
     .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-    .groupBy(rounds.userId)
+    .groupBy(rounds.playerId)
     .as("gc");
 
   return db
@@ -132,9 +132,9 @@ export const getClubMembersByHandle = cache(async (handle: string) => {
     })
     .from(clubMembers)
     .innerJoin(clubs, eq(clubMembers.clubId, clubs.id))
-    .innerJoin(users, eq(clubMembers.userId, users.id))
-    .leftJoin(roundsCountSq, eq(roundsCountSq.userId, users.id))
-    .leftJoin(greeniesCountSq, eq(greeniesCountSq.userId, users.id))
+    .innerJoin(users, eq(clubMembers.playerId, users.id))
+    .leftJoin(roundsCountSq, eq(roundsCountSq.playerId, users.id))
+    .leftJoin(greeniesCountSq, eq(greeniesCountSq.playerId, users.id))
     .where(eq(clubs.handle, handle))
     .orderBy(asc(users.firstName), asc(users.lastName), asc(users.email));
 });

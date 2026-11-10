@@ -5,7 +5,7 @@ import { CourseHero } from "@/components/domain/course-hero";
 import { CourseHolesTable } from "./_components/course-holes-table";
 import { CourseRecords } from "@/components/features/course-records/course-records";
 import { getCourseByHandle } from "@/lib/courses/queries";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { PageContent } from "@/components/layout/page-content";
 import { EditCourseButton } from "./_components/edit-course-button";
 
@@ -36,7 +36,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
     notFound();
   }
 
-  const currentUser = await getCurrentUser();
+  const currentPlayer = await getCurrentPlayer();
 
   return (
     <PageContent>
@@ -45,7 +45,7 @@ export default async function CoursePage({ params }: CoursePageProps) {
           <h1 className="text-xl font-semibold tracking-normal">
             {course.name}
           </h1>
-          {currentUser?.isAdmin ? <EditCourseButton course={course} /> : null}
+          {currentPlayer?.isAdmin ? <EditCourseButton course={course} /> : null}
         </div>
 
         <CourseHero courseName={course.name} courseImgUrl={course.imgUrl} />

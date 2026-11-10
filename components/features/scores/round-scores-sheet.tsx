@@ -64,7 +64,7 @@ import { toRoundSheetChanges } from "./round-sheet-changes";
 
 export type EditableRound = Pick<
   DisplayRound,
-  "id" | "teeId" | "userId" | "firstName" | "courseSlope"
+  "id" | "teeId" | "playerId" | "firstName" | "courseSlope"
 > & {
   scores: RoundHoleScore[];
   greenies: RoundHoleGreenie[];

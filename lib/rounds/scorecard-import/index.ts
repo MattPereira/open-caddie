@@ -9,7 +9,7 @@ import { recordScorecardChanges } from "@/lib/rounds/scorecard-writes";
 import { parseRoundScorecardImage } from "./parser";
 import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
-// Not a "use server" module: it takes the session user id, so thin actions in
+// Not a "use server" module: it takes the acting Player's id, so thin actions in
 // the Tournament and Match routes authenticate and wrap it (ADR 0003).
 
 export type UploadRoundScorecardState = {
@@ -20,7 +20,7 @@ const MAX_ADDITIONAL_CONTEXT_LENGTH = 1_000;
 
 export type ScorecardImportPlayer = {
   roundId: number;
-  userId: string;
+  playerId: string;
   firstName: string | null;
   lastName: string | null;
   username: string | null;
@@ -32,7 +32,7 @@ export type ScorecardImportPlayer = {
  * null when they may not use it. Offers only Rounds the import would accept.
  */
 export async function getScorecardImportPlayers(
-  userId: string,
+  playerId: string,
   eventKind: EventKind,
   eventId: number,
   eventRounds: readonly ({ id: number } & Omit<
@@ -40,14 +40,14 @@ export async function getScorecardImportPlayers(
     "roundId"
   >)[],
 ): Promise<ScorecardImportPlayer[] | null> {
-  const access = await getEventRoundAccess(userId, eventKind, eventId);
+  const access = await getEventRoundAccess(playerId, eventKind, eventId);
   if (!access.canImportScorecard) return null;
 
   return eventRounds
     .filter((round) => access.scorableRoundIds.includes(round.id))
     .map((round) => ({
       roundId: round.id,
-      userId: round.userId,
+      playerId: round.playerId,
       firstName: round.firstName,
       lastName: round.lastName,
       username: round.username,
@@ -63,12 +63,12 @@ export type ImportRoundScorecardResult =
  * for the selected Rounds through record scorecard changes, all or nothing.
  */
 export async function importRoundScorecard({
-  userId,
+  playerId,
   eventKind,
   eventId,
   formData,
 }: {
-  userId: string;
+  playerId: string;
   eventKind: EventKind;
   eventId: number;
   formData: FormData;
@@ -110,14 +110,14 @@ export async function importRoundScorecard({
   const eventRoundRows = await db
     .select({
       id: rounds.id,
-      userId: rounds.userId,
+      playerId: rounds.playerId,
       firstName: users.firstName,
       lastName: users.lastName,
       username: users.username,
       email: users.email,
     })
     .from(rounds)
-    .innerJoin(users, eq(rounds.userId, users.id))
+    .innerJoin(users, eq(rounds.playerId, users.id))
     .where(
       and(eventConfig.roundsOf(eventId), inArray(rounds.id, selectedRoundIds)),
     )
@@ -137,7 +137,7 @@ export async function importRoundScorecard({
   // Checked before the parser runs, so a card the uploader can't wholly score
   // costs nothing and writes nothing.
   const accesses = await Promise.all(
-    selectedRoundIds.map((roundId) => readRoundAccess(userId, roundId)),
+    selectedRoundIds.map((roundId) => readRoundAccess(playerId, roundId)),
   );
   if (accesses.some((access) => !access?.canScore)) {
     return { ok: false, error: "Round not found." };
@@ -173,7 +173,7 @@ export async function importRoundScorecard({
   const recordUpload = (outcome: UploadOutcome) =>
     db.insert(roundScorecardUploads).values({
       ...eventConfig.uploadColumns(eventId),
-      uploadedByUserId: userId,
+      uploadedByPlayerId: playerId,
       imageUrl: scorecardImgUrl,
       additionalContext: additionalContext || null,
       ...outcome,
@@ -251,7 +251,7 @@ export async function importRoundScorecard({
     };
   }
 
-  const recorded = await recordScorecardChanges(userId, {
+  const recorded = await recordScorecardChanges(playerId, {
     scores: scoreChanges,
   });
   if (!recorded.ok) {

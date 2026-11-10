@@ -16,7 +16,7 @@ export const getAllMatches = cache(async () => {
   return db
     .select({
       id: matches.id,
-      createdByUserId: matches.createdByUserId,
+      createdByPlayerId: matches.createdByPlayerId,
       creatorFirstName: users.firstName,
       creatorLastName: users.lastName,
       creatorUsername: users.username,
@@ -29,7 +29,7 @@ export const getAllMatches = cache(async () => {
       playerCount: count(rounds.id).mapWith(Number),
     })
     .from(matches)
-    .innerJoin(users, eq(matches.createdByUserId, users.id))
+    .innerJoin(users, eq(matches.createdByPlayerId, users.id))
     .innerJoin(courses, eq(matches.courseId, courses.id))
     .leftJoin(rounds, eq(rounds.matchId, matches.id))
     .groupBy(
@@ -50,7 +50,7 @@ export const getMatchById = cache(async (matchId: number) => {
       db
         .select({
           id: matches.id,
-          createdByUserId: matches.createdByUserId,
+          createdByPlayerId: matches.createdByPlayerId,
           creatorFirstName: users.firstName,
           creatorLastName: users.lastName,
           creatorUsername: users.username,
@@ -62,7 +62,7 @@ export const getMatchById = cache(async (matchId: number) => {
           courseImgUrl: courses.imgUrl,
         })
         .from(matches)
-        .innerJoin(users, eq(matches.createdByUserId, users.id))
+        .innerJoin(users, eq(matches.createdByPlayerId, users.id))
         .innerJoin(courses, eq(matches.courseId, courses.id))
         .where(eq(matches.id, matchId))
         .limit(1),

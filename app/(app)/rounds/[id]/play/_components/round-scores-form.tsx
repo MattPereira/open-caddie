@@ -44,7 +44,7 @@ type RoundScoresFormProps = {
   // Whose column gets marked. Read from the session rather than the Round,
   // because an admin may be keeping a card that is not their own — in which
   // case no column is theirs.
-  currentUserId: string;
+  currentPlayerId: string;
   // The server's snapshot of this Round, not what the card is showing: the
   // cells are that snapshot merged with whatever this device has typed and the
   // server has yet to confirm.
@@ -64,7 +64,7 @@ type RoundScoresFormProps = {
 };
 
 export function RoundScoresForm({
-  currentUserId,
+  currentPlayerId,
   round: serverRound,
   course,
   leaderboardRounds,
@@ -183,14 +183,14 @@ export function RoundScoresForm({
       roundId,
       name: selfName,
       fullName: getFullName(round, selfName),
-      isSelf: round.userId === currentUserId,
+      isSelf: round.playerId === currentPlayerId,
       scores,
     },
     ...delegatePlayers.map((player) => ({
       roundId: player.id,
       name: getPlayerName(player),
       fullName: getFullName(player, getPlayerName(player)),
-      isSelf: player.userId === currentUserId,
+      isSelf: player.playerId === currentPlayerId,
       scores: scoresByRoundId[player.id] ?? [],
     })),
   ];

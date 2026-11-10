@@ -5,7 +5,7 @@ import { PageContent } from "@/components/layout/page-content";
 import { ScorecardUploadForm } from "@/components/features/scorecard-import/scorecard-upload-form";
 import { getScorecardImportPlayers } from "@/lib/rounds/scorecard-import";
 import { getTournamentById } from "@/lib/tournaments/queries";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { uploadTournamentRoundScorecard } from "@/app/(app)/tournaments/actions";
 import { formatDate } from "@/lib/dates";
 
@@ -26,21 +26,21 @@ export default async function TournamentUploadScorecardPage({
   const tournamentId = Number(id);
   if (!Number.isInteger(tournamentId) || tournamentId <= 0) notFound();
 
-  const [tournament, currentUser] = await Promise.all([
+  const [tournament, currentPlayer] = await Promise.all([
     getTournamentById(tournamentId),
-    getCurrentUser(),
+    getCurrentPlayer(),
   ]);
 
   if (!tournament) notFound();
-  const players = currentUser
+  const players = currentPlayer
     ? await getScorecardImportPlayers(
-        currentUser.id,
+        currentPlayer.id,
         "tournament",
         tournamentId,
         tournament.rounds,
       )
     : null;
-  if (!currentUser || !players) redirect(`/tournaments/${tournamentId}`);
+  if (!currentPlayer || !players) redirect(`/tournaments/${tournamentId}`);
   const action = uploadTournamentRoundScorecard.bind(null, tournamentId);
   const uploadCourseHandle =
     tournament.courseHandle ?? `tournament-${tournamentId}`;
@@ -63,7 +63,7 @@ export default async function TournamentUploadScorecardPage({
         cancelHref={`/tournaments/${tournamentId}`}
         draftStorageKey={`opencaddie:scorecardUpload:tournament:${tournamentId}`}
         players={players}
-        uploadPathPrefix={`round-scorecards/${uploadCourseHandle}/${currentUser.id}/tournament-${tournamentId}`}
+        uploadPathPrefix={`round-scorecards/${uploadCourseHandle}/${currentPlayer.id}/tournament-${tournamentId}`}
       />
     </PageContent>
   );

@@ -17,7 +17,7 @@ import {
   getTournamentById,
   getUnassignedRoundsForTournament,
 } from "@/lib/tournaments/queries";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer } from "@/lib/players/queries";
 import { PairingBoard } from "./_components/pairing-board";
 
 type EditTournamentPageProps = {
@@ -31,14 +31,14 @@ const editTabValues = ["players", "details"] as const;
 export default async function EditTournamentPage({
   params,
 }: EditTournamentPageProps) {
-  const [{ id }, currentUser] = await Promise.all([params, getCurrentUser()]);
+  const [{ id }, currentPlayer] = await Promise.all([params, getCurrentPlayer()]);
 
   const tournamentId = Number(id);
   if (!Number.isInteger(tournamentId) || tournamentId <= 0) notFound();
 
   const tournament = await getTournamentById(tournamentId);
   if (!tournament) notFound();
-  if (!currentUser?.isAdmin) redirect(`/tournaments/${tournamentId}`);
+  if (!currentPlayer?.isAdmin) redirect(`/tournaments/${tournamentId}`);
 
   const [addablePlayers, clubs, courses, pairings, unassigned] =
     await Promise.all([

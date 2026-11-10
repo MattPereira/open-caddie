@@ -24,7 +24,7 @@ export const getAllGreenies = cache(async () => {
     })
     .from(greenies)
     .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-    .innerJoin(users, eq(rounds.userId, users.id))
+    .innerJoin(users, eq(rounds.playerId, users.id))
     .innerJoin(courses, eq(rounds.courseId, courses.id))
     .leftJoin(tournaments, eq(rounds.tournamentId, tournaments.id))
     .leftJoin(seasons, eq(tournaments.seasonId, seasons.id))
@@ -53,7 +53,7 @@ export const getClosestGreenies = cache(async (limit = 10) => {
     })
     .from(greenies)
     .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-    .innerJoin(users, eq(rounds.userId, users.id))
+    .innerJoin(users, eq(rounds.playerId, users.id))
     .innerJoin(courses, eq(rounds.courseId, courses.id))
     .leftJoin(tournaments, eq(rounds.tournamentId, tournaments.id))
     .leftJoin(seasons, eq(tournaments.seasonId, seasons.id))
@@ -62,11 +62,11 @@ export const getClosestGreenies = cache(async (limit = 10) => {
     .limit(limit);
 });
 
-export const getGreeniesCountByUserId = cache(async (userId: string) => {
+export const getGreeniesCountByPlayerId = cache(async (playerId: string) => {
   const [row] = await db
     .select({ value: count() })
     .from(greenies)
     .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-    .where(eq(rounds.userId, userId));
+    .where(eq(rounds.playerId, playerId));
   return row?.value ?? 0;
 });

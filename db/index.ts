@@ -15,6 +15,7 @@ export const db =
             ? {
                 host: process.env.DATABASE_LOCAL_SOCKET,
                 database: process.env.DATABASE_NAME,
+                // eslint-disable-next-line local/player-domain-term -- Postgres role, not a Player
                 user: process.env.DATABASE_USER,
               }
             : { connectionString: process.env.DATABASE_URL },

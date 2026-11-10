@@ -8,7 +8,7 @@ import { UrlTabs } from "@/components/shared/url-tabs";
 import { getCoursesWithTees } from "@/lib/courses/queries";
 import { getMatchById } from "@/lib/matches/queries";
 import { getEventRoundAccess } from "@/lib/rounds/access";
-import { getAllUsers, getCurrentUser } from "@/lib/users/queries";
+import { getAllPlayers, getCurrentPlayer } from "@/lib/players/queries";
 import { createPageMetadata } from "@/app/metadata";
 import { matchFormatLabel } from "@/lib/matches";
 import { formatDate } from "@/lib/dates";
@@ -49,27 +49,27 @@ export default async function MatchPage({
   params,
   searchParams,
 }: MatchPageProps) {
-  const [match, currentUser, resolvedSearchParams] = await Promise.all([
+  const [match, currentPlayer, resolvedSearchParams] = await Promise.all([
     getMatchFromParams(params),
-    getCurrentUser(),
+    getCurrentPlayer(),
     searchParams,
   ]);
 
   if (!match) notFound();
 
   const canManage =
-    currentUser != null &&
-    (currentUser.isAdmin || currentUser.id === match.createdByUserId);
-  const currentUserRound = currentUser
-    ? match.rounds.find((round) => round.userId === currentUser.id)
+    currentPlayer != null &&
+    (currentPlayer.isAdmin || currentPlayer.id === match.createdByPlayerId);
+  const currentPlayerRound = currentPlayer
+    ? match.rounds.find((round) => round.playerId === currentPlayer.id)
     : null;
   const defaultTab = getMatchDefaultTab(resolvedSearchParams?.tab);
 
   const [courses, players, eventAccess] = await Promise.all([
     canManage ? getCoursesWithTees() : [],
-    canManage ? getAllUsers() : [],
-    currentUser
-      ? getEventRoundAccess(currentUser.id, "match", match.id)
+    canManage ? getAllPlayers() : [],
+    currentPlayer
+      ? getEventRoundAccess(currentPlayer.id, "match", match.id)
       : null,
   ]);
 
@@ -94,7 +94,7 @@ export default async function MatchPage({
                     roundCount: match.rounds.length,
                     rounds: match.rounds.map((round) => ({
                       id: round.id,
-                      userId: round.userId,
+                      playerId: round.playerId,
                       teeId: round.teeId,
                       email: null,
                       firstName: round.firstName,
@@ -107,7 +107,7 @@ export default async function MatchPage({
                       name: team.name,
                       rounds: team.rounds.map((round) => ({
                         id: round.id,
-                        userId: round.userId,
+                        playerId: round.playerId,
                       })),
                     })),
                   }}
@@ -123,8 +123,8 @@ export default async function MatchPage({
             date={match.date}
           />
         </div>
-        {currentUserRound ? (
-          <PlayRoundButton href={`/rounds/${currentUserRound.id}/play`} />
+        {currentPlayerRound ? (
+          <PlayRoundButton href={`/rounds/${currentPlayerRound.id}/play`} />
         ) : null}
       </div>
 

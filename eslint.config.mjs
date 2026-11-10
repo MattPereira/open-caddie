@@ -2,9 +2,27 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
+import playerDomainTerm from "./eslint-rules/player-domain-term.mjs";
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    plugins: { local: playerDomainTerm },
+    rules: { "local/player-domain-term": "error" },
+  },
+  {
+    // Sign-in side of ADR 0007: Auth.js config, session types, sign-in links
+    // and the login flow keep User naming.
+    files: [
+      "auth.ts",
+      "auth.types.d.ts",
+      "lib/auth/**",
+      "app/(app)/login/**",
+      "app/api/auth/**",
+    ],
+    rules: { "local/player-domain-term": "off" },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

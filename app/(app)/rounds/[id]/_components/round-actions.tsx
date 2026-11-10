@@ -44,7 +44,7 @@ export function RoundActions({
           open={sheetOpen}
           onOpenChange={setSheetOpen}
           onDeleted={() => {
-            router.push(`/players/${round.userId}`);
+            router.push(`/players/${round.playerId}`);
             router.refresh();
           }}
           round={round}

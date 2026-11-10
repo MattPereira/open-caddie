@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { auth } from "@/auth";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { HeaderWordmark } from "@/components/layout/header-wordmark";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -10,7 +9,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { getCurrentUser } from "@/lib/users/queries";
+import { getCurrentPlayer, getSignedInPlayer } from "@/lib/players/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -19,20 +18,20 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
-  const user = session?.user
-    ? ((await getCurrentUser()) ?? session.user)
+  const signedInPlayer = await getSignedInPlayer();
+  const player = signedInPlayer
+    ? ((await getCurrentPlayer()) ?? signedInPlayer)
     : null;
-  const sidebarUser = user ? getSidebarUser(user) : null;
+  const sidebarPlayer = player ? getSidebarPlayer(player) : null;
 
   return (
     <SidebarProvider>
-      <AppSidebar user={sidebarUser} />
+      <AppSidebar player={sidebarPlayer} />
       <SidebarInset>
         <header className="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b px-3">
           <SidebarTrigger className="size-8 justify-self-start" />
           <HeaderWordmark />
-          {session?.user?.id ? (
+          {signedInPlayer ? (
             <ThemeToggle className="size-8 justify-self-end" />
           ) : (
             <Button
@@ -51,7 +50,7 @@ export default async function AppLayout({
   );
 }
 
-type SidebarSourceUser = {
+type SidebarSourcePlayer = {
   firstName?: string | null;
   lastName?: string | null;
   username?: string | null;
@@ -61,8 +60,8 @@ type SidebarSourceUser = {
   id?: string | null;
 };
 
-function getSidebarUser(user: SidebarSourceUser) {
-  const { firstName, lastName, username, email, image, isAdmin, id } = user;
+function getSidebarPlayer(player: SidebarSourcePlayer) {
+  const { firstName, lastName, username, email, image, isAdmin, id } = player;
   const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
 
   return {

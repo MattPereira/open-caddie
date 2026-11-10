@@ -13,18 +13,26 @@ import {
   users,
 } from "@/db/schema";
 
-export const getUserById = cache(async (id: string) => {
+export const getPlayerById = cache(async (id: string) => {
   const [row] = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return row ?? null;
 });
 
-export const getCurrentUser = cache(async () => {
+// The one place the session becomes a Player (ADR 0007). Reads only the
+// session token, so `isAdmin` and names may be stale; use getCurrentPlayer for
+// the stored row.
+export const getSignedInPlayer = cache(async () => {
   const session = await auth();
-  if (!session?.user?.id) return null;
-  return getUserById(session.user.id);
+  return session?.user?.id ? session.user : null;
 });
 
-export const getUserPlayingStatsById = cache(async (userId: string) => {
+export const getCurrentPlayer = cache(async () => {
+  const player = await getSignedInPlayer();
+  if (!player) return null;
+  return getPlayerById(player.id);
+});
+
+export const getPlayerStatsById = cache(async (playerId: string) => {
   const [[row], [greeniesRow]] = await Promise.all([
     db
       .select({
@@ -42,12 +50,12 @@ export const getUserPlayingStatsById = cache(async (userId: string) => {
         ),
       })
       .from(roundSummaries)
-      .where(eq(roundSummaries.userId, userId)),
+      .where(eq(roundSummaries.playerId, playerId)),
     db
       .select({ greeniesCount: count() })
       .from(greenies)
       .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-      .where(eq(rounds.userId, userId)),
+      .where(eq(rounds.playerId, playerId)),
   ]);
 
   const roundsCount = row?.roundsCount ?? 0;
@@ -63,7 +71,7 @@ export const getUserPlayingStatsById = cache(async (userId: string) => {
   };
 });
 
-export const getUserRoundsById = cache(async (userId: string) => {
+export const getPlayerRoundsById = cache(async (playerId: string) => {
   return db
     .select({
       id: roundSummaries.roundId,
@@ -81,28 +89,28 @@ export const getUserRoundsById = cache(async (userId: string) => {
     .leftJoin(tournaments, eq(roundSummaries.tournamentId, tournaments.id))
     .leftJoin(seasons, eq(tournaments.seasonId, seasons.id))
     .leftJoin(clubs, eq(seasons.clubId, clubs.id))
-    .where(eq(roundSummaries.userId, userId))
+    .where(eq(roundSummaries.playerId, playerId))
     .orderBy(desc(roundSummaries.date), desc(roundSummaries.roundId));
 });
 
-export const getAllUsers = cache(async () => {
+export const getAllPlayers = cache(async () => {
   const roundsCountSq = db
     .select({
-      userId: rounds.userId,
+      playerId: rounds.playerId,
       value: count().as("value"),
     })
     .from(rounds)
-    .groupBy(rounds.userId)
+    .groupBy(rounds.playerId)
     .as("rc");
 
   const greeniesCountSq = db
     .select({
-      userId: rounds.userId,
+      playerId: rounds.playerId,
       value: count().as("value"),
     })
     .from(greenies)
     .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-    .groupBy(rounds.userId)
+    .groupBy(rounds.playerId)
     .as("gc");
 
   return db
@@ -118,7 +126,7 @@ export const getAllUsers = cache(async () => {
       greeniesCount: sql<number>`coalesce("gc"."value", 0)`.mapWith(Number),
     })
     .from(users)
-    .leftJoin(roundsCountSq, eq(roundsCountSq.userId, users.id))
-    .leftJoin(greeniesCountSq, eq(greeniesCountSq.userId, users.id))
+    .leftJoin(roundsCountSq, eq(roundsCountSq.playerId, users.id))
+    .leftJoin(greeniesCountSq, eq(greeniesCountSq.playerId, users.id))
     .orderBy(asc(users.firstName), asc(users.lastName), asc(users.email));
 });

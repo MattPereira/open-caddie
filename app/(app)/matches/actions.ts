@@ -67,7 +67,7 @@ export async function uploadMatchRoundScorecard(
   if (!session?.user?.id) return { error: "You must be signed in." };
 
   const result = await importRoundScorecard({
-    userId: session.user.id,
+    playerId: session.user.id,
     eventKind: "match",
     eventId: matchId,
     formData,

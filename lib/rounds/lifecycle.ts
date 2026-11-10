@@ -66,11 +66,11 @@ const changedRoundColumns = {
 };
 
 /**
- * Creates the user's own Round: casual, or joining a Tournament. A Tournament
+ * Creates the Player's own Round: casual, or joining a Tournament. A Tournament
  * Round takes the Tournament's course, tee and date; the form's are ignored.
  */
 export async function createRound(
-  userId: string,
+  playerId: string,
   values: CreateRoundValues,
 ): Promise<CreateRoundResult> {
   const { courseHandle, date, tournamentId, teeId } = values;
@@ -90,7 +90,7 @@ export async function createRound(
         error: "Selected tees do not belong to this course.",
       };
     }
-    casualValues = { playerId: userId, courseId, teeId, date: parseDateOnly(date) };
+    casualValues = { playerId, courseId, teeId, date: parseDateOnly(date) };
   }
 
   let created: ChangedRound | null;
@@ -100,7 +100,7 @@ export async function createRound(
       if (tournamentId != null) {
         const event = await readEventRoundValues(tx, { tournamentId });
         if (!event) return null;
-        roundValues = { ...event, playerId: userId };
+        roundValues = { ...event, playerId };
       }
       const [row] = await tx
         .insert(rounds)
@@ -173,16 +173,16 @@ export async function deleteRound(
 export async function insertEventRounds(
   tx: Transaction,
   event: EventRef,
-  userIds: string[],
+  playerIds: string[],
 ): Promise<ChangedRound[]> {
-  if (userIds.length === 0) return [];
+  if (playerIds.length === 0) return [];
 
   const values = await readEventRoundValues(tx, event);
   if (!values) throw new Error("Event not found.");
 
   return tx
     .insert(rounds)
-    .values(userIds.map((userId) => ({ ...values, playerId: userId })))
+    .values(playerIds.map((playerId) => ({ ...values, playerId })))
     .onConflictDoNothing()
     .returning(changedRoundColumns);
 }

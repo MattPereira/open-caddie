@@ -60,7 +60,7 @@ export type MatchUpdateInput = MatchInput & {
 const FOUR_BALL_POLICY = matchFormatPolicy("four_ball_match_play");
 
 export async function createMatch(
-  userId: string,
+  playerId: string,
   values: MatchCreateInput,
 ): Promise<MatchWriteResult> {
   const { format, teeId, playerUserIds, teamOneUserIds, teamTwoUserIds } =
@@ -84,7 +84,7 @@ export async function createMatch(
       const [match] = await tx
         .insert(matches)
         .values({
-          createdByPlayerId: userId,
+          createdByPlayerId: playerId,
           courseId,
           date: parseDateOnly(values.date),
           format,

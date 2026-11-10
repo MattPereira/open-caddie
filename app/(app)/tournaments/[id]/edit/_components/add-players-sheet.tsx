@@ -69,7 +69,7 @@ export function AddPlayersSheet({
     startTransition(async () => {
       const result = await addPlayersToTournament({
         tournamentId,
-        userIds: Array.from(selectedIds),
+        playerIds: Array.from(selectedIds),
       });
       if (!result.ok) {
         setServerError(result.error);

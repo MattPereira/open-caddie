@@ -186,7 +186,7 @@ if (!testDatabaseUrl) {
       expect(await mutations.createTournament(player.id, { clubHandle: f.club.handle, seasonId: null, startNextSeason: false, date: "2026-01-01", courseHandle: f.course.handle, teeId: f.tee.id })).toEqual(notAdmin);
       expect(await mutations.updateTournament(player.id, { id: tournament.id, clubHandle: f.club.handle, seasonId: tournament.seasonId, date: "2020-01-01", courseHandle: f.course.handle, teeId: f.tee.id })).toEqual(notAdmin);
       expect(await mutations.deleteTournament(player.id, tournament.id)).toEqual(notAdmin);
-      expect(await mutations.addPlayersToTournament(player.id, { tournamentId: tournament.id, userIds: [player.id] })).toEqual({ ok: false, error: "Only admins can add players." });
+      expect(await mutations.addPlayersToTournament(player.id, { tournamentId: tournament.id, playerIds: [player.id] })).toEqual({ ok: false, error: "Only admins can add players." });
 
       const [unchanged] = await db.select().from(schema.tournaments).where(eq(schema.tournaments.id, tournament.id));
       expect(unchanged).toEqual(tournament);
@@ -291,7 +291,7 @@ if (!testDatabaseUrl) {
         const a = await fixtures.user();
         const b = await fixtures.user();
 
-        expect(await mutations.addPlayersToTournament(admin.id, { tournamentId: t.tournament.id, userIds: [a.id, b.id] })).toEqual({ ok: true, added: 2 });
+        expect(await mutations.addPlayersToTournament(admin.id, { tournamentId: t.tournament.id, playerIds: [a.id, b.id] })).toEqual({ ok: true, added: 2 });
 
         const added = await db.select().from(schema.rounds).where(eq(schema.rounds.tournamentId, t.tournament.id));
         expect(added.map((round) => round.playerId).sort()).toEqual([a.id, b.id].sort());
@@ -311,14 +311,14 @@ if (!testDatabaseUrl) {
         const existing = await fixtures.tournamentPlayer(t);
         const newcomer = await fixtures.user();
 
-        expect(await mutations.addPlayersToTournament(admin.id, { tournamentId: t.tournament.id, userIds: [existing.user.id, newcomer.id] })).toEqual({ ok: true, added: 1 });
+        expect(await mutations.addPlayersToTournament(admin.id, { tournamentId: t.tournament.id, playerIds: [existing.user.id, newcomer.id] })).toEqual({ ok: true, added: 1 });
       });
 
       it("refuses a player who no longer exists and adds no one", async () => {
         const t = await fixtures.tournament();
         const a = await fixtures.user();
 
-        expect(await mutations.addPlayersToTournament(admin.id, { tournamentId: t.tournament.id, userIds: [a.id, crypto.randomUUID()] })).toEqual({ ok: false, error: "One or more selected players no longer exist." });
+        expect(await mutations.addPlayersToTournament(admin.id, { tournamentId: t.tournament.id, playerIds: [a.id, crypto.randomUUID()] })).toEqual({ ok: false, error: "One or more selected players no longer exist." });
         expect(await db.select().from(schema.rounds).where(eq(schema.rounds.tournamentId, t.tournament.id))).toEqual([]);
       });
     });

@@ -66,7 +66,7 @@ export async function deleteTournament(id: number): Promise<ActionResult> {
 
 const AddPlayersSchema = z.object({
   tournamentId: z.number().int().positive(),
-  userIds: z.array(z.string().min(1)).min(1),
+  playerIds: z.array(z.string().min(1)).min(1),
 });
 
 export type AddPlayersValues = z.infer<typeof AddPlayersSchema>;
@@ -204,7 +204,7 @@ export async function uploadTournamentRoundScorecard(
   if (!session?.user?.id) return { error: "You must be signed in." };
 
   const result = await importRoundScorecard({
-    userId: session.user.id,
+    playerId: session.user.id,
     eventKind: "tournament",
     eventId: tournamentId,
     formData,

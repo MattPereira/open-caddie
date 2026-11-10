@@ -63,12 +63,12 @@ export type ImportRoundScorecardResult =
  * for the selected Rounds through record scorecard changes, all or nothing.
  */
 export async function importRoundScorecard({
-  userId,
+  playerId,
   eventKind,
   eventId,
   formData,
 }: {
-  userId: string;
+  playerId: string;
   eventKind: EventKind;
   eventId: number;
   formData: FormData;
@@ -137,7 +137,7 @@ export async function importRoundScorecard({
   // Checked before the parser runs, so a card the uploader can't wholly score
   // costs nothing and writes nothing.
   const accesses = await Promise.all(
-    selectedRoundIds.map((roundId) => readRoundAccess(userId, roundId)),
+    selectedRoundIds.map((roundId) => readRoundAccess(playerId, roundId)),
   );
   if (accesses.some((access) => !access?.canScore)) {
     return { ok: false, error: "Round not found." };
@@ -173,7 +173,7 @@ export async function importRoundScorecard({
   const recordUpload = (outcome: UploadOutcome) =>
     db.insert(roundScorecardUploads).values({
       ...eventConfig.uploadColumns(eventId),
-      uploadedByPlayerId: userId,
+      uploadedByPlayerId: playerId,
       imageUrl: scorecardImgUrl,
       additionalContext: additionalContext || null,
       ...outcome,
@@ -251,7 +251,7 @@ export async function importRoundScorecard({
     };
   }
 
-  const recorded = await recordScorecardChanges(userId, {
+  const recorded = await recordScorecardChanges(playerId, {
     scores: scoreChanges,
   });
   if (!recorded.ok) {

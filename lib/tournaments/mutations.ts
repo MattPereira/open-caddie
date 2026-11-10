@@ -153,12 +153,12 @@ export async function deleteTournament(
 /** Players already in the Tournament are skipped; `added` counts the rest. */
 export async function addPlayersToTournament(
   userId: string,
-  values: { tournamentId: number; userIds: string[] },
+  values: { tournamentId: number; playerIds: string[] },
 ): Promise<{ ok: true; added: number } | { ok: false; error: string }> {
   const admin = await requireAdmin(userId, "Only admins can add players.");
   if (!admin.ok) return admin;
 
-  const { tournamentId, userIds } = values;
+  const { tournamentId, playerIds } = values;
 
   const [tournament] = await db
     .select({ id: tournaments.id })
@@ -172,13 +172,13 @@ export async function addPlayersToTournament(
   const existingUsers = await db
     .select({ id: users.id })
     .from(users)
-    .where(inArray(users.id, userIds));
-  if (existingUsers.length !== new Set(userIds).size) {
+    .where(inArray(users.id, playerIds));
+  if (existingUsers.length !== new Set(playerIds).size) {
     return { ok: false, error: "One or more selected players no longer exist." };
   }
 
   const inserted = await db.transaction((tx) =>
-    insertEventRounds(tx, { tournamentId }, userIds),
+    insertEventRounds(tx, { tournamentId }, playerIds),
   );
 
   // Home events and the Tournament page refresh even when no one was added.

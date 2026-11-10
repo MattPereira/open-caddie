@@ -111,7 +111,7 @@ if (!testDatabaseUrl) {
     describe("create Round", () => {
       it("creates a casual Round on the chosen tee without touching home events", async () => {
         const { course, tee } = await fixtures.course();
-        const player = await fixtures.user();
+        const player = await fixtures.player();
 
         const result = await lifecycle.createRound(player.id, {
           courseHandle: course.handle,
@@ -138,7 +138,7 @@ if (!testDatabaseUrl) {
       it("refuses a casual Round on a tee from another course", async () => {
         const { course } = await fixtures.course();
         const other = await fixtures.course();
-        const player = await fixtures.user();
+        const player = await fixtures.player();
 
         expect(
           await lifecycle.createRound(player.id, {
@@ -156,7 +156,7 @@ if (!testDatabaseUrl) {
 
       it("refuses a casual Round without tees", async () => {
         const { course } = await fixtures.course();
-        const player = await fixtures.user();
+        const player = await fixtures.player();
 
         expect(
           await lifecycle.createRound(player.id, {
@@ -170,7 +170,7 @@ if (!testDatabaseUrl) {
 
       it("joins a Tournament on its tee and refreshes home events", async () => {
         const t = await fixtures.tournament();
-        const player = await fixtures.user();
+        const player = await fixtures.player();
 
         const result = await lifecycle.createRound(player.id, {
           courseHandle: t.course.handle,
@@ -199,7 +199,7 @@ if (!testDatabaseUrl) {
       it("joins a Tournament on its date and course whatever the form says", async () => {
         const t = await fixtures.tournament();
         const other = await fixtures.course();
-        const player = await fixtures.user();
+        const player = await fixtures.player();
 
         const result = await lifecycle.createRound(player.id, {
           courseHandle: other.course.handle,
@@ -219,7 +219,7 @@ if (!testDatabaseUrl) {
       it("joins on the Tournament's new course when an edit of it is in flight", async () => {
         const t = await fixtures.tournament();
         const next = await fixtures.course();
-        const player = await fixtures.user();
+        const player = await fixtures.player();
         const edit = await holdTransaction(async (tx) => {
           await tx
             .select({ id: schema.tournaments.id })
@@ -258,7 +258,7 @@ if (!testDatabaseUrl) {
         const player = await fixtures.tournamentPlayer(t);
 
         expect(
-          await lifecycle.createRound(player.user.id, {
+          await lifecycle.createRound(player.player.id, {
             courseHandle: t.course.handle,
             date: "2026-01-01",
             tournamentId: t.tournament.id,
@@ -276,7 +276,7 @@ if (!testDatabaseUrl) {
         const { match, players } = await fixtures.match(2);
         const [a] = players;
 
-        expect(await lifecycle.deleteRound(a.user.id, a.round.id)).toEqual({
+        expect(await lifecycle.deleteRound(a.player.id, a.round.id)).toEqual({
           ok: true,
         });
 
@@ -285,7 +285,7 @@ if (!testDatabaseUrl) {
         expect(invalidatedPaths()).toEqual(
           roundChangedPaths({
             id: a.round.id,
-            playerId: a.user.id,
+            playerId: a.player.id,
             matchId: match.id,
           }),
         );
@@ -294,7 +294,7 @@ if (!testDatabaseUrl) {
       it("lets an admin delete someone else's Round", async () => {
         const t = await fixtures.tournament();
         const player = await fixtures.tournamentPlayer(t);
-        const admin = await fixtures.user({ isAdmin: true });
+        const admin = await fixtures.player({ isAdmin: true });
 
         expect(
           await lifecycle.deleteRound(admin.id, player.round.id),
@@ -306,7 +306,7 @@ if (!testDatabaseUrl) {
         const { players } = await fixtures.match(2);
         const [a, b] = players;
 
-        expect(await lifecycle.deleteRound(b.user.id, a.round.id)).toMatchObject({
+        expect(await lifecycle.deleteRound(b.player.id, a.round.id)).toMatchObject({
           ok: false,
           error: "You can't delete this Round.",
         });
@@ -325,7 +325,7 @@ if (!testDatabaseUrl) {
             .for("update"),
         );
 
-        const deletion = lifecycle.deleteRound(a.user.id, a.round.id);
+        const deletion = lifecycle.deleteRound(a.player.id, a.round.id);
         try {
           await waitForLockWaits("matches", 1);
           expect(await roundRow(a.round.id)).not.toBeNull();
@@ -344,7 +344,7 @@ if (!testDatabaseUrl) {
         const stranger = await fixtures.tournamentPlayer(t);
 
         expect(
-          await lifecycle.deleteRound(stranger.user.id, player.round.id),
+          await lifecycle.deleteRound(stranger.player.id, player.round.id),
         ).toMatchObject({ ok: false, error: "Round not found." });
         expect(await roundRow(player.round.id)).not.toBeNull();
       });
@@ -353,8 +353,8 @@ if (!testDatabaseUrl) {
     describe("event Round helpers", () => {
       it("inserts Tournament Rounds on the Tournament's course, tee and date", async () => {
         const t = await fixtures.tournament();
-        const a = await fixtures.user();
-        const b = await fixtures.user();
+        const a = await fixtures.player();
+        const b = await fixtures.player();
 
         const inserted = await db.transaction((tx) =>
           lifecycle.insertEventRounds(
@@ -382,13 +382,13 @@ if (!testDatabaseUrl) {
       it("skips players who already have a Round in the event", async () => {
         const t = await fixtures.tournament();
         const existing = await fixtures.tournamentPlayer(t);
-        const newcomer = await fixtures.user();
+        const newcomer = await fixtures.player();
 
         const inserted = await db.transaction((tx) =>
           lifecycle.insertEventRounds(
             tx,
             { tournamentId: t.tournament.id },
-            [existing.user.id, newcomer.id],
+            [existing.player.id, newcomer.id],
           ),
         );
 
@@ -398,7 +398,7 @@ if (!testDatabaseUrl) {
       it("inserts Match Rounds on the Match's course and date with the given tee", async () => {
         const { match } = await fixtures.match(1);
         const white = await fixtures.tee(match.courseId);
-        const player = await fixtures.user();
+        const player = await fixtures.player();
 
         const [inserted] = await db.transaction((tx) =>
           lifecycle.insertEventRounds(
@@ -527,9 +527,9 @@ if (!testDatabaseUrl) {
 
         expect(error).toBeInstanceOf(lifecycle.EventCourseLockedError);
         const message = (error as Error).message;
-        expect(message).toContain(`Player ${scored.user.lastName}`);
-        expect(message).toContain(`Player ${greenieOnly.user.lastName}`);
-        expect(message).not.toContain(unscored.user.lastName);
+        expect(message).toContain(`Player ${scored.player.lastName}`);
+        expect(message).toContain(`Player ${greenieOnly.player.lastName}`);
+        expect(message).not.toContain(unscored.player.lastName);
         const [tournament] = await db
           .select()
           .from(schema.tournaments)
@@ -551,7 +551,7 @@ if (!testDatabaseUrl) {
 
         await expect(
           editTournament(t, { courseId: next.course.id, teeId: next.tee.id }),
-        ).rejects.toThrow(`Player ${p.user.lastName} already has scores or Greenies`);
+        ).rejects.toThrow(`Player ${p.player.lastName} already has scores or Greenies`);
       });
 
       it("refuses a course change behind a scorecard write in flight, keeping its score on the old course", async () => {
@@ -574,7 +574,7 @@ if (!testDatabaseUrl) {
             .for("update"),
         );
 
-        const writing = scorecardWrites.recordScorecardChanges(p.user.id, {
+        const writing = scorecardWrites.recordScorecardChanges(p.player.id, {
           scores: [{ roundId: p.round.id, hole: 1, strokes: 4 }],
         });
         let editing: Promise<unknown> | undefined;
@@ -672,7 +672,7 @@ if (!testDatabaseUrl) {
         it("moves unscored Rounds to the new course and the submitted tee, and repairs on the same course", async () => {
           const m = await fixtures.match(3);
           const next = await fixtures.course();
-          const fourth = await fixtures.user();
+          const fourth = await fixtures.player();
 
           const { synced, repaired } = await editMatch(
             m,

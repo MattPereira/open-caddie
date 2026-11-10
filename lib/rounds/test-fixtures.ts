@@ -10,7 +10,7 @@ import { HOLE_COUNT } from "@/lib/rounds/completeness";
 export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
   const clubIds: number[] = [];
   const courseIds: number[] = [];
-  const userIds: string[] = [];
+  const playerIds: string[] = [];
   const matchIds: number[] = [];
 
   async function course() {
@@ -43,7 +43,7 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
     return created;
   }
 
-  async function user({ isAdmin = false } = {}) {
+  async function player({ isAdmin = false } = {}) {
     const suffix = crypto.randomUUID();
     const [created] = await db
       .insert(schema.users)
@@ -54,7 +54,7 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
         isAdmin,
       })
       .returning();
-    userIds.push(created.id);
+    playerIds.push(created.id);
     return created;
   }
 
@@ -96,18 +96,18 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
   }
 
   async function tournamentPlayer(t: Awaited<ReturnType<typeof tournament>>) {
-    const player = await user();
+    const entrant = await player();
     const [round] = await db
       .insert(schema.rounds)
       .values({
         tournamentId: t.tournament.id,
-        playerId: player.id,
+        playerId: entrant.id,
         courseId: t.course.id,
         teeId: t.tee.id,
         date: t.tournament.date,
       })
       .returning();
-    return { user: player, round };
+    return { player: entrant, round };
   }
 
   async function pairing(tournamentId: number, roundIds: number[]) {
@@ -131,7 +131,7 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
   // player is someone else.
   async function match(playerCount: number, { creatorPlays = true } = {}) {
     const { course: matchCourse, tee } = await course();
-    const creator = await user();
+    const creator = await player();
     const [created] = await db
       .insert(schema.matches)
       .values({
@@ -143,27 +143,27 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
     matchIds.push(created.id);
     const players = [];
     for (let i = 0; i < playerCount; i += 1) {
-      const player = i === 0 && creatorPlays ? creator : await user();
+      const matchPlayer = i === 0 && creatorPlays ? creator : await player();
       const [round] = await db
         .insert(schema.rounds)
         .values({
           matchId: created.id,
-          playerId: player.id,
+          playerId: matchPlayer.id,
           courseId: matchCourse.id,
           teeId: tee.id,
           date: created.date,
         })
         .returning();
-      players.push({ user: player, round });
+      players.push({ player: matchPlayer, round });
     }
     return { match: created, creator, players };
   }
 
   async function cleanup() {
-    if (userIds.length) {
+    if (playerIds.length) {
       await db
         .delete(schema.rounds)
-        .where(inArray(schema.rounds.playerId, userIds));
+        .where(inArray(schema.rounds.playerId, playerIds));
     }
     if (matchIds.length) {
       await db
@@ -189,16 +189,16 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
         .delete(schema.courses)
         .where(inArray(schema.courses.id, courseIds));
     }
-    if (userIds.length) {
-      await db.delete(schema.users).where(inArray(schema.users.id, userIds));
+    if (playerIds.length) {
+      await db.delete(schema.users).where(inArray(schema.users.id, playerIds));
     }
     clubIds.length = 0;
     courseIds.length = 0;
-    userIds.length = 0;
+    playerIds.length = 0;
     matchIds.length = 0;
   }
 
-  return { course, tee, user, tournament, tournamentPlayer, pairing, match, cleanup };
+  return { course, tee, player, tournament, tournamentPlayer, pairing, match, cleanup };
 }
 
 export const PAR_THREE_HOLES = [3, 7, 12, 16];

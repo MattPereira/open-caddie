@@ -48,7 +48,7 @@ if (!testDatabaseUrl) {
       await fixtures.pairing(t.tournament.id, [player.round.id, mate.round.id]);
 
       expect(
-        await getRoundAccess(player.user.id, player.round.id),
+        await getRoundAccess(player.player.id, player.round.id),
       ).toMatchObject({
         canScore: true,
         canManage: true,
@@ -61,7 +61,7 @@ if (!testDatabaseUrl) {
       const target = await fixtures.tournamentPlayer(t);
       const mate = await fixtures.tournamentPlayer(t);
       await fixtures.pairing(t.tournament.id, [target.round.id, mate.round.id]);
-      const admin = await fixtures.user({ isAdmin: true });
+      const admin = await fixtures.player({ isAdmin: true });
 
       expect(await accessOf(admin.id, target.round.id)).toEqual({
         canScore: true,
@@ -81,7 +81,7 @@ if (!testDatabaseUrl) {
         third.round.id,
       ]);
 
-      expect(await accessOf(marker.user.id, target.round.id)).toEqual({
+      expect(await accessOf(marker.player.id, target.round.id)).toEqual({
         canScore: true,
         canManage: false,
         others: sorted([marker.round.id, third.round.id]),
@@ -96,7 +96,7 @@ if (!testDatabaseUrl) {
       await fixtures.pairing(t.tournament.id, [outsider.round.id]);
       await fixtures.pairing(t.tournament.id, [target.round.id, mate.round.id]);
 
-      expect(await accessOf(outsider.user.id, target.round.id)).toEqual(
+      expect(await accessOf(outsider.player.id, target.round.id)).toEqual(
         NO_ACCESS,
       );
     });
@@ -107,7 +107,7 @@ if (!testDatabaseUrl) {
       const target = await fixtures.tournamentPlayer(t);
       await fixtures.pairing(t.tournament.id, [target.round.id]);
 
-      expect(await accessOf(ungrouped.user.id, target.round.id)).toEqual(
+      expect(await accessOf(ungrouped.player.id, target.round.id)).toEqual(
         NO_ACCESS,
       );
     });
@@ -118,7 +118,7 @@ if (!testDatabaseUrl) {
       const paired = await fixtures.tournamentPlayer(t);
       await fixtures.pairing(t.tournament.id, [paired.round.id]);
 
-      expect(await accessOf(ungrouped.user.id, ungrouped.round.id)).toEqual({
+      expect(await accessOf(ungrouped.player.id, ungrouped.round.id)).toEqual({
         canScore: true,
         canManage: true,
         others: [],
@@ -130,8 +130,8 @@ if (!testDatabaseUrl) {
       const other = await fixtures.tournamentPlayer(t);
       const target = await fixtures.tournamentPlayer(t);
 
-      expect(await accessOf(other.user.id, target.round.id)).toEqual(NO_ACCESS);
-      expect(await accessOf(target.user.id, target.round.id)).toEqual({
+      expect(await accessOf(other.player.id, target.round.id)).toEqual(NO_ACCESS);
+      expect(await accessOf(target.player.id, target.round.id)).toEqual({
         canScore: true,
         canManage: true,
         others: [],
@@ -142,7 +142,7 @@ if (!testDatabaseUrl) {
       const { players } = await fixtures.match(3);
       const [marker, target, third] = players;
 
-      expect(await accessOf(marker.user.id, target.round.id)).toEqual({
+      expect(await accessOf(marker.player.id, target.round.id)).toEqual({
         canScore: true,
         canManage: false,
         others: sorted([marker.round.id, third.round.id]),
@@ -164,7 +164,7 @@ if (!testDatabaseUrl) {
 
     it("gives a non-member of a Match no access", async () => {
       const { players } = await fixtures.match(2);
-      const stranger = await fixtures.user();
+      const stranger = await fixtures.player();
 
       expect(await accessOf(stranger.id, players[1].round.id)).toEqual(
         NO_ACCESS,
@@ -172,7 +172,7 @@ if (!testDatabaseUrl) {
     });
 
     it("returns null for a Round that doesn't exist", async () => {
-      const viewer = await fixtures.user();
+      const viewer = await fixtures.player();
 
       expect(await getRoundAccess(viewer.id, 2_147_483_000)).toBeNull();
     });
@@ -219,7 +219,7 @@ if (!testDatabaseUrl) {
       await fixtures.pairing(t.tournament.id, [other.round.id]);
 
       expect(
-        await eventAccessOf(marker.user.id, {
+        await eventAccessOf(marker.player.id, {
           kind: "tournament",
           id: t.tournament.id,
         }),
@@ -237,7 +237,7 @@ if (!testDatabaseUrl) {
       await fixtures.pairing(t.tournament.id, [paired.round.id]);
 
       expect(
-        await eventAccessOf(ungrouped.user.id, {
+        await eventAccessOf(ungrouped.player.id, {
           kind: "tournament",
           id: t.tournament.id,
         }),
@@ -252,7 +252,7 @@ if (!testDatabaseUrl) {
       const t = await fixtures.tournament();
       const first = await fixtures.tournamentPlayer(t);
       const second = await fixtures.tournamentPlayer(t);
-      const admin = await fixtures.user({ isAdmin: true });
+      const admin = await fixtures.player({ isAdmin: true });
       const all = sorted([first.round.id, second.round.id]);
 
       expect(
@@ -268,7 +268,7 @@ if (!testDatabaseUrl) {
       const [self, other] = players;
 
       expect(
-        await eventAccessOf(self.user.id, { kind: "match", id: match.id }),
+        await eventAccessOf(self.player.id, { kind: "match", id: match.id }),
       ).toEqual({
         scorable: sorted([self.round.id, other.round.id]),
         manageable: [self.round.id],
@@ -292,7 +292,7 @@ if (!testDatabaseUrl) {
 
     it("gives a non-member of a Match nothing", async () => {
       const { match } = await fixtures.match(2);
-      const stranger = await fixtures.user();
+      const stranger = await fixtures.player();
 
       expect(
         await eventAccessOf(stranger.id, { kind: "match", id: match.id }),

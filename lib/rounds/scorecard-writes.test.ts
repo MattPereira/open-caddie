@@ -88,18 +88,18 @@ if (!testDatabaseUrl) {
       const t = await fixtures.tournament();
       const player = await fixtures.tournamentPlayer(t);
       const roundId = player.round.id;
-      await recordScorecardChanges(player.user.id, {
+      await recordScorecardChanges(player.player.id, {
         scores: [{ roundId, hole: PAR_FOUR, strokes: 5, putts: 2 }],
       });
 
       expect(
-        await recordScorecardChanges(player.user.id, {
+        await recordScorecardChanges(player.player.id, {
           scores: [{ roundId, hole: PAR_FOUR, strokes: 4 }],
         }),
       ).toEqual({ ok: true });
       expect(await holeOf(roundId, PAR_FOUR)).toEqual({ strokes: 4, putts: 2 });
 
-      await recordScorecardChanges(player.user.id, {
+      await recordScorecardChanges(player.player.id, {
         scores: [{ roundId, hole: PAR_FOUR, putts: null }],
       });
       expect(await holeOf(roundId, PAR_FOUR)).toEqual({
@@ -112,11 +112,11 @@ if (!testDatabaseUrl) {
       const t = await fixtures.tournament();
       const player = await fixtures.tournamentPlayer(t);
       const roundId = player.round.id;
-      await recordScorecardChanges(player.user.id, {
+      await recordScorecardChanges(player.player.id, {
         scores: [{ roundId, hole: PAR_THREE, strokes: 3, putts: 1 }],
       });
 
-      await recordScorecardChanges(player.user.id, {
+      await recordScorecardChanges(player.player.id, {
         greenies: [
           { roundId, hole: PAR_THREE, distance: { feet: 12, inches: 4 } },
         ],
@@ -126,7 +126,7 @@ if (!testDatabaseUrl) {
         inches: 4,
       });
 
-      await recordScorecardChanges(player.user.id, {
+      await recordScorecardChanges(player.player.id, {
         greenies: [{ roundId, hole: PAR_THREE, distance: null }],
       });
       expect(await greenieOf(roundId, PAR_THREE)).toBeNull();
@@ -139,7 +139,7 @@ if (!testDatabaseUrl) {
       const roundId = player.round.id;
 
       expect(
-        await recordScorecardChanges(player.user.id, {
+        await recordScorecardChanges(player.player.id, {
           scores: [{ roundId, hole: PAR_FOUR, strokes: 4 }],
           greenies: [
             { roundId, hole: PAR_FOUR, distance: { feet: 3, inches: 0 } },
@@ -166,7 +166,7 @@ if (!testDatabaseUrl) {
       const roundId = player.round.id;
 
       expect(
-        await recordScorecardChanges(player.user.id, {
+        await recordScorecardChanges(player.player.id, {
           scores: [
             { roundId, hole: 2, strokes: 4 },
             { roundId, hole: PAR_FOUR, ...fields },
@@ -185,7 +185,7 @@ if (!testDatabaseUrl) {
       const roundId = player.round.id;
 
       expect(
-        await recordScorecardChanges(player.user.id, {
+        await recordScorecardChanges(player.player.id, {
           greenies: [{ roundId, hole: PAR_THREE, distance }],
         }),
       ).toMatchObject({
@@ -215,7 +215,7 @@ if (!testDatabaseUrl) {
       const stranger = await fixtures.tournamentPlayer(t);
 
       expect(
-        await recordScorecardChanges(stranger.user.id, {
+        await recordScorecardChanges(stranger.player.id, {
           scores: [{ roundId: target.round.id, hole: PAR_FOUR, strokes: 5 }],
         }),
       ).toMatchObject({ ok: false, error: "Round not found." });
@@ -233,7 +233,7 @@ if (!testDatabaseUrl) {
       await fixtures.pairing(t.tournament.id, [marker.round.id, mate.round.id]);
 
       expect(
-        await recordScorecardChanges(marker.user.id, {
+        await recordScorecardChanges(marker.player.id, {
           scores: [
             { roundId: marker.round.id, hole: PAR_FOUR, strokes: 4 },
             { roundId: mate.round.id, hole: PAR_FOUR, strokes: 5 },
@@ -254,7 +254,7 @@ if (!testDatabaseUrl) {
       const t = await fixtures.tournament();
       const player = await fixtures.tournamentPlayer(t);
 
-      await recordScorecardChanges(player.user.id, {
+      await recordScorecardChanges(player.player.id, {
         scores: [{ roundId: player.round.id, hole: PAR_FOUR, strokes: 4 }],
       });
 
@@ -263,7 +263,7 @@ if (!testDatabaseUrl) {
           ["/"],
           ["/records"],
           ["/clubs/[handle]", "page"],
-          [`/players/${player.user.id}`],
+          [`/players/${player.player.id}`],
           [`/rounds/${player.round.id}`],
           [`/tournaments/${t.tournament.id}`],
         ]),
@@ -274,7 +274,7 @@ if (!testDatabaseUrl) {
       const { match, players } = await fixtures.match(2);
       const [a, b] = players;
 
-      await recordScorecardChanges(a.user.id, {
+      await recordScorecardChanges(a.player.id, {
         scores: [{ roundId: a.round.id, hole: PAR_FOUR, strokes: 4 }],
         greenies: [
           {
@@ -290,8 +290,8 @@ if (!testDatabaseUrl) {
           ["/"],
           ["/records"],
           ["/clubs/[handle]", "page"],
-          [`/players/${a.user.id}`],
-          [`/players/${b.user.id}`],
+          [`/players/${a.player.id}`],
+          [`/players/${b.player.id}`],
           [`/rounds/${a.round.id}`],
           [`/rounds/${b.round.id}`],
           [`/matches/${match.id}`],
@@ -308,11 +308,11 @@ if (!testDatabaseUrl) {
           mate.round.id,
         ]);
         const white = await fixtures.tee(t.course.id);
-        await recordScorecardChanges(player.user.id, {
+        await recordScorecardChanges(player.player.id, {
           scores: [{ roundId: player.round.id, hole: 1, strokes: 5, putts: 2 }],
         });
         // Entered from the mate's phone after the player's page loaded.
-        await recordScorecardChanges(mate.user.id, {
+        await recordScorecardChanges(mate.player.id, {
           scores: [{ roundId: player.round.id, hole: 2, strokes: 3, putts: 1 }],
           greenies: [
             {
@@ -324,7 +324,7 @@ if (!testDatabaseUrl) {
         });
 
         expect(
-          await changeRoundSettings(player.user.id, player.round.id, {
+          await changeRoundSettings(player.player.id, player.round.id, {
             teeId: white.id,
           }),
         ).toEqual({ ok: true });
@@ -350,7 +350,7 @@ if (!testDatabaseUrl) {
         const { tee: elsewhere } = await fixtures.course();
 
         expect(
-          await changeRoundSettings(player.user.id, player.round.id, {
+          await changeRoundSettings(player.player.id, player.round.id, {
             teeId: elsewhere.id,
           }),
         ).toMatchObject({
@@ -366,7 +366,7 @@ if (!testDatabaseUrl) {
         const white = await fixtures.tee(t.course.id);
 
         expect(
-          await changeRoundSettings(player.user.id, player.round.id, {
+          await changeRoundSettings(player.player.id, player.round.id, {
             teeId: white.id,
             playerIndexOverride: 12.3,
           }),
@@ -384,12 +384,12 @@ if (!testDatabaseUrl) {
         const { players } = await fixtures.match(2);
         const [a] = players;
 
-        await changeRoundSettings(a.user.id, a.round.id, {
+        await changeRoundSettings(a.player.id, a.round.id, {
           playerIndexOverride: 12.3,
         });
         expect((await settingsOf(a.round.id)).playerIndexOverride).toBe("12.3");
 
-        await changeRoundSettings(a.user.id, a.round.id, {
+        await changeRoundSettings(a.player.id, a.round.id, {
           playerIndexOverride: null,
         });
         expect((await settingsOf(a.round.id)).playerIndexOverride).toBeNull();
@@ -401,7 +401,7 @@ if (!testDatabaseUrl) {
         const white = await fixtures.tee(match.courseId);
 
         expect(
-          await changeRoundSettings(b.user.id, a.round.id, {
+          await changeRoundSettings(b.player.id, a.round.id, {
             teeId: white.id,
           }),
         ).toMatchObject({ ok: false, error: CANNOT_MANAGE });
@@ -414,7 +414,7 @@ if (!testDatabaseUrl) {
         const stranger = await fixtures.tournamentPlayer(t);
 
         expect(
-          await changeRoundSettings(stranger.user.id, player.round.id, {
+          await changeRoundSettings(stranger.player.id, player.round.id, {
             teeId: t.tee.id,
           }),
         ).toMatchObject({ ok: false, error: "Round not found." });
@@ -425,7 +425,7 @@ if (!testDatabaseUrl) {
         const player = await fixtures.tournamentPlayer(t);
         const white = await fixtures.tee(t.course.id);
 
-        await changeRoundSettings(player.user.id, player.round.id, {
+        await changeRoundSettings(player.player.id, player.round.id, {
           teeId: white.id,
         });
 
@@ -434,7 +434,7 @@ if (!testDatabaseUrl) {
             ["/"],
             ["/records"],
             ["/clubs/[handle]", "page"],
-            [`/players/${player.user.id}`],
+            [`/players/${player.player.id}`],
             [`/rounds/${player.round.id}`],
             [`/tournaments/${t.tournament.id}`],
           ]),

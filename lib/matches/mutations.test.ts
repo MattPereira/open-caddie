@@ -56,7 +56,7 @@ if (!testDatabaseUrl) {
 
     async function players(count: number) {
       const list = [];
-      for (let i = 0; i < count; i += 1) list.push(await fixtures.user());
+      for (let i = 0; i < count; i += 1) list.push(await fixtures.player());
       return list;
     }
 
@@ -96,7 +96,7 @@ if (!testDatabaseUrl) {
       return match ?? null;
     }
 
-    // Team name → sorted user ids.
+    // Team name → sorted Player ids.
     async function teams(matchId: number) {
       const rows = await db
         .select({ name: schema.matchTeams.name, playerId: schema.rounds.playerId })
@@ -128,7 +128,7 @@ if (!testDatabaseUrl) {
         courseHandle,
         format: m.match.format,
         teeId,
-        playerUserIds: m.players.map((p) => p.user.id),
+        playerUserIds: m.players.map((p) => p.player.id),
         teamOneUserIds: [],
         teamTwoUserIds: [],
         teamOneRoundIds: [],
@@ -220,14 +220,14 @@ if (!testDatabaseUrl) {
           date: "2026-02-01",
         });
 
-        expect(await mutations.updateMatch(m.players[0].user.id, input)).toEqual({
+        expect(await mutations.updateMatch(m.players[0].player.id, input)).toEqual({
           ok: false,
           error: "Only the match creator can edit this match.",
         });
         expect((await matchRow(m.match.id))?.date).toEqual(m.match.date);
 
         expect(await mutations.updateMatch(m.creator.id, input)).toEqual({ ok: true });
-        const admin = await fixtures.user({ isAdmin: true });
+        const admin = await fixtures.player({ isAdmin: true });
         expect(
           await mutations.updateMatch(admin.id, { ...input, date: "2026-03-01" }),
         ).toEqual({ ok: true });
@@ -312,8 +312,8 @@ if (!testDatabaseUrl) {
         const m = await fixtures.match(3);
         const course = await courseOf(m);
         const [round] = await matchRounds(m.match.id);
-        const fourth = await fixtures.user();
-        const [a, b, d] = m.players.map((p) => p.user.id);
+        const fourth = await fixtures.player();
+        const [a, b, d] = m.players.map((p) => p.player.id);
 
         const result = await mutations.updateMatch(
           m.creator.id,
@@ -343,7 +343,7 @@ if (!testDatabaseUrl) {
         const course = await courseOf(m);
         const [round] = await matchRounds(m.match.id);
         const [x, y] = await players(2);
-        const [a, b] = m.players.map((p) => p.user.id);
+        const [a, b] = m.players.map((p) => p.player.id);
 
         expect(
           await mutations.updateMatch(
@@ -425,7 +425,7 @@ if (!testDatabaseUrl) {
         const m = await fixtures.match(2, { creatorPlays: false });
 
         expect(
-          await mutations.deleteMatch(m.players[0].user.id, m.match.id),
+          await mutations.deleteMatch(m.players[0].player.id, m.match.id),
         ).toEqual({
           ok: false,
           error: "Only the match creator can edit this match.",

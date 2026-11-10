@@ -115,7 +115,7 @@ if (!testDatabaseUrl) {
       await fixtures.pairing(t.tournament.id, [marker.round.id, mate.round.id]);
 
       const result = await importAs(
-        marker.user.id,
+        marker.player.id,
         { kind: "tournament", id: t.tournament.id },
         [marker.round.id, mate.round.id],
       );
@@ -137,7 +137,7 @@ if (!testDatabaseUrl) {
       await fixtures.pairing(t.tournament.id, [outsider.round.id]);
 
       const result = await importAs(
-        marker.user.id,
+        marker.player.id,
         { kind: "tournament", id: t.tournament.id },
         [marker.round.id, mate.round.id, outsider.round.id],
       );

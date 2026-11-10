@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { comparePlayers } from "@/lib/players/player-name";
 
 import {
-  fieldSkins,
+  tournamentSkins,
   greenieWinners,
   rankPutts,
   rankStrokes,
@@ -145,7 +145,7 @@ describe("greenieWinners", () => {
   });
 });
 
-describe("fieldSkins", () => {
+describe("tournamentSkins", () => {
   function skinsRound(
     playerId: string,
     playingHandicap: number,
@@ -165,7 +165,7 @@ describe("fieldSkins", () => {
   }
 
   it("awards a hole to a unique low net score", () => {
-    const skins = fieldSkins([
+    const skins = tournamentSkins([
       skinsRound("a", 0, { 18: 3 }),
       skinsRound("b", 0, {}),
     ]);
@@ -177,7 +177,7 @@ describe("fieldSkins", () => {
   });
 
   it("does not carry tied holes forward", () => {
-    const skins = fieldSkins([
+    const skins = tournamentSkins([
       skinsRound("a", 0, { 1: 3, 2: 3 }),
       skinsRound("b", 0, { 1: 3 }),
     ]);
@@ -188,7 +188,7 @@ describe("fieldSkins", () => {
   });
 
   it("voids a hole when any complete Round has no score on it", () => {
-    const skins = fieldSkins([
+    const skins = tournamentSkins([
       skinsRound("a", 0, { 1: 2 }),
       skinsRound("b", 0, { 1: null }),
     ]);
@@ -197,7 +197,7 @@ describe("fieldSkins", () => {
   });
 
   it("ignores incomplete Rounds", () => {
-    const skins = fieldSkins([
+    const skins = tournamentSkins([
       skinsRound("a", 0, { 1: 3 }),
       skinsRound("b", 0, {}),
       skinsRound("c", 0, { 1: 2, 2: null }, false),
@@ -209,7 +209,7 @@ describe("fieldSkins", () => {
   });
 
   it("gives one stroke on holes up to half the Playing Handicap, rounded down", () => {
-    const skins = fieldSkins([
+    const skins = tournamentSkins([
       skinsRound("a", 5, { 2: 4, 3: 4 }),
       skinsRound("b", 0, { 2: 5, 3: 3 }),
     ]);
@@ -225,7 +225,7 @@ describe("fieldSkins", () => {
   });
 
   it("caps strokes at one per hole", () => {
-    const skins = fieldSkins([
+    const skins = tournamentSkins([
       skinsRound("a", 54, {}),
       skinsRound("b", 0, { 18: 2 }),
     ]);

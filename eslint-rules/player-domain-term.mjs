@@ -1,5 +1,13 @@
 // ADR 0007: Player is the domain term; User names only the sign-in identity.
 // Files on the sign-in side are exempted in eslint.config.mjs.
+//
+// Other allowances: Auth.js tables in db/schema.ts (inside a disable block);
+// `users` only as the binding imported from @/db/schema; third-party `User*Icon`
+// only as imported bindings; inline disables for declared third-party shapes
+// (Auth.js `unstable_update({ user })`, the Postgres role `user` in db/index.ts).
+//
+// Imported by eslint.config.mjs, so ESLint's cache doesn't see edits to this
+// file. Delete .eslintcache after changing it.
 
 // Matched by word, so `useRef` and `username` (the Player's handle) pass.
 const BANNED_WORDS = new Set(["user", "users"]);

@@ -1,6 +1,11 @@
+---
+status: accepted
+date: 2026-07-24
+---
+
 # Model Seasons as Club-owned records
 
-Replace the nullable season number on each Tournament with a required reference to a Season record owned by a Club. A Season has a permanent Club-relative sequential number; a Club's current Season is its highest-numbered one and every lower-numbered Season is past. This supports empty Seasons and makes the Tournament's Club derivable through its Season without calendar boundaries.
+Replace the nullable season number on each Tournament with a required reference to a Season record owned by a Club. A Season has a permanent Club-relative sequential number; a Club's Current Season is its highest-numbered one and every lower-numbered Season is a Past Season. This supports empty Seasons and makes the Tournament's Club derivable through its Season without calendar boundaries.
 
 ## Considered Options
 
@@ -12,10 +17,10 @@ Storing which Season is current, so a Club could point it back at a lower-number
 
 - Every Tournament must reference exactly one Season.
 - Season numbers are unique within a Club and begin at 1.
-- New Tournaments visibly default to the Club's current Season; starting the next Season requires confirmation and atomically creates both the Season and Tournament.
+- New Tournaments visibly default to the Club's Current Season; starting the next Season requires confirmation and atomically creates both the Season and Tournament.
 - Past Seasons remain editable. No Season deletion is offered, and this is a product decision rather than a schema constraint: deleting a Club's highest-numbered Season is the one operation that would move its Current Season backwards, so reintroducing deletion means revisiting this ADR.
 - Club standings show only Seasons containing at least one Tournament and default to the newest non-empty Season.
-- Existing `(club_id, season)` pairs migrate to Season records; each Club's highest existing number is therefore its current Season.
+- Existing `(club_id, season)` pairs migrate to Season records; each Club's highest existing number is therefore its Current Season.
 
 ## Amendments
 

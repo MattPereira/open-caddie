@@ -117,7 +117,7 @@ export function scoreMatchPlay({
   };
 }
 
-export type SkinHoleResult = {
+export type MatchSkinHoleResult = {
   hole: number;
   holeHandicap: number | null;
   winningRoundId: number | null;
@@ -129,7 +129,7 @@ export type SkinHoleResult = {
   }[];
 };
 
-export type SkinsScoringResult =
+export type MatchSkinsResult =
   | { status: "unavailable"; reason: "players_with_scores" }
   | {
       status: "ready";
@@ -139,13 +139,13 @@ export type SkinsScoringResult =
         receivedStrokes: number;
         skinsWon: number;
       }[];
-      holes: SkinHoleResult[];
+      holes: MatchSkinHoleResult[];
     };
 
-export function scoreSkins(
+export function scoreMatchSkins(
   rounds: ScoringRound[],
   holes: ScoringHole[],
-): SkinsScoringResult {
+): MatchSkinsResult {
   const eligibleRounds = rounds.filter(isMatchPlayRound);
   if (eligibleRounds.filter((round) => round.recordedStrokesCount > 0).length < 2)
     return { status: "unavailable", reason: "players_with_scores" };
@@ -163,7 +163,7 @@ export function scoreSkins(
       players: [toPlayer(round, holes)],
     })),
   );
-  const holeResults: SkinHoleResult[] = [];
+  const holeResults: MatchSkinHoleResult[] = [];
   let pendingSkins = 1;
 
   for (const hole of result.holes) {

@@ -17,7 +17,7 @@ We therefore treat keeping anonymous traffic off Postgres as a standing constrai
 
 - **Leave pages crawlable and accept the compute cost** was rejected: on the free plan the quota is the hard limit, and search indexing of individual rounds and players has no value for a private golf group.
 - **Time-based revalidation** (`revalidate: N`) was rejected because each expiry becomes a wake whenever the next request arrives, which for crawlers is around the clock.
-- **Require sign-in for all detail pages** would guarantee no anonymous reads but was not chosen; shared links to rounds, matches, and tournaments are meant to open without an account.
+- **Require sign-in for all detail pages** would guarantee no anonymous reads but was not chosen; shared links to rounds, matches, and tournaments are meant to open without signing in.
 
 ## Consequences
 

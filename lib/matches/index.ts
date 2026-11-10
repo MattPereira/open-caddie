@@ -1,5 +1,5 @@
 export { matchFormatLabel, matchFormatPolicy } from "./formats";
-export { scoreMatchPlay, scoreSkins } from "./scoring";
+export { scoreMatchPlay, scoreMatchSkins } from "./scoring";
 export type {
   MatchPlayScoringResult,
   MatchPlaySide,
@@ -7,6 +7,6 @@ export type {
   ScoredContest,
   ScoringRound,
   ScoringTeam,
-  SkinHoleResult,
-  SkinsScoringResult,
+  MatchSkinHoleResult,
+  MatchSkinsResult,
 } from "./scoring";

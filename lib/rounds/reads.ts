@@ -1,3 +1,5 @@
+// The one place that reads Rounds for display. New reads that show Rounds go
+// through here rather than writing their own Round select.
 import { cache } from "react";
 import {
   and,
@@ -97,7 +99,7 @@ export type RoundHoleScore = Pick<
 
 export type RoundHoleGreenie = Pick<RoundGreenieRow, "hole" | "feet" | "inches">;
 
-/** A Round as Match Play and Skins score it: strokes against hole handicaps. */
+/** A Round as Match Play and Match Skins score it: strokes against hole handicaps. */
 export type NetScoringRound = Pick<
   DisplayRound,
   | "kind"
@@ -113,7 +115,7 @@ export type NetScoringRound = Pick<
 
 export type CourseHole = { hole: number; par: number; handicap: number };
 
-/** The hole fields Match Play and Skins allocate received strokes by. */
+/** The hole fields Match Play and Match Skins allocate received strokes by. */
 export type HandicapHole = Pick<CourseHole, "hole" | "handicap">;
 
 export type CourseTee = {

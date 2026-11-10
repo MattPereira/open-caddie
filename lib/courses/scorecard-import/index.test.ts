@@ -11,6 +11,7 @@ if (!testDatabaseUrl) {
 } else {
 describe("Course Scorecard Import", async () => {
   process.env.DATABASE_URL = testDatabaseUrl;
+  process.env.DATABASE_DRIVER = "node-postgres";
   const [{ db }, schema, { createCourseScorecardImport }] = await Promise.all([
     import("@/db"),
     import("@/db/schema"),

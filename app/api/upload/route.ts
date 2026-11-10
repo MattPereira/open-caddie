@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
-import { eq } from "drizzle-orm";
 
-import { auth } from "@/auth";
-import { db } from "@/db";
-import { users } from "@/db/schema";
 import { getImageUploadMaxBytes } from "@/lib/images/upload-limits";
+import { getPlayerById, getSignedInPlayer } from "@/lib/players/queries";
 
 const ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -45,9 +42,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       body,
       request,
       onBeforeGenerateToken: async (pathname) => {
-        const session = await auth();
-        const me = session?.user;
-        if (!me?.id) {
+        const actor = await getSignedInPlayer();
+        if (!actor) {
           throw new Error("Unauthorized");
         }
 
@@ -57,23 +53,19 @@ export async function POST(request: Request): Promise<NextResponse> {
         }
 
         if (target.kind === "player") {
-          const [currentPlayer] = await db
-            .select({ username: users.username })
-            .from(users)
-            .where(eq(users.id, me.id))
-            .limit(1);
+          const storedActor = await getPlayerById(actor.id);
           const isSelf =
-            me.id === target.id || currentPlayer?.username === target.id;
-          if (!isSelf && !me.isAdmin) {
+            actor.id === target.id || storedActor?.username === target.id;
+          if (!isSelf && !actor.isAdmin) {
             throw new Error("Forbidden");
           }
         } else if (target.kind === "course") {
-          if (!me.isAdmin) {
+          if (!actor.isAdmin) {
             throw new Error("Forbidden");
           }
         } else if (target.kind === "round-scorecard") {
-          const isSelf = me.id === target.id;
-          if (!isSelf && !me.isAdmin) {
+          const isSelf = actor.id === target.id;
+          if (!isSelf && !actor.isAdmin) {
             throw new Error("Forbidden");
           }
         }

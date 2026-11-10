@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-import { auth } from "@/auth";
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { HeaderWordmark } from "@/components/layout/header-wordmark";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -10,7 +9,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { getCurrentPlayer } from "@/lib/players/queries";
+import { getCurrentPlayer, getSignedInPlayer } from "@/lib/players/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +18,9 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
-  const player = session?.user
-    ? ((await getCurrentPlayer()) ?? session.user)
+  const signedInPlayer = await getSignedInPlayer();
+  const player = signedInPlayer
+    ? ((await getCurrentPlayer()) ?? signedInPlayer)
     : null;
   const sidebarPlayer = player ? getSidebarPlayer(player) : null;
 
@@ -32,7 +31,7 @@ export default async function AppLayout({
         <header className="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b px-3">
           <SidebarTrigger className="size-8 justify-self-start" />
           <HeaderWordmark />
-          {session?.user?.id ? (
+          {signedInPlayer ? (
             <ThemeToggle className="size-8 justify-self-end" />
           ) : (
             <Button

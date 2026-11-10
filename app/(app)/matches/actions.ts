@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { auth } from "@/auth";
+import { getSignedInPlayer } from "@/lib/players/queries";
 import * as mutations from "@/lib/matches/mutations";
 import {
   importRoundScorecard,
@@ -20,8 +20,8 @@ type ActionResult = { ok: true; id?: number } | { ok: false; error: string };
 export async function createMatch(
   values: MatchCreateValues,
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const actor = await getSignedInPlayer();
+  if (!actor) {
     return { ok: false, error: "You must be signed in." };
   }
 
@@ -30,14 +30,14 @@ export async function createMatch(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  return mutations.createMatch(session.user.id, parsed.data);
+  return mutations.createMatch(actor.id, parsed.data);
 }
 
 export async function updateMatch(
   values: MatchUpdateValues,
 ): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const actor = await getSignedInPlayer();
+  if (!actor) {
     return { ok: false, error: "You must be signed in." };
   }
 
@@ -46,16 +46,16 @@ export async function updateMatch(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  return mutations.updateMatch(session.user.id, parsed.data);
+  return mutations.updateMatch(actor.id, parsed.data);
 }
 
 export async function deleteMatch(id: number): Promise<ActionResult> {
-  const session = await auth();
-  if (!session?.user?.id) {
+  const actor = await getSignedInPlayer();
+  if (!actor) {
     return { ok: false, error: "You must be signed in." };
   }
 
-  return mutations.deleteMatch(session.user.id, id);
+  return mutations.deleteMatch(actor.id, id);
 }
 
 export async function uploadMatchRoundScorecard(
@@ -63,11 +63,11 @@ export async function uploadMatchRoundScorecard(
   _state: UploadRoundScorecardState,
   formData: FormData,
 ): Promise<UploadRoundScorecardState> {
-  const session = await auth();
-  if (!session?.user?.id) return { error: "You must be signed in." };
+  const actor = await getSignedInPlayer();
+  if (!actor) return { error: "You must be signed in." };
 
   const result = await importRoundScorecard({
-    playerId: session.user.id,
+    playerId: actor.id,
     eventKind: "match",
     eventId: matchId,
     formData,

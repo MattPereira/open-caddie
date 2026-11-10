@@ -18,10 +18,18 @@ export const getPlayerById = cache(async (id: string) => {
   return row ?? null;
 });
 
-export const getCurrentPlayer = cache(async () => {
+// The one place the session becomes a Player (ADR 0007). Reads only the
+// session token, so `isAdmin` and names may be stale; use getCurrentPlayer for
+// the stored row.
+export const getSignedInPlayer = cache(async () => {
   const session = await auth();
-  if (!session?.user?.id) return null;
-  return getPlayerById(session.user.id);
+  return session?.user?.id ? session.user : null;
+});
+
+export const getCurrentPlayer = cache(async () => {
+  const player = await getSignedInPlayer();
+  if (!player) return null;
+  return getPlayerById(player.id);
 });
 
 export const getPlayerStatsById = cache(async (playerId: string) => {

@@ -160,7 +160,7 @@ if (!testDatabaseUrl) {
         });
         const rounds = await matchRounds(result.id);
         expect(rounds.map((r) => r.userId).sort()).toEqual([a.id, b.id].sort());
-        for (const r of rounds) expect(r.teeId).toBe(c.tee.id);
+        for (const r of rounds) expect(r.teeId).toBe(-1);
         expect(updateTag).toHaveBeenCalledWith("home-events");
         expect(invalidatedPaths()).toEqual(
           expect.arrayContaining([

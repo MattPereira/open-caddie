@@ -51,6 +51,8 @@ export const users = pgTable("user", {
   isAdmin: boolean("isAdmin").notNull().default(false),
 });
 
+// Auth.js adapter tables keep User naming (ADR 0006).
+/* eslint-disable local/player-domain-term */
 export const accounts = pgTable(
   "account",
   {
@@ -80,6 +82,8 @@ export const sessions = pgTable("session", {
     .references(() => users.id, { onDelete: "cascade" }),
   expires: timestamp("expires", { mode: "date" }).notNull(),
 });
+
+/* eslint-enable local/player-domain-term */
 
 export const verificationTokens = pgTable(
   "verificationToken",

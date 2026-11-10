@@ -59,6 +59,7 @@ export async function submitOnboarding(
   }
 
   await unstable_update({
+    // eslint-disable-next-line local/player-domain-term -- Auth.js session shape
     user: { username: savedUsername, firstName, lastName, name: fullName },
   });
 

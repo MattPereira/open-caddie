@@ -38,9 +38,9 @@ type MatchInput = {
   courseHandle: string;
   format: MatchFormat;
   teeId: number;
-  playerUserIds: string[];
-  teamOneUserIds: string[];
-  teamTwoUserIds: string[];
+  playerIds: string[];
+  teamOnePlayerIds: string[];
+  teamTwoPlayerIds: string[];
 };
 
 /** Player count and Four-Ball team split are already validated. */
@@ -48,7 +48,7 @@ export type MatchCreateInput = MatchInput;
 
 /**
  * Four-Ball teams come from `teamOneRoundIds`/`teamTwoRoundIds` when the
- * Match has its 4 Rounds, or from the team user ids when the Roster is being
+ * Match has its 4 Rounds, or from the team Player ids when the Roster is being
  * refilled.
  */
 export type MatchUpdateInput = MatchInput & {
@@ -63,7 +63,7 @@ export async function createMatch(
   playerId: string,
   values: MatchCreateInput,
 ): Promise<MatchWriteResult> {
-  const { format, teeId, playerUserIds, teamOneUserIds, teamTwoUserIds } =
+  const { format, teeId, playerIds, teamOnePlayerIds, teamTwoPlayerIds } =
     values;
   const courseId = await getCourseIdByHandle(values.courseHandle);
   if (!courseId) {
@@ -72,7 +72,7 @@ export async function createMatch(
   if (!(await isTeeForCourse(teeId, courseId))) {
     return { ok: false, error: "Selected tee does not belong to this course." };
   }
-  if (!(await playersExist(playerUserIds))) {
+  if (!(await playersExist(playerIds))) {
     return {
       ok: false,
       error: "One or more selected players no longer exist.",
@@ -94,14 +94,14 @@ export async function createMatch(
       const inserted = await insertEventRounds(
         tx,
         { matchId: match.id, teeId },
-        playerUserIds,
+        playerIds,
       );
       if (format === "four_ball_match_play") {
-        const roundIdByUserId = new Map(inserted.map((r) => [r.playerId, r.id]));
+        const roundIdByPlayerId = new Map(inserted.map((r) => [r.playerId, r.id]));
         await insertMatchTeams(
           tx,
           match.id,
-          roundIdsFor([teamOneUserIds, teamTwoUserIds], roundIdByUserId),
+          roundIdsFor([teamOnePlayerIds, teamTwoPlayerIds], roundIdByPlayerId),
         );
       }
       return { matchId: match.id, inserted };
@@ -119,11 +119,11 @@ export async function createMatch(
 }
 
 export async function updateMatch(
-  userId: string,
+  playerId: string,
   values: MatchUpdateInput,
 ): Promise<MatchWriteResult> {
-  const { id, format, teeId, playerUserIds } = values;
-  const manage = await canManageMatch(userId, id);
+  const { id, format, teeId, playerIds } = values;
+  const manage = await canManageMatch(playerId, id);
   if (!manage.ok) return manage;
 
   const courseId = await getCourseIdByHandle(values.courseHandle);
@@ -142,7 +142,7 @@ export async function updateMatch(
         error: "Selected tee does not belong to this course.",
       };
     }
-    if (!(await playersExist(playerUserIds))) {
+    if (!(await playersExist(playerIds))) {
       return {
         ok: false,
         error: "One or more selected players no longer exist.",
@@ -200,7 +200,7 @@ export async function updateMatch(
       if (!plan) return null;
 
       let teamRoundIds: [number[], number[]];
-      if ("refillUserIds" in plan) {
+      if ("refillPlayerIds" in plan) {
         const refilled = await refillFourBallRoster(
           tx,
           { matchId: id, teeId },
@@ -232,10 +232,10 @@ export async function updateMatch(
 }
 
 export async function deleteMatch(
-  userId: string,
+  playerId: string,
   id: number,
 ): Promise<MatchWriteResult> {
-  const manage = await canManageMatch(userId, id);
+  const manage = await canManageMatch(playerId, id);
   if (!manage.ok) return manage;
 
   const deleted = await db.transaction(async (tx) => {
@@ -250,7 +250,7 @@ export async function deleteMatch(
 
 /** Only the Match's creator or an admin may change the Match itself. */
 async function canManageMatch(
-  userId: string,
+  playerId: string,
   matchId: number,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const [match] = await db
@@ -259,37 +259,37 @@ async function canManageMatch(
     .where(eq(matches.id, matchId))
     .limit(1);
   if (!match) return { ok: false, error: "Match not found." };
-  if (match.createdByPlayerId !== userId && !(await isAdmin(userId))) {
+  if (match.createdByPlayerId !== playerId && !(await isAdmin(playerId))) {
     return { ok: false, error: "Only the match creator can edit this match." };
   }
   return { ok: true };
 }
 
-async function playersExist(userIds: string[]) {
+async function playersExist(playerIds: string[]) {
   const existing = await db
     .select({ id: users.id })
     .from(users)
-    .where(inArray(users.id, userIds));
-  return existing.length === new Set(userIds).size;
+    .where(inArray(users.id, playerIds));
+  return existing.length === new Set(playerIds).size;
 }
 
 /** 4 distinct players split 2 and 2, every team member among them. */
 function isFourBallRoster(values: MatchInput) {
-  const { playerUserIds, teamOneUserIds, teamTwoUserIds } = values;
-  const teamUserIds = [...teamOneUserIds, ...teamTwoUserIds];
+  const { playerIds, teamOnePlayerIds, teamTwoPlayerIds } = values;
+  const teamPlayerIds = [...teamOnePlayerIds, ...teamTwoPlayerIds];
   return (
-    new Set(playerUserIds).size === FOUR_BALL_POLICY.playerCount &&
-    playerUserIds.length === FOUR_BALL_POLICY.playerCount &&
-    teamOneUserIds.length === FOUR_BALL_POLICY.teamSize &&
-    teamTwoUserIds.length === FOUR_BALL_POLICY.teamSize &&
-    new Set(teamUserIds).size === FOUR_BALL_POLICY.playerCount &&
-    teamUserIds.every((u) => playerUserIds.includes(u))
+    new Set(playerIds).size === FOUR_BALL_POLICY.playerCount &&
+    playerIds.length === FOUR_BALL_POLICY.playerCount &&
+    teamOnePlayerIds.length === FOUR_BALL_POLICY.teamSize &&
+    teamTwoPlayerIds.length === FOUR_BALL_POLICY.teamSize &&
+    new Set(teamPlayerIds).size === FOUR_BALL_POLICY.playerCount &&
+    teamPlayerIds.every((u) => playerIds.includes(u))
   );
 }
 
 type FourBallPlan =
   | { teamRoundIds: [number[], number[]] }
-  | { refillUserIds: string[]; teamUserIds: [string[], string[]] };
+  | { refillPlayerIds: string[]; teamPlayerIds: [string[], string[]] };
 
 /**
  * A Match with its 4 Rounds takes teams by Round id. One with fewer is
@@ -314,14 +314,14 @@ function planFourBallTeams(
 
   if (
     !isRoster ||
-    !matchRounds.every((r) => values.playerUserIds.includes(r.playerId))
+    !matchRounds.every((r) => values.playerIds.includes(r.playerId))
   ) {
     return null;
   }
   const playing = new Set(matchRounds.map((r) => r.playerId));
   return {
-    refillUserIds: values.playerUserIds.filter((u) => !playing.has(u)),
-    teamUserIds: [values.teamOneUserIds, values.teamTwoUserIds],
+    refillPlayerIds: values.playerIds.filter((u) => !playing.has(u)),
+    teamPlayerIds: [values.teamOnePlayerIds, values.teamTwoPlayerIds],
   };
 }
 
@@ -330,25 +330,25 @@ async function refillFourBallRoster(
   tx: Transaction,
   event: { matchId: number; teeId: number },
   matchRounds: { id: number; playerId: string }[],
-  plan: { refillUserIds: string[]; teamUserIds: [string[], string[]] },
+  plan: { refillPlayerIds: string[]; teamPlayerIds: [string[], string[]] },
 ) {
-  const inserted = await insertEventRounds(tx, event, plan.refillUserIds);
-  const roundIdByUserId = new Map(
+  const inserted = await insertEventRounds(tx, event, plan.refillPlayerIds);
+  const roundIdByPlayerId = new Map(
     [...matchRounds, ...inserted].map((r) => [r.playerId, r.id]),
   );
   return {
     inserted,
-    teamRoundIds: roundIdsFor(plan.teamUserIds, roundIdByUserId),
+    teamRoundIds: roundIdsFor(plan.teamPlayerIds, roundIdByPlayerId),
   };
 }
 
 function roundIdsFor(
-  teamUserIds: [string[], string[]],
-  roundIdByUserId: Map<string, number>,
+  teamPlayerIds: [string[], string[]],
+  roundIdByPlayerId: Map<string, number>,
 ): [number[], number[]] {
-  const [one, two] = teamUserIds.map((userIds) =>
-    userIds.map((userId) => {
-      const roundId = roundIdByUserId.get(userId);
+  const [one, two] = teamPlayerIds.map((playerIds) =>
+    playerIds.map((playerId) => {
+      const roundId = roundIdByPlayerId.get(playerId);
       if (roundId == null) throw new Error("Failed to create match teams.");
       return roundId;
     }),

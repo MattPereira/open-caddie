@@ -72,9 +72,9 @@ if (!testDatabaseUrl) {
         courseHandle: c.course.handle,
         format,
         teeId: c.tee.id,
-        playerUserIds: playerIds,
-        teamOneUserIds: teams[0],
-        teamTwoUserIds: teams[1],
+        playerIds: playerIds,
+        teamOnePlayerIds: teams[0],
+        teamTwoPlayerIds: teams[1],
       });
       if (result.ok && result.id != null) createdMatchIds.push(result.id);
       return result;
@@ -128,9 +128,9 @@ if (!testDatabaseUrl) {
         courseHandle,
         format: m.match.format,
         teeId,
-        playerUserIds: m.players.map((p) => p.player.id),
-        teamOneUserIds: [],
-        teamTwoUserIds: [],
+        playerIds: m.players.map((p) => p.player.id),
+        teamOnePlayerIds: [],
+        teamTwoPlayerIds: [],
         teamOneRoundIds: [],
         teamTwoRoundIds: [],
         ...overrides,
@@ -284,7 +284,7 @@ if (!testDatabaseUrl) {
           ],
         );
         if (!created.ok || created.id == null) throw new Error("not created");
-        const roundIdByUser = new Map(
+        const roundIdByPlayer = new Map(
           (await matchRounds(created.id)).map((r) => [r.playerId, r.id]),
         );
 
@@ -294,11 +294,11 @@ if (!testDatabaseUrl) {
           courseHandle: c.course.handle,
           format: "four_ball_match_play",
           teeId: c.tee.id,
-          playerUserIds: [a.id, b.id, d.id, e.id],
-          teamOneUserIds: [],
-          teamTwoUserIds: [],
-          teamOneRoundIds: [roundIdByUser.get(a.id)!, roundIdByUser.get(e.id)!],
-          teamTwoRoundIds: [roundIdByUser.get(b.id)!, roundIdByUser.get(d.id)!],
+          playerIds: [a.id, b.id, d.id, e.id],
+          teamOnePlayerIds: [],
+          teamTwoPlayerIds: [],
+          teamOneRoundIds: [roundIdByPlayer.get(a.id)!, roundIdByPlayer.get(e.id)!],
+          teamTwoRoundIds: [roundIdByPlayer.get(b.id)!, roundIdByPlayer.get(d.id)!],
         });
 
         expect(result).toEqual({ ok: true });
@@ -319,9 +319,9 @@ if (!testDatabaseUrl) {
           m.creator.id,
           updateInput(m, course.handle, round.teeId, {
             format: "four_ball_match_play",
-            playerUserIds: [a, b, d, fourth.id],
-            teamOneUserIds: [a, fourth.id],
-            teamTwoUserIds: [b, d],
+            playerIds: [a, b, d, fourth.id],
+            teamOnePlayerIds: [a, fourth.id],
+            teamTwoPlayerIds: [b, d],
           }),
         );
 
@@ -350,9 +350,9 @@ if (!testDatabaseUrl) {
             m.creator.id,
             updateInput(m, course.handle, round.teeId, {
               format: "four_ball_match_play",
-              playerUserIds: [a, b, x.id, y.id],
-              teamOneUserIds: [a, x.id],
-              teamTwoUserIds: [b, y.id],
+              playerIds: [a, b, x.id, y.id],
+              teamOnePlayerIds: [a, x.id],
+              teamTwoPlayerIds: [b, y.id],
             }),
           ),
         ).toEqual({
@@ -387,9 +387,9 @@ if (!testDatabaseUrl) {
           courseHandle: c.course.handle,
           format: "three_ball_match_play",
           teeId: c.tee.id,
-          playerUserIds: [a.id, b.id, d.id],
-          teamOneUserIds: [],
-          teamTwoUserIds: [],
+          playerIds: [a.id, b.id, d.id],
+          teamOnePlayerIds: [],
+          teamTwoPlayerIds: [],
           teamOneRoundIds: [],
           teamTwoRoundIds: [],
         });

@@ -104,9 +104,9 @@ const emptyDefaults: MatchFormValues = {
   courseHandle: "",
   format: "singles_match_play",
   teeId: 0,
-  playerUserIds: [],
-  teamOneUserIds: [],
-  teamTwoUserIds: [],
+  playerIds: [],
+  teamOnePlayerIds: [],
+  teamTwoPlayerIds: [],
   teamOneRoundIds: [],
   teamTwoRoundIds: [],
 };
@@ -188,9 +188,9 @@ function toFormValues(match?: MatchSheetMatch): MatchFormValues {
     courseHandle: match.courseHandle ?? "",
     format: match.format,
     teeId: match.rounds[0]?.teeId ?? 0,
-    playerUserIds: match.rounds.map((round) => round.playerId),
-    teamOneUserIds: match.teams[0]?.rounds.map((round) => round.playerId) ?? [],
-    teamTwoUserIds: match.teams[1]?.rounds.map((round) => round.playerId) ?? [],
+    playerIds: match.rounds.map((round) => round.playerId),
+    teamOnePlayerIds: match.teams[0]?.rounds.map((round) => round.playerId) ?? [],
+    teamTwoPlayerIds: match.teams[1]?.rounds.map((round) => round.playerId) ?? [],
     teamOneRoundIds: defaultTeamOneRoundIds,
     teamTwoRoundIds: defaultTeamTwoRoundIds,
   };
@@ -225,8 +225,8 @@ export function MatchSheet({
     selectedCourseHandle,
     selectedFormat,
     selectedPlayerIds,
-    teamOneUserIds,
-    teamTwoUserIds,
+    teamOnePlayerIds,
+    teamTwoPlayerIds,
     teamOneRoundIds,
     teamTwoRoundIds,
   ] = useWatch({
@@ -234,9 +234,9 @@ export function MatchSheet({
     name: [
       "courseHandle",
       "format",
-      "playerUserIds",
-      "teamOneUserIds",
-      "teamTwoUserIds",
+      "playerIds",
+      "teamOnePlayerIds",
+      "teamTwoPlayerIds",
       "teamOneRoundIds",
       "teamTwoRoundIds",
     ],
@@ -252,7 +252,7 @@ export function MatchSheet({
     [players, playerQuery],
   );
   const requiredPlayerCount = matchFormatPolicy(selectedFormat).playerCount;
-  const existingMatchUserIds = useMemo(
+  const existingMatchPlayerIds = useMemo(
     () => new Set(match?.rounds.map((round) => round.playerId) ?? []),
     [match],
   );
@@ -334,7 +334,7 @@ export function MatchSheet({
   };
 
   const setArrayValue = (
-    name: "playerUserIds" | "teamOneUserIds" | "teamTwoUserIds",
+    name: "playerIds" | "teamOnePlayerIds" | "teamTwoPlayerIds",
     value: string[],
   ) => {
     form.setValue(name, value, {
@@ -349,9 +349,9 @@ export function MatchSheet({
       shouldValidate: false,
     });
     if (mode === "create") {
-      setArrayValue("playerUserIds", []);
-      setArrayValue("teamOneUserIds", []);
-      setArrayValue("teamTwoUserIds", []);
+      setArrayValue("playerIds", []);
+      setArrayValue("teamOnePlayerIds", []);
+      setArrayValue("teamTwoPlayerIds", []);
       return;
     }
 
@@ -378,29 +378,29 @@ export function MatchSheet({
     }
   };
 
-  const removePlayerFromTeams = (userId: string) => {
+  const removePlayerFromTeams = (playerId: string) => {
     setArrayValue(
-      "teamOneUserIds",
-      teamOneUserIds.filter((id) => id !== userId),
+      "teamOnePlayerIds",
+      teamOnePlayerIds.filter((id) => id !== playerId),
     );
     setArrayValue(
-      "teamTwoUserIds",
-      teamTwoUserIds.filter((id) => id !== userId),
+      "teamTwoPlayerIds",
+      teamTwoPlayerIds.filter((id) => id !== playerId),
     );
   };
 
-  const setPlayerTeam = (userId: string, team: 1 | 2) => {
-    if (!selectedPlayerIds.includes(userId)) return;
+  const setPlayerTeam = (playerId: string, team: 1 | 2) => {
+    if (!selectedPlayerIds.includes(playerId)) return;
 
-    const currentTeam = teamOneUserIds.includes(userId)
+    const currentTeam = teamOnePlayerIds.includes(playerId)
       ? 1
-      : teamTwoUserIds.includes(userId)
+      : teamTwoPlayerIds.includes(playerId)
         ? 2
         : null;
     if (currentTeam === team) return;
 
-    let nextTeamOne = teamOneUserIds.filter((id) => id !== userId);
-    let nextTeamTwo = teamTwoUserIds.filter((id) => id !== userId);
+    let nextTeamOne = teamOnePlayerIds.filter((id) => id !== playerId);
+    let nextTeamTwo = teamTwoPlayerIds.filter((id) => id !== playerId);
 
     if (team === 1) {
       if (nextTeamOne.length >= 2) {
@@ -409,7 +409,7 @@ export function MatchSheet({
         nextTeamOne = remaining;
         nextTeamTwo.push(displaced);
       }
-      nextTeamOne.push(userId);
+      nextTeamOne.push(playerId);
     } else {
       if (nextTeamTwo.length >= 2) {
         if (currentTeam !== 1) return;
@@ -417,11 +417,11 @@ export function MatchSheet({
         nextTeamTwo = remaining;
         nextTeamOne.push(displaced);
       }
-      nextTeamTwo.push(userId);
+      nextTeamTwo.push(playerId);
     }
 
-    setArrayValue("teamOneUserIds", nextTeamOne);
-    setArrayValue("teamTwoUserIds", nextTeamTwo);
+    setArrayValue("teamOnePlayerIds", nextTeamOne);
+    setArrayValue("teamTwoPlayerIds", nextTeamTwo);
   };
 
   const setRoundTeam = (roundId: number, team: 1 | 2) => {
@@ -463,28 +463,28 @@ export function MatchSheet({
     });
   };
 
-  const togglePlayer = (userId: string) => {
-    const selected = selectedPlayerIds.includes(userId);
+  const togglePlayer = (playerId: string) => {
+    const selected = selectedPlayerIds.includes(playerId);
     if (selected) {
-      if (canRepairFourBallTeams && existingMatchUserIds.has(userId)) return;
+      if (canRepairFourBallTeams && existingMatchPlayerIds.has(playerId)) return;
 
       setArrayValue(
-        "playerUserIds",
-        selectedPlayerIds.filter((id) => id !== userId),
+        "playerIds",
+        selectedPlayerIds.filter((id) => id !== playerId),
       );
-      removePlayerFromTeams(userId);
+      removePlayerFromTeams(playerId);
       return;
     }
 
     if (selectedPlayerIds.length >= requiredPlayerCount) return;
 
-    setArrayValue("playerUserIds", [...selectedPlayerIds, userId]);
+    setArrayValue("playerIds", [...selectedPlayerIds, playerId]);
     if (selectedFormat !== "four_ball_match_play") return;
 
-    if (teamOneUserIds.length < 2) {
-      setArrayValue("teamOneUserIds", [...teamOneUserIds, userId]);
-    } else if (teamTwoUserIds.length < 2) {
-      setArrayValue("teamTwoUserIds", [...teamTwoUserIds, userId]);
+    if (teamOnePlayerIds.length < 2) {
+      setArrayValue("teamOnePlayerIds", [...teamOnePlayerIds, playerId]);
+    } else if (teamTwoPlayerIds.length < 2) {
+      setArrayValue("teamTwoPlayerIds", [...teamTwoPlayerIds, playerId]);
     }
   };
   const showPlayerPicker = mode === "create" || canRepairFourBallTeams;
@@ -669,7 +669,7 @@ export function MatchSheet({
 
                     <FormField
                       control={form.control}
-                      name="playerUserIds"
+                      name="playerIds"
                       render={() => (
                         <FormItem>
                           <div className="flex items-center justify-between gap-3">
@@ -728,7 +728,7 @@ export function MatchSheet({
                     {showCreateTeamPicker ? (
                       <FormField
                         control={form.control}
-                        name="teamOneUserIds"
+                        name="teamOnePlayerIds"
                         render={() => (
                           <FormItem>
                             <FormLabel>Teams</FormLabel>
@@ -751,7 +751,7 @@ export function MatchSheet({
                                         type="button"
                                         size="sm"
                                         variant={
-                                          teamOneUserIds.includes(player.id)
+                                          teamOnePlayerIds.includes(player.id)
                                             ? "default"
                                             : "outline"
                                         }
@@ -765,7 +765,7 @@ export function MatchSheet({
                                         type="button"
                                         size="sm"
                                         variant={
-                                          teamTwoUserIds.includes(player.id)
+                                          teamTwoPlayerIds.includes(player.id)
                                             ? "default"
                                             : "outline"
                                         }

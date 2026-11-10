@@ -127,10 +127,10 @@ export async function createRound(
 
 /** Only the Round's player or an admin may delete it. */
 export async function deleteRound(
-  userId: string,
+  playerId: string,
   roundId: number,
 ): Promise<DeleteRoundResult> {
-  const access = await readRoundAccess(userId, roundId);
+  const access = await readRoundAccess(playerId, roundId);
   if (!access?.canScore) return ROUND_NOT_FOUND;
   if (!access.canManage) return CANNOT_DELETE_ROUND;
 
@@ -167,8 +167,8 @@ export async function deleteRound(
 }
 
 /**
- * Inserts a Round for each user on the event's course and date and its
- * starting tee. Users who already have a Round in the event are skipped.
+ * Inserts a Round for each Player on the event's course and date and its
+ * starting tee. Players who already have a Round in the event are skipped.
  */
 export async function insertEventRounds(
   tx: Transaction,

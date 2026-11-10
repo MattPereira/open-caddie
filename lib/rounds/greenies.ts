@@ -62,11 +62,11 @@ export const getClosestGreenies = cache(async (limit = 10) => {
     .limit(limit);
 });
 
-export const getGreeniesCountByUserId = cache(async (userId: string) => {
+export const getGreeniesCountByPlayerId = cache(async (playerId: string) => {
   const [row] = await db
     .select({ value: count() })
     .from(greenies)
     .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-    .where(eq(rounds.playerId, userId));
+    .where(eq(rounds.playerId, playerId));
   return row?.value ?? 0;
 });

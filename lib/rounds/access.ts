@@ -72,7 +72,7 @@ function decideAccess(
  * cache()-wrapped getRoundAccess.
  */
 export async function readRoundAccess(
-  viewerUserId: string,
+  viewerPlayerId: string,
   roundId: number,
 ): Promise<RoundAccess | null> {
   const [round] = await db
@@ -83,7 +83,7 @@ export async function readRoundAccess(
   if (!round) return null;
 
   const [viewer, sameGroup, matchCreatorId] = await Promise.all([
-    readViewer(viewerUserId),
+    readViewer(viewerPlayerId),
     readPairingOrMatchRounds(round),
     readMatchCreatorId(round.matchId),
   ]);
@@ -125,7 +125,7 @@ export type EventRoundAccess = {
  */
 export const getEventRoundAccess = cache(
   async (
-    viewerUserId: string,
+    viewerPlayerId: string,
     eventKind: EventKind,
     eventId: number,
   ): Promise<EventRoundAccess> => {
@@ -135,7 +135,7 @@ export const getEventRoundAccess = cache(
           .select(accessedRoundColumns)
           .from(rounds)
           .where(EVENT_KINDS[eventKind].roundsOf(eventId)),
-        readViewer(viewerUserId),
+        readViewer(viewerPlayerId),
         readEventScoringGroups[eventKind](eventId),
       ]);
 
@@ -160,7 +160,7 @@ export const getEventRoundAccess = cache(
     }
 
     const ownRoundId = eventRounds.find(
-      (round) => round.playerId === viewerUserId,
+      (round) => round.playerId === viewerPlayerId,
     )?.id;
     return {
       scorableRoundIds,
@@ -170,13 +170,13 @@ export const getEventRoundAccess = cache(
   },
 );
 
-async function readViewer(userId: string): Promise<Viewer> {
-  const [user] = await db
+async function readViewer(playerId: string): Promise<Viewer> {
+  const [player] = await db
     .select({ isAdmin: users.isAdmin })
     .from(users)
-    .where(eq(users.id, userId))
+    .where(eq(users.id, playerId))
     .limit(1);
-  return { id: userId, isAdmin: user?.isAdmin === true };
+  return { id: playerId, isAdmin: player?.isAdmin === true };
 }
 
 type EventScoringGroups = {

@@ -269,7 +269,7 @@ async function readPriorRounds(where: SQL) {
   const current = db
     .select({
       currentRoundId: sql<number>`${rounds.id}`.as("current_round_id"),
-      currentUserId: sql<string>`${rounds.playerId}`.as("current_user_id"),
+      currentPlayerId: sql<string>`${rounds.playerId}`.as("current_player_id"),
       currentClubId: sql<number>`${seasons.clubId}`.as("current_club_id"),
       currentDate: sql<Date>`${rounds.date}`.as("current_date"),
     })
@@ -298,7 +298,7 @@ async function readPriorRounds(where: SQL) {
     .innerJoin(
       roundSummaries,
       and(
-        eq(roundSummaries.playerId, current.currentUserId),
+        eq(roundSummaries.playerId, current.currentPlayerId),
         eq(roundSummaries.clubId, current.currentClubId),
         lt(roundSummaries.date, current.currentDate),
       ),

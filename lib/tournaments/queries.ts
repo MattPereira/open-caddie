@@ -104,7 +104,7 @@ export const getTournamentById = cache(async (tournamentId: number) => {
   };
 });
 
-export const getUpcomingTournamentsForUser = cache(async (userId: string) => {
+export const getUpcomingTournamentsForPlayer = cache(async (playerId: string) => {
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
 
@@ -128,7 +128,7 @@ export const getUpcomingTournamentsForUser = cache(async (userId: string) => {
       clubMembers,
       and(
         eq(clubMembers.clubId, seasons.clubId),
-        eq(clubMembers.playerId, userId),
+        eq(clubMembers.playerId, playerId),
       ),
     )
     .where(gte(tournaments.date, today))

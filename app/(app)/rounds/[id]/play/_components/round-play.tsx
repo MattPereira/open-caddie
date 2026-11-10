@@ -23,7 +23,7 @@ export type PlayCourse = {
 };
 
 type RoundPlayProps = {
-  currentUserId: string;
+  currentPlayerId: string;
   round: PlayRound;
   course: PlayCourse;
   leaderboardRounds?: PlayRound[];
@@ -37,7 +37,7 @@ type RoundPlayProps = {
 };
 
 export function RoundPlay({
-  currentUserId,
+  currentPlayerId,
   round,
   course,
   leaderboardRounds,
@@ -68,7 +68,7 @@ export function RoundPlay({
 
   return (
     <RoundScoresForm
-      currentUserId={currentUserId}
+      currentPlayerId={currentPlayerId}
       round={round}
       course={course}
       leaderboardRounds={leaderboardRounds}

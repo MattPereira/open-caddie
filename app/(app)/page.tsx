@@ -12,7 +12,7 @@ import { matchFormatLabel } from "@/lib/matches";
 import { brandFont } from "@/app/fonts";
 import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
 import { getCoursesWithTees } from "@/lib/courses/queries";
-import { getActiveRoundForUser } from "@/lib/rounds/queries";
+import { getActiveRoundForPlayer } from "@/lib/rounds/queries";
 import { getHomeEvents } from "@/lib/home/queries";
 import { getAllPlayers, getCurrentPlayer } from "@/lib/players/queries";
 import { createPageMetadata } from "@/app/metadata";
@@ -34,7 +34,7 @@ export default async function Home() {
   const [homeEvents, activeRound, courses, players, clubs] =
     await Promise.all([
       getHomeEvents(),
-      currentPlayer ? getActiveRoundForUser(currentPlayer.id) : null,
+      currentPlayer ? getActiveRoundForPlayer(currentPlayer.id) : null,
       currentPlayer ? getCoursesWithTees() : [],
       currentPlayer ? getAllPlayers() : [],
       currentPlayer?.isAdmin ? getAllClubsWithSeasons() : [],

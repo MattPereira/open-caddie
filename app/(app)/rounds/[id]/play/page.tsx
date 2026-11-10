@@ -93,7 +93,7 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
     <main className="flex min-h-[calc(100svh-3.5rem)] flex-col items-center p-5">
       <section className="flex w-full max-w-md flex-1 flex-col gap-6 sm:flex-none">
         <RoundPlay
-          currentUserId={currentPlayer.id}
+          currentPlayerId={currentPlayer.id}
           round={round}
           course={{ name: play.courseName, ...play.course }}
           leaderboardRounds={play.leaderboardRounds}

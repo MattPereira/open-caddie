@@ -33,7 +33,7 @@ export const getLowestRounds = cache(async (limit = 10) => {
     .limit(limit);
 });
 
-export const getActiveRoundForUser = cache(async (userId: string) => {
+export const getActiveRoundForPlayer = cache(async (playerId: string) => {
   const [row] = await db
     .select({
       roundId: roundSummaries.roundId,
@@ -51,7 +51,7 @@ export const getActiveRoundForUser = cache(async (userId: string) => {
     .leftJoin(seasons, eq(tournaments.seasonId, seasons.id))
     .where(
       and(
-        eq(roundSummaries.playerId, userId),
+        eq(roundSummaries.playerId, playerId),
         eq(roundSummaries.isComplete, false),
       ),
     )
@@ -61,11 +61,11 @@ export const getActiveRoundForUser = cache(async (userId: string) => {
   return row;
 });
 
-export const getRoundsCountByUserId = cache(async (userId: string) => {
+export const getRoundsCountByPlayerId = cache(async (playerId: string) => {
   const [row] = await db
     .select({ value: count() })
     .from(rounds)
-    .where(eq(rounds.playerId, userId));
+    .where(eq(rounds.playerId, playerId));
   return row?.value ?? 0;
 });
 

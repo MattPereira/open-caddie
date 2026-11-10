@@ -27,8 +27,8 @@ if (!testDatabaseUrl) {
 
     // Other Rounds are ordered by player name, which these fixtures
     // randomise, so compare them as a set.
-    async function accessOf(viewerUserId: string, roundId: number) {
-      const access = await getRoundAccess(viewerUserId, roundId);
+    async function accessOf(viewerPlayerId: string, roundId: number) {
+      const access = await getRoundAccess(viewerPlayerId, roundId);
       if (!access) throw new Error("Round not found");
       return {
         canScore: access.canScore,
@@ -195,10 +195,10 @@ if (!testDatabaseUrl) {
     }
 
     async function eventAccessOf(
-      viewerUserId: string,
+      viewerPlayerId: string,
       event: { kind: "tournament" | "match"; id: number },
     ) {
-      const access = await getEventRoundAccess(viewerUserId, event.kind, event.id);
+      const access = await getEventRoundAccess(viewerPlayerId, event.kind, event.id);
       return {
         scorable: sorted(access.scorableRoundIds),
         manageable: sorted(access.manageableRoundIds),

@@ -32,7 +32,7 @@ export type ScorecardImportPlayer = {
  * null when they may not use it. Offers only Rounds the import would accept.
  */
 export async function getScorecardImportPlayers(
-  userId: string,
+  playerId: string,
   eventKind: EventKind,
   eventId: number,
   eventRounds: readonly ({ id: number } & Omit<
@@ -40,7 +40,7 @@ export async function getScorecardImportPlayers(
     "roundId"
   >)[],
 ): Promise<ScorecardImportPlayer[] | null> {
-  const access = await getEventRoundAccess(userId, eventKind, eventId);
+  const access = await getEventRoundAccess(playerId, eventKind, eventId);
   if (!access.canImportScorecard) return null;
 
   return eventRounds

@@ -53,10 +53,10 @@ if (!testDatabaseUrl) {
       return round;
     }
 
-    // A complete Round for `userId` in another Tournament of the same Club.
+    // A complete Round for `playerId` in another Tournament of the same Club.
     async function priorRound(
       t: Tournament,
-      userId: string,
+      playerId: string,
       date: string,
       totalStrokes: number,
     ) {
@@ -73,7 +73,7 @@ if (!testDatabaseUrl) {
         .insert(schema.rounds)
         .values({
           tournamentId: other.id,
-          playerId: userId,
+          playerId: playerId,
           courseId: t.course.id,
           teeId: t.tee.id,
           date: other.date,

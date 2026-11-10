@@ -647,7 +647,7 @@ if (!testDatabaseUrl) {
           m: MatchFixture,
           next: { courseId?: number; date?: Date },
           teeId: number,
-          repairUserIds: string[] = [],
+          repairPlayerIds: string[] = [],
         ) {
           const previous = { courseId: m.match.courseId, date: m.match.date };
           return db.transaction(async (tx) => {
@@ -663,7 +663,7 @@ if (!testDatabaseUrl) {
             const repaired = await lifecycle.insertEventRounds(
               tx,
               { matchId: m.match.id, teeId },
-              repairUserIds,
+              repairPlayerIds,
             );
             return { synced, repaired };
           });

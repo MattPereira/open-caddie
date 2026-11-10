@@ -94,3 +94,79 @@ jobs:
             .eslintcache
             tsconfig.tsbuildinfo
           key: lint-tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+
+  migrations-prod-data:
+    name: Migrations against prod data
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read # dorny/paths-filter lists PR files via the API
+    steps:
+      # Gated per step, not with a `paths:` trigger: a required check that never
+      # starts stays "pending" forever. Pushes to main skip because the Vercel
+      # production build migrates prod itself. Forks lack the Neon secrets.
+      - name: Check for migration changes
+        id: filter
+        if: >-
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            migrations:
+              - 'db/migrations/**'
+              - 'db/schema.ts'
+              - 'drizzle.config.ts'
+              - '.github/workflows/ci.yml'
+
+      - uses: actions/checkout@v7
+        if: steps.filter.outputs.migrations == 'true'
+
+      - uses: pnpm/action-setup@v6
+        if: steps.filter.outputs.migrations == 'true'
+
+      - uses: actions/setup-node@v7
+        if: steps.filter.outputs.migrations == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        if: steps.filter.outputs.migrations == 'true'
+        run: pnpm install --frozen-lockfile
+
+      # Backstop for runs killed before the cleanup step gets to run.
+      - name: Compute branch expiry
+        id: expiry
+        if: steps.filter.outputs.migrations == 'true'
+        run: echo "at=$(date -u -d '+1 hour' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      # A fresh copy each run: the PR's preview branch is copied from prod only
+      # once and drizzle skips migrations it has recorded, so an edited
+      # migration would not be re-tested there.
+      - name: Create Neon branch from prod
+        id: branch
+        if: steps.filter.outputs.migrations == 'true'
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          parent_branch: main
+          branch_name: ci/migrate-check/pr-${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}
+          expires_at: ${{ steps.expiry.outputs.at }}
+
+      - name: Migrate
+        if: steps.filter.outputs.migrations == 'true'
+        env:
+          # Direct URL: drizzle-kit over the pooler can fail.
+          DATABASE_URL: ${{ steps.branch.outputs.db_url }}
+        run: pnpm db:migrate
+
+      - name: Delete Neon branch
+        if: always() && steps.branch.outputs.branch_id != ''
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+          branch: ${{ steps.branch.outputs.branch_id }}

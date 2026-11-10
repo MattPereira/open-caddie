@@ -1,4 +1,5 @@
 {
+  "buildCommand": "bash scripts/vercel-migrate.sh && pnpm build",
   "crons": [
     { "path": "/api/cron/course-scorecard-import-cleanup", "schedule": "0 3 * * *" }
   ]

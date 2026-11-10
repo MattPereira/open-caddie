@@ -1,3 +1,8 @@
+---
+status: accepted
+date: 2026-11-09
+---
+
 # Player is the domain term; User is reserved for sign-in
 
 Every person in Open Caddie is a Player, including people who have never signed in. "User" refers only to a Player's sign-in identity: the Auth.js `user`, `account`, `session` and verification-token tables, plus session and magic-link code. Golf tables reference the person through `player_id`-style columns that point at the Auth.js `user` table's id. The person lives in that table because Auth.js requires it, not because the domain calls them a User.

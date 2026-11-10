@@ -11,7 +11,7 @@ async function violations(code: string, filePath = "lib/rounds/example.ts") {
     .map((message) => message.message);
 }
 
-describe("player-domain-term lint rule (ADR 0006)", () => {
+describe("player-domain-term lint rule (ADR 0007)", () => {
   it.each([
     ["a variable", "const userId = '1';"],
     ["a parameter", "export function f(userId: string) { return userId; }"],

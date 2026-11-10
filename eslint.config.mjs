@@ -12,7 +12,7 @@ const eslintConfig = defineConfig([
     rules: { "local/player-domain-term": "error" },
   },
   {
-    // Sign-in side of ADR 0006: Auth.js config, session types, sign-in links
+    // Sign-in side of ADR 0007: Auth.js config, session types, sign-in links
     // and the login flow keep User naming.
     files: [
       "auth.ts",

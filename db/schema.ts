@@ -51,7 +51,7 @@ export const users = pgTable("user", {
   isAdmin: boolean("isAdmin").notNull().default(false),
 });
 
-// Auth.js adapter tables keep User naming (ADR 0006).
+// Auth.js adapter tables keep User naming (ADR 0007).
 /* eslint-disable local/player-domain-term */
 export const accounts = pgTable(
   "account",

@@ -1,4 +1,4 @@
-// ADR 0006: Player is the domain term; User names only the sign-in identity.
+// ADR 0007: Player is the domain term; User names only the sign-in identity.
 // Files on the sign-in side are exempted in eslint.config.mjs.
 
 // Matched by word, so `useRef` and `username` (the Player's handle) pass.
@@ -42,11 +42,11 @@ const rule = {
     type: "problem",
     docs: {
       description:
-        "Ban User-named identifiers in domain code; say Player (ADR 0006).",
+        "Ban User-named identifiers in domain code; say Player (ADR 0007).",
     },
     messages: {
       domainTerm:
-        "'{{name}}' says User; domain code says Player (ADR 0006). User is only the sign-in identity.",
+        "'{{name}}' says User; domain code says Player (ADR 0007). User is only the sign-in identity.",
     },
     schema: [],
   },

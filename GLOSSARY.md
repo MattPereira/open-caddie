@@ -112,7 +112,7 @@ _Avoid_: tournament skins
 A Season's points table, built from its Tournaments' results: participation, scoring, Tournament Ranking positions and Greenies.
 
 **Field Skins**:
-A Tournament's per-hole game across its Complete Rounds. Each Player gets one stroke on holes whose handicap is at most half their Playing Handicap, rounded down. A unique low net score wins the hole; ties are dead, with no carry-over. A hole any Complete Round did not score is not played. Field Skins earn no Standings points.
+A Tournament's per-hole game across its Complete Rounds. Each Player gets one stroke on holes whose handicap is at most half their Playing Handicap, rounded down. A unique low net score wins the hole; ties are dead, with no carry-over. Field Skins earn no Standings points.
 _Avoid_: Skins, tournament skins
 
 **Tournament Ranking**:

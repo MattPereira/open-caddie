@@ -12,8 +12,9 @@ _Avoid_: User (outside sign-in), golfer, member (for the person itself)
 A Player's sign-in identity: how a person authenticates and holds a session. Used only when talking about signing in.
 _Avoid_: User as a synonym for Player, account (for the person itself)
 
-**Admin**:
-A Player permitted to manage any Club, Tournament, Match, Round or Player. Admin is a trait of the Player, not of their sign-in.
+**Platform Admin**:
+A Player permitted to manage anything in Open Caddie: any Club, Tournament, Match, Round or Player. It is a trait of the Player, not of their sign-in, and not tied to any Club.
+_Avoid_: Admin (alone), site admin, superuser
 
 **Club**:
 A golf group whose Players compete in its Tournaments, grouped into its Seasons.
@@ -36,7 +37,7 @@ One Player's play of one course on one date, casual or within an Event. A Round'
 A Round with strokes recorded on all 18 holes. Only Complete Rounds count toward Player Indexes, Tournament Skins and Tournament Ranking.
 
 **Match**:
-An Event created by one Player, its creator, holding the Rounds of the Players in it. Its format caps its Rounds: Singles at 2, Three-Ball at 3, and Four-Ball needs exactly 4. Only its creator or an Admin may change or delete it.
+An Event created by one Player, its creator, holding the Rounds of the Players in it. Its format caps its Rounds: Singles at 2, Three-Ball at 3, and Four-Ball needs exactly 4. Only its creator or a Platform Admin may change or delete it.
 
 **Match Team**:
 One of the two sides in a Four-Ball Match, each holding two of its Rounds.
@@ -54,11 +55,11 @@ Any Season below its Club's highest-numbered Season. Past Seasons remain editabl
 _Avoid_: Archived Season
 
 **Pairing**:
-An Admin-defined set of up to four Rounds within one Tournament, representing the Players who are playing together. Its Players may enter each other's scores.
+A Platform Admin-defined set of up to four Rounds within one Tournament, representing the Players who are playing together. Its Players may enter each other's scores.
 _Avoid_: Tournament group (already a rejected synonym for Season), foursome (a Pairing may hold fewer than four)
 
 **Scorer**:
-Someone who may enter a Round's per-hole scores and Greenies: the Round's Player, an Admin, the Round's Pairing mates, and, for a Match Round, the Match's other Players and its creator.
+Someone who may enter a Round's per-hole scores and Greenies: the Round's Player, a Platform Admin, the Round's Pairing mates, and, for a Match Round, the Match's other Players and its creator.
 _Avoid_: peer scorer, scorekeeper
 
 **Course Scorecard Import**:

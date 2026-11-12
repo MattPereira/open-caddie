@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { MatchPlayStatus, ScoredContest } from "@/lib/matches";
+import type { MatchPlayStatus, ScoredContest } from "@/lib/matches/scoring";
 import { cn } from "@/lib/utils";
 
 export type MatchPlayTeamView = {

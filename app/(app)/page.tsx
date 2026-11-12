@@ -8,7 +8,7 @@ import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 import { EventCard } from "@/components/domain/event-card";
 import { PageContent } from "@/components/layout/page-content";
 import { PlayRoundButton } from "@/components/domain/play-round-button";
-import { matchFormatLabel } from "@/lib/matches";
+import { matchFormatLabel } from "@/lib/matches/formats";
 import { brandFont } from "@/app/fonts";
 import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
 import { getCoursesWithTees } from "@/lib/courses/queries";

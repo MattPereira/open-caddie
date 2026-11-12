@@ -2,7 +2,7 @@ import type { HandicapHole, NetScoringRound } from "@/lib/rounds/reads";
 import { Card, CardContent } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 import type { MatchFormat } from "../../schema";
-import { scoreMatchPlay } from "@/lib/matches";
+import { scoreMatchPlay } from "@/lib/matches/scoring";
 import { FourBallMatchPlayContent } from "./four-ball-match-play";
 import { toMatchPlayView, type StoredMatchPlayTeam } from "./match-play-shared";
 import { SinglesMatchPlayContent } from "./singles-match-play";

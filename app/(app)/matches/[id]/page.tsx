@@ -10,7 +10,7 @@ import { getMatchById } from "@/lib/matches/queries";
 import { getEventRoundAccess } from "@/lib/rounds/access";
 import { getAllPlayers, getCurrentPlayer } from "@/lib/players/queries";
 import { createPageMetadata } from "@/app/metadata";
-import { matchFormatLabel } from "@/lib/matches";
+import { matchFormatLabel } from "@/lib/matches/formats";
 import { formatDate } from "@/lib/dates";
 import { PageContent } from "@/components/layout/page-content";
 import { UploadScorecardButton } from "@/components/features/scorecard-import/upload-scorecard-button";

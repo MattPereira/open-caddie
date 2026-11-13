@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import type { PointRules } from "./point-rules";
+import type { PointRules } from "../point-rules";
 import {
   computeSeasonStandings,
   type SeasonStandingsRoundInput,
   type SeasonStandingsTournamentInput,
-} from "./season-standings";
+} from "../index";
 
 const pointRules: PointRules = {
   participation: 10,

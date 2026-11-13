@@ -11,7 +11,7 @@ import { appPageIcons } from "@/components/layout/app-nav-items";
 import { StandingsTable } from "@/components/features/standings/standings-table";
 import { Badge } from "@/components/ui/badge";
 import { getClubByHandle, getClubMembersByHandle } from "@/lib/clubs/queries";
-import { getClubSeasons, getSeasonStandings } from "@/lib/clubs/standings/queries";
+import { getClubSeasons, getSeasonStandings } from "@/modules/season-standings";
 import { getCurrentPlayer } from "@/lib/players/queries";
 import { PageContent } from "@/components/layout/page-content";
 import { EditClubButton } from "../_components/edit-club-button";

@@ -4,7 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import * as clubQueries from "@/lib/clubs/queries";
-import * as standings from "@/lib/clubs/standings/queries";
+import * as standings from "@/modules/season-standings";
 import { createRoundFixtures } from "@/lib/rounds/test-fixtures";
 import * as mutations from "./mutations";
 import * as queries from "./queries";

@@ -38,7 +38,7 @@ jobs:
         run: pnpm build
 
   checks:
-    name: Lint, typecheck, test
+    name: Checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:
@@ -94,6 +94,10 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm lint
 
+      - name: Lint boundaries
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm lint:boundaries
+
       - name: Typecheck
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm typecheck
@@ -115,17 +119,18 @@ jobs:
             tsconfig.tsbuildinfo
           key: lint-tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
 
-  migrations-prod-data:
-    name: Migrations against prod data
+  detect-migration-changes:
+    name: Detect migration changes
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     permissions:
       contents: read
       pull-requests: read # dorny/paths-filter lists PR files via the API
+    outputs:
+      migrations: ${{ steps.filter.outputs.migrations }}
     steps:
-      # Gated per step, not with a `paths:` trigger: a required check that never
-      # starts stays "pending" forever. Pushes to main skip because the Vercel
-      # production build migrates prod itself. Forks lack the Neon secrets.
+      # Pushes to main skip because the Vercel production build migrates prod
+      # itself. Forks lack the Neon secrets.
       - name: Check for migration changes
         id: filter
         if: >-
@@ -140,26 +145,28 @@ jobs:
               - 'drizzle.config.ts'
               - '.github/workflows/ci.yml'
 
+  rehearse-prod-migrations:
+    name: Rehearse prod migrations
+    needs: detect-migration-changes
+    if: needs.detect-migration-changes.outputs.migrations == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
       - uses: actions/checkout@v7
-        if: steps.filter.outputs.migrations == 'true'
 
       - uses: pnpm/action-setup@v6
-        if: steps.filter.outputs.migrations == 'true'
 
       - uses: actions/setup-node@v7
-        if: steps.filter.outputs.migrations == 'true'
         with:
           node-version: 24
           cache: pnpm
 
       - name: Install
-        if: steps.filter.outputs.migrations == 'true'
         run: pnpm install --frozen-lockfile
 
       # Backstop for runs killed before the cleanup step gets to run.
       - name: Compute branch expiry
         id: expiry
-        if: steps.filter.outputs.migrations == 'true'
         run: echo "at=$(date -u -d '+1 hour' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
       # A fresh copy each run: the PR's preview branch is copied from prod only
@@ -167,7 +174,6 @@ jobs:
       # migration would not be re-tested there.
       - name: Create Neon branch from prod
         id: branch
-        if: steps.filter.outputs.migrations == 'true'
         uses: neondatabase/create-branch-action@v6
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
@@ -177,7 +183,6 @@ jobs:
           expires_at: ${{ steps.expiry.outputs.at }}
 
       - name: Migrate
-        if: steps.filter.outputs.migrations == 'true'
         env:
           # Direct URL: drizzle-kit over the pooler can fail.
           DATABASE_URL: ${{ steps.branch.outputs.db_url }}
@@ -190,3 +195,18 @@ jobs:
           project_id: ${{ vars.NEON_PROJECT_ID }}
           api_key: ${{ secrets.NEON_API_KEY }}
           branch: ${{ steps.branch.outputs.branch_id }}
+
+  # The only check the main ruleset needs to require, so jobs can be added,
+  # renamed or skipped by editing `needs` here instead of the ruleset.
+  # `always()` is load-bearing: without it a failed dependency skips this job,
+  # and GitHub counts a skipped required check as passing.
+  merge-gate:
+    name: Merge gate
+    if: always()
+    needs: [build, checks, detect-migration-changes, rehearse-prod-migrations]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Fail if any job failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

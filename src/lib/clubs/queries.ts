@@ -10,7 +10,7 @@ import {
   tournaments,
   users,
 } from "@/db/schema";
-import type { PointRules } from "@/lib/clubs/standings/point-rules";
+import type { PointRules } from "@/modules/season-standings/point-rules";
 
 export const getAllClubs = cache(async () => {
   return db

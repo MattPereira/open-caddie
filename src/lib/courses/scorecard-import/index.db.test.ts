@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { eq, like, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { createCourseScorecardImport } from "./index";
 
 // Exercises only the public import interface; direct database access below
-// is fixture setup/cleanup.
+// is fixture setup.
 describe("Course Scorecard Import", () => {
   const actorId = crypto.randomUUID();
   const secondActorId = crypto.randomUUID();
@@ -42,10 +42,6 @@ describe("Course Scorecard Import", () => {
   afterEach(async () => {
     await db.execute(sql.raw("drop trigger if exists fail_course_holes_insert on course_holes"));
     await db.execute(sql.raw("drop function if exists fail_course_holes_insert()"));
-    await db.delete(schema.courseScorecardImports).where(eq(schema.courseScorecardImports.createdByPlayerId, actorId));
-    await db.delete(schema.courses).where(like(schema.courses.name, `%${actorId}%`));
-    await db.delete(schema.users).where(eq(schema.users.id, actorId));
-    await db.delete(schema.users).where(eq(schema.users.id, secondActorId));
   });
 
   it("publishes a clean new course", async () => {
@@ -539,7 +535,6 @@ describe("Course Scorecard Import", () => {
     ]);
     expect([first.outcome, second.outcome].sort()).toEqual(["paused", "rejected"]);
     expect(await guarded.start({ actorId: outsiderId, target: { kind: "new", name: `Forbidden ${actorId}` }, stagedScorecardImageHandle: "forbidden" })).toEqual({ outcome: "rejected", reason: "forbidden" });
-    await db.delete(schema.users).where(eq(schema.users.id, outsiderId));
   });
 
   it("returns the current view on a revision conflict without merging the intent", async () => {

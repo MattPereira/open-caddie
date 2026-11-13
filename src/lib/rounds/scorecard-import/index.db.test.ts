@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { readScorecardsByRounds } from "../scorecards";
@@ -37,7 +37,6 @@ vi.mock("./parser", () => ({
 
 describe("Round Scorecard Import", () => {
   const fixtures = createRoundFixtures(db, schema);
-  const uploaderIds: string[] = [];
 
   const IMAGE_URL =
     "https://example.public.blob.vercel-storage.com/round-scorecards/card.jpg";
@@ -56,7 +55,6 @@ describe("Round Scorecard Import", () => {
     event: { kind: "tournament" | "match"; id: number },
     roundIds: number[],
   ) {
-    uploaderIds.push(playerId);
     return importRoundScorecard({
       playerId,
       eventKind: event.kind,
@@ -84,17 +82,8 @@ describe("Round Scorecard Import", () => {
     );
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     vi.unstubAllGlobals();
-    if (uploaderIds.length) {
-      await db
-        .delete(schema.roundScorecardUploads)
-        .where(
-          inArray(schema.roundScorecardUploads.uploadedByPlayerId, uploaderIds),
-        );
-    }
-    uploaderIds.length = 0;
-    await fixtures.cleanup();
   });
 
   it("lets a Pairing mate import their Pairing's Rounds", async () => {

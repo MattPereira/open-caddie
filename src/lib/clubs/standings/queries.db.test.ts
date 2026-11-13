@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -28,10 +28,6 @@ describe("Season Standings read", () => {
       ],
     },
   };
-
-  afterEach(async () => {
-    await fixtures.cleanup();
-  });
 
   function par(hole: number) {
     return PAR_THREE_HOLES.includes(hole) ? 3 : 4;

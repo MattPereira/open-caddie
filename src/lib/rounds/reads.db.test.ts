@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -10,10 +10,6 @@ describe("Round reads", () => {
   const fixtures = createRoundFixtures(db, schema);
 
   type Tournament = Awaited<ReturnType<typeof fixtures.tournament>>;
-
-  afterEach(async () => {
-    await fixtures.cleanup();
-  });
 
   // Fixture tees are rated 72, so with their slope a Round's Score
   // Differential scales back to (strokes - 72) as a Course Handicap.

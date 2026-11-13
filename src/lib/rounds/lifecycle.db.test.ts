@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
@@ -86,10 +86,6 @@ describe("Round lifecycle", () => {
   beforeEach(() => {
     revalidatePath.mockClear();
     updateTag.mockClear();
-  });
-
-  afterEach(async () => {
-    await fixtures.cleanup();
   });
 
   describe("create Round", () => {

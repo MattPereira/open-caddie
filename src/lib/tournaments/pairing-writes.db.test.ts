@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { inArray, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { getRoundById } from "@/lib/rounds/queries";
@@ -14,10 +14,6 @@ const cache = vi.hoisted(() => ({
 vi.mock("next/cache", () => cache);
 
 describe("Pairing writes", () => {
-  const clubIds: number[] = [];
-  const courseIds: number[] = [];
-  const playerIds: string[] = [];
-
   async function tournamentFixture() {
     const suffix = crypto.randomUUID();
     const [club] = await db.insert(schema.clubs).values({
@@ -34,8 +30,6 @@ describe("Pairing writes", () => {
       courseId: course.id,
       teeId: tee.id,
     }).returning();
-    clubIds.push(club.id);
-    courseIds.push(course.id);
     return { tournament, course, tee };
   }
 
@@ -59,7 +53,6 @@ describe("Pairing writes", () => {
         date: f.tournament.date,
       })
       .returning();
-    playerIds.push(player.id);
     return { player, round };
   }
 
@@ -76,7 +69,6 @@ describe("Pairing writes", () => {
       email: `player-${crypto.randomUUID()}@example.com`,
       isAdmin,
     }).returning();
-    playerIds.push(player.id);
     return player.id;
   }
 
@@ -84,21 +76,6 @@ describe("Pairing writes", () => {
     adminId = await newPlayerId(true);
     cache.revalidatePath.mockClear();
     cache.updateTag.mockClear();
-  });
-
-  afterEach(async () => {
-    // Rounds restrict their Tournament, Course and Player, so they go first.
-    if (playerIds.length) await db.delete(schema.rounds).where(inArray(schema.rounds.playerId, playerIds));
-    if (clubIds.length) {
-      const clubSeasonIds = (await db.select({ id: schema.seasons.id }).from(schema.seasons).where(inArray(schema.seasons.clubId, clubIds))).map((season) => season.id);
-      if (clubSeasonIds.length) await db.delete(schema.tournaments).where(inArray(schema.tournaments.seasonId, clubSeasonIds));
-      await db.delete(schema.clubs).where(inArray(schema.clubs.id, clubIds));
-    }
-    if (courseIds.length) await db.delete(schema.courses).where(inArray(schema.courses.id, courseIds));
-    if (playerIds.length) await db.delete(schema.users).where(inArray(schema.users.id, playerIds));
-    clubIds.length = 0;
-    courseIds.length = 0;
-    playerIds.length = 0;
   });
 
   it("creates a numbered Pairing for an admin", async () => {

@@ -50,6 +50,7 @@ export default defineConfig({
             DATABASE_DRIVER: "node-postgres",
           },
           globalSetup: ["./src/test/db-global-setup.ts"],
+          setupFiles: ["./src/test/db-setup.ts"],
         },
       },
     ],

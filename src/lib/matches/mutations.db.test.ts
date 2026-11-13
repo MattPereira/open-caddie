@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { createRoundFixtures } from "@/lib/rounds/test-fixtures";
@@ -14,7 +14,6 @@ vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
 
 describe("Match mutations", () => {
   const fixtures = createRoundFixtures(db, schema);
-  const createdMatchIds: number[] = [];
 
   type MatchFormat = (typeof schema.matches.$inferSelect)["format"];
   type Course = Awaited<ReturnType<typeof fixtures.course>>;
@@ -22,19 +21,6 @@ describe("Match mutations", () => {
   beforeEach(() => {
     revalidatePath.mockClear();
     updateTag.mockClear();
-  });
-
-  afterEach(async () => {
-    if (createdMatchIds.length) {
-      await db
-        .delete(schema.rounds)
-        .where(inArray(schema.rounds.matchId, createdMatchIds));
-      await db
-        .delete(schema.matches)
-        .where(inArray(schema.matches.id, createdMatchIds));
-      createdMatchIds.length = 0;
-    }
-    await fixtures.cleanup();
   });
 
   function invalidatedPaths() {
@@ -65,7 +51,6 @@ describe("Match mutations", () => {
       teamOnePlayerIds: teams[0],
       teamTwoPlayerIds: teams[1],
     });
-    if (result.ok && result.id != null) createdMatchIds.push(result.id);
     return result;
   }
 

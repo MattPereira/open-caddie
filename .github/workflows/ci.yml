@@ -56,7 +56,8 @@ jobs:
           --health-timeout 5s
           --health-retries 15
     env:
-      # drizzle-kit migrate reads DATABASE_URL; the suites read TEST_DATABASE_URL.
+      # No migrate step: the db project migrates its own template database from
+      # TEST_DATABASE_URL. DATABASE_URL is for modules the unit project loads.
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/open_caddie_test
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/open_caddie_test
     steps:
@@ -96,10 +97,6 @@ jobs:
       - name: Typecheck
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm typecheck
-
-      - name: Migrate test DB
-        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: pnpm db:migrate
 
       - name: Test
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}

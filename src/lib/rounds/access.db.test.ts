@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -25,10 +25,6 @@ describe("Round access", () => {
       others: sorted(access.otherScorableRoundIds),
     };
   }
-
-  afterEach(async () => {
-    await fixtures.cleanup();
-  });
 
   it("lets the Round's player score and manage, with their Pairing mates' Rounds as others", async () => {
     const t = await fixtures.tournament();
@@ -185,10 +181,6 @@ describe("Event Round access", () => {
       canImportScorecard: access.canImportScorecard,
     };
   }
-
-  afterEach(async () => {
-    await fixtures.cleanup();
-  });
 
   it("lets a Pairing mate score and import their Pairing's Rounds only", async () => {
     const t = await fixtures.tournament();

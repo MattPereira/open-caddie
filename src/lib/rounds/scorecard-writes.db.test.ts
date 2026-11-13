@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -61,10 +61,6 @@ describe("Round scorecard writes", () => {
   beforeEach(() => {
     vi.mocked(revalidatePath).mockClear();
     vi.mocked(updateTag).mockClear();
-  });
-
-  afterEach(async () => {
-    await fixtures.cleanup();
   });
 
   it("keeps a field that's left out and clears one that's explicitly null", async () => {

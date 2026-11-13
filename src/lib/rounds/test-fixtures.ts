@@ -1,16 +1,9 @@
-import { inArray } from "drizzle-orm";
-
 import type { db as Db } from "@/db";
 import type * as Schema from "@/db/schema";
 import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
 // Fixtures shared by the Round suites in the `db` test project.
 export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
-  const clubIds: number[] = [];
-  const courseIds: number[] = [];
-  const playerIds: string[] = [];
-  const matchIds: number[] = [];
-
   async function course() {
     const suffix = crypto.randomUUID();
     const [created] = await db
@@ -29,7 +22,6 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
         handicap: index + 1,
       })),
     );
-    courseIds.push(created.id);
     return { course: created, tee };
   }
 
@@ -52,7 +44,6 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
         isAdmin,
       })
       .returning();
-    playerIds.push(created.id);
     return created;
   }
 
@@ -76,7 +67,6 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
         },
       })
       .returning();
-    clubIds.push(club.id);
     const [season] = await db
       .insert(schema.seasons)
       .values({ clubId: club.id, number: 1 })
@@ -138,7 +128,6 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
         date: new Date("2026-01-01T00:00:00.000Z"),
       })
       .returning();
-    matchIds.push(created.id);
     const players = [];
     for (let i = 0; i < playerCount; i += 1) {
       const matchPlayer = i === 0 && creatorPlays ? creator : await player();
@@ -157,46 +146,7 @@ export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
     return { match: created, creator, players };
   }
 
-  async function cleanup() {
-    if (playerIds.length) {
-      await db
-        .delete(schema.rounds)
-        .where(inArray(schema.rounds.playerId, playerIds));
-    }
-    if (matchIds.length) {
-      await db
-        .delete(schema.matches)
-        .where(inArray(schema.matches.id, matchIds));
-    }
-    if (clubIds.length) {
-      const seasonIds = (
-        await db
-          .select({ id: schema.seasons.id })
-          .from(schema.seasons)
-          .where(inArray(schema.seasons.clubId, clubIds))
-      ).map((season) => season.id);
-      if (seasonIds.length) {
-        await db
-          .delete(schema.tournaments)
-          .where(inArray(schema.tournaments.seasonId, seasonIds));
-      }
-      await db.delete(schema.clubs).where(inArray(schema.clubs.id, clubIds));
-    }
-    if (courseIds.length) {
-      await db
-        .delete(schema.courses)
-        .where(inArray(schema.courses.id, courseIds));
-    }
-    if (playerIds.length) {
-      await db.delete(schema.users).where(inArray(schema.users.id, playerIds));
-    }
-    clubIds.length = 0;
-    courseIds.length = 0;
-    playerIds.length = 0;
-    matchIds.length = 0;
-  }
-
-  return { course, tee, player, tournament, tournamentPlayer, pairing, match, cleanup };
+  return { course, tee, player, tournament, tournamentPlayer, pairing, match };
 }
 
 export const PAR_THREE_HOLES = [3, 7, 12, 16];

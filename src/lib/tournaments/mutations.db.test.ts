@@ -1,6 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { desc, eq, inArray } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import * as clubQueries from "@/lib/clubs/queries";
@@ -16,8 +16,6 @@ const { revalidatePath, updateTag } = vi.hoisted(() => ({
 vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
 
 describe("Tournament Season mutations", () => {
-  const clubIds: number[] = [];
-  const courseIds: number[] = [];
   const fixtures = createRoundFixtures(db, schema);
   let admin: Awaited<ReturnType<typeof fixtures.player>>;
 
@@ -30,8 +28,6 @@ describe("Tournament Season mutations", () => {
     }).returning();
     const [course] = await db.insert(schema.courses).values({ handle: `course-${suffix}`, name: `Course ${suffix}` }).returning();
     const [tee] = await db.insert(schema.courseTees).values({ courseId: course.id, name: "Blue", rating: "72", slope: 120 }).returning();
-    clubIds.push(club.id);
-    courseIds.push(course.id);
     return { club, course, tee };
   }
 
@@ -58,18 +54,6 @@ describe("Tournament Season mutations", () => {
     admin = await fixtures.player({ isAdmin: true });
     revalidatePath.mockClear();
     updateTag.mockClear();
-  });
-
-  afterEach(async () => {
-    await fixtures.cleanup();
-    if (clubIds.length) {
-      const clubSeasonIds = (await db.select({ id: schema.seasons.id }).from(schema.seasons).where(inArray(schema.seasons.clubId, clubIds))).map((season) => season.id);
-      if (clubSeasonIds.length) await db.delete(schema.tournaments).where(inArray(schema.tournaments.seasonId, clubSeasonIds));
-      await db.delete(schema.clubs).where(inArray(schema.clubs.id, clubIds));
-    }
-    if (courseIds.length) await db.delete(schema.courses).where(inArray(schema.courses.id, courseIds));
-    clubIds.length = 0;
-    courseIds.length = 0;
   });
 
   it("creates Season 1 for a Club's first Tournament", async () => {

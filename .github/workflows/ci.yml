@@ -38,7 +38,7 @@ jobs:
         run: pnpm build
 
   checks:
-    name: Lint, typecheck, test
+    name: Checks
     runs-on: ubuntu-latest
     timeout-minutes: 10
     services:

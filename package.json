@@ -15,7 +15,6 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "spike:scorecard": "tsx evals/scorecard-import/spike.ts",
-    "sandcastle": "npx tsx .sandcastle/main.mts",
     "neon": "neon --config-dir .neon-local --no-analytics"
   },
   "dependencies": {
@@ -57,7 +56,6 @@
     "zod": "^4.4.2"
   },
   "devDependencies": {
-    "@ai-hero/sandcastle": "^0.12.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",

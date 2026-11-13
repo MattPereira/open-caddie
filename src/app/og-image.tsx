@@ -19,7 +19,7 @@ export async function createOpenCaddieOgImage({
   imageUrl,
 }: OpenCaddieOgImageOptions) {
   const [damion, bgSrc] = await Promise.all([
-    readFile(join(process.cwd(), "assets/Damion-Regular.ttf")),
+    readFile(join(process.cwd(), "src/assets/Damion-Regular.ttf")),
     getImageSrc(imageUrl),
   ]);
 

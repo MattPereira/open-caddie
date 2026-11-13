@@ -13,7 +13,7 @@ export const contentType = openGraphImageContentType;
 
 export default async function Image() {
   const [damion, bg] = await Promise.all([
-    readFile(join(process.cwd(), "assets/Damion-Regular.ttf")),
+    readFile(join(process.cwd(), "src/assets/Damion-Regular.ttf")),
     readFile(join(process.cwd(), "public/poipu-bay.jpg")),
   ]);
   const bgDataUrl = `data:image/jpeg;base64,${bg.toString("base64")}`;

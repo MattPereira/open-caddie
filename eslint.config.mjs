@@ -15,11 +15,11 @@ const eslintConfig = defineConfig([
     // Sign-in side of ADR 0007: Auth.js config, session types, sign-in links
     // and the login flow keep User naming.
     files: [
-      "auth.ts",
-      "auth.types.d.ts",
-      "lib/auth/**",
-      "app/(app)/login/**",
-      "app/api/auth/**",
+      "src/auth.ts",
+      "src/auth.types.d.ts",
+      "src/lib/auth/**",
+      "src/app/(app)/login/**",
+      "src/app/api/auth/**",
     ],
     rules: { "local/player-domain-term": "off" },
   },
@@ -33,7 +33,6 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Agent worktrees are full copies of the repo, and ESLint doesn't read
     // .gitignore. Also excluded in tsconfig.json and vitest.config.ts.
-    ".sandcastle/worktrees/**",
     ".claude/worktrees/**",
   ]),
 ]);

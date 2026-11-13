@@ -3,13 +3,13 @@ status: accepted
 date: 2026-07-13
 ---
 
-# Data-access placement: `db/` is the Drizzle boundary, reads live in `lib/<domain>/`
+# Data-access placement: `src/db/` is the Drizzle boundary, reads live in `src/lib/<domain>/`
 
-`db/` holds only the Drizzle boundary — how we talk to Postgres — and nothing else:
+`src/db/` holds only the Drizzle boundary — how we talk to Postgres — and nothing else:
 
-- `db/index.ts` — the drizzle client (connection).
-- `db/schema.ts` — table, enum, and view definitions.
-- `db/migrations/` — generated migration SQL and the drizzle-kit journal (`out` in `drizzle.config.ts`). Kept here rather than the drizzle-kit default root `drizzle/` so the connection, schema, and migrations — the complete Drizzle surface — live in one folder.
+- `src/db/index.ts` — the drizzle client (connection).
+- `src/db/schema.ts` — table, enum, and view definitions.
+- `db/migrations/` — generated migration SQL and the drizzle-kit journal (`out` in `drizzle.config.ts`). Kept at the repository root to preserve migration history and tooling paths while application code lives under `src/`.
 
 It is off-limits to feature work unless you are changing the connection or a table definition. All application data logic lives elsewhere, placed by a single rule:
 
@@ -29,8 +29,10 @@ It is off-limits to feature work unless you are changing the connection or a tab
 
 ## Consequences
 
-The agent-facing placement rule: **Reads → `lib/<domain>/queries.ts`. Writes enter through that route's `actions.ts`; once a write has a second entry point or carries policy, it moves to a plain (non-`"use server"`) module in `lib/<domain>/` that takes the acting Player's id.** `db/` becomes small and stable. Read modules keep importing `@/db` and `@/db/schema` unchanged; only their location and consumers' import paths change. The fat query files (`courses`, `standings`) may later become a `queries/` folder-with-barrel if they hurt.
+The agent-facing placement rule: **Reads → `lib/<domain>/queries.ts`. Writes enter through that route's `actions.ts`; once a write has a second entry point or carries policy, it moves to a plain (non-`"use server"`) module in `lib/<domain>/` that takes the acting Player's id.** `src/db/` stays small and stable. Read modules keep importing `@/db` and `@/db/schema` unchanged; only their location and consumers' import paths change. The fat query files (`courses`, `standings`) may later become a `queries/` folder-with-barrel if they hurt.
 
 ## Amendments
+
+**2026-11-12: application source under `src/` (#109).** Connection and schema move to `src/db/`; generated migrations remain at root `db/migrations/`. This supersedes the original single-folder Drizzle layout. `drizzle.config.ts` connects the two paths. Application `lib/` and route paths in this ADR are relative to `src/`; placement rules and `@/db` imports remain unchanged.
 
 **2026-11-06: write extraction trigger.** The original rule kept every write in its action. It assumed authorization and `revalidatePath` were route-boundary concerns. They aren't: `revalidatePath` works from any server module, and "who may write this" and "which pages show this" are domain knowledge. Keeping them in actions caused the very drift this ADR set out to prevent. Round scorecard writes had four conflicting access policies and six hand-copied revalidation lists that had drifted apart. Tests were placed where the missing modules should be (`lib/rounds/write-access.test.ts`, `lib/tournaments/mutations.test.ts`), so they had to drive actions while mocking `@/auth`. The original argument against splitting, "passing `userId` in", turned out to be the testability gain: a module that takes the Player id is tested without mocking auth. Authentication, parsing and `redirect` stay in the action. Round scorecard writes and Round write access are the first modules extracted under this trigger.

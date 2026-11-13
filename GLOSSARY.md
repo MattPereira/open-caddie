@@ -110,7 +110,11 @@ _Avoid_: Skins (alone)
 ## Tournament results
 
 **Standings**:
-A Season's points table, built from its Tournaments' results: participation, scoring, Tournament Ranking positions and Greenies.
+A Season's points table, built from its Tournaments' results: participation, scoring, Tournament Ranking positions and Greenies. Every Tournament Round earns participation, scoring and Greenie points; only Complete Rounds earn Tournament Ranking position points. Scoring points follow gross strokes, and a hole in one earns ace points only.
+
+**Counted Round**:
+One of a Player's highest-scoring Tournament Rounds in a Season, by Standings points, up to a fixed number; only Counted Rounds add to the Player's Standings total. The rest are dropped.
+_Avoid_: best rounds, scoring rounds
 
 **Tournament Skins**:
 A Tournament's per-hole game across its Complete Rounds. Each Player gets one stroke on holes whose handicap is at most half their Playing Handicap, rounded down. A unique low net score wins the hole; ties are dead, with no carry-over. Tournament Skins earn no Standings points.

@@ -124,13 +124,13 @@ function formatShortDate(date: Date) {
 function toDesktopStanding(standing: Standing): DesktopStanding {
   return {
     playerId: standing.playerId,
-    playerName: displayName(standing.player),
+    playerName: displayName(standing),
     position: standing.position,
     points: standing.points,
     countedRounds: standing.roundBreakdown
       .filter((round) => round.counted)
       .map((round) => ({
-        roundId: round.roundId,
+        roundId: round.id,
         dateLabel: formatShortDate(round.date),
         courseName: round.courseName,
         points: round.points,
@@ -141,14 +141,20 @@ function toDesktopStanding(standing: Standing): DesktopStanding {
 function toMobileStanding(standing: Standing): MobileStanding {
   return {
     playerId: standing.playerId,
-    player: standing.player,
+    player: {
+      email: standing.email,
+      firstName: standing.firstName,
+      lastName: standing.lastName,
+      username: standing.username,
+      image: standing.image,
+    },
     roundsPlayed: standing.roundsPlayed,
     droppedRounds: standing.droppedRounds,
     points: standing.points,
     countedRounds: standing.roundBreakdown
       .filter((round) => round.counted)
       .map((round) => ({
-        roundId: round.roundId,
+        roundId: round.id,
         dateLabel: formatShortDate(round.date),
         courseName: round.courseName,
         points: round.points,

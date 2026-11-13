@@ -182,29 +182,33 @@ const scopes = {
 type Scope = { by: keyof typeof scopes; id: number };
 type CourseIdQuery = ReturnType<(typeof scopes)[Scope["by"]]["courseOf"]>;
 
+const roundRowFields = {
+  id: roundSummaries.roundId,
+  tournamentId: roundSummaries.tournamentId,
+  playerId: roundSummaries.playerId,
+  date: roundSummaries.date,
+  firstName: users.firstName,
+  lastName: users.lastName,
+  username: users.username,
+  image: users.image,
+  courseId: roundSummaries.courseId,
+  teeId: rounds.teeId,
+  courseRating: roundSummaries.courseRating,
+  courseSlope: roundSummaries.courseSlope,
+  recordedStrokesCount: roundSummaries.recordedStrokesCount,
+  recordedPuttsCount: roundSummaries.recordedPuttsCount,
+  totalStrokes: roundSummaries.totalStrokes,
+  totalPutts: roundSummaries.totalPutts,
+  isComplete: roundSummaries.isComplete,
+  scoreDifferential: roundSummaries.scoreDifferential,
+};
+
 function readRoundRows(where: SQL) {
   return db
     .select({
-      id: roundSummaries.roundId,
-      tournamentId: roundSummaries.tournamentId,
+      ...roundRowFields,
       matchId: roundSummaries.matchId,
       playerIndexOverride: roundSummaries.playerIndexOverride,
-      playerId: roundSummaries.playerId,
-      date: roundSummaries.date,
-      firstName: users.firstName,
-      lastName: users.lastName,
-      username: users.username,
-      image: users.image,
-      courseId: roundSummaries.courseId,
-      teeId: rounds.teeId,
-      courseRating: roundSummaries.courseRating,
-      courseSlope: roundSummaries.courseSlope,
-      recordedStrokesCount: roundSummaries.recordedStrokesCount,
-      recordedPuttsCount: roundSummaries.recordedPuttsCount,
-      totalStrokes: roundSummaries.totalStrokes,
-      totalPutts: roundSummaries.totalPutts,
-      isComplete: roundSummaries.isComplete,
-      scoreDifferential: roundSummaries.scoreDifferential,
     })
     .from(roundSummaries)
     .innerJoin(rounds, eq(rounds.id, roundSummaries.roundId))
@@ -343,6 +347,22 @@ async function readPriorRounds(where: SQL) {
   );
 }
 
+function assessTournamentRound(
+  row: Pick<RoundBase, "id" | "courseSlope" | "totalStrokes" | "isComplete">,
+  priorByRoundId: Awaited<ReturnType<typeof readPriorRounds>>,
+) {
+  const priorRounds = (priorByRoundId.get(row.id) ?? []).map(
+    ({ prior }) => prior,
+  );
+  const handicap = assessHandicap({
+    source: { kind: "tournament", priorRounds },
+    slope: row.courseSlope,
+    totalStrokes: row.totalStrokes,
+    isComplete: row.isComplete,
+  });
+  return { priorRounds, handicap };
+}
+
 async function readRounds({ by, id }: Scope) {
   const where = scopes[by].roundsIn(id);
   const courseId = scopes[by].courseOf(id);
@@ -379,13 +399,10 @@ async function readRounds({ by, id }: Scope) {
     };
 
     if (tournamentId != null) {
-      const priorRounds = (priorByRoundId.get(row.id) ?? []).map(
-        ({ prior }) => prior,
+      const { priorRounds, handicap } = assessTournamentRound(
+        row,
+        priorByRoundId,
       );
-      const handicap = assessHandicap({
-        source: { kind: "tournament", priorRounds },
-        ...strokes,
-      });
       const used = new Set(handicap.usedPriorRoundIds);
       handicapDetails.set(row.id, {
         priorRounds: priorRounds.map((prior) => ({
@@ -466,6 +483,68 @@ export const readMatchRounds = cache(
   async (matchId: number): Promise<RoundsRead<MatchRound>> => {
     const { course, rounds } = await readRounds({ by: "match", id: matchId });
     return { course, rounds: rounds.filter(ofKind("match")) };
+  },
+);
+
+/**
+ * A Tournament Round of a Season, as Standings read it. A Season spans several
+ * courses, so each Round names its own course and the read has no holes, tees
+ * or yards.
+ */
+export type SeasonRound = Omit<TournamentRound, "kind" | "yards"> & {
+  email: string | null;
+  courseHandle: string;
+  courseName: string;
+  playerIndex: number | null;
+};
+
+/** Every Tournament Round in a Club's Season, in no particular order. */
+export const readSeasonRounds = cache(
+  async (clubId: number, season: number): Promise<SeasonRound[]> => {
+    const where = inArray(
+      rounds.tournamentId,
+      db
+        .select({ id: tournaments.id })
+        .from(tournaments)
+        .innerJoin(seasons, eq(seasons.id, tournaments.seasonId))
+        .where(and(eq(seasons.clubId, clubId), eq(seasons.number, season))),
+    );
+    const [rows, { scores, greenies }, priorByRoundId] = await Promise.all([
+      db
+        .select({
+          ...roundRowFields,
+          email: users.email,
+          courseHandle: courses.handle,
+          courseName: courses.name,
+        })
+        .from(roundSummaries)
+        .innerJoin(rounds, eq(rounds.id, roundSummaries.roundId))
+        .innerJoin(users, eq(users.id, roundSummaries.playerId))
+        .innerJoin(courses, eq(courses.id, roundSummaries.courseId))
+        .where(where),
+      readScorecardsByRounds(where),
+      readPriorRounds(where),
+    ]);
+
+    const scoresByRoundId = Map.groupBy(scores, (row) => row.roundId);
+    const greeniesByRoundId = Map.groupBy(greenies, (row) => row.roundId);
+
+    return rows.flatMap((row) => {
+      const { tournamentId, ...fields } = row;
+      if (tournamentId == null) return [];
+      const { handicap } = assessTournamentRound(row, priorByRoundId);
+      return [
+        {
+          ...fields,
+          tournamentId,
+          playerIndex: handicap.playerIndex,
+          playingHandicap: handicap.playingHandicap,
+          netStrokes: handicap.netStrokes,
+          scores: scoresByRoundId.get(row.id) ?? [],
+          greenies: greeniesByRoundId.get(row.id) ?? [],
+        },
+      ];
+    });
   },
 );
 

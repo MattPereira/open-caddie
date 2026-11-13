@@ -119,7 +119,7 @@ jobs:
             tsconfig.tsbuildinfo
           key: lint-tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
 
-  changes:
+  detect-migration-changes:
     name: Detect migration changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -145,10 +145,10 @@ jobs:
               - 'drizzle.config.ts'
               - '.github/workflows/ci.yml'
 
-  migrations-prod-data:
+  rehearse-prod-migrations:
     name: Rehearse prod migrations
-    needs: changes
-    if: needs.changes.outputs.migrations == 'true'
+    needs: detect-migration-changes
+    if: needs.detect-migration-changes.outputs.migrations == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -200,10 +200,10 @@ jobs:
   # renamed or skipped by editing `needs` here instead of the ruleset.
   # `always()` is load-bearing: without it a failed dependency skips this job,
   # and GitHub counts a skipped required check as passing.
-  ci:
+  merge-gate:
     name: Merge gate
     if: always()
-    needs: [build, checks, changes, migrations-prod-data]
+    needs: [build, checks, detect-migration-changes, rehearse-prod-migrations]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

@@ -187,7 +187,7 @@ if (!testDatabaseUrl) {
       expect(read).toMatchObject({
         club: { id: clubId },
         season: 1,
-        roundLimit: 10,
+        countedRoundLimit: 10,
         pointRules,
       });
       expect(read?.tournaments.map((tt) => tt.id)).toEqual([
@@ -205,7 +205,7 @@ if (!testDatabaseUrl) {
 
       expect(
         firstRead.rounds.map((round) => ({
-          roundId: round.roundId,
+          roundId: round.id,
           courseHandle: round.courseHandle,
           totalStrokes: round.totalStrokes,
           totalPutts: round.totalPutts,
@@ -272,7 +272,7 @@ if (!testDatabaseUrl) {
 
       expect(
         secondRead.rounds.map((round) => ({
-          roundId: round.roundId,
+          roundId: round.id,
           courseHandle: round.courseHandle,
           netStrokes: round.netStrokes,
           points: round.points,
@@ -318,7 +318,7 @@ if (!testDatabaseUrl) {
       // Equal-point Rounds are counted in Round order, so the last one drops.
       const dropped = fillerRounds.at(-1)!;
       expect(
-        read?.players[0].roundBreakdown.map((round) => [round.roundId, round.counted]),
+        read?.players[0].roundBreakdown.map((round) => [round.id, round.counted]),
       ).toEqual([
         [x1.id, true],
         [x2.id, true],
@@ -372,11 +372,71 @@ if (!testDatabaseUrl) {
 
       expect(read?.tournaments).toHaveLength(1);
       const [round] = read!.tournaments[0].rounds;
-      expect(round.roundId).toBe(current.id);
+      expect(round.id).toBe(current.id);
       // Differentials of the 76 and 78 on a 72 / slope 120 tee average to
       // 4.71, a Playing Handicap of 5.
       expect(round.playerIndex).toBeCloseTo(4.708, 3);
       expect(round.netStrokes).toBeCloseTo(75);
+    });
+
+    it("builds the Player Index from the best 2 of the last 4 prior Rounds", async () => {
+      const { t, clubId } = await club();
+      const course = { course: t.course, tee: t.tee };
+      const player = await fixtures.player();
+      // Oldest first. The 72 is the best Round but falls outside the last 4.
+      const grosses = [72, 80, 77, 84, 79];
+      for (const [index, gross] of grosses.entries()) {
+        const prior = await enter(
+          await tournament(t.tournament.seasonId, course, `2025-0${index + 2}-01`),
+          player,
+        );
+        await card(prior.id, { strokes: (hole) => (hole === 18 ? gross - 68 : 4) });
+      }
+
+      const [season2] = await db
+        .insert(schema.seasons)
+        .values({ clubId, number: 2 })
+        .returning();
+      const current = await enter(
+        await tournament(season2.id, course, "2026-03-01"),
+        player,
+      );
+      await card(current.id, { strokes: (hole) => (hole === 18 ? 12 : 4) }); // 80
+
+      const read = await standings.getSeasonStandings({ clubId, season: 2 });
+
+      const [round] = read!.tournaments[0].rounds;
+      // The 77 and 79 (differentials 4.71 and 6.59) average to 5.65, a
+      // Playing Handicap of 6.
+      expect(round.playerIndex).toBeCloseTo(5.65, 3);
+      expect(round.playingHandicap).toBeCloseTo(6);
+      expect(round.netStrokes).toBeCloseTo(74);
+    });
+
+    it("feeds earlier Rounds of the same Season into a later Round's Player Index", async () => {
+      const { t, clubId } = await club();
+      const course = { course: t.course, tee: t.tee };
+      const seasonId = t.tournament.seasonId;
+      const player = await fixtures.player();
+      const first = await enter(await tournament(seasonId, course, "2025-02-01"), player);
+      await card(first.id, { strokes: (hole) => (hole === 18 ? 8 : 4) }); // 76
+      const second = await enter(await tournament(seasonId, course, "2025-03-01"), player);
+      await card(second.id, { strokes: (hole) => (hole === 18 ? 10 : 4) }); // 78
+      const third = await enter(await tournament(seasonId, course, "2025-04-01"), player);
+      await card(third.id, { strokes: (hole) => (hole === 18 ? 12 : 4) }); // 80
+
+      const read = await standings.getSeasonStandings({ clubId, season: 1 });
+
+      const rounds = new Map(
+        read!.tournaments
+          .flatMap((tt) => tt.rounds)
+          .map((round) => [round.id, round]),
+      );
+      // Fewer than 2 prior Rounds: scratch.
+      expect(rounds.get(first.id)).toMatchObject({ playerIndex: null, netStrokes: 76 });
+      expect(rounds.get(second.id)).toMatchObject({ playerIndex: null, netStrokes: 78 });
+      expect(rounds.get(third.id)?.playerIndex).toBeCloseTo(4.708, 3);
+      expect(rounds.get(third.id)?.netStrokes).toBeCloseTo(75);
     });
 
     it("returns empty Standings for a Season with no Tournaments", async () => {
@@ -390,7 +450,7 @@ if (!testDatabaseUrl) {
       expect(read).toMatchObject({
         club: { id: clubId },
         season: 1,
-        roundLimit: 10,
+        countedRoundLimit: 10,
         tournaments: [],
         players: [],
       });

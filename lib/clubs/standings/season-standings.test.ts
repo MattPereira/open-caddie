@@ -44,17 +44,14 @@ function round(
   overrides: Partial<SeasonStandingsRoundInput> = {},
 ): SeasonStandingsRoundInput {
   return {
-    roundId: nextRoundId++,
+    id: nextRoundId++,
     tournamentId,
     playerId,
-    player: {
-      id: playerId,
-      email: null,
-      firstName: null,
-      lastName: playerId,
-      username: null,
-      image: null,
-    },
+    email: null,
+    firstName: null,
+    lastName: playerId,
+    username: null,
+    image: null,
     date: tournament(tournamentId).date,
     courseId: 1,
     courseHandle: "course",
@@ -271,11 +268,11 @@ describe("computeSeasonStandings", () => {
       points: { total: 16 + 11, greenies: 7 },
     });
     expect(
-      standing.roundBreakdown.map((r) => [r.roundId, r.counted]),
+      standing.roundBreakdown.map((r) => [r.id, r.counted]),
     ).toEqual([
-      [high.roundId, true],
-      [mid.roundId, true],
-      [low.roundId, false],
+      [high.id, true],
+      [mid.id, true],
+      [low.id, false],
     ]);
   });
 
@@ -294,7 +291,7 @@ describe("computeSeasonStandings", () => {
     ).toMatchObject({ countedRounds: 3, droppedRounds: 0, points: { total: 30 } });
   });
 
-  it("orders Players by points, then number of Counted Rounds", () => {
+  it("orders Players by points total", () => {
     const tournaments = [tournament(1), tournament(2)];
     const { players } = compute(
       [

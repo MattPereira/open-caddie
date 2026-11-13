@@ -145,8 +145,7 @@ if (!testDatabaseUrl) {
       const second = await create(f, { startNextSeason: true });
       await db.delete(schema.tournaments).where(eq(schema.tournaments.id, second.id));
       expect(await standings.getClubSeasons(club.id)).toEqual([{ season: 1 }]);
-      const [newest] = await standings.getClubSeasons(club.id);
-      expect((await standings.getSeasonStandings({ clubId: club.id, season: newest.season }))?.tournaments).toHaveLength(1);
+      expect((await standings.getSeasonStandings({ clubId: club.id, season: 1 }))?.tournaments).toHaveLength(1);
     });
 
     it("refuses a Season from another Club", async () => {

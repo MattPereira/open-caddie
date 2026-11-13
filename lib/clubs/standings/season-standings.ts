@@ -1,14 +1,10 @@
-import { comparePlayers } from "@/lib/players/player-name";
+import { comparePlayers, type SortablePlayer } from "@/lib/players/player-name";
 import { rankPutts, rankStrokes } from "@/lib/tournaments/results";
 
 import type { PointRules } from "./point-rules";
 
-export type StandingPlayer = {
-  id: string;
+export type StandingPlayer = SortablePlayer & {
   email: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  username: string | null;
   image: string | null;
 };
 
@@ -23,11 +19,9 @@ export type SeasonStandingsTournamentInput = {
   courseName: string;
 };
 
-export type SeasonStandingsRoundInput = {
-  roundId: number;
+export type SeasonStandingsRoundInput = StandingPlayer & {
+  id: number;
   tournamentId: number;
-  playerId: string;
-  player: StandingPlayer;
   date: Date;
   courseId: number;
   courseHandle: string;
@@ -45,10 +39,8 @@ export type SeasonStandingsRoundInput = {
 
 export type StandingsRound = SeasonStandingsRoundInput & { points: RoundPoints };
 
-export type PlayerStanding = {
+export type PlayerStanding = StandingPlayer & {
   position: number;
-  playerId: string;
-  player: StandingPlayer;
   roundsPlayed: number;
   countedRounds: number;
   droppedRounds: number;
@@ -75,9 +67,9 @@ export function computeSeasonStandings({
   const roundsByTournamentId = Map.groupBy(rounds, (round) => round.tournamentId);
 
   const standingsTournaments = tournaments.map((tournament) => {
-    const tournamentRounds = (roundsByTournamentId.get(tournament.id) ?? [])
-      .map(withSortablePlayer)
-      .sort(comparePlayers);
+    const tournamentRounds = [
+      ...(roundsByTournamentId.get(tournament.id) ?? []),
+    ].sort(comparePlayers);
     const strokePoints = positionPoints(
       rankStrokes(tournamentRounds),
       pointRules.strokes.positions,
@@ -90,14 +82,14 @@ export function computeSeasonStandings({
     return {
       ...tournament,
       rounds: tournamentRounds
-        .map(({ round }) => ({
+        .map((round) => ({
           ...round,
           points: roundPoints(round, pointRules, {
-            strokes: strokePoints.get(round.roundId) ?? 0,
-            putts: puttPoints.get(round.roundId) ?? 0,
+            strokes: strokePoints.get(round.id) ?? 0,
+            putts: puttPoints.get(round.id) ?? 0,
           }),
         }))
-        .sort(compareRoundPointStandings),
+        .sort((a, b) => comparePointTotals(a, b) || comparePlayers(a, b)),
     };
   });
 
@@ -110,17 +102,7 @@ export function computeSeasonStandings({
   };
 }
 
-type PointCategory =
-  | "participation"
-  | "strokes"
-  | "putts"
-  | "greenies"
-  | "pars"
-  | "birdies"
-  | "eagles"
-  | "aces";
-
-const pointCategories: PointCategory[] = [
+const pointCategories = [
   "participation",
   "strokes",
   "putts",
@@ -129,30 +111,16 @@ const pointCategories: PointCategory[] = [
   "birdies",
   "eagles",
   "aces",
-];
+] as const;
 
-// Tournament Ranking compares the Player's name fields at the top level.
-function withSortablePlayer(round: SeasonStandingsRoundInput) {
-  return {
-    round,
-    playerId: round.playerId,
-    firstName: round.player.firstName,
-    lastName: round.player.lastName,
-    username: round.player.username,
-    isComplete: round.isComplete,
-    netStrokes: round.netStrokes,
-    totalStrokes: round.totalStrokes,
-    totalPutts: round.totalPutts,
-    recordedPuttsCount: round.recordedPuttsCount,
-  };
-}
+type PointCategory = (typeof pointCategories)[number];
 
 function positionPoints(
-  ranking: Array<{ round: { roundId: number } }>,
+  ranking: Array<{ id: number }>,
   pointValues: number[],
 ) {
   return new Map(
-    ranking.map(({ round }, index) => [round.roundId, pointValues[index] ?? 0]),
+    ranking.map((round, index) => [round.id, pointValues[index] ?? 0]),
   );
 }
 
@@ -167,11 +135,8 @@ function roundPoints(
   totals.putts = positions.putts;
 
   for (const score of round.scores) {
-    const holeScore = holeScoreType(score);
-    if (holeScore === "par") totals.pars += pointRules.pars;
-    if (holeScore === "birdie") totals.birdies += pointRules.birdies;
-    if (holeScore === "eagle") totals.eagles += pointRules.eagles;
-    if (holeScore === "ace") totals.aces += pointRules.aces;
+    const category = holeScoreCategory(score);
+    if (category) totals[category] += pointRules[category];
   }
 
   for (const greenie of round.greenies) {
@@ -181,19 +146,19 @@ function roundPoints(
   return withTotal(totals);
 }
 
-function holeScoreType({
+function holeScoreCategory({
   par,
   strokes,
 }: {
   par: number | null;
   strokes: number | null;
-}): "par" | "birdie" | "eagle" | "ace" | "none" {
-  if (par == null || strokes == null) return "none";
-  if (strokes === 1) return "ace";
-  if (strokes === par) return "par";
-  if (strokes === par - 1) return "birdie";
-  if (strokes <= par - 2) return "eagle";
-  return "none";
+}): "pars" | "birdies" | "eagles" | "aces" | null {
+  if (par == null || strokes == null) return null;
+  if (strokes === 1) return "aces";
+  if (strokes === par) return "pars";
+  if (strokes === par - 1) return "birdies";
+  if (strokes <= par - 2) return "eagles";
+  return null;
 }
 
 function greeniePoints(
@@ -214,41 +179,47 @@ function playerStandings(
   rounds: StandingsRound[],
   countedRoundLimit: number,
 ): PlayerStanding[] {
-  return Array.from(Map.groupBy(rounds, (round) => round.playerId).entries())
-    .map(([playerId, playerRounds]) => {
-      const rankedRounds = [...playerRounds].sort(compareRoundPointTotals);
+  return Array.from(Map.groupBy(rounds, (round) => round.playerId).values())
+    .map((playerRounds) => {
+      const rankedRounds = [...playerRounds].sort(
+        (a, b) => comparePointTotals(a, b) || a.id - b.id,
+      );
       const counted = rankedRounds.slice(0, countedRoundLimit);
-      const countedRoundIds = new Set(counted.map((round) => round.roundId));
+      const countedRoundIds = new Set(counted.map((round) => round.id));
+      const { playerId, email, firstName, lastName, username, image } =
+        playerRounds[0];
 
       return {
         position: 0,
         playerId,
-        player: playerRounds[0].player,
+        email,
+        firstName,
+        lastName,
+        username,
+        image,
         roundsPlayed: playerRounds.length,
         countedRounds: counted.length,
         droppedRounds: playerRounds.length - counted.length,
         points: sumRoundPoints(counted),
         roundBreakdown: rankedRounds.map((round) => ({
           ...round,
-          counted: countedRoundIds.has(round.roundId),
+          counted: countedRoundIds.has(round.id),
         })),
       };
     })
-    .sort(comparePlayerStandingTotals)
+    .sort(
+      (a, b) =>
+        comparePointTotals(a, b) ||
+        b.countedRounds - a.countedRounds ||
+        a.playerId.localeCompare(b.playerId),
+    )
     .map((standing, index) => ({ ...standing, position: index + 1 }));
 }
 
-function emptyPointTotals(): Record<PointCategory, number> {
-  return {
-    participation: 0,
-    strokes: 0,
-    putts: 0,
-    greenies: 0,
-    pars: 0,
-    birdies: 0,
-    eagles: 0,
-    aces: 0,
-  };
+function emptyPointTotals() {
+  return Object.fromEntries(
+    pointCategories.map((category) => [category, 0]),
+  ) as Record<PointCategory, number>;
 }
 
 function withTotal(totals: Record<PointCategory, number>): RoundPoints {
@@ -268,27 +239,9 @@ function sumRoundPoints(rounds: Array<{ points: RoundPoints }>) {
   return withTotal(totals);
 }
 
-function compareRoundPointStandings(a: StandingsRound, b: StandingsRound) {
-  const pointsCompare = b.points.total - a.points.total;
-  if (pointsCompare !== 0) return pointsCompare;
-  return comparePlayers(
-    { ...a.player, playerId: a.playerId },
-    { ...b.player, playerId: b.playerId },
-  );
-}
-
-function compareRoundPointTotals(a: StandingsRound, b: StandingsRound) {
-  const pointsCompare = b.points.total - a.points.total;
-  if (pointsCompare !== 0) return pointsCompare;
-  return a.roundId - b.roundId;
-}
-
-function comparePlayerStandingTotals(a: PlayerStanding, b: PlayerStanding) {
-  const pointsCompare = b.points.total - a.points.total;
-  if (pointsCompare !== 0) return pointsCompare;
-
-  const roundsCompare = b.countedRounds - a.countedRounds;
-  if (roundsCompare !== 0) return roundsCompare;
-
-  return a.playerId.localeCompare(b.playerId);
+function comparePointTotals(
+  a: { points: RoundPoints },
+  b: { points: RoundPoints },
+) {
+  return b.points.total - a.points.total;
 }

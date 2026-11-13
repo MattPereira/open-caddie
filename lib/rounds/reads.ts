@@ -182,7 +182,6 @@ const scopes = {
 type Scope = { by: keyof typeof scopes; id: number };
 type CourseIdQuery = ReturnType<(typeof scopes)[Scope["by"]]["courseOf"]>;
 
-// The Round columns every read selects; the Season read adds no Match fields.
 const roundRowFields = {
   id: roundSummaries.roundId,
   tournamentId: roundSummaries.tournamentId,

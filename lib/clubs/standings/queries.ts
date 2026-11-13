@@ -7,9 +7,8 @@ import type { PointRules } from "@/lib/clubs/standings/point-rules";
 import {
   computeSeasonStandings,
   type ComputedSeasonStandings,
-  type SeasonStandingsRoundInput,
 } from "@/lib/clubs/standings/season-standings";
-import { readSeasonRounds, type SeasonRound } from "@/lib/rounds/reads";
+import { readSeasonRounds } from "@/lib/rounds/reads";
 
 // Single declaration so it can later become a Club setting on the read side.
 const COUNTED_ROUND_LIMIT = 10;
@@ -21,7 +20,7 @@ export type SeasonStandings = ComputedSeasonStandings & {
     name: string;
   };
   season: number;
-  roundLimit: number;
+  countedRoundLimit: number;
   pointRules: PointRules;
 };
 
@@ -83,43 +82,14 @@ export const getSeasonStandings = cache(
         name: club.name,
       },
       season,
-      roundLimit: COUNTED_ROUND_LIMIT,
+      countedRoundLimit: COUNTED_ROUND_LIMIT,
       pointRules,
       ...computeSeasonStandings({
         pointRules,
         countedRoundLimit: COUNTED_ROUND_LIMIT,
         tournaments: tournamentRows,
-        rounds: seasonRounds.map(toStandingsRound),
+        rounds: seasonRounds,
       }),
     };
   },
 );
-
-function toStandingsRound(round: SeasonRound): SeasonStandingsRoundInput {
-  return {
-    roundId: round.id,
-    tournamentId: round.tournamentId,
-    playerId: round.playerId,
-    player: {
-      id: round.playerId,
-      email: round.email,
-      firstName: round.firstName,
-      lastName: round.lastName,
-      username: round.username,
-      image: round.image,
-    },
-    date: round.date,
-    courseId: round.courseId,
-    courseHandle: round.courseHandle,
-    courseName: round.courseName,
-    totalStrokes: round.totalStrokes,
-    totalPutts: round.totalPutts,
-    recordedPuttsCount: round.recordedPuttsCount,
-    isComplete: round.isComplete,
-    playerIndex: round.playerIndex,
-    playingHandicap: round.playingHandicap,
-    netStrokes: round.netStrokes,
-    scores: round.scores,
-    greenies: round.greenies,
-  };
-}

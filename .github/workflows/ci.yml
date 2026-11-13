@@ -201,7 +201,7 @@ jobs:
   # `always()` is load-bearing: without it a failed dependency skips this job,
   # and GitHub counts a skipped required check as passing.
   ci:
-    name: CI
+    name: Merge gate
     if: always()
     needs: [build, checks, changes, migrations-prod-data]
     runs-on: ubuntu-latest

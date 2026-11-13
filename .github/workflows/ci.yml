@@ -146,7 +146,7 @@ jobs:
               - '.github/workflows/ci.yml'
 
   migrations-prod-data:
-    name: Test migrations on prod copy
+    name: Rehearse prod migrations
     needs: changes
     if: needs.changes.outputs.migrations == 'true'
     runs-on: ubuntu-latest

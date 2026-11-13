@@ -64,7 +64,7 @@ function round(
     recordedPuttsCount: 0,
     isComplete: false,
     playerIndex: null,
-    courseHandicap: 0,
+    playingHandicap: 0,
     netStrokes: null,
     scores: [],
     greenies: [],

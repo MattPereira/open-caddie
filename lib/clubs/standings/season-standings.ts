@@ -37,7 +37,7 @@ export type SeasonStandingsRoundInput = {
   recordedPuttsCount: number;
   isComplete: boolean;
   playerIndex: number | null;
-  courseHandicap: number;
+  playingHandicap: number;
   netStrokes: number | null;
   scores: Array<{ hole: number; par: number | null; strokes: number | null }>;
   greenies: Array<{ feet: number; inches: number }>;

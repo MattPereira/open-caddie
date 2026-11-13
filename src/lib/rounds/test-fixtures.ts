@@ -4,9 +4,7 @@ import type { db as Db } from "@/db";
 import type * as Schema from "@/db/schema";
 import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
-// Fixtures shared by the Round suites that run against TEST_DATABASE_URL.
-// Callers import `@/db` themselves after pointing DATABASE_URL at the test
-// database, then hand the client and schema in here.
+// Fixtures shared by the Round suites in the `db` test project.
 export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
   const clubIds: number[] = [];
   const courseIds: number[] = [];

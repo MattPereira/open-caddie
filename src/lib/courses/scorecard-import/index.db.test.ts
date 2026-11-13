@@ -1,23 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-// This suite is intentionally opt-in: .env.test must point at a disposable
-// local Postgres-compatible database. It exercises only the public import
-// interface; direct database access below is fixture setup/cleanup.
-const testDatabaseUrl = process.env.TEST_DATABASE_URL;
-if (!testDatabaseUrl) {
-  describe.skip("Course Scorecard Import", () => {
-    it("requires TEST_DATABASE_URL", () => {});
-  });
-} else {
-describe("Course Scorecard Import", async () => {
-  process.env.DATABASE_URL = testDatabaseUrl;
-  process.env.DATABASE_DRIVER = "node-postgres";
-  const [{ db }, schema, { createCourseScorecardImport }] = await Promise.all([
-    import("@/db"),
-    import("@/db/schema"),
-    import("./index"),
-  ]);
-  const { eq, like, sql } = await import("drizzle-orm");
+import { eq, like, sql } from "drizzle-orm";
+import { db } from "@/db";
+import * as schema from "@/db/schema";
+import { createCourseScorecardImport } from "./index";
+
+// Exercises only the public import interface; direct database access below
+// is fixture setup/cleanup.
+describe("Course Scorecard Import", () => {
   const actorId = crypto.randomUUID();
   const secondActorId = crypto.randomUUID();
   const imports = createCourseScorecardImport({
@@ -590,4 +580,3 @@ describe("Course Scorecard Import", async () => {
     expect(inspected).toMatchObject({ outcome: "published", import: { audit: { creatorId: actorId, lastEditorId: secondActorId, parserModel: "test-model", warnings: ["parser warning"], decisions: [expect.objectContaining({ actorId: secondActorId, decision: { kind: "resolve", acknowledgeWarnings: ["warning:0"] } })], events: expect.arrayContaining([expect.objectContaining({ event: "started", actorId, at: expect.any(String) }), expect.objectContaining({ event: "published", at: expect.any(String) })]) } } });
   });
 });
-}

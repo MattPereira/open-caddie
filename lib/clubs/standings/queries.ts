@@ -33,11 +33,6 @@ type SeasonStandingsParams = {
   roundLimit?: number;
 };
 
-type LatestSeasonStandingsParams = {
-  clubHandle?: string;
-  roundLimit?: number;
-};
-
 type StandingPlayer = {
   id: string;
   email: string | null;
@@ -92,34 +87,6 @@ export type SeasonStandings = {
     typeof buildPlayerStandings<StandingPlayer, StandingsRound>
   >;
 };
-
-export const getLatestSeasonStandings = cache(
-  async ({ clubHandle, roundLimit = 10 }: LatestSeasonStandingsParams = {}) => {
-    const [latest] = await db
-      .select({
-        clubId: seasons.clubId,
-        season: seasons.number,
-      })
-      .from(tournaments)
-      .innerJoin(seasons, eq(tournaments.seasonId, seasons.id))
-      .innerJoin(clubs, eq(seasons.clubId, clubs.id))
-      .where(
-        clubHandle
-          ? eq(clubs.handle, clubHandle)
-          : undefined,
-      )
-      .orderBy(desc(seasons.number), desc(tournaments.date))
-      .limit(1);
-
-    if (!latest) return null;
-
-    return getSeasonStandings({
-      clubId: latest.clubId,
-      season: latest.season,
-      roundLimit,
-    });
-  },
-);
 
 export const getClubSeasons = cache(async (clubId: number) => {
   return db

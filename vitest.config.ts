@@ -12,13 +12,12 @@ export default defineConfig({
     alias: { "@": fileURLToPath(new URL("./src/", import.meta.url)) },
   },
   test: {
-    // Sandcastle and Claude Code check out worktrees inside the repo, each a
+    // Claude Code checks out worktrees inside the repo, each a
     // full copy of the tree. Without this they are globbed as ordinary
     // sources and every test file runs once per worktree on top of the real
     // one.
     exclude: [
       ...configDefaults.exclude,
-      ".sandcastle/worktrees/**",
       ".claude/worktrees/**",
     ],
   },

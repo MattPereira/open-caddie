@@ -120,7 +120,7 @@ jobs:
           key: lint-tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
 
   changes:
-    name: Detect changes
+    name: Detect migration changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -146,7 +146,7 @@ jobs:
               - '.github/workflows/ci.yml'
 
   migrations-prod-data:
-    name: Migrations against prod data
+    name: Test migrations on prod copy
     needs: changes
     if: needs.changes.outputs.migrations == 'true'
     runs-on: ubuntu-latest

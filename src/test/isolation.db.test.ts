@@ -4,7 +4,13 @@ import { describe, expect, it } from "vitest";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 
-const baseName = new URL(process.env.TEST_DATABASE_URL!).pathname.slice(1);
+import {
+  baseDatabaseName,
+  templateName,
+  workerNamePattern,
+} from "./test-databases";
+
+const baseName = baseDatabaseName(process.env);
 
 async function currentDatabase() {
   const { rows } = await db.execute<{ name: string }>(
@@ -17,8 +23,8 @@ describe("db test isolation", () => {
   it("connects to a worker database, not the template or the configured one", async () => {
     const name = await currentDatabase();
     expect(name).not.toBe(baseName);
-    expect(name).not.toBe(`${baseName}_template`);
-    expect(name).toMatch(new RegExp(`^${baseName}_w\\d+$`));
+    expect(name).not.toBe(templateName(baseName));
+    expect(name).toMatch(workerNamePattern(baseName));
   });
 
   // These two run in order: the second proves the first's row was truncated.

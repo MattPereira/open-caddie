@@ -2,7 +2,6 @@ import type { db as Db } from "@/db";
 import type * as Schema from "@/db/schema";
 import { HOLE_COUNT } from "@/lib/rounds/completeness";
 
-// Fixtures shared by the Round suites in the `db` test project.
 export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
   async function course() {
     const suffix = crypto.randomUUID();

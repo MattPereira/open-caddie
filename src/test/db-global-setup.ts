@@ -6,9 +6,10 @@ import type { TestProject } from "vitest/node";
 import {
   baseDatabaseName,
   connectionConfig,
-  isRunDatabase,
+  isTestRunDatabase,
   quoteIdent,
   templateName,
+  type TestEnv,
   withMaintenanceClient,
 } from "./test-databases";
 
@@ -44,16 +45,13 @@ export default async function setup(project: TestProject) {
   return () => dropRunDatabases(env, base);
 }
 
-async function dropRunDatabases(
-  env: Record<string, string | undefined>,
-  base: string,
-) {
+async function dropRunDatabases(env: TestEnv, base: string) {
   await withMaintenanceClient(env, async (client) => {
     const { rows } = await client.query<{ datname: string }>(
       "SELECT datname FROM pg_database",
     );
     for (const { datname } of rows) {
-      if (isRunDatabase(base, datname)) {
+      if (isTestRunDatabase(base, datname)) {
         await client.query(
           `DROP DATABASE IF EXISTS ${quoteIdent(datname)} WITH (FORCE)`,
         );

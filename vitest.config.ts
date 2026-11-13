@@ -17,24 +17,25 @@ function definedEnv() {
 }
 
 const DB_TESTS = "**/*.db.test.ts";
+// Claude Code checks out worktrees inside the repo, each a
+// full copy of the tree. Without this they are globbed as ordinary
+// sources and every test file runs once per worktree on top of the real
+// one.
+const EXCLUDE = [...configDefaults.exclude, ".claude/worktrees/**"];
 
 export default defineConfig({
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src/", import.meta.url)) },
   },
   test: {
-    // Claude Code checks out worktrees inside the repo, each a
-    // full copy of the tree. Without this they are globbed as ordinary
-    // sources and every test file runs once per worktree on top of the real
-    // one.
-    exclude: [...configDefaults.exclude, ".claude/worktrees/**"],
+    exclude: EXCLUDE,
     projects: [
       {
         extends: true,
         test: {
           name: "unit",
           env,
-          exclude: [...configDefaults.exclude, ".claude/worktrees/**", DB_TESTS],
+          exclude: [...EXCLUDE, DB_TESTS],
         },
       },
       {

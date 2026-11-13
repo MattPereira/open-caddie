@@ -11,6 +11,7 @@ describe("database module under vitest", () => {
     vi.resetModules();
     vi.stubEnv("DATABASE_LOCAL_SOCKET", undefined);
     vi.stubEnv("DATABASE_DRIVER", undefined);
+    vi.stubEnv("PGHOST", undefined);
   });
 
   afterEach(() => vi.unstubAllEnvs());
@@ -46,6 +47,28 @@ describe("database module under vitest", () => {
     });
     expect(db).toBeDefined();
   });
+
+  it("refuses an empty host when PGHOST is non-local, naming it", async () => {
+    await expect(
+      importDb({
+        DATABASE_DRIVER: "node-postgres",
+        DATABASE_URL: "postgresql:///app",
+        PGHOST: "db.example.com",
+      }),
+    ).rejects.toThrow("db.example.com");
+  });
+
+  it.each([undefined, "localhost", "/var/run/postgresql"])(
+    "accepts an empty host when PGHOST is %s",
+    async (pghost) => {
+      const { db } = await importDb({
+        DATABASE_DRIVER: "node-postgres",
+        DATABASE_URL: "postgresql:///app",
+        PGHOST: pghost,
+      });
+      expect(db).toBeDefined();
+    },
+  );
 
   it("accepts the local-socket env even when the URL is remote", async () => {
     const { db } = await importDb({

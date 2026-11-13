@@ -139,7 +139,7 @@ jobs:
           filters: |
             migrations:
               - 'db/migrations/**'
-              - 'db/schema.ts'
+              - 'src/db/schema.ts'
               - 'drizzle.config.ts'
               - '.github/workflows/ci.yml'
 

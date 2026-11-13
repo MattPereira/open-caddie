@@ -15,11 +15,11 @@ const eslintConfig = defineConfig([
     // Sign-in side of ADR 0007: Auth.js config, session types, sign-in links
     // and the login flow keep User naming.
     files: [
-      "auth.ts",
-      "auth.types.d.ts",
-      "lib/auth/**",
-      "app/(app)/login/**",
-      "app/api/auth/**",
+      "src/auth.ts",
+      "src/auth.types.d.ts",
+      "src/lib/auth/**",
+      "src/app/(app)/login/**",
+      "src/app/api/auth/**",
     ],
     rules: { "local/player-domain-term": "off" },
   },

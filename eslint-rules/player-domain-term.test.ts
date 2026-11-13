@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const RULE = "local/player-domain-term";
 const eslint = new ESLint({ cwd: process.cwd() });
 
-async function violations(code: string, filePath = "lib/rounds/example.ts") {
+async function violations(code: string, filePath = "src/lib/rounds/example.ts") {
   const [result] = await eslint.lintText(code, { filePath });
   return result.messages
     .filter((message) => message.ruleId === RULE)
@@ -30,7 +30,7 @@ describe("player-domain-term lint rule (ADR 0007)", () => {
 
   it("rejects a User-named JSX prop", async () => {
     expect(
-      await violations("export const x = <Sidebar user={null} />;", "components/x.tsx"),
+      await violations("export const x = <Sidebar user={null} />;", "src/components/x.tsx"),
     ).toEqual(["user"]);
   });
 
@@ -49,16 +49,16 @@ describe("player-domain-term lint rule (ADR 0007)", () => {
 
   it("allows the Auth.js users table where db/schema.ts declares it", async () => {
     expect(
-      await violations("export const users = {}; export const ref = () => users;", "db/schema.ts"),
+      await violations("export const users = {}; export const ref = () => users;", "src/db/schema.ts"),
     ).toEqual([]);
   });
 
   it.each([
-    "auth.ts",
-    "auth.types.d.ts",
-    "lib/auth/sign-in-link.ts",
-    "app/(app)/login/actions.ts",
-    "app/api/auth/[...nextauth]/route.ts",
+    "src/auth.ts",
+    "src/auth.types.d.ts",
+    "src/lib/auth/sign-in-link.ts",
+    "src/app/(app)/login/actions.ts",
+    "src/app/api/auth/[...nextauth]/route.ts",
   ])("allows User naming in sign-in code: %s", async (filePath) => {
     expect(await violations("export const userId = '1';", filePath)).toEqual([]);
   });

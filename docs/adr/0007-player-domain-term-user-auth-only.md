@@ -15,7 +15,7 @@ Renaming the Auth.js `user` table, and its `userId` references in `account` and 
 
 - A golf table holding a `player_id` that references `"user".id` is deliberate.
 - Platform Admin is a trait of the Player even though it is stored on the Auth.js `user` row.
-- Code resolves the session to a Player in one place, `getSignedInPlayer` in `lib/players/queries.ts` (`getCurrentPlayer` adds the stored row). Code past that boundary says Player and never reads `auth()` or `session.user`; only the sign-in files and the onboarding page's "Signed in as" email do.
+- Code resolves the session to a Player in one place, `getSignedInPlayer` in `src/lib/players/queries.ts` (`getCurrentPlayer` adds the stored row). Code past that boundary says Player and never reads `auth()` or `session.user`; only the sign-in files and the onboarding page's "Signed in as" email do.
 
 ## Lint guard
 

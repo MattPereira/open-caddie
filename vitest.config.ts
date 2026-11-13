@@ -9,7 +9,7 @@ if (process.env.CI && !process.env.TEST_DATABASE_URL) {
 
 export default defineConfig({
   resolve: {
-    alias: { "@": fileURLToPath(new URL("./", import.meta.url)) },
+    alias: { "@": fileURLToPath(new URL("./src/", import.meta.url)) },
   },
   test: {
     // Sandcastle and Claude Code check out worktrees inside the repo, each a

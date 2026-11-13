@@ -3,11 +3,11 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 
 import { clubs, courses, seasons, tournaments } from "@/db/schema";
-import type { PointRules } from "@/lib/clubs/standings/point-rules";
+import type { PointRules } from "../point-rules";
 import {
   computeSeasonStandings,
   type ComputedSeasonStandings,
-} from "@/lib/clubs/standings/season-standings";
+} from "./compute";
 import { readSeasonRounds } from "@/lib/rounds/reads";
 
 // Single declaration so it can later become a Club setting on the read side.

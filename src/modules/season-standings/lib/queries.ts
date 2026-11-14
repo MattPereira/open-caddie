@@ -3,7 +3,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 
 import { clubs, courses, seasons, tournaments } from "@/db/schema";
-import type { PointRules } from "../point-rules";
+import type { PointRules } from "@/modules/clubs/point-rules";
 import {
   computeSeasonStandings,
   type ComputedSeasonStandings,

@@ -5,6 +5,7 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { holdTransaction, waitForLockWaits } from "@/test/db-locks";
 import { createRoundFixtures, PAR_THREE_HOLES } from "@/test/fixtures/rounds";
+import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
 import * as rounds from "../index";
 
 const { revalidatePath, updateTag } = vi.hoisted(() => ({
@@ -16,33 +17,6 @@ vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
 describe("Round writes", () => {
   const fixtures = createRoundFixtures(db, schema);
 
-  function invalidatedPaths() {
-    return (revalidatePath.mock.calls as unknown as string[][])
-      .map((call) => call.join(" "))
-      .sort();
-  }
-
-  function roundChangedPaths(round: {
-    id: number;
-    playerId: string;
-    tournamentId?: number | null;
-    matchId?: number | null;
-  }) {
-    return [
-      ["/"],
-      ["/records"],
-      ["/clubs/[handle]", "page"],
-      [`/players/${round.playerId}`],
-      [`/rounds/${round.id}`],
-      ...(round.tournamentId != null
-        ? [[`/tournaments/${round.tournamentId}`]]
-        : []),
-      ...(round.matchId != null ? [[`/matches/${round.matchId}`]] : []),
-    ]
-      .map((call) => call.join(" "))
-      .sort();
-  }
-
   async function roundRow(id: number) {
     const [round] = await db
       .select()
@@ -50,6 +24,39 @@ describe("Round writes", () => {
       .where(eq(schema.rounds.id, id));
     return round ?? null;
   }
+
+  const PAR_THREE = PAR_THREE_HOLES[0];
+  const PAR_FOUR = 1;
+
+  async function scorecardOf(roundId: number) {
+    const round = await rounds.getRoundById(roundId);
+    return { scores: round?.scores ?? [], greenies: round?.greenies ?? [] };
+  }
+
+  async function holeOf(roundId: number, hole: number) {
+    const scorecard = await scorecardOf(roundId);
+    const score = scorecard.scores.find((s) => s.hole === hole);
+    return { strokes: score?.strokes ?? null, putts: score?.putts ?? null };
+  }
+
+  async function greenieOf(roundId: number, hole: number) {
+    const scorecard = await scorecardOf(roundId);
+    const greenie = scorecard.greenies.find((g) => g.hole === hole);
+    return greenie ? { feet: greenie.feet, inches: greenie.inches } : null;
+  }
+
+  async function settingsOf(roundId: number) {
+    const [round] = await db
+      .select({
+        teeId: schema.rounds.teeId,
+        playerIndexOverride: schema.rounds.playerIndexOverride,
+      })
+      .from(schema.rounds)
+      .where(eq(schema.rounds.id, roundId));
+    return round;
+  }
+
+  const CANNOT_MANAGE = "You can't change this Round's settings.";
 
   beforeEach(() => {
     revalidatePath.mockClear();
@@ -77,7 +84,7 @@ describe("Round writes", () => {
         matchId: null,
         date: new Date("2026-03-04T00:00:00.000Z"),
       });
-      expect(invalidatedPaths()).toEqual(
+      expect(invalidatedPaths(revalidatePath)).toEqual(
         roundChangedPaths({ id: result.roundId, playerId: player.id }),
       );
       expect(updateTag).not.toHaveBeenCalled();
@@ -135,7 +142,7 @@ describe("Round writes", () => {
         teeId: t.tee.id,
       });
       expect(updateTag).toHaveBeenCalledWith("home-events");
-      expect(invalidatedPaths()).toEqual(
+      expect(invalidatedPaths(revalidatePath)).toEqual(
         roundChangedPaths({
           id: result.roundId,
           playerId: player.id,
@@ -221,7 +228,7 @@ describe("Round writes", () => {
 
   describe("delete Round", () => {
     it("lets the Round's player delete it, refreshing the home events cache", async () => {
-      const { match, players } = await fixtures.match(2);
+      const { players } = await fixtures.match(2);
       const [a] = players;
 
       expect(await rounds.deleteRound(a.player.id, a.round.id)).toEqual({
@@ -230,12 +237,8 @@ describe("Round writes", () => {
 
       expect(await roundRow(a.round.id)).toBeNull();
       expect(updateTag).toHaveBeenCalledWith("home-events");
-      expect(invalidatedPaths()).toEqual(
-        roundChangedPaths({
-          id: a.round.id,
-          playerId: a.player.id,
-          matchId: match.id,
-        }),
+      expect(invalidatedPaths(revalidatePath)).toEqual(
+        roundChangedPaths(a.round),
       );
     });
 
@@ -299,44 +302,6 @@ describe("Round writes", () => {
   });
 
   describe("record scorecard changes", () => {
-
-    const PAR_THREE = PAR_THREE_HOLES[0];
-    const PAR_FOUR = 1;
-
-    async function scorecardOf(roundId: number) {
-      const round = await rounds.getRoundById(roundId);
-      return { scores: round?.scores ?? [], greenies: round?.greenies ?? [] };
-    }
-
-    async function holeOf(roundId: number, hole: number) {
-      const scorecard = await scorecardOf(roundId);
-      const score = scorecard.scores.find((s) => s.hole === hole);
-      return { strokes: score?.strokes ?? null, putts: score?.putts ?? null };
-    }
-
-    async function greenieOf(roundId: number, hole: number) {
-      const scorecard = await scorecardOf(roundId);
-      const greenie = scorecard.greenies.find((g) => g.hole === hole);
-      return greenie ? { feet: greenie.feet, inches: greenie.inches } : null;
-    }
-
-    function sortedPaths(calls: string[][]) {
-      return calls.map((call) => call.join(" ")).sort();
-    }
-
-    async function settingsOf(roundId: number) {
-      const [round] = await db
-        .select({
-          teeId: schema.rounds.teeId,
-          playerIndexOverride: schema.rounds.playerIndexOverride,
-        })
-        .from(schema.rounds)
-        .where(eq(schema.rounds.id, roundId));
-      return round;
-    }
-
-    const CANNOT_MANAGE = "You can't change this Round's settings.";
-
     it("keeps a field that's left out and clears one that's explicitly null", async () => {
       const t = await fixtures.tournament();
       const player = await fixtures.tournamentPlayer(t);
@@ -511,20 +476,13 @@ describe("Round writes", () => {
         scores: [{ roundId: player.round.id, hole: PAR_FOUR, strokes: 4 }],
       });
 
-      expect(invalidatedPaths()).toEqual(
-        sortedPaths([
-          ["/"],
-          ["/records"],
-          ["/clubs/[handle]", "page"],
-          [`/players/${player.player.id}`],
-          [`/rounds/${player.round.id}`],
-          [`/tournaments/${t.tournament.id}`],
-        ]),
+      expect(invalidatedPaths(revalidatePath)).toEqual(
+        roundChangedPaths(player.round),
       );
     });
 
     it("invalidates the union of every Round's pages in a multi-Round write", async () => {
-      const { match, players } = await fixtures.match(2);
+      const { players } = await fixtures.match(2);
       const [a, b] = players;
 
       await rounds.recordScorecardChanges(a.player.id, {
@@ -538,162 +496,147 @@ describe("Round writes", () => {
         ],
       });
 
-      expect(invalidatedPaths()).toEqual(
-        sortedPaths([
-          ["/"],
-          ["/records"],
-          ["/clubs/[handle]", "page"],
-          [`/players/${a.player.id}`],
-          [`/players/${b.player.id}`],
-          [`/rounds/${a.round.id}`],
-          [`/rounds/${b.round.id}`],
-          [`/matches/${match.id}`],
-        ]),
+      expect(invalidatedPaths(revalidatePath)).toEqual(
+        roundChangedPaths(a.round, b.round),
       );
     });
-    describe("change Round settings", () => {
-      it("keeps a Pairing mate's live score when the Round's player changes tees", async () => {
-        const t = await fixtures.tournament();
-        const player = await fixtures.tournamentPlayer(t);
-        const mate = await fixtures.tournamentPlayer(t);
-        await fixtures.pairing(t.tournament.id, [
-          player.round.id,
-          mate.round.id,
-        ]);
-        const white = await fixtures.tee(t.course.id);
-        await rounds.recordScorecardChanges(player.player.id, {
-          scores: [{ roundId: player.round.id, hole: 1, strokes: 5, putts: 2 }],
-        });
-        // Entered from the mate's phone after the player's page loaded.
-        await rounds.recordScorecardChanges(mate.player.id, {
-          scores: [{ roundId: player.round.id, hole: 2, strokes: 3, putts: 1 }],
-          greenies: [
-            {
-              roundId: player.round.id,
-              hole: PAR_THREE,
-              distance: { feet: 9, inches: 2 },
-            },
-          ],
-        });
+  });
 
-        expect(
-          await rounds.changeRoundSettings(player.player.id, player.round.id, {
-            teeId: white.id,
-          }),
-        ).toEqual({ ok: true });
-
-        expect((await settingsOf(player.round.id)).teeId).toBe(white.id);
-        expect(await holeOf(player.round.id, 1)).toEqual({
-          strokes: 5,
-          putts: 2,
-        });
-        expect(await holeOf(player.round.id, 2)).toEqual({
-          strokes: 3,
-          putts: 1,
-        });
-        expect(await greenieOf(player.round.id, PAR_THREE)).toEqual({
-          feet: 9,
-          inches: 2,
-        });
+  describe("change Round settings", () => {
+    it("keeps a Pairing mate's live score when the Round's player changes tees", async () => {
+      const t = await fixtures.tournament();
+      const player = await fixtures.tournamentPlayer(t);
+      const mate = await fixtures.tournamentPlayer(t);
+      await fixtures.pairing(t.tournament.id, [
+        player.round.id,
+        mate.round.id,
+      ]);
+      const white = await fixtures.tee(t.course.id);
+      await rounds.recordScorecardChanges(player.player.id, {
+        scores: [{ roundId: player.round.id, hole: 1, strokes: 5, putts: 2 }],
+      });
+      // Entered from the mate's phone after the player's page loaded.
+      await rounds.recordScorecardChanges(mate.player.id, {
+        scores: [{ roundId: player.round.id, hole: 2, strokes: 3, putts: 1 }],
+        greenies: [
+          {
+            roundId: player.round.id,
+            hole: PAR_THREE,
+            distance: { feet: 9, inches: 2 },
+          },
+        ],
       });
 
-      it("rejects a tee from another course", async () => {
-        const t = await fixtures.tournament();
-        const player = await fixtures.tournamentPlayer(t);
-        const { tee: elsewhere } = await fixtures.course();
-
-        expect(
-          await rounds.changeRoundSettings(player.player.id, player.round.id, {
-            teeId: elsewhere.id,
-          }),
-        ).toMatchObject({
-          ok: false,
-          error: "Selected tees do not belong to this course.",
-        });
-        expect((await settingsOf(player.round.id)).teeId).toBe(t.tee.id);
-      });
-
-      it("rejects a Player Index Override on a non-Match Round", async () => {
-        const t = await fixtures.tournament();
-        const player = await fixtures.tournamentPlayer(t);
-        const white = await fixtures.tee(t.course.id);
-
-        expect(
-          await rounds.changeRoundSettings(player.player.id, player.round.id, {
-            teeId: white.id,
-            playerIndexOverride: 12.3,
-          }),
-        ).toMatchObject({
-          ok: false,
-          error: "A Player Index Override can only be set on a Match Round.",
-        });
-        expect(await settingsOf(player.round.id)).toEqual({
-          teeId: t.tee.id,
-          playerIndexOverride: null,
-        });
-      });
-
-      it("sets and clears a Player Index Override on a Match Round", async () => {
-        const { players } = await fixtures.match(2);
-        const [a] = players;
-
-        await rounds.changeRoundSettings(a.player.id, a.round.id, {
-          playerIndexOverride: 12.3,
-        });
-        expect((await settingsOf(a.round.id)).playerIndexOverride).toBe("12.3");
-
-        await rounds.changeRoundSettings(a.player.id, a.round.id, {
-          playerIndexOverride: null,
-        });
-        expect((await settingsOf(a.round.id)).playerIndexOverride).toBeNull();
-      });
-
-      it("gives a Scorer who can't manage the Round a distinct error", async () => {
-        const { players, match } = await fixtures.match(2);
-        const [a, b] = players;
-        const white = await fixtures.tee(match.courseId);
-
-        expect(
-          await rounds.changeRoundSettings(b.player.id, a.round.id, {
-            teeId: white.id,
-          }),
-        ).toMatchObject({ ok: false, error: CANNOT_MANAGE });
-        expect((await settingsOf(a.round.id)).teeId).not.toBe(white.id);
-      });
-
-      it("reports not found to someone who can't score the Round", async () => {
-        const t = await fixtures.tournament();
-        const player = await fixtures.tournamentPlayer(t);
-        const stranger = await fixtures.tournamentPlayer(t);
-
-        expect(
-          await rounds.changeRoundSettings(stranger.player.id, player.round.id, {
-            teeId: t.tee.id,
-          }),
-        ).toMatchObject({ ok: false, error: "Round not found." });
-      });
-
-      it("invalidates the Round changed pages but not the home events cache", async () => {
-        const t = await fixtures.tournament();
-        const player = await fixtures.tournamentPlayer(t);
-        const white = await fixtures.tee(t.course.id);
-
+      expect(
         await rounds.changeRoundSettings(player.player.id, player.round.id, {
           teeId: white.id,
-        });
+        }),
+      ).toEqual({ ok: true });
 
-        expect(invalidatedPaths()).toEqual(
-          sortedPaths([
-            ["/"],
-            ["/records"],
-            ["/clubs/[handle]", "page"],
-            [`/players/${player.player.id}`],
-            [`/rounds/${player.round.id}`],
-            [`/tournaments/${t.tournament.id}`],
-          ]),
-        );
-        expect(updateTag).not.toHaveBeenCalled();
+      expect((await settingsOf(player.round.id)).teeId).toBe(white.id);
+      expect(await holeOf(player.round.id, 1)).toEqual({
+        strokes: 5,
+        putts: 2,
       });
+      expect(await holeOf(player.round.id, 2)).toEqual({
+        strokes: 3,
+        putts: 1,
+      });
+      expect(await greenieOf(player.round.id, PAR_THREE)).toEqual({
+        feet: 9,
+        inches: 2,
+      });
+    });
+
+    it("rejects a tee from another course", async () => {
+      const t = await fixtures.tournament();
+      const player = await fixtures.tournamentPlayer(t);
+      const { tee: elsewhere } = await fixtures.course();
+
+      expect(
+        await rounds.changeRoundSettings(player.player.id, player.round.id, {
+          teeId: elsewhere.id,
+        }),
+      ).toMatchObject({
+        ok: false,
+        error: "Selected tees do not belong to this course.",
+      });
+      expect((await settingsOf(player.round.id)).teeId).toBe(t.tee.id);
+    });
+
+    it("rejects a Player Index Override on a non-Match Round", async () => {
+      const t = await fixtures.tournament();
+      const player = await fixtures.tournamentPlayer(t);
+      const white = await fixtures.tee(t.course.id);
+
+      expect(
+        await rounds.changeRoundSettings(player.player.id, player.round.id, {
+          teeId: white.id,
+          playerIndexOverride: 12.3,
+        }),
+      ).toMatchObject({
+        ok: false,
+        error: "A Player Index Override can only be set on a Match Round.",
+      });
+      expect(await settingsOf(player.round.id)).toEqual({
+        teeId: t.tee.id,
+        playerIndexOverride: null,
+      });
+    });
+
+    it("sets and clears a Player Index Override on a Match Round", async () => {
+      const { players } = await fixtures.match(2);
+      const [a] = players;
+
+      await rounds.changeRoundSettings(a.player.id, a.round.id, {
+        playerIndexOverride: 12.3,
+      });
+      expect((await settingsOf(a.round.id)).playerIndexOverride).toBe("12.3");
+
+      await rounds.changeRoundSettings(a.player.id, a.round.id, {
+        playerIndexOverride: null,
+      });
+      expect((await settingsOf(a.round.id)).playerIndexOverride).toBeNull();
+    });
+
+    it("gives a Scorer who can't manage the Round a distinct error", async () => {
+      const { players, match } = await fixtures.match(2);
+      const [a, b] = players;
+      const white = await fixtures.tee(match.courseId);
+
+      expect(
+        await rounds.changeRoundSettings(b.player.id, a.round.id, {
+          teeId: white.id,
+        }),
+      ).toMatchObject({ ok: false, error: CANNOT_MANAGE });
+      expect((await settingsOf(a.round.id)).teeId).not.toBe(white.id);
+    });
+
+    it("reports not found to someone who can't score the Round", async () => {
+      const t = await fixtures.tournament();
+      const player = await fixtures.tournamentPlayer(t);
+      const stranger = await fixtures.tournamentPlayer(t);
+
+      expect(
+        await rounds.changeRoundSettings(stranger.player.id, player.round.id, {
+          teeId: t.tee.id,
+        }),
+      ).toMatchObject({ ok: false, error: "Round not found." });
+    });
+
+    it("invalidates the Round changed pages but not the home events cache", async () => {
+      const t = await fixtures.tournament();
+      const player = await fixtures.tournamentPlayer(t);
+      const white = await fixtures.tee(t.course.id);
+
+      await rounds.changeRoundSettings(player.player.id, player.round.id, {
+        teeId: white.id,
+      });
+
+      expect(invalidatedPaths(revalidatePath)).toEqual(
+        roundChangedPaths(player.round),
+      );
+      expect(updateTag).not.toHaveBeenCalled();
     });
   });
 });

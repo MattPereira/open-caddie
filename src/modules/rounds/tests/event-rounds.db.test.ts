@@ -5,6 +5,7 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { holdTransaction, waitForLockWaits } from "@/test/db-locks";
 import { createRoundFixtures } from "@/test/fixtures/rounds";
+import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
 import * as eventRounds from "../event-rounds";
 import { recordScorecardChanges } from "../index";
 
@@ -16,33 +17,6 @@ vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
 
 describe("Event Rounds", () => {
   const fixtures = createRoundFixtures(db, schema);
-
-  function invalidatedPaths() {
-    return (revalidatePath.mock.calls as unknown as string[][])
-      .map((call) => call.join(" "))
-      .sort();
-  }
-
-  function roundChangedPaths(round: {
-    id: number;
-    playerId: string;
-    tournamentId?: number | null;
-    matchId?: number | null;
-  }) {
-    return [
-      ["/"],
-      ["/records"],
-      ["/clubs/[handle]", "page"],
-      [`/players/${round.playerId}`],
-      [`/rounds/${round.id}`],
-      ...(round.tournamentId != null
-        ? [[`/tournaments/${round.tournamentId}`]]
-        : []),
-      ...(round.matchId != null ? [[`/matches/${round.matchId}`]] : []),
-    ]
-      .map((call) => call.join(" "))
-      .sort();
-  }
 
   async function roundRow(id: number) {
     const [round] = await db
@@ -139,18 +113,15 @@ describe("Event Rounds", () => {
     });
 
     it("refreshes the Round changed pages of the Rounds it's given, leaving home events to the caller", async () => {
-      const { match, players } = await fixtures.match(1);
-      const [{ round }] = players;
+      const { players } = await fixtures.match(1);
+      const t = await fixtures.tournament();
+      const entrant = await fixtures.tournamentPlayer(t);
 
-      eventRounds.invalidateRoundChanged([round]);
+      eventRounds.invalidateRoundChanged([players[0].round, entrant.round]);
 
       expect(updateTag).not.toHaveBeenCalled();
-      expect(invalidatedPaths()).toEqual(
-        roundChangedPaths({
-          id: round.id,
-          playerId: round.playerId,
-          matchId: match.id,
-        }),
+      expect(invalidatedPaths(revalidatePath)).toEqual(
+        roundChangedPaths(players[0].round, entrant.round),
       );
     });
   });

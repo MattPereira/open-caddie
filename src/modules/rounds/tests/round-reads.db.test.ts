@@ -421,7 +421,7 @@ describe("Round reads", () => {
   });
 
   describe("active Round", () => {
-    it("is the player's latest incomplete Round, with its Tournament's Season", async () => {
+    it("is the player's most recently created incomplete Round, with its Tournament's Season", async () => {
       const { course, tee } = await fixtures.course();
       const player = await fixtures.player();
       const casual = (date: string) =>
@@ -435,7 +435,8 @@ describe("Round reads", () => {
           })
           .returning()
           .then(([round]) => round);
-      await casual("2025-12-01");
+      // Created first but dated after the Tournament: creation order wins.
+      await casual("2026-03-01");
       const t = await fixtures.tournament();
       const [tournamentRound] = await db
         .insert(schema.rounds)
@@ -455,6 +456,17 @@ describe("Round reads", () => {
         tournamentId: t.tournament.id,
         tournamentSeason: 1,
         courseHandle: t.course.handle,
+        isComplete: false,
+      });
+    });
+
+    it("can be a casual Round, with no Tournament or Season", async () => {
+      const round = await casualRound();
+
+      expect(await getActiveRoundForPlayer(round.playerId)).toMatchObject({
+        roundId: round.id,
+        tournamentId: null,
+        tournamentSeason: null,
         isComplete: false,
       });
     });

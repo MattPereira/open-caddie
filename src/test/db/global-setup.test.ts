@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { TestProject } from "vitest/node";
 
-import setup from "./db-global-setup";
+import setup from "./global-setup";
 
 function run(env: Record<string, string>) {
   return setup({ config: { env } } as unknown as TestProject);

@@ -13,9 +13,7 @@ import {
 import { invalidateRoundChanged } from "./lifecycle";
 import { HOLE_COUNT } from "@/modules/courses/holes";
 
-// The one write path for a Round's scorecard and settings. Not a
-// "use server" module: it takes the acting Player's id, so exposing it as an
-// endpoint would let a client claim to be any Player (ADR 0003).
+// The one write path for a Round's scorecard and settings.
 
 /**
  * A change to one hole. A field left out keeps its stored value; an explicit

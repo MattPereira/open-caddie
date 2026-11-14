@@ -23,6 +23,22 @@ const eslintConfig = defineConfig([
     ],
     rules: { "local/player-domain-term": "off" },
   },
+  {
+    // Every export of a "use server" file is a public endpoint. Module writes
+    // take the acting Player's id, so as endpoints a client could pass any id
+    // and bypass authorization. Only route actions.ts files are "use server".
+    files: ["src/modules/**"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "ExpressionStatement[directive='use server']",
+          message:
+            'Modules are never "use server": wrap the write in a route actions.ts that reads the session.',
+        },
+      ],
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

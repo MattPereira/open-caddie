@@ -8,7 +8,7 @@ import { pgCode } from "@/lib/pg-errors";
 import { isPlatformAdmin, requirePlatformAdmin } from "./platform-admin";
 
 // Player writes. Plain module: route actions authenticate and parse untrusted
-// input, then pass the acting Player's id in (ADR 0003).
+// input, then pass the acting Player's id in (CODING_STANDARDS.md).
 
 export type PlayerWriteResult = { ok: true } | { ok: false; error: string };
 

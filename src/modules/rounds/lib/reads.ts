@@ -35,7 +35,7 @@ import {
   type RoundScoreRow,
 } from "./scorecards";
 
-// The one place Rounds are read for display (ADR 0003). The Tournament, Match
+// The one place Rounds are read for display. The Tournament, Match
 // and Round reads take their Rounds from here and add only their event fields.
 
 type RoundBase = {

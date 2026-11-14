@@ -10,7 +10,7 @@ Postgres runs on Neon's free plan: a fixed 0.25 CU compute that scales to zero a
 We therefore treat keeping anonymous traffic off Postgres as a standing constraint:
 
 - **`src/app/robots.ts` disallows everything except the home page and OG images.** Detail pages are not crawlable. OG image routes stay allowed so link previews from bots that honour robots.txt keep working — those only fire when someone shares a link.
-- **Data shown to anonymous visitors is served from a tag-invalidated cache, never a time-based one.** `getHomeEvents` (`src/lib/home/queries.ts`) is the pattern: `unstable_cache` with `revalidate: false`, invalidated by the writes that change it. A `revalidate` interval would let a crawler trigger a refetch and wake the compute.
+- **Data shown to anonymous visitors is served from a tag-invalidated cache, never a time-based one.** `getHomeEvents` (`src/app/(app)/_lib/home-events.ts`) is the pattern: `unstable_cache` with `revalidate: false`, invalidated by the writes that change it. A `revalidate` interval would let a crawler trigger a refetch and wake the compute.
 - **The Vercel Firewall blocks known AI bots** (a dashboard setting, not code), covering scrapers that ignore robots.txt.
 
 ## Considered options

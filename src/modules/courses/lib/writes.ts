@@ -10,13 +10,13 @@ import {
   teeYardages,
   tournaments,
 } from "@/db/schema";
-import { invalidateHomeEventsCache } from "@/lib/home/cache";
+import { invalidateHomeEventsCache } from "@/lib/cache-tags";
 import { safeDeleteBlob } from "@/lib/images/blob";
 import { pgCode } from "@/lib/pg-errors";
 import { requirePlatformAdmin } from "@/modules/players";
 
 // Course writes. Plain module: route actions authenticate and parse untrusted
-// input, then pass the acting Player's id in (ADR 0003).
+// input, then pass the acting Player's id in (CODING_STANDARDS.md).
 
 /** Parsed course form values; blank strings mean "none". */
 export type CourseUpdateInput = {

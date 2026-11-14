@@ -11,7 +11,7 @@ import {
   templateName,
   type TestEnv,
   withMaintenanceClient,
-} from "./test-databases";
+} from "./databases";
 
 // Fail, never skip: a db run without a database would be a green run that
 // proved nothing.

@@ -12,7 +12,7 @@ import {
 } from "@/db/schema";
 import { getCourseIdByHandle, isTeeForCourse } from "@/modules/courses";
 import { parseDateOnly } from "@/lib/dates";
-import { invalidateHomeEventsCache } from "@/lib/home/cache";
+import { invalidateHomeEventsCache } from "@/lib/cache-tags";
 import { pgCode } from "@/lib/pg-errors";
 import {
   deleteEventRounds,
@@ -26,7 +26,7 @@ import { isPlatformAdmin } from "@/modules/players";
 import { matchFormatPolicy } from "./formats";
 
 // Match writes. Plain module: route actions authenticate and parse untrusted
-// input, then pass the acting Player's id in (ADR 0003).
+// input, then pass the acting Player's id in (CODING_STANDARDS.md).
 
 export type MatchWriteResult =
   | { ok: true; id?: number }

@@ -8,7 +8,7 @@ import {
   templateName,
   withMaintenanceClient,
   workerName,
-} from "./test-databases";
+} from "./databases";
 
 // Runs in each worker before the suite's imports, so `@/db` binds to this
 // worker's database. A pool ID belongs to one worker at a time, so the

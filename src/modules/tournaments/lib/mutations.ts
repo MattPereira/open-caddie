@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { clubs, rounds, seasons, tournaments, users } from "@/db/schema";
 import { getCourseIdByHandle, isTeeForCourse } from "@/modules/courses";
 import { parseDateOnly } from "@/lib/dates";
-import { invalidateHomeEventsCache } from "@/lib/home/cache";
+import { invalidateHomeEventsCache } from "@/lib/cache-tags";
 import { pgCode } from "@/lib/pg-errors";
 import {
   insertEventRounds,
@@ -16,7 +16,8 @@ import {
 import { requirePlatformAdmin } from "@/modules/players";
 
 // Tournament and Season writes. Plain module: route actions authenticate and
-// parse untrusted input, then pass the acting Player's id in (ADR 0003).
+// parse untrusted input, then pass the acting Player's id in
+// (CODING_STANDARDS.md).
 
 export type TournamentWriteResult =
   | { ok: true; id?: number }

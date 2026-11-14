@@ -1,6 +1,6 @@
 # Modules
 
-Each folder here is a **deep module**: a lot of behaviour behind a small interface. A module's root files are its **entry points** (public). Everything in its subfolders is private. dependency-cruiser enforces this (`.dependency-cruiser.cjs`). See [ADR 0009](../../docs/adr/0009-domain-code-in-enforced-modules.md).
+Each folder here is a **deep module**: a lot of behaviour behind a small interface. A module's root files are its **entry points** (public). Everything in its subfolders is private. dependency-cruiser enforces this (`.dependency-cruiser.cjs`). Reads, writes and actions follow [CODING_STANDARDS.md](../../CODING_STANDARDS.md).
 
 ```
 src/modules/
@@ -16,6 +16,16 @@ Copy [`example/`](./example) to start a new module. Modules are flat: one tier u
 **Import only through a module's entry points.** Write `@/modules/season-standings`, never `@/modules/season-standings/lib/queries`.
 
 **No barrel files.** Don't funnel a whole subtree through one `index.ts` that re-exports everything. Expose several small entry points instead (`index.ts` for server reads, `point-rules.ts` for client-safe schemas), each exporting only what callers need.
+
+## Why this shape
+
+Domain code used to live in `lib/<domain>` folders where any file could import any other, so callers reached into internals and refactors spread. Alternatives considered:
+
+- **`src/packages`**: collides with pnpm workspace packages.
+- **`src/app/modules` or `src/app/_modules`**: `src/app` is the Next.js router; domain code doesn't belong there.
+- **Convention without enforcement**: an agent follows a failing check more reliably than a paragraph.
+
+Entry points import the db directly (no DB injection); DB-backed tests use per-worker databases ([ADR 0008](../../docs/adr/0008-per-worker-test-databases.md)). Layering and UI ownership are deferred.
 
 ## Rules
 

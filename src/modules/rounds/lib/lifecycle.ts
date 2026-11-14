@@ -12,7 +12,7 @@ import {
 } from "@/db/schema";
 import { getCourseIdByHandle, isTeeForCourse } from "@/modules/courses";
 import { parseDateOnly } from "@/lib/dates";
-import { invalidateHomeEventsCache } from "@/lib/home/cache";
+import { invalidateHomeEventsCache } from "@/lib/cache-tags";
 import { pgCode } from "@/lib/pg-errors";
 import { displayName } from "@/modules/players/player-name";
 import {
@@ -23,8 +23,7 @@ import {
 } from "./access";
 
 // Owns whether a Round exists: every Round insert and delete goes through
-// here. Not a "use server" module: public operations take the acting Player's id
-// (ADR 0003). The event helpers expect an already-authorized caller, take a
+// here. The event helpers expect an already-authorized caller, take a
 // transaction, and return the Rounds they changed so the caller can refresh
 // after commit.
 

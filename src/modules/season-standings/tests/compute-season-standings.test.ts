@@ -12,7 +12,7 @@ const pointRules: PointRules = {
   pars: 1,
   birdies: 3,
   eagles: 5,
-  aces: 10,
+  aces: 15,
   strokes: { positions: [20, 10, 5] },
   putts: { positions: [8, 4] },
   greenies: {
@@ -150,8 +150,8 @@ describe("computeSeasonStandings", () => {
       pars: 0,
       birdies: 0,
       eagles: 0,
-      aces: 10,
-      total: 20,
+      aces: 15,
+      total: 25,
     });
   });
 

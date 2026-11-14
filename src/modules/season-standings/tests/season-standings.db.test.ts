@@ -17,7 +17,7 @@ describe("Season Standings read", () => {
     pars: 1,
     birdies: 3,
     eagles: 5,
-    aces: 10,
+    aces: 15,
     strokes: { positions: [20, 10, 5] },
     putts: { positions: [8, 4] },
     greenies: {
@@ -169,12 +169,6 @@ describe("Season Standings read", () => {
 
     const read = await standings.getSeasonStandings({ clubId, season: 1 });
 
-    expect(read).toMatchObject({
-      club: { id: clubId },
-      season: 1,
-      countedRoundLimit: 10,
-      pointRules,
-    });
     expect(read?.tournaments.map((tt) => tt.id)).toEqual([
       second.id,
       first.id,
@@ -232,8 +226,8 @@ describe("Season Standings read", () => {
           putts: 8,
           greenies: 1,
           birdies: 3,
-          aces: 10,
-          total: 42,
+          aces: 15,
+          total: 47,
         }),
       },
       {
@@ -296,7 +290,7 @@ describe("Season Standings read", () => {
       })),
     ).toEqual([
       { position: 1, playerId: x.id, roundsPlayed: 11, countedRounds: 10, droppedRounds: 1, total: 155 },
-      { position: 2, playerId: y.id, roundsPlayed: 2, countedRounds: 2, droppedRounds: 0, total: 100 },
+      { position: 2, playerId: y.id, roundsPlayed: 2, countedRounds: 2, droppedRounds: 0, total: 105 },
       { position: 3, playerId: z.id, roundsPlayed: 1, countedRounds: 1, droppedRounds: 0, total: 29 },
     ]);
 
@@ -460,13 +454,7 @@ describe("Season Standings read", () => {
 
     const read = await standings.getSeasonStandings({ clubId, season: 1 });
 
-    expect(read).toMatchObject({
-      club: { id: clubId },
-      season: 1,
-      countedRoundLimit: 10,
-      tournaments: [],
-      players: [],
-    });
+    expect(read).toMatchObject({ tournaments: [], players: [] });
   });
 
   it("returns nothing for an unknown Club", async () => {

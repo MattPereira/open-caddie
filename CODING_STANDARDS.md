@@ -47,13 +47,3 @@ the module, then `redirect`. The module write takes the acting Player's id
 first, owns authorization and invalidation, and returns
 `{ ok: true } | { ok: false; error }`. Tests pass the Player id in instead of
 mocking auth.
-
-## Reads are cached and called from Server Components
-
-A module's reads are `cache()`-wrapped, exported from a server entry point, and
-imported directly into Server Components.
-
-## `src/db` is only the Drizzle boundary
-
-`src/db` holds the connection (`index.ts`) and schema (`schema.ts`); migrations
-live in root `db/migrations/`. Queries and writes belong in modules.

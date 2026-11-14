@@ -23,12 +23,12 @@ All are `error`. Run them with `pnpm lint:boundaries`. They also run in `pnpm ch
 
 **`entrypoint-boundary-from-app`.** Code outside `src/modules` (routes, components, `lib/`) may import a module's root files, but nothing in its subfolders.
 
-**`entrypoint-boundary-across-packages`.** A module's own files import each other freely. They reach another module only through its entry points, never its internals.
+**`entrypoint-boundary-across-modules`.** A module's own files import each other freely. They reach another module only through its entry points, never its internals.
 
 **`tests-through-entrypoints`.** Files in `<module>/tests/` may import any module's entry points and their own `tests/` fixtures, but never any module's internals, not even their own. Tests exercise behaviour, not implementation.
 
 **`tests-folder-is-private`.** Only tests may import from a `tests/` folder, so test fixtures never ship in app code.
 
-**`no-circular`.** No dependency cycles anywhere in `src`.
+**`no-circular`.** No runtime dependency cycles anywhere in `src`. Cycles that close only through `import type` edges are allowed, since types are erased at runtime.
 
 Modules may import non-module code in `src/lib`, `src/db` and so on. Which modules may depend on which (layering) isn't enforced yet; the config has a commented stub.

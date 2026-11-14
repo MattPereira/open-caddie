@@ -8,7 +8,7 @@ import {
   getClosestGreeniesByCourseId,
   getFewestPuttsRoundsByCourseId,
   getLowestRoundsByCourseId,
-} from "@/lib/courses/queries";
+} from "@/modules/courses";
 import { displayName, getInitials } from "@/modules/players/player-name";
 
 type CourseRecordsProps = {

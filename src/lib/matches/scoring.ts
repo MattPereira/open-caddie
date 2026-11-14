@@ -1,5 +1,5 @@
 import type { MatchFormat } from "@/db/schema";
-import { HOLE_COUNT, HOLE_NUMBERS } from "@/lib/rounds/completeness";
+import { HOLE_COUNT, HOLE_NUMBERS } from "@/modules/courses/holes";
 import { matchFormatPolicy } from "./formats";
 
 /** Already-assessed Playing Handicap and recorded scores; no reader or UI types. */

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { getSignedInPlayer } from "@/modules/players";
-import { getAllCourses, getCoursesWithTees } from "@/lib/courses/queries";
+import { getAllCourses, getCoursesWithTees } from "@/modules/courses";
 import { getUpcomingTournamentsForPlayer } from "@/lib/tournaments/queries";
 import { toIsoDate } from "@/lib/dates";
 import { RoundSetupForm } from "./_components/round-setup-form";

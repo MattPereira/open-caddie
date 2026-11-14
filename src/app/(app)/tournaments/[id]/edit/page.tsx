@@ -10,7 +10,7 @@ import { PageContent } from "@/components/layout/page-content";
 import { CourseHero } from "@/components/domain/course-hero";
 import { TournamentForm } from "../../_components/tournament-form";
 import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
-import { getCoursesWithTees } from "@/lib/courses/queries";
+import { getCoursesWithTees } from "@/modules/courses";
 import {
   getAddablePlayersForTournament,
   getPairingsForTournament,

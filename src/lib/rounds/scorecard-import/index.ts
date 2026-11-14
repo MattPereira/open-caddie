@@ -7,7 +7,7 @@ import { getEventRoundAccess, readRoundAccess } from "@/lib/rounds/access";
 import { EVENT_KINDS, type EventKind } from "@/lib/rounds/events";
 import { recordScorecardChanges } from "@/lib/rounds/scorecard-writes";
 import { parseRoundScorecardImage } from "./parser";
-import { HOLE_COUNT } from "@/lib/rounds/completeness";
+import { HOLE_COUNT } from "@/modules/courses/holes";
 
 // Not a "use server" module: it takes the acting Player's id, so thin actions in
 // the Tournament and Match routes authenticate and wrap it (ADR 0003).

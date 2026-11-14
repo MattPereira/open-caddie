@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { HOLE_COUNT } from "@/lib/rounds/completeness";
+import { HOLE_COUNT } from "@/modules/courses/holes";
+import { TEE_SLOPE_MAX, TEE_SLOPE_MIN } from "@/modules/courses/tee-limits";
 
 const teeColorSchema = z
   .string()
@@ -43,7 +44,7 @@ const teeSchema = z.object({
   name: z.string().trim().min(1, "Tee name is required").max(50),
   color: teeColorSchema,
   rating: ratingString,
-  slope: requiredInt("Slope", 55, 155),
+  slope: requiredInt("Slope", TEE_SLOPE_MIN, TEE_SLOPE_MAX),
   yardages: z.array(yardageCell).length(HOLE_COUNT, "Tees must have 18 yardages"),
   sortOrder: z.number().int().nonnegative(),
 });

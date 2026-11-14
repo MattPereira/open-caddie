@@ -5,7 +5,7 @@ date: 2026-11-13
 
 # A test database per worker, not per-test rollback
 
-DB-backed suites (`*.db.test.ts`) each run in a database of their own vitest worker, cloned from a template that is migrated once per run, and every app table is truncated before each test. We chose this over wrapping each test in a rolled-back transaction because a few suites deliberately prove the row locks: concurrent `assignRoundToPairing` calls (`lib/tournaments/pairing-writes.db.test.ts`) and concurrent scorecard-import starts (`lib/courses/scorecard-import/index.db.test.ts`) need two real connections that contend. Inside one test transaction those calls share a single connection, so they either queue (the test passes without proving the lock) or interleave savepoints (errors that come and go between runs).
+DB-backed suites (`*.db.test.ts`) each run in a database of their own vitest worker, cloned from a template that is migrated once per run, and every app table is truncated before each test. We chose this over wrapping each test in a rolled-back transaction because a few suites deliberately prove the row locks: concurrent `assignRoundToPairing` calls (`lib/tournaments/pairing-writes.db.test.ts`) and concurrent scorecard-import starts (`modules/courses/tests/scorecard-import.db.test.ts`) need two real connections that contend. Inside one test transaction those calls share a single connection, so they either queue (the test passes without proving the lock) or interleave savepoints (errors that come and go between runs).
 
 ## Considered Options
 

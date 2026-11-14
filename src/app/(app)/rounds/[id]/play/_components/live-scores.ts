@@ -5,7 +5,8 @@ import type {
   DisplayRound,
   RoundHoleScore,
 } from "@/lib/rounds/reads";
-import { HOLE_NUMBERS, isComplete } from "@/lib/rounds/completeness";
+import { isComplete } from "@/lib/rounds/completeness";
+import { HOLE_NUMBERS } from "@/modules/courses/holes";
 
 // Converts server Round snapshots into per-hole score entries for the live
 // scorecard, and projects those entries back onto Rounds so the score grid and

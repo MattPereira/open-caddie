@@ -11,19 +11,7 @@ import {
   teeYardages,
   users,
 } from "@/db/schema";
-import { HOLE_COUNT } from "@/lib/rounds/completeness";
-
-export async function getPrimaryTeeIdByCourseId(
-  courseId: number,
-): Promise<number | null> {
-  const [row] = await db
-    .select({ id: courseTees.id })
-    .from(courseTees)
-    .where(eq(courseTees.courseId, courseId))
-    .orderBy(asc(courseTees.sortOrder))
-    .limit(1);
-  return row?.id ?? null;
-}
+import { HOLE_COUNT } from "../holes";
 
 type PrimaryTee = { rating: string; slope: number };
 

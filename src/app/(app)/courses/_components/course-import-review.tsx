@@ -12,8 +12,8 @@ import {
   TEE_RATING_MIN,
   TEE_SLOPE_MIN,
   TEE_SLOPE_MAX,
-} from "@/lib/courses/scorecard-import/constants";
-import type { CourseScorecardImportView } from "@/lib/courses/scorecard-import";
+} from "@/modules/courses/tee-limits";
+import type { CourseScorecardImportView } from "@/modules/courses/scorecard-import";
 import {
   cancelCourseScorecardImport,
   continueCourseScorecardImport,

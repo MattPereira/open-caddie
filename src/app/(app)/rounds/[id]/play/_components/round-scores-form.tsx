@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { CourseRecordsDialog } from "@/components/features/course-records/course-records-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { HOLE_COUNT, isComplete as isRoundComplete } from "@/lib/rounds/completeness";
+import { isComplete as isRoundComplete } from "@/lib/rounds/completeness";
+import { HOLE_COUNT } from "@/modules/courses/holes";
 import {
   type MatchScoreboard,
   type ScoreEntry,

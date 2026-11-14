@@ -3,7 +3,7 @@ import { generateText, Output, type LanguageModelUsage } from "ai";
 import { z } from "zod";
 
 import { withGatewayFallback } from "@/lib/ai/gateway-fallback";
-import { HOLE_COUNT, HOLE_NUMBERS } from "@/lib/rounds/completeness";
+import { HOLE_COUNT, HOLE_NUMBERS } from "../../holes";
 
 export const DEFAULT_COURSE_SCORECARD_MODEL = "google/gemini-3.1-flash-lite";
 

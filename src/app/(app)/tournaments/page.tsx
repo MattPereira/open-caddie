@@ -4,7 +4,7 @@ import { appPageIcons } from "@/components/layout/app-nav-items";
 import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
 import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
-import { getCoursesWithTees } from "@/lib/courses/queries";
+import { getCoursesWithTees } from "@/modules/courses";
 import { getAllTournaments } from "@/lib/tournaments/queries";
 import { getCurrentPlayer } from "@/modules/players";
 import { AddTournamentButton } from "./_components/add-tournament-button";

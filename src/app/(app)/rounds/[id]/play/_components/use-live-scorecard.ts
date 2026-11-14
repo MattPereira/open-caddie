@@ -20,7 +20,7 @@ import {
 import type { GreenieValue } from "./hole-greenie-manager";
 import type { ScoreEntry } from "./live-scores";
 import type { ScorePatch } from "./score-entry-sheet";
-import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
+import { HOLE_NUMBERS } from "@/modules/courses/holes";
 
 export type GreenieEntry = GreenieValue & { hole: number };
 

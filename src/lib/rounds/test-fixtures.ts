@@ -1,6 +1,6 @@
 import type { db as Db } from "@/db";
 import type * as Schema from "@/db/schema";
-import { HOLE_COUNT } from "@/lib/rounds/completeness";
+import { HOLE_COUNT } from "@/modules/courses/holes";
 
 export function createRoundFixtures(db: typeof Db, schema: typeof Schema) {
   async function course() {

@@ -2,7 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 
 import { db, type Transaction } from "@/db";
 import { courseHoles, greenies, roundScores, rounds } from "@/db/schema";
-import { isTeeForCourse } from "@/lib/courses/tees";
+import { isTeeForCourse } from "@/modules/courses";
 import {
   CANNOT_MANAGE_ROUND as CANNOT_MANAGE,
   ROUND_NOT_FOUND as NOT_FOUND,
@@ -11,7 +11,7 @@ import {
   type RoundManageFailure,
 } from "./access";
 import { invalidateRoundChanged } from "./lifecycle";
-import { HOLE_COUNT } from "@/lib/rounds/completeness";
+import { HOLE_COUNT } from "@/modules/courses/holes";
 
 // The one write path for a Round's scorecard and settings. Not a
 // "use server" module: it takes the acting Player's id, so exposing it as an

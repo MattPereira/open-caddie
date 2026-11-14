@@ -24,9 +24,9 @@ import {
 
 // Owns whether a Round exists: every Round insert and delete goes through
 // here. Not a "use server" module: public operations take the acting Player's id
-// (ADR 0003). The event helpers expect an already-authorized caller, take a
-// transaction, and return the Rounds they changed so the caller can refresh
-// after commit.
+// (CODING_STANDARDS.md). The event helpers expect an already-authorized
+// caller, take a transaction, and return the Rounds they changed so the caller
+// can refresh after commit.
 
 /** A Round as the "Round changed" refresh needs it. */
 export type ChangedRound = {

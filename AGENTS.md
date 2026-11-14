@@ -12,6 +12,10 @@ Canonical triage labels use their default names. See `docs/agents/triage-labels.
 
 Single-context layout. See `docs/agents/domain.md`.
 
+### Coding standards
+
+Follow [CODING_STANDARDS.md](./CODING_STANDARDS.md).
+
 ### Modules
 
 Domain code is moving into deep modules: see [src/modules/README.md](./src/modules/README.md) before adding or importing one. `pnpm lint:boundaries` enforces it.

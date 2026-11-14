@@ -9,7 +9,7 @@ import { requirePlatformAdmin } from "@/modules/players";
 import type { PointRules } from "../point-rules";
 
 // Club writes. Plain module: route actions authenticate and parse untrusted
-// input, then pass the acting Player's id in (ADR 0003).
+// input, then pass the acting Player's id in (CODING_STANDARDS.md).
 
 export type ClubWriteResult = { ok: true } | { ok: false; error: string };
 

@@ -16,7 +16,8 @@ import {
 import { requirePlatformAdmin } from "@/modules/players";
 
 // Tournament and Season writes. Plain module: route actions authenticate and
-// parse untrusted input, then pass the acting Player's id in (ADR 0003).
+// parse untrusted input, then pass the acting Player's id in
+// (CODING_STANDARDS.md).
 
 export type TournamentWriteResult =
   | { ok: true; id?: number }

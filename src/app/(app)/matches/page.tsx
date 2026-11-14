@@ -5,7 +5,7 @@ import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
 import { getCoursesWithTees } from "@/lib/courses/queries";
 import { getAllMatches } from "@/lib/matches/queries";
-import { getAllPlayers, getCurrentPlayer } from "@/lib/players/queries";
+import { getAllPlayers, getCurrentPlayer } from "@/modules/players";
 import { AddMatchButton } from "./_components/add-match-button";
 import { MatchesBrowser } from "./_components/matches-browser";
 

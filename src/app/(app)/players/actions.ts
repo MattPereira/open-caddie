@@ -1,14 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { and, count, eq, ne, sql } from "drizzle-orm";
 import { signIn } from "@/auth";
-import { db } from "@/db";
-import { greenies, rounds, users } from "@/db/schema";
-import { getCurrentPlayer } from "@/lib/players/queries";
-import { safeDeleteBlob } from "@/lib/images/blob";
 import { createSignInLink } from "@/lib/auth/sign-in-link";
+import * as players from "@/modules/players";
 import {
   PlayerCreateSchema,
   PlayerUpdateSchema,
@@ -18,220 +13,62 @@ import {
 
 type ActionResult = { ok: true } | { ok: false; error: string };
 
-async function requireAdmin() {
-  const me = await getCurrentPlayer();
-  if (!me?.isAdmin) {
-    throw new Error("Forbidden");
-  }
-  return me;
-}
-
-function emptyToNull(s: string) {
-  const t = s.trim();
-  return t.length > 0 ? t : null;
-}
-
-function buildName(firstName: string | null, lastName: string | null) {
-  const full = [firstName, lastName].filter(Boolean).join(" ").trim();
-  return full.length > 0 ? full : null;
-}
+const SIGNED_OUT = { ok: false, error: "You must be signed in." } as const;
 
 export async function createPlayer(
   values: PlayerCreateValues,
 ): Promise<ActionResult> {
-  await requireAdmin();
+  const actor = await players.getSignedInPlayer();
+  if (!actor) return SIGNED_OUT;
 
   const parsed = PlayerCreateSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  const email = parsed.data.email.toLowerCase();
-  const firstName = emptyToNull(parsed.data.firstName);
-  const lastName = emptyToNull(parsed.data.lastName);
-  const username = emptyToNull(parsed.data.username);
-  const image = parsed.data.image.length > 0 ? parsed.data.image : null;
-  const { isAdmin } = parsed.data;
+  const result = await players.createPlayer(actor.id, parsed.data);
+  if (!result.ok) return result;
 
-  const [emailTaken] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(sql`lower(${users.email}) = ${email}`)
-    .limit(1);
-  if (emailTaken) {
-    return { ok: false, error: "That email is already in use." };
-  }
-
-  if (username) {
-    const [usernameTaken] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.username, username))
-      .limit(1);
-    if (usernameTaken) {
-      return { ok: false, error: "That username is already in use." };
-    }
-  }
-
-  try {
-    await db.insert(users).values({
-      email,
-      firstName,
-      lastName,
-      username,
-      image,
-      isAdmin,
-      name: buildName(firstName, lastName),
-    });
-  } catch (e: unknown) {
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23505") {
-      return { ok: false, error: "Email or username already in use." };
-    }
-    throw e;
-  }
-
-  await signIn("resend", { email, redirect: false, redirectTo: "/" });
-
-  revalidatePath("/players");
-  return { ok: true };
+  await signIn("resend", {
+    email: parsed.data.email.toLowerCase(),
+    redirect: false,
+    redirectTo: "/",
+  });
+  return result;
 }
 
 export async function updatePlayer(
   values: PlayerUpdateValues,
 ): Promise<ActionResult> {
-  const me = await getCurrentPlayer();
-  if (!me) {
-    return { ok: false, error: "You must be signed in." };
-  }
+  const actor = await players.getSignedInPlayer();
+  if (!actor) return SIGNED_OUT;
 
   const parsed = PlayerUpdateSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  const { id } = parsed.data;
-  const canManagePlayers = me.isAdmin;
-  if (!canManagePlayers && me.id !== id) {
-    return { ok: false, error: "You can only edit your own profile." };
-  }
-
-  const email = parsed.data.email.toLowerCase();
-  const firstName = emptyToNull(parsed.data.firstName);
-  const lastName = emptyToNull(parsed.data.lastName);
-  const username = emptyToNull(parsed.data.username);
-  const image = parsed.data.image.length > 0 ? parsed.data.image : null;
-
-  const [current] = await db
-    .select({
-      email: users.email,
-      isAdmin: users.isAdmin,
-      image: users.image,
-    })
-    .from(users)
-    .where(eq(users.id, id))
-    .limit(1);
-  if (!current) {
-    return { ok: false, error: "Player not found." };
-  }
-
-  const isAdmin = canManagePlayers ? parsed.data.isAdmin : current.isAdmin;
-  const emailChanged = current.email?.toLowerCase() !== email;
-  const imageChanged = current.image !== image;
-
-  if (emailChanged) {
-    const [taken] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(and(sql`lower(${users.email}) = ${email}`, ne(users.id, id)))
-      .limit(1);
-    if (taken) {
-      return { ok: false, error: "That email is already in use." };
-    }
-  }
-
-  if (username) {
-    const [taken] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(and(eq(users.username, username), ne(users.id, id)))
-      .limit(1);
-    if (taken) {
-      return { ok: false, error: "That username is already in use." };
-    }
-  }
-
-  try {
-    await db
-      .update(users)
-      .set({
-        email,
-        firstName,
-        lastName,
-        username,
-        image,
-        isAdmin,
-        name: buildName(firstName, lastName),
-        ...(emailChanged ? { emailVerified: null } : {}),
-      })
-      .where(eq(users.id, id));
-  } catch (e: unknown) {
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23505") {
-      return { ok: false, error: "Email or username already in use." };
-    }
-    throw e;
-  }
-
-  if (imageChanged) {
-    await safeDeleteBlob(current.image);
-  }
-
-  revalidatePath("/players");
-  revalidatePath("/clubs/[handle]", "page");
-  revalidatePath(`/players/${id}`);
-  return { ok: true };
+  return players.updatePlayer(actor.id, parsed.data);
 }
 
 export async function deletePlayer(id: string): Promise<ActionResult> {
-  const me = await requireAdmin();
+  const actor = await players.getSignedInPlayer();
+  if (!actor) return SIGNED_OUT;
 
-  if (me.id === id) {
-    return { ok: false, error: "You cannot delete your own account." };
-  }
-
-  const [{ value: roundCount }] = await db
-    .select({ value: count() })
-    .from(rounds)
-    .where(eq(rounds.playerId, id));
-
-  const [{ value: greenieCount }] = await db
-    .select({ value: count() })
-    .from(greenies)
-    .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-    .where(eq(rounds.playerId, id));
-
-  if (roundCount > 0 || greenieCount > 0) {
-    return {
-      ok: false,
-      error: `Cannot delete: player has ${roundCount} round(s) and ${greenieCount} greenie(s).`,
-    };
-  }
-
-  await db.delete(users).where(eq(users.id, id));
-  revalidatePath("/players");
-  revalidatePath(`/players/${id}`);
-  return { ok: true };
+  return players.deletePlayer(actor.id, id);
 }
 
 export async function createPlayerSignInLink(
   id: string,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
-  await requireAdmin();
+  const actor = await players.getSignedInPlayer();
+  if (!actor) return SIGNED_OUT;
+
+  const admin = await players.requirePlatformAdmin(
+    actor.id,
+    "Only admins can create sign-in links.",
+  );
+  if (!admin.ok) return admin;
 
   const headerList = await headers();
   const host = headerList.get("host");

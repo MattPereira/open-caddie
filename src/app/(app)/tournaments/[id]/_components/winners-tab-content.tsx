@@ -1,4 +1,4 @@
-import { displayName, getInitials } from "@/lib/players/player-name";
+import { displayName, getInitials } from "@/modules/players/player-name";
 import { GreenieCard } from "@/components/domain/greenie-card";
 import { WinnerCard } from "@/components/domain/winner-card";
 import { TabsContent } from "@/components/ui/tabs";

@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import { CardGrid } from "@/components/shared/card-grid";
 import { PlayerCard } from "@/components/domain/player-card";
-import { displayName } from "@/lib/players/player-name";
+import { displayName } from "@/modules/players/player-name";
 import { SearchInput } from "@/components/shared/search-input";
 import { Card, CardContent } from "@/components/ui/card";
 

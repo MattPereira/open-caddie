@@ -3,7 +3,7 @@ import { GolfHoleIcon } from "@hugeicons/core-free-icons";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { GreenieCard } from "@/components/domain/greenie-card";
-import { displayName, getInitials } from "@/lib/players/player-name";
+import { displayName, getInitials } from "@/modules/players/player-name";
 import { WinnerCard } from "@/components/domain/winner-card";
 import { formatDate } from "@/lib/dates";
 

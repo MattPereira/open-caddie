@@ -9,7 +9,7 @@ import {
   getFewestPuttsRoundsByCourseId,
   getLowestRoundsByCourseId,
 } from "@/lib/courses/queries";
-import { displayName, getInitials } from "@/lib/players/player-name";
+import { displayName, getInitials } from "@/modules/players/player-name";
 
 type CourseRecordsProps = {
   courseId: number;

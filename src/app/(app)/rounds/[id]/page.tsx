@@ -7,13 +7,13 @@ import { HugeiconsIcon } from "@hugeicons/react";
 
 import { CourseHero } from "@/components/domain/course-hero";
 import { GreenieCard } from "@/components/domain/greenie-card";
-import { displayName } from "@/lib/players/player-name";
+import { displayName } from "@/modules/players/player-name";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getRoundAccess } from "@/lib/rounds/access";
 import { getRoundById } from "@/lib/rounds/queries";
-import { getCurrentPlayer } from "@/lib/players/queries";
+import { getCurrentPlayer } from "@/modules/players";
 import { formatDate } from "@/lib/dates";
 import { PageContent } from "@/components/layout/page-content";
 import { RoundActions } from "./_components/round-actions";

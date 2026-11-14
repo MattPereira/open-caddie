@@ -6,7 +6,7 @@ import { getRoundAccess, type AccessedRound } from "@/lib/rounds/access";
 import { getRoundById } from "@/lib/rounds/queries";
 import type { DisplayRound } from "@/lib/rounds/reads";
 import { getTournamentById } from "@/lib/tournaments/queries";
-import { getCurrentPlayer } from "@/lib/players/queries";
+import { getCurrentPlayer } from "@/modules/players";
 import { pickPlayRounds } from "./_components/play-rounds";
 import { RoundPlay } from "./_components/round-play";
 

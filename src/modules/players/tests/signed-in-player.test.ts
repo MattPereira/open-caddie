@@ -6,7 +6,7 @@ vi.mock("@/auth", () => ({ auth: () => auth() }));
 // Never connected to: getSignedInPlayer reads only the session.
 process.env.DATABASE_URL ??= "postgres://unused@localhost/unused";
 
-const { getSignedInPlayer } = await import("./queries");
+const { getSignedInPlayer } = await import("../index");
 
 function signedIn(identity: Record<string, unknown>) {
   // eslint-disable-next-line local/player-domain-term -- Auth.js session shape

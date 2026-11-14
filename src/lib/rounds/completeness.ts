@@ -1,5 +1,5 @@
 // Pure so client components can import it. SQL predicates on round_summaries
-// (db/schema.ts, lib/courses/queries.ts, lib/players/queries.ts) mirror these
+// (db/schema.ts, lib/courses/queries.ts, modules/players/lib/queries.ts) mirror these
 // rules and must change with them.
 
 export const HOLE_COUNT = 18;

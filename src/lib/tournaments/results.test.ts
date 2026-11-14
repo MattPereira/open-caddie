@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { comparePlayers } from "@/lib/players/player-name";
+import { comparePlayers } from "@/modules/players/player-name";
 
 import {
   tournamentSkins,

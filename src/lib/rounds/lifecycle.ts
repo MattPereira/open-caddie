@@ -14,7 +14,7 @@ import { getCourseIdByHandle, isTeeForCourse } from "@/lib/courses/tees";
 import { parseDateOnly } from "@/lib/dates";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import { pgCode } from "@/lib/pg-errors";
-import { displayName } from "@/lib/players/player-name";
+import { displayName } from "@/modules/players/player-name";
 import {
   CANNOT_MANAGE_ROUND,
   ROUND_NOT_FOUND,

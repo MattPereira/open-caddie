@@ -1,4 +1,4 @@
-import { displayName } from "@/lib/players/player-name";
+import { displayName } from "@/modules/players/player-name";
 import { ResponsiveTable, TableFrame } from "@/components/shared/responsive-table";
 import {
   StandingsDesktopRowGroup,

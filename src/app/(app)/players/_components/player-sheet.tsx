@@ -14,7 +14,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { ImageUploadField } from "@/components/shared/image-upload-field";
-import { getInitials } from "@/lib/players/player-name";
+import { getInitials } from "@/modules/players/player-name";
 import { Input } from "@/components/ui/input";
 import {
   Sheet,

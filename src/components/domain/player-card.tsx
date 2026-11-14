@@ -7,10 +7,17 @@ import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { MediaCard } from "@/components/shared/media-card";
 
 import {
-  type PlayerCardPlayer,
   displayName,
   getInitials,
-} from "@/lib/players/player-name";
+  type NamedPlayer,
+} from "@/modules/players/player-name";
+
+export type PlayerCardPlayer = NamedPlayer & {
+  image: string | null;
+  isAdmin?: boolean;
+  roundsCount?: number;
+  greeniesCount?: number;
+};
 
 export function PlayerCard({
   player,

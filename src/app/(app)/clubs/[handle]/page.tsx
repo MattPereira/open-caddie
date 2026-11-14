@@ -12,7 +12,7 @@ import { StandingsTable } from "@/components/features/standings/standings-table"
 import { Badge } from "@/components/ui/badge";
 import { getClubByHandle, getClubMembersByHandle } from "@/lib/clubs/queries";
 import { getClubSeasons, getSeasonStandings } from "@/modules/season-standings";
-import { getCurrentPlayer } from "@/lib/players/queries";
+import { getCurrentPlayer } from "@/modules/players";
 import { PageContent } from "@/components/layout/page-content";
 import { EditClubButton } from "../_components/edit-club-button";
 

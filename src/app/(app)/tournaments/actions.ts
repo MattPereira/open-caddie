@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { getSignedInPlayer } from "@/lib/players/queries";
+import { getSignedInPlayer } from "@/modules/players";
 import * as mutations from "@/lib/tournaments/mutations";
 import * as pairingWrites from "@/lib/tournaments/pairing-writes";
 import {

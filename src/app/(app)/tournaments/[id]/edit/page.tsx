@@ -17,7 +17,7 @@ import {
   getTournamentById,
   getUnassignedRoundsForTournament,
 } from "@/lib/tournaments/queries";
-import { getCurrentPlayer } from "@/lib/players/queries";
+import { getCurrentPlayer } from "@/modules/players";
 import { PairingBoard } from "./_components/pairing-board";
 
 type EditTournamentPageProps = {

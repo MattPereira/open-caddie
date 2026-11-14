@@ -7,8 +7,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Calendar01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import { PlayerCard } from "@/components/domain/player-card";
-import { displayName, type PlayerCardPlayer } from "@/lib/players/player-name";
+import { PlayerCard, type PlayerCardPlayer } from "@/components/domain/player-card";
+import { displayName } from "@/modules/players/player-name";
 import { SearchInput } from "@/components/shared/search-input";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";

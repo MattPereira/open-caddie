@@ -13,7 +13,7 @@ import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/shared/url-tabs";
 import { getEventRoundAccess } from "@/lib/rounds/access";
 import { getTournamentById } from "@/lib/tournaments/queries";
-import { getCurrentPlayer } from "@/lib/players/queries";
+import { getCurrentPlayer } from "@/modules/players";
 import { createPageMetadata } from "@/app/metadata";
 import { formatDate } from "@/lib/dates";
 import { PageContent } from "@/components/layout/page-content";

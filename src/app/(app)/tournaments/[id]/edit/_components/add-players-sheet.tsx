@@ -14,11 +14,11 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { PlayerCard } from "@/components/domain/player-card";
 import {
-  displayName,
+  PlayerCard,
   type PlayerCardPlayer,
-} from "@/lib/players/player-name";
+} from "@/components/domain/player-card";
+import { displayName } from "@/modules/players/player-name";
 import { SearchInput } from "@/components/shared/search-input";
 import { addPlayersToTournament } from "../../../actions";
 

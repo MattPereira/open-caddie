@@ -8,7 +8,7 @@ export type ClubCardClub = {
   handle: string;
   name: string;
   logo: string | null;
-  playersCount?: number;
+  membersCount?: number;
   tournamentsCount?: number;
 };
 
@@ -22,9 +22,9 @@ export function ClubCard({
   onClick?: () => void;
 }) {
   const stats: string[] = [];
-  if (club.playersCount != null) {
+  if (club.membersCount != null) {
     stats.push(
-      `${club.playersCount} ${club.playersCount === 1 ? "member" : "members"}`,
+      `${club.membersCount} ${club.membersCount === 1 ? "member" : "members"}`,
     );
   }
   if (club.tournamentsCount != null) {

@@ -90,7 +90,7 @@ describe("Club reads", () => {
   });
 
   describe("getAllClubsFull", () => {
-    it("counts a Club's Players and Tournaments", async () => {
+    it("counts Club Members and Tournaments", async () => {
       const { club: created, seasonIds } = await club({ seasons: [1, 2] });
       await join(created.id, (await fixtures.player()).id);
       await join(created.id, (await fixtures.player()).id);
@@ -104,7 +104,7 @@ describe("Club reads", () => {
         name: created.name,
         logo: null,
         pointRules: POINT_RULES,
-        playersCount: 2,
+        membersCount: 2,
         tournamentsCount: 3,
       });
     });
@@ -112,7 +112,7 @@ describe("Club reads", () => {
     it("counts zero for a Club with no Players or Tournaments", async () => {
       const { club: created } = await club();
       const row = (await clubs.getAllClubsFull()).find((c) => c.id === created.id);
-      expect(row).toMatchObject({ playersCount: 0, tournamentsCount: 0 });
+      expect(row).toMatchObject({ membersCount: 0, tournamentsCount: 0 });
     });
   });
 
@@ -133,8 +133,8 @@ describe("Club reads", () => {
     });
   });
 
-  describe("getClubPlayersByHandle", () => {
-    it("returns the Club's Players with Round and Greenie counts", async () => {
+  describe("getClubMembersByHandle", () => {
+    it("returns Club Members with Round and Greenie counts", async () => {
       const { club: created } = await club();
       const { club: other } = await club();
       const regular = await fixtures.player();
@@ -146,7 +146,7 @@ describe("Club reads", () => {
       await round(regular.id, { greenies: 2 });
       await round(regular.id);
 
-      const players = await clubs.getClubPlayersByHandle(created.handle);
+      const players = await clubs.getClubMembersByHandle(created.handle);
       const counts = Object.fromEntries(
         players.map((p) => [p.id, [p.roundsCount, p.greeniesCount]]),
       );

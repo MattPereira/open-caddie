@@ -8,7 +8,7 @@ export {
   getUpcomingTournamentsForPlayer,
   type TournamentPairing,
   type TournamentPairingMember,
-} from "./lib/queries";
+} from "./lib/reads";
 export {
   addPlayersToTournament,
   createTournament,
@@ -17,7 +17,7 @@ export {
   type TournamentCreateInput,
   type TournamentUpdateInput,
   type TournamentWriteResult,
-} from "./lib/mutations";
+} from "./lib/writes";
 export {
   assignRoundToPairing,
   createPairing,

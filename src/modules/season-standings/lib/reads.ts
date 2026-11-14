@@ -7,7 +7,7 @@ import type { PointRules } from "@/modules/clubs/point-rules";
 import {
   computeSeasonStandings,
   type ComputedSeasonStandings,
-} from "./compute";
+} from "./standings";
 import { getSeasonRounds } from "@/modules/rounds";
 
 // Single declaration so it can later become a Club setting on the read side.

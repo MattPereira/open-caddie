@@ -3,7 +3,7 @@ export {
   getAllClubsWithSeasons,
   getClubByHandle,
   getClubMembersByHandle,
-} from "./lib/queries";
+} from "./lib/reads";
 export {
   createClub,
   updateClub,

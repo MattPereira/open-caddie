@@ -1,5 +1,5 @@
 // Pure so client components can import it. SQL predicates on round_summaries
-// (db/schema.ts, modules/courses/lib/queries.ts, modules/players/lib/queries.ts) mirror these
+// (db/schema.ts, modules/courses/lib/reads.ts, modules/players/lib/reads.ts) mirror these
 // rules and must change with them.
 
 import { HOLE_COUNT } from "@/modules/courses/holes";

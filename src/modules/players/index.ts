@@ -5,7 +5,7 @@ export {
   getPlayerRoundsById,
   getPlayerStatsById,
   getSignedInPlayer,
-} from "./lib/queries";
+} from "./lib/reads";
 export { isPlatformAdmin, requirePlatformAdmin } from "./lib/platform-admin";
 export {
   createPlayer,

@@ -8,4 +8,4 @@ export {
   syncEventRounds,
   type ChangedRound,
   type EventRef,
-} from "./lib/lifecycle";
+} from "./lib/writes";

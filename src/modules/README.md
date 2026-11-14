@@ -13,9 +13,28 @@ src/modules/
 
 Copy [`example/`](./example) to start a new module. Modules are flat: one tier under `src/modules`, and a module never contains another module.
 
-**Import only through a module's entry points.** Write `@/modules/season-standings`, never `@/modules/season-standings/lib/queries`.
+**Import only through a module's entry points.** Write `@/modules/season-standings`, never `@/modules/season-standings/lib/reads`.
 
 **No barrel files.** Don't funnel a whole subtree through one `index.ts` that re-exports everything. Expose several small entry points instead (`index.ts` for server reads, `point-rules.ts` for client-safe schemas), each exporting only what callers need.
+
+## File names
+
+```
+lib/
+  reads.ts                  ← public reads
+  writes.ts                 ← public writes
+  pairing-writes.ts         ← a sub-area split out of a big module
+  scoring.ts                ← anything else: named after its domain idea
+tests/
+  reads.db.test.ts          ← same base name as the lib file it covers
+  writes.db.test.ts
+  scoring.test.ts
+```
+
+1. **`lib/reads.ts` and `lib/writes.ts`** hold the module's public reads and writes. Not `queries` or `mutations`. A big module may split by sub-area with a suffix: `pairing-writes.ts`, `display-round-reads.ts`.
+2. **Every other lib file is named after its domain idea** (`scoring`, `handicap`, `standings`), not its role (`compute`, `impl`, `utils`).
+3. **A test is named after the lib file, lib subfolder or entry point it covers** (`reads.db.test.ts`, `scorecard-import.db.test.ts`, `event-rounds.db.test.ts`). `.db.test.ts` if it hits the database, `.test.ts` if not; one base name may have both. Not every lib file needs a test.
+4. **Public reads start with `get`, `is` or `has`.** Writes use a domain verb (`createRound`, `recordScorecardChanges`).
 
 ## Why this shape
 

@@ -1,5 +1,5 @@
 // Client-safe. SQL predicates on round_summaries (db/schema.ts,
-// modules/courses/lib/queries.ts, modules/players/lib/queries.ts) assume 18
+// modules/courses/lib/reads.ts, modules/players/lib/reads.ts) assume 18
 // holes and must change with HOLE_COUNT.
 
 export const HOLE_COUNT = 18;

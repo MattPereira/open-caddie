@@ -9,10 +9,6 @@ import { recordScorecardChanges } from "../scorecard-writes";
 import type { RoundScorecard, RoundScorecardContext } from "./parser";
 import { HOLE_COUNT } from "@/modules/courses/holes";
 
-// Not a "use server" module: it takes the acting Player's id, so thin actions in
-// the Tournament and Match routes authenticate and wrap it
-// (CODING_STANDARDS.md).
-
 export type UploadRoundScorecardState = {
   error: string | null;
 };

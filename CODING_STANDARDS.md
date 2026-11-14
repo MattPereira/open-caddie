@@ -48,12 +48,6 @@ first, owns authorization and invalidation, and returns
 `{ ok: true } | { ok: false; error }`. Tests pass the Player id in instead of
 mocking auth.
 
-## Never write `"use server"` in a module
-
-Every export of a `"use server"` file is a public endpoint, so a client could
-pass any Player id it liked and bypass authorization. Only route `actions.ts`
-files are `"use server"`.
-
 ## Reads are cached and called from Server Components
 
 A module's reads are `cache()`-wrapped, exported from a server entry point, and

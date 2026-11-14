@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { PageContent } from "@/components/layout/page-content";
-import { getCourseForEdit } from "@/lib/courses/queries";
+import { getCourseForEdit } from "@/modules/courses";
 import { getCurrentPlayer } from "@/modules/players";
 import { CourseForm } from "../../_components/course-form";
 

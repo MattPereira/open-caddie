@@ -3,7 +3,7 @@ import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { clubs, rounds, seasons, tournaments, users } from "@/db/schema";
-import { getCourseIdByHandle, isTeeForCourse } from "@/lib/courses/tees";
+import { getCourseIdByHandle, isTeeForCourse } from "@/modules/courses";
 import { parseDateOnly } from "@/lib/dates";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import { pgCode } from "@/lib/pg-errors";

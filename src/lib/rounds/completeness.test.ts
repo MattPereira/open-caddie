@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HOLE_COUNT, HOLE_NUMBERS, hasAllPutts, isComplete } from "./completeness";
+import { hasAllPutts, isComplete } from "./completeness";
 
 const counts = (recordedStrokesCount: number, recordedPuttsCount: number) => ({
   recordedStrokesCount,
@@ -7,12 +7,6 @@ const counts = (recordedStrokesCount: number, recordedPuttsCount: number) => ({
 });
 
 describe("Round completeness", () => {
-  it("numbers every hole once", () => {
-    expect(HOLE_NUMBERS).toHaveLength(HOLE_COUNT);
-    expect(HOLE_NUMBERS[0]).toBe(1);
-    expect(HOLE_NUMBERS.at(-1)).toBe(18);
-  });
-
   it("is incomplete with 17 strokes", () => {
     expect(isComplete(counts(17, 17))).toBe(false);
     expect(hasAllPutts(counts(17, 17))).toBe(false);

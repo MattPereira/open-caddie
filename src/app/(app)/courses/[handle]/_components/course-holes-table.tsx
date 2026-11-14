@@ -20,7 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
+import { HOLE_NUMBERS } from "@/modules/courses/holes";
 
 type CourseHole = {
   hole: number;

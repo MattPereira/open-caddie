@@ -7,7 +7,7 @@ import { appPageIcons } from "@/components/layout/app-nav-items";
 import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
 import { Button } from "@/components/ui/button";
-import { getAllCourses } from "@/lib/courses/queries";
+import { getAllCourses } from "@/modules/courses";
 import { getCurrentPlayer } from "@/modules/players";
 import { CoursesBrowser } from "./_components/courses-browser";
 

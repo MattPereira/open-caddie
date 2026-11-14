@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { appPageIcons } from "@/components/layout/app-nav-items";
 import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
-import { getCoursesWithTees } from "@/lib/courses/queries";
+import { getCoursesWithTees } from "@/modules/courses";
 import { getAllMatches } from "@/lib/matches/queries";
 import { getAllPlayers, getCurrentPlayer } from "@/modules/players";
 import { AddMatchButton } from "./_components/add-match-button";

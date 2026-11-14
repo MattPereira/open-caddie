@@ -10,7 +10,7 @@ import {
   users,
   type MatchFormat,
 } from "@/db/schema";
-import { getCourseIdByHandle, isTeeForCourse } from "@/lib/courses/tees";
+import { getCourseIdByHandle, isTeeForCourse } from "@/modules/courses";
 import { parseDateOnly } from "@/lib/dates";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import { pgCode } from "@/lib/pg-errors";

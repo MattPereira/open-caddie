@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { createCourseScorecardImport } from "./index";
+import { createCourseScorecardImport } from "../scorecard-import";
 
 // Exercises only the public import interface; direct database access below
 // is fixture setup.

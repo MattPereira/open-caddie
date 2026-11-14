@@ -7,14 +7,12 @@ import {
   courseTees,
   courses,
   teeYardages,
-  users,
 } from "@/db/schema";
 import type { Scorecard, ScorecardWarning } from "./parser";
-import { courseHandleFromName } from "@/lib/courses/handle";
-import { HOLE_COUNT } from "@/lib/rounds/completeness";
-
-export { TEE_RATING_MIN, TEE_SLOPE_MIN, TEE_SLOPE_MAX } from "./constants";
-import { TEE_RATING_MIN, TEE_SLOPE_MIN, TEE_SLOPE_MAX } from "./constants";
+import { courseHandleFromName } from "../../handle";
+import { isPlatformAdmin } from "@/modules/players";
+import { HOLE_COUNT } from "../../holes";
+import { TEE_RATING_MIN, TEE_SLOPE_MIN, TEE_SLOPE_MAX } from "../../tee-limits";
 
 const IMPORT_DOCUMENT_VERSION = 1;
 const IMPORT_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
@@ -365,15 +363,6 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
   const now = deps.now ?? (() => new Date());
   const deleteStagedImage = deps.deleteStagedImage ?? (async () => true);
 
-  async function administrator(actorId: string) {
-    const [actor] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(and(eq(users.id, actorId), eq(users.isAdmin, true)))
-      .limit(1);
-    return actor != null;
-  }
-
   function cancellationUpdate(document: ImportDocument, actorId: string, handles: Array<string | null>, pendingHandles: string[]) {
     return {
       document: {
@@ -587,7 +576,7 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
 
   return {
     async start(input: StartCourseScorecardImportInput): Promise<ImportOutcome> {
-      if (!(await administrator(input.actorId))) return { outcome: "rejected", reason: "forbidden" };
+      if (!(await isPlatformAdmin(input.actorId))) return { outcome: "rejected", reason: "forbidden" };
       await cleanupExpiredAndStagedImages();
       if (!input.stagedScorecardImageHandle) return { outcome: "rejected", reason: "invalid_input" };
       const targetCourse = input.target.kind === "existing"
@@ -640,7 +629,7 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
     },
 
     async inspect({ actorId, importId }: { actorId: string; importId: string }): Promise<ImportOutcome> {
-      if (!(await administrator(actorId))) return { outcome: "rejected", reason: "forbidden" };
+      if (!(await isPlatformAdmin(actorId))) return { outcome: "rejected", reason: "forbidden" };
       await cleanupExpiredAndStagedImages();
       const [row] = await db.select().from(courseScorecardImports).where(eq(courseScorecardImports.id, importId)).limit(1);
       if (!row) return { outcome: "rejected", reason: "missing_or_expired_import" };
@@ -653,7 +642,7 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
     },
 
     async continue(input: ContinueCourseScorecardImportInput): Promise<ImportOutcome> {
-      if (!(await administrator(input.actorId))) return { outcome: "rejected", reason: "forbidden" };
+      if (!(await isPlatformAdmin(input.actorId))) return { outcome: "rejected", reason: "forbidden" };
       await cleanupExpiredAndStagedImages();
       const [row] = await db.select().from(courseScorecardImports).where(eq(courseScorecardImports.id, input.importId)).limit(1);
       if (!row) return { outcome: "rejected", reason: "missing_or_expired_import" };
@@ -794,7 +783,7 @@ export function createCourseScorecardImport(deps: ScorecardImportDependencies) {
     },
 
     async cleanup({ actorId }: { actorId: string }) {
-      if (!(await administrator(actorId))) return { outcome: "rejected" as const, reason: "forbidden" };
+      if (!(await isPlatformAdmin(actorId))) return { outcome: "rejected" as const, reason: "forbidden" };
       await cleanupExpiredAndStagedImages();
       return { outcome: "cleaned" as const };
     },

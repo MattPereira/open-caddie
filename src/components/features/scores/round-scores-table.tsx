@@ -39,7 +39,7 @@ import {
   type EditableCourse,
   type EditableRound,
 } from "@/components/features/scores/round-scores-sheet";
-import { HOLE_NUMBERS } from "@/lib/rounds/completeness";
+import { HOLE_NUMBERS } from "@/modules/courses/holes";
 
 export type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
 

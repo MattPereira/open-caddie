@@ -12,7 +12,7 @@ config({ path: ".env.local", override: true });
 
 import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { basename, extname, join, resolve } from "node:path";
-import { parseScorecardImage } from "../../src/lib/courses/scorecard-import/parser";
+import { parseScorecardImage } from "../../src/modules/courses/lib/scorecard-import/parser";
 
 const DEFAULT_MODEL = "anthropic/claude-haiku-4-5";
 

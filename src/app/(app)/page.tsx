@@ -11,7 +11,7 @@ import { PlayRoundButton } from "@/components/domain/play-round-button";
 import { matchFormatLabel } from "@/lib/matches/formats";
 import { brandFont } from "@/app/fonts";
 import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
-import { getCoursesWithTees } from "@/lib/courses/queries";
+import { getCoursesWithTees } from "@/modules/courses";
 import { getActiveRoundForPlayer } from "@/lib/rounds/queries";
 import { getHomeEvents } from "@/lib/home/queries";
 import { getAllPlayers, getCurrentPlayer } from "@/modules/players";

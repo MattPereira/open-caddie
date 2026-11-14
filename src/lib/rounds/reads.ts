@@ -28,12 +28,12 @@ import {
   users,
 } from "@/db/schema";
 import { assessHandicap, PLAYER_INDEX_ROUND_LIMIT } from "@/lib/handicap";
-import { comparePlayers } from "@/modules/players/player-name";
 import {
   readScorecardsByRounds,
   type RoundGreenieRow,
   type RoundScoreRow,
 } from "@/lib/rounds/scorecards";
+import { comparePlayers } from "@/modules/players/player-name";
 
 // The one place Rounds are read for display (ADR 0003). The Tournament, Match
 // and Round reads take their Rounds from here and add only their event fields.

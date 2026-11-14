@@ -35,7 +35,7 @@ export default async function setup(project: TestProject) {
   await templateClient.connect();
   try {
     await migrate(drizzle(templateClient), {
-      migrationsFolder: "./db/migrations",
+      migrationsFolder: "./src/db/migrations",
     });
   } finally {
     // Workers clone the template, which fails while anything is connected.

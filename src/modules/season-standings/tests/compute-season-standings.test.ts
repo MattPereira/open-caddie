@@ -155,6 +155,12 @@ describe("computeSeasonStandings", () => {
     });
   });
 
+  it("gives no scoring points on a hole without a par", () => {
+    expect(
+      pointsOf(round("a", 1, { scores: [{ hole: 1, par: null, strokes: 1 }] })),
+    ).toMatchObject({ aces: 0, total: 10 });
+  });
+
   it("checks Greenie tiers in order, with the no-maximum tier catching the rest", () => {
     const points = pointsOf(
       round("a", 1, {
@@ -250,6 +256,15 @@ describe("computeSeasonStandings", () => {
     expect(tournaments[0].rounds.map((r) => r.playerId)).toEqual(["b", "c", "a"]);
   });
 
+  it("orders a Tournament's equal-point Rounds by Player name", () => {
+    const { tournaments } = compute([
+      round("p1", 1, { lastName: "Zed" }),
+      round("p2", 1, { lastName: "Adams" }),
+    ]);
+
+    expect(tournaments[0].rounds.map((r) => r.playerId)).toEqual(["p2", "p1"]);
+  });
+
   it("adds only Counted Rounds to a Player's total and marks the rest dropped", () => {
     const tournaments = [tournament(1), tournament(2), tournament(3)];
     const low = round("a", 1);
@@ -291,6 +306,26 @@ describe("computeSeasonStandings", () => {
     ).toMatchObject({ countedRounds: 3, droppedRounds: 0, points: { total: 30 } });
   });
 
+  it("counts a Player's equal-point Rounds in Round order", () => {
+    const tournaments = [tournament(1), tournament(2), tournament(3)];
+    const first = round("a", 3);
+    const second = round("a", 1);
+    const third = round("a", 2);
+
+    const [standing] = compute([third, first, second], {
+      tournaments,
+      countedRoundLimit: 2,
+    }).players;
+
+    expect(
+      standing.roundBreakdown.map((r) => [r.id, r.counted]),
+    ).toEqual([
+      [first.id, true],
+      [second.id, true],
+      [third.id, false],
+    ]);
+  });
+
   it("orders Players by points total", () => {
     const tournaments = [tournament(1), tournament(2)];
     const { players } = compute(
@@ -328,6 +363,18 @@ describe("computeSeasonStandings", () => {
     expect(players.map((p) => [p.playerId, p.points.total])).toEqual([
       ["two-rounds", 20],
       ["one-round", 20],
+    ]);
+  });
+
+  it("breaks a remaining tie by Player id, not name", () => {
+    const { players } = compute([
+      round("b", 1, { lastName: "Adams" }),
+      round("a", 1, { lastName: "Zed" }),
+    ]);
+
+    expect(players.map((p) => [p.position, p.playerId])).toEqual([
+      [1, "a"],
+      [2, "b"],
     ]);
   });
 

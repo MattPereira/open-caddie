@@ -29,6 +29,7 @@ export default defineConfig({
   },
   test: {
     exclude: EXCLUDE,
+    coverage: { include: ["src/**/*.{ts,tsx}"] },
     projects: [
       {
         extends: true,

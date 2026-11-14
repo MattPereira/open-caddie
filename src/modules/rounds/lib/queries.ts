@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, asc, count, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
   clubs,
@@ -10,7 +10,7 @@ import {
   tournaments,
   users,
 } from "@/db/schema";
-import { readRound } from "@/lib/rounds/reads";
+import { readRound } from "./reads";
 
 export const getLowestRounds = cache(async (limit = 10) => {
   return db
@@ -59,14 +59,6 @@ export const getActiveRoundForPlayer = cache(async (playerId: string) => {
     .limit(1);
 
   return row;
-});
-
-export const getRoundsCountByPlayerId = cache(async (playerId: string) => {
-  const [row] = await db
-    .select({ value: count() })
-    .from(rounds)
-    .where(eq(rounds.playerId, playerId));
-  return row?.value ?? 0;
 });
 
 export const getRoundById = cache(

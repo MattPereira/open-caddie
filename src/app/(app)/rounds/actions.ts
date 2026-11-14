@@ -1,8 +1,7 @@
 "use server";
 
 import { getSignedInPlayer } from "@/modules/players";
-import * as lifecycle from "@/lib/rounds/lifecycle";
-import * as scorecardWrites from "@/lib/rounds/scorecard-writes";
+import * as rounds from "@/modules/rounds";
 import {
   RoundConfigSchema,
   RoundGreenieDeleteSchema,
@@ -33,7 +32,7 @@ export async function createRound(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  return lifecycle.createRound(actor.id, parsed.data);
+  return rounds.createRound(actor.id, parsed.data);
 }
 
 export async function deleteRound(roundId: number): Promise<ActionResult> {
@@ -42,7 +41,7 @@ export async function deleteRound(roundId: number): Promise<ActionResult> {
     return { ok: false, error: "You must be signed in." };
   }
 
-  return lifecycle.deleteRound(actor.id, roundId);
+  return rounds.deleteRound(actor.id, roundId);
 }
 
 export async function changeRoundSettings(
@@ -59,7 +58,7 @@ export async function changeRoundSettings(
   }
 
   const { roundId, teeId, playerIndexOverride } = parsed.data;
-  return scorecardWrites.changeRoundSettings(actor.id, roundId, {
+  return rounds.changeRoundSettings(actor.id, roundId, {
     teeId,
     playerIndexOverride: playerIndexOverride === "" ? null : playerIndexOverride,
   });
@@ -79,7 +78,7 @@ export async function recordRoundScorecardChanges(
   }
 
   const { roundId, scores, greenies } = parsed.data;
-  return scorecardWrites.recordScorecardChanges(actor.id, {
+  return rounds.recordScorecardChanges(actor.id, {
     scores: scores.map((score) => ({ roundId, ...score })),
     greenies: greenies.map((greenie) => ({ roundId, ...greenie })),
   });
@@ -98,7 +97,7 @@ export async function upsertRoundScore(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  return scorecardWrites.recordScorecardChanges(actor.id, {
+  return rounds.recordScorecardChanges(actor.id, {
     scores: [parsed.data],
   });
 }
@@ -117,7 +116,7 @@ export async function upsertRoundGreenie(
   }
 
   const { roundId, hole, feet, inches } = parsed.data;
-  return scorecardWrites.recordScorecardChanges(actor.id, {
+  return rounds.recordScorecardChanges(actor.id, {
     greenies: [{ roundId, hole, distance: { feet, inches } }],
   });
 }
@@ -136,7 +135,7 @@ export async function deleteRoundGreenie(
   }
 
   const { roundId, hole } = parsed.data;
-  return scorecardWrites.recordScorecardChanges(actor.id, {
+  return rounds.recordScorecardChanges(actor.id, {
     greenies: [{ roundId, hole, distance: null }],
   });
 }

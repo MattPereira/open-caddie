@@ -11,7 +11,7 @@ import { CourseRecordsDialog } from "@/components/features/course-records/course
 import { RoundsTabContent } from "@/components/features/scores/rounds-tab-content";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/shared/url-tabs";
-import { getEventRoundAccess } from "@/lib/rounds/access";
+import { getEventRoundAccess } from "@/modules/rounds";
 import { getTournamentById } from "@/lib/tournaments/queries";
 import { getCurrentPlayer } from "@/modules/players";
 import { createPageMetadata } from "@/app/metadata";

@@ -1,7 +1,7 @@
 import { displayName, getInitials } from "@/modules/players/player-name";
 import type { ReactNode } from "react";
 import { TableFrame } from "@/components/shared/responsive-table";
-import type { NetScoringRound } from "@/lib/rounds/reads";
+import type { NetScoringRound } from "@/modules/rounds";
 import { WinnerCard } from "@/components/domain/winner-card";
 import {
   Accordion,

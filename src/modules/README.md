@@ -29,6 +29,8 @@ All are `error`. Run them with `pnpm lint:boundaries`. They also run in `pnpm ch
 
 **`tests-folder-is-private`.** Only tests may import from a `tests/` folder, so test fixtures never ship in app code.
 
+**`test-support-only-from-tests`.** Fixtures shared across modules' tests (e.g. `createRoundFixtures`) live in `src/test/fixtures/`. Only `*.test.ts` files and `src/test/` itself may import `src/test/`.
+
 **`no-circular`.** No runtime dependency cycles anywhere in `src`. Cycles that close only through `import type` edges are allowed, since types are erased at runtime.
 
 Modules may import non-module code in `src/lib`, `src/db` and so on. Which modules may depend on which (layering) isn't enforced yet; the config has a commented stub.

@@ -7,9 +7,9 @@ import { getSignedInPlayer } from "@/modules/players";
 import * as mutations from "@/lib/tournaments/mutations";
 import * as pairingWrites from "@/lib/tournaments/pairing-writes";
 import {
-  importRoundScorecard,
+  roundScorecardImports,
   type UploadRoundScorecardState,
-} from "@/lib/rounds/scorecard-import";
+} from "@/modules/rounds/scorecard-import";
 import {
   TournamentCreateSchema,
   TournamentUpdateSchema,
@@ -203,7 +203,7 @@ export async function uploadTournamentRoundScorecard(
   const actor = await getSignedInPlayer();
   if (!actor) return { error: "You must be signed in." };
 
-  const result = await importRoundScorecard({
+  const result = await roundScorecardImports.importRoundScorecard({
     playerId: actor.id,
     eventKind: "tournament",
     eventId: tournamentId,

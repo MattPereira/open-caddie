@@ -12,7 +12,7 @@ import { matchFormatLabel } from "@/lib/matches/formats";
 import { brandFont } from "@/app/fonts";
 import { getAllClubsWithSeasons } from "@/modules/clubs";
 import { getCoursesWithTees } from "@/modules/courses";
-import { getActiveRoundForPlayer } from "@/lib/rounds/queries";
+import { getActiveRoundForPlayer } from "@/modules/rounds";
 import { getHomeEvents } from "@/lib/home/queries";
 import { getAllPlayers, getCurrentPlayer } from "@/modules/players";
 import { createPageMetadata } from "@/app/metadata";

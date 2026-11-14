@@ -1,4 +1,4 @@
-import type { HandicapHole, NetScoringRound } from "@/lib/rounds/reads";
+import type { HandicapHole, NetScoringRound } from "@/modules/rounds";
 import { Card, CardContent } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 import type { MatchFormat } from "../../schema";

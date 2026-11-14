@@ -27,13 +27,13 @@ import {
   tournaments,
   users,
 } from "@/db/schema";
-import { assessHandicap, PLAYER_INDEX_ROUND_LIMIT } from "@/lib/handicap";
-import { compareRoundsByScore } from "@/lib/rounds/ranking";
+import { assessHandicap, PLAYER_INDEX_ROUND_LIMIT } from "./handicap";
+import { compareRoundsByScore } from "./ranking";
 import {
   readScorecardsByRounds,
   type RoundGreenieRow,
   type RoundScoreRow,
-} from "@/lib/rounds/scorecards";
+} from "./scorecards";
 
 // The one place Rounds are read for display (ADR 0003). The Tournament, Match
 // and Round reads take their Rounds from here and add only their event fields.
@@ -469,7 +469,7 @@ function ofKind<K extends DisplayRound["kind"]>(kind: K) {
     round.kind === kind;
 }
 
-export const readTournamentRounds = cache(
+export const getTournamentRounds = cache(
   async (tournamentId: number): Promise<RoundsRead<TournamentRound>> => {
     const { course, rounds } = await readRounds({
       by: "tournament",
@@ -479,7 +479,7 @@ export const readTournamentRounds = cache(
   },
 );
 
-export const readMatchRounds = cache(
+export const getMatchRounds = cache(
   async (matchId: number): Promise<RoundsRead<MatchRound>> => {
     const { course, rounds } = await readRounds({ by: "match", id: matchId });
     return { course, rounds: rounds.filter(ofKind("match")) };
@@ -499,7 +499,7 @@ export type SeasonRound = Omit<TournamentRound, "kind" | "yards"> & {
 };
 
 /** Every Tournament Round in a Club's Season, in no particular order. */
-export const readSeasonRounds = cache(
+export const getSeasonRounds = cache(
   async (clubId: number, season: number): Promise<SeasonRound[]> => {
     const where = inArray(
       rounds.tournamentId,

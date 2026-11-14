@@ -1,42 +1,37 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { readScorecardsByRounds } from "../scorecards";
-import { createRoundFixtures } from "../test-fixtures";
-import { importRoundScorecard } from "./index";
+import { createRoundFixtures } from "@/test/fixtures/rounds";
+import { getRoundById } from "../index";
+import { createRoundScorecardImport } from "../scorecard-import";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
   updateTag: vi.fn(),
 }));
 
-// The AI parser stays out of the test: it reads back every selected Round with
-// a 4 on each hole, as if the card were filled in that way.
-vi.mock("./parser", () => ({
-  parseRoundScorecardImage: vi.fn(
-    async (
-      _image: Buffer,
-      _mediaType: string,
-      context: { rounds: { roundId: number }[] },
-    ) => ({
-      parsed: {
-        rounds: context.rounds.map(({ roundId }) => ({
-          roundId,
-          holes: Array.from({ length: 18 }, (_, index) => ({
-            hole: index + 1,
-            strokes: 4,
-          })),
-        })),
-      },
-      sumChecks: [],
-    }),
-  ),
-}));
-
 describe("Round Scorecard Import", () => {
   const fixtures = createRoundFixtures(db, schema);
+
+  // The AI parser stays out of the test: it reads back every selected Round
+  // with a 4 on each hole, as if the card were filled in that way.
+  const imports = createRoundScorecardImport({
+    async parseImage(_image, _mediaType, context) {
+      return {
+        parsed: {
+          rounds: context.rounds.map(({ roundId }) => ({
+            roundId,
+            holes: Array.from({ length: 18 }, (_, index) => ({
+              hole: index + 1,
+              strokes: 4,
+            })),
+          })),
+        },
+        sumChecks: [],
+      };
+    },
+  });
 
   const IMAGE_URL =
     "https://example.public.blob.vercel-storage.com/round-scorecards/card.jpg";
@@ -55,7 +50,7 @@ describe("Round Scorecard Import", () => {
     event: { kind: "tournament" | "match"; id: number },
     roundIds: number[],
   ) {
-    return importRoundScorecard({
+    return imports.importRoundScorecard({
       playerId,
       eventKind: event.kind,
       eventId: event.id,
@@ -64,10 +59,8 @@ describe("Round Scorecard Import", () => {
   }
 
   async function strokesOf(roundId: number) {
-    const { scores } = await readScorecardsByRounds(
-      eq(schema.rounds.id, roundId),
-    );
-    return scores.filter((score) => score.strokes != null).length;
+    const round = await getRoundById(roundId);
+    return (round?.scores ?? []).filter((score) => score.strokes != null).length;
   }
 
   beforeEach(() => {

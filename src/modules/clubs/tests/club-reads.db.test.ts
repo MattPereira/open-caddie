@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { createRoundFixtures, PAR_THREE_HOLES } from "@/lib/rounds/test-fixtures";
+import { createRoundFixtures, PAR_THREE_HOLES } from "@/test/fixtures/rounds";
 import * as clubs from "../index";
 import type { PointRules } from "../point-rules";
 

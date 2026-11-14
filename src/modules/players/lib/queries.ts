@@ -42,7 +42,7 @@ export const getPlayerStatsById = cache(async (playerId: string) => {
         >`avg(${roundSummaries.totalStrokes}) filter (where ${roundSummaries.isComplete})::double precision`.mapWith(
           (value) => (value == null ? null : Number(value)),
         ),
-        // Filter mirrors hasAllPutts in lib/rounds/completeness.ts.
+        // Filter mirrors hasAllPutts in modules/rounds/lib/completeness.ts.
         averagePutts: sql<
           number | null
         >`avg(${roundSummaries.totalPutts}) filter (where ${roundSummaries.recordedPuttsCount} = 18)::double precision`.mapWith(

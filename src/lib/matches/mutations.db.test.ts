@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { createRoundFixtures } from "@/lib/rounds/test-fixtures";
+import { createRoundFixtures } from "@/test/fixtures/rounds";
 import * as mutations from "./mutations";
 
 const { revalidatePath, updateTag } = vi.hoisted(() => ({

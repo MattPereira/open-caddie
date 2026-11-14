@@ -1,9 +1,9 @@
 import { comparePlayers, type SortablePlayer } from "@/modules/players/player-name";
-import { hasAllPutts } from "@/lib/rounds/completeness";
+import { hasAllPutts } from "@/modules/rounds/completeness";
 import {
   compareNullableNumbers,
   compareRoundsByScore,
-} from "@/lib/rounds/ranking";
+} from "@/modules/rounds/ranking";
 import { HOLE_COUNT, HOLE_NUMBERS } from "@/modules/courses/holes";
 
 type ResultsPlayer = SortablePlayer;

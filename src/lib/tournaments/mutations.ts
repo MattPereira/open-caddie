@@ -12,7 +12,7 @@ import {
   invalidateRoundChanged,
   syncEventRounds,
   type ChangedRound,
-} from "@/lib/rounds/lifecycle";
+} from "@/modules/rounds/event-rounds";
 import { requirePlatformAdmin } from "@/modules/players";
 
 // Tournament and Season writes. Plain module: route actions authenticate and

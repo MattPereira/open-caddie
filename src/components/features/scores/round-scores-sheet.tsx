@@ -50,7 +50,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { assessHandicap } from "@/lib/handicap";
+import { assessHandicap } from "@/modules/rounds/handicap";
 import { HOLE_NUMBERS } from "@/modules/courses/holes";
 import type {
   CourseHole,
@@ -59,7 +59,7 @@ import type {
   MatchRound,
   RoundHoleGreenie,
   RoundHoleScore,
-} from "@/lib/rounds/reads";
+} from "@/modules/rounds";
 import { toRoundSheetChanges } from "./round-sheet-changes";
 
 export type EditableRound = Pick<

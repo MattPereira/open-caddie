@@ -3,8 +3,15 @@ import { describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import * as reads from "./reads";
-import { createRoundFixtures } from "./test-fixtures";
+import { createRoundFixtures } from "@/test/fixtures/rounds";
+import {
+  getActiveRoundForPlayer,
+  getClosestGreenies,
+  getLowestRounds,
+  getMatchRounds,
+  getRoundById,
+  getTournamentRounds,
+} from "../index";
 
 describe("Round reads", () => {
   const fixtures = createRoundFixtures(db, schema);
@@ -74,7 +81,7 @@ describe("Round reads", () => {
       const t = await fixtures.tournament();
       const { round } = await fixtures.tournamentPlayer(t);
 
-      const { rounds } = await reads.readTournamentRounds(t.tournament.id);
+      const { rounds } = await getTournamentRounds(t.tournament.id);
 
       expect(rounds).toHaveLength(1);
       expect(rounds[0]).toMatchObject({
@@ -92,7 +99,7 @@ describe("Round reads", () => {
         .set({ playerIndexOverride: "8.4" })
         .where(eq(schema.rounds.id, players[0].round.id));
 
-      const { rounds } = await reads.readMatchRounds(match.id);
+      const { rounds } = await getMatchRounds(match.id);
 
       expect(rounds).toMatchObject([
         { kind: "match", matchId: match.id, playerIndexOverride: 8.4 },
@@ -106,19 +113,19 @@ describe("Round reads", () => {
       const casual = await casualRound();
 
       const [tournament, match, single] = await Promise.all([
-        reads.readRound(tournamentRound.id),
-        reads.readRound(players[0].round.id),
-        reads.readRound(casual.id),
+        getRoundById(tournamentRound.id),
+        getRoundById(players[0].round.id),
+        getRoundById(casual.id),
       ]);
 
-      expect(tournament?.rounds[0].kind).toBe("tournament");
-      expect(match?.rounds[0]).toMatchObject({
+      expect(tournament?.kind).toBe("tournament");
+      expect(match).toMatchObject({
         kind: "match",
         playerIndexOverride: null,
       });
-      expect(single?.rounds[0].kind).toBe("casual");
-      expect(single?.rounds[0]).not.toHaveProperty("playerIndexOverride");
-      expect(await reads.readRound(-1)).toBeNull();
+      expect(single?.kind).toBe("casual");
+      expect(single).not.toHaveProperty("playerIndexOverride");
+      expect(await getRoundById(-1)).toBeUndefined();
     });
   });
 
@@ -129,7 +136,7 @@ describe("Round reads", () => {
       await priorRound(t, player.id, "2025-06-01", 90);
       await card(round.id, 80);
 
-      const { rounds } = await reads.readTournamentRounds(t.tournament.id);
+      const { rounds } = await getTournamentRounds(t.tournament.id);
 
       expect(rounds[0]).toMatchObject({ playingHandicap: 0, netStrokes: 80 });
     });
@@ -145,7 +152,7 @@ describe("Round reads", () => {
       await priorRound(t, player.id, "2025-05-01", 76);
       await card(round.id, 80);
 
-      const [only] = (await reads.readTournamentRounds(t.tournament.id)).rounds;
+      const [only] = (await getTournamentRounds(t.tournament.id)).rounds;
 
       // Best two of 82, 78, 90, 76 are 76 and 78: (4 + 6) / 2.
       expect(only.playingHandicap).toBeCloseTo(5);
@@ -172,7 +179,7 @@ describe("Round reads", () => {
         .returning();
       await card(otherClubRound.id, 72);
 
-      const [only] = (await reads.readTournamentRounds(t.tournament.id)).rounds;
+      const [only] = (await getTournamentRounds(t.tournament.id)).rounds;
 
       expect(only.playingHandicap).toBeCloseTo(10);
     });
@@ -190,7 +197,7 @@ describe("Round reads", () => {
       await card(a.round.id, 80);
       await card(b.round.id, 95);
 
-      const { rounds } = await reads.readTournamentRounds(t.tournament.id);
+      const { rounds } = await getTournamentRounds(t.tournament.id);
       const handicaps = Object.fromEntries(
         rounds.map((round) => [round.id, round.playingHandicap]),
       );
@@ -199,8 +206,8 @@ describe("Round reads", () => {
       expect(handicaps[b.round.id]).toBeCloseTo(16);
       expect(handicaps[c.round.id]).toBe(0);
       for (const { round } of [a, b, c]) {
-        const alone = await reads.readRound(round.id);
-        expect(alone?.rounds[0].playingHandicap).toBeCloseTo(
+        const alone = await getRoundById(round.id);
+        expect(alone?.playingHandicap).toBeCloseTo(
           handicaps[round.id],
         );
       }
@@ -218,7 +225,7 @@ describe("Round reads", () => {
       await card(withOverride.round.id, 90);
       await card(without.round.id, 90);
 
-      const { rounds } = await reads.readMatchRounds(match.id);
+      const { rounds } = await getMatchRounds(match.id);
       const byId = new Map(rounds.map((round) => [round.id, round]));
 
       // 11.3 on a slope 120 tee: 11.3 * 120 / 113 = 12.
@@ -235,9 +242,9 @@ describe("Round reads", () => {
     const round = await casualRound();
     await card(round.id, 85);
 
-    const read = await reads.readRound(round.id);
+    const read = await getRoundById(round.id);
 
-    expect(read?.rounds[0]).toMatchObject({
+    expect(read).toMatchObject({
       totalStrokes: 85,
       isComplete: true,
       playingHandicap: null,
@@ -268,7 +275,7 @@ describe("Round reads", () => {
     await card(handicap.round.id, 80);
     await card(low.round.id, 75);
 
-    const { rounds } = await reads.readTournamentRounds(t.tournament.id);
+    const { rounds } = await getTournamentRounds(t.tournament.id);
 
     expect(rounds.map((round) => round.lastName)).toEqual([
       "Low",
@@ -290,7 +297,7 @@ describe("Round reads", () => {
       .insert(schema.greenies)
       .values({ roundId: mate.round.id, hole: 3, feet: 12, inches: 6 });
 
-    const { rounds } = await reads.readMatchRounds(match.id);
+    const { rounds } = await getMatchRounds(match.id);
 
     expect(rounds.find((round) => round.id === mate.round.id)).toMatchObject({
       playerId: mate.player.id,
@@ -318,7 +325,7 @@ describe("Round reads", () => {
       const white = await fixtures.tee(t.course.id);
       await yardage(t.tee.id, 400);
 
-      const { course } = await reads.readTournamentRounds(t.tournament.id);
+      const { course } = await getTournamentRounds(t.tournament.id);
 
       expect(course.holes).toHaveLength(18);
       expect(course.holes[0]).toEqual({ hole: 1, par: 4, handicap: 1 });
@@ -342,7 +349,7 @@ describe("Round reads", () => {
         .set({ teeId: white.id })
         .where(eq(schema.rounds.id, onWhite.round.id));
 
-      const { rounds } = await reads.readTournamentRounds(t.tournament.id);
+      const { rounds } = await getTournamentRounds(t.tournament.id);
       const byId = new Map(rounds.map((round) => [round.id, round]));
 
       expect(byId.get(blue.round.id)?.yards).toHaveLength(18);
@@ -360,7 +367,7 @@ describe("Round reads", () => {
         .delete(schema.rounds)
         .where(eq(schema.rounds.id, players[0].round.id));
 
-      const read = await reads.readMatchRounds(match.id);
+      const read = await getMatchRounds(match.id);
 
       expect(read.rounds).toEqual([]);
       expect(read.course.holes).toHaveLength(18);
@@ -376,7 +383,7 @@ describe("Round reads", () => {
       const unused90 = await priorRound(t, player.id, "2025-03-01", 90);
       const used78 = await priorRound(t, player.id, "2025-04-01", 78);
 
-      const read = await reads.readRound(round.id, true);
+      const read = await getRoundById(round.id, true);
       const details = read?.handicapDetails;
 
       expect(
@@ -402,14 +409,122 @@ describe("Round reads", () => {
       const casual = await casualRound();
 
       const [match, single, unasked] = await Promise.all([
-        reads.readRound(players[0].round.id, true),
-        reads.readRound(casual.id, true),
-        reads.readRound(round.id),
+        getRoundById(players[0].round.id, true),
+        getRoundById(casual.id, true),
+        getRoundById(round.id),
       ]);
 
       expect(match?.handicapDetails).toBeNull();
       expect(single?.handicapDetails).toBeNull();
       expect(unasked?.handicapDetails).toBeNull();
+    });
+  });
+
+  describe("active Round", () => {
+    it("is the player's latest incomplete Round, with its Tournament's Season", async () => {
+      const { course, tee } = await fixtures.course();
+      const player = await fixtures.player();
+      const casual = (date: string) =>
+        db
+          .insert(schema.rounds)
+          .values({
+            playerId: player.id,
+            courseId: course.id,
+            teeId: tee.id,
+            date: new Date(`${date}T00:00:00.000Z`),
+          })
+          .returning()
+          .then(([round]) => round);
+      await casual("2025-12-01");
+      const t = await fixtures.tournament();
+      const [tournamentRound] = await db
+        .insert(schema.rounds)
+        .values({
+          tournamentId: t.tournament.id,
+          playerId: player.id,
+          courseId: t.course.id,
+          teeId: t.tee.id,
+          date: t.tournament.date,
+        })
+        .returning();
+      await card((await casual("2026-02-01")).id, 80);
+      await fixtures.tournamentPlayer(t);
+
+      expect(await getActiveRoundForPlayer(player.id)).toMatchObject({
+        roundId: tournamentRound.id,
+        tournamentId: t.tournament.id,
+        tournamentSeason: 1,
+        courseHandle: t.course.handle,
+        isComplete: false,
+      });
+    });
+
+    it("is undefined when every Round of the player's is complete", async () => {
+      const round = await casualRound();
+      await card(round.id, 80);
+
+      expect(await getActiveRoundForPlayer(round.playerId)).toBeUndefined();
+    });
+  });
+
+  describe("lowest Rounds", () => {
+    it("lists complete Rounds lowest first, the later of a tie first, up to the limit", async () => {
+      const t = await fixtures.tournament();
+      const { player } = await fixtures.tournamentPlayer(t);
+      const low = await priorRound(t, player.id, "2025-01-01", 70);
+      const tieEarlier = await priorRound(t, player.id, "2025-02-01", 75);
+      const tieLater = await priorRound(t, player.id, "2025-03-01", 75);
+      await priorRound(t, player.id, "2025-04-01", 90);
+      // The player's Round in `t` itself has no scores, so it isn't complete.
+
+      const lowest = await getLowestRounds(3);
+
+      expect(lowest.map((round) => [round.roundId, round.totalStrokes])).toEqual([
+        [low.id, 70],
+        [tieLater.id, 75],
+        [tieEarlier.id, 75],
+      ]);
+      expect(lowest[0]).toMatchObject({
+        courseName: t.course.name,
+        lastName: player.lastName,
+      });
+    });
+  });
+
+  describe("closest Greenies", () => {
+    it("lists Greenies closest first up to the limit, with the Club and Season of Tournament ones", async () => {
+      const t = await fixtures.tournament();
+      const { round: tournamentRound } = await fixtures.tournamentPlayer(t);
+      const casual = await casualRound();
+      await card(tournamentRound.id, 72);
+      await card(casual.id, 72);
+      await db.insert(schema.greenies).values([
+        { roundId: tournamentRound.id, hole: 3, feet: 4, inches: 6 },
+        { roundId: tournamentRound.id, hole: 7, feet: 12, inches: 0 },
+        { roundId: casual.id, hole: 3, feet: 4, inches: 2 },
+      ]);
+
+      const closest = await getClosestGreenies(2);
+
+      expect(closest).toEqual([
+        expect.objectContaining({
+          roundId: casual.id,
+          hole: 3,
+          feet: 4,
+          inches: 2,
+          clubName: null,
+          season: null,
+        }),
+        expect.objectContaining({
+          roundId: tournamentRound.id,
+          hole: 3,
+          feet: 4,
+          inches: 6,
+          courseHandle: t.course.handle,
+          season: 1,
+        }),
+      ]);
+      expect(closest[1].clubName).toMatch(/^Club /);
     });
   });
 });

@@ -12,7 +12,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MatchPlayContent } from "@/app/(app)/matches/[id]/_components/match-play-tab-content";
 import { SkinsContent } from "@/components/features/scores/skins-content";
-import type { CourseHole } from "@/lib/rounds/reads";
+import type { CourseHole } from "@/modules/rounds";
 import type { MatchScoreboard } from "./live-scores";
 import type { PlayRound } from "./round-play";
 

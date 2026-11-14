@@ -503,7 +503,7 @@ export const roundSummaries = pgView("round_summaries").as((qb) =>
         sql<number>`coalesce(sum(${roundScores.putts}), 0)::int`.mapWith(
           Number,
         ).as("total_putts"),
-      // Mirrors isComplete in lib/rounds/completeness.ts.
+      // Mirrors isComplete in modules/rounds/lib/completeness.ts.
       isComplete: sql<boolean>`count(${roundScores.strokes}) = 18`.as(
         "is_complete",
       ),

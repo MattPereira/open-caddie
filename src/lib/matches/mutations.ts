@@ -21,7 +21,7 @@ import {
   invalidateRoundChanged,
   syncEventRounds,
   type ChangedRound,
-} from "@/lib/rounds/lifecycle";
+} from "@/modules/rounds/event-rounds";
 import { isPlatformAdmin } from "@/modules/players";
 import { matchFormatPolicy } from "./formats";
 

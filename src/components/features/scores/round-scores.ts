@@ -3,7 +3,7 @@ import type {
   DisplayRound,
   RoundHoleGreenie,
   RoundHoleScore,
-} from "@/lib/rounds/reads";
+} from "@/modules/rounds";
 import { HOLE_NUMBERS } from "@/modules/courses/holes";
 
 export type RoundScoresTableRound = Pick<

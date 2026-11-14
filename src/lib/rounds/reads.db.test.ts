@@ -245,11 +245,10 @@ describe("Round reads", () => {
     });
   });
 
-  // Tournament Ranking is applied by Tournament reads, not here.
-  it("orders Rounds by player, regardless of score", async () => {
+  it("sorts by net, then gross, then name, with no net strokes last", async () => {
     const t = await fixtures.tournament();
     const players = [];
-    for (const lastName of ["Charlie", "Alpha", "Bravo"]) {
+    for (const lastName of ["Incomplete", "Bravo", "Alpha", "Handicap", "Low"]) {
       const player = await fixtures.tournamentPlayer(t);
       await db
         .update(schema.users)
@@ -257,17 +256,26 @@ describe("Round reads", () => {
         .where(eq(schema.users.id, player.player.id));
       players.push(player);
     }
-    const [charlie, alpha, bravo] = players;
-    await card(charlie.round.id, 70);
-    await card(alpha.round.id, 90);
-    await card(bravo.round.id, 80);
+    const [incomplete, bravo, alpha, handicap, low] = players;
+    await db
+      .insert(schema.roundScores)
+      .values({ roundId: incomplete.round.id, hole: 1, strokes: 3 });
+    await card(bravo.round.id, 77);
+    await card(alpha.round.id, 77);
+    // Net 75 off gross 80 ranks behind a scratch 75.
+    await priorRound(t, handicap.player.id, "2025-02-01", 76);
+    await priorRound(t, handicap.player.id, "2025-03-01", 78);
+    await card(handicap.round.id, 80);
+    await card(low.round.id, 75);
 
     const { rounds } = await reads.readTournamentRounds(t.tournament.id);
 
     expect(rounds.map((round) => round.lastName)).toEqual([
+      "Low",
+      "Handicap",
       "Alpha",
       "Bravo",
-      "Charlie",
+      "Incomplete",
     ]);
   });
 

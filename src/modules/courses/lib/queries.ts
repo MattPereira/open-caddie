@@ -376,7 +376,7 @@ export const getFewestPuttsRoundsByCourseId = cache(
           eq(roundSummaries.courseId, courseId),
           eq(roundSummaries.isComplete, true),
           // Mirrors hasAllPutts in lib/rounds/completeness.ts.
-          gte(roundSummaries.recordedPuttsCount, 18),
+          gte(roundSummaries.recordedPuttsCount, HOLE_COUNT),
         ),
       )
       .orderBy(asc(roundSummaries.totalPutts))

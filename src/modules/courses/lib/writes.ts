@@ -73,7 +73,7 @@ export async function updateCourse(
   const refused = await refuseIfTeesInUse(teesToDelete);
   if (refused) return refused;
 
-  const newImgUrl = emptyToNull(imgUrl);
+  const newImgUrl = imgUrl.length > 0 ? imgUrl : null;
 
   try {
     await db.transaction(async (tx) => {

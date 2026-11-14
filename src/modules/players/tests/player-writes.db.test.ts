@@ -142,7 +142,7 @@ describe("Player writes", () => {
       const other = await fixtures.player();
       const result = await players.updatePlayer(player.id, editOf(other, { firstName: "Hacked" }));
       expect(result).toEqual({ ok: false, error: "You can only edit your own profile." });
-      expect((await stored(other.id)).firstName).toBe("Player");
+      expect((await stored(other.id)).firstName).toBe(other.firstName);
     });
 
     it("ignores a non-admin's Platform Admin value", async () => {
@@ -170,7 +170,7 @@ describe("Player writes", () => {
       expect(await stored(player.id)).toMatchObject({ email, emailVerified: null });
     });
 
-    it("refuses an email or username another Player uses, but not their own", async () => {
+    it("refuses an email or username another Player uses, but keeps their own username", async () => {
       const other = await fixtures.player();
       await db.update(schema.users).set({ username: "other" }).where(eq(schema.users.id, other.id));
       await db.update(schema.users).set({ username: "mine" }).where(eq(schema.users.id, player.id));
@@ -237,15 +237,12 @@ describe("Player writes", () => {
       expect(await stored(admin.id)).toBeDefined();
     });
 
-    it("refuses a Player with Rounds or Greenies, giving the counts", async () => {
+    it("refuses a Player with Rounds, giving the count", async () => {
       const t = await fixtures.tournament();
-      const { player: entrant, round } = await fixtures.tournamentPlayer(t);
-      await db.insert(schema.roundScores).values({ roundId: round.id, hole: 3, strokes: 3, putts: 1 });
-      await db.insert(schema.greenies).values({ roundId: round.id, hole: 3, feet: 4, inches: 0 });
-
+      const { player: entrant } = await fixtures.tournamentPlayer(t);
       expect(await players.deletePlayer(admin.id, entrant.id)).toEqual({
         ok: false,
-        error: "Cannot delete: player has 1 round(s) and 1 greenie(s).",
+        error: "Cannot delete: player has 1 round(s).",
       });
       expect(await stored(entrant.id)).toBeDefined();
       expect(refreshed()).toEqual([]);

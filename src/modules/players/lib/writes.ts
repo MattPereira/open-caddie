@@ -1,8 +1,8 @@
 import { revalidatePath } from "next/cache";
-import { and, count, eq, ne, sql, type SQL } from "drizzle-orm";
+import { and, count, eq, ne, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { greenies, rounds, users } from "@/db/schema";
+import { rounds, users } from "@/db/schema";
 import { safeDeleteBlob } from "@/lib/images/blob";
 import { pgCode } from "@/lib/pg-errors";
 import { isPlatformAdmin, requirePlatformAdmin } from "./platform-admin";
@@ -119,20 +119,16 @@ export async function deletePlayer(
     return { ok: false, error: "You cannot delete your own account." };
   }
 
-  const [[{ value: roundCount }], [{ value: greenieCount }]] =
-    await Promise.all([
-      db.select({ value: count() }).from(rounds).where(eq(rounds.playerId, id)),
-      db
-        .select({ value: count() })
-        .from(greenies)
-        .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-        .where(eq(rounds.playerId, id)),
-    ]);
+  // Greenies belong to Rounds, so counting Rounds covers them.
+  const [{ value: roundCount }] = await db
+    .select({ value: count() })
+    .from(rounds)
+    .where(eq(rounds.playerId, id));
 
-  if (roundCount > 0 || greenieCount > 0) {
+  if (roundCount > 0) {
     return {
       ok: false,
-      error: `Cannot delete: player has ${roundCount} round(s) and ${greenieCount} greenie(s).`,
+      error: `Cannot delete: player has ${roundCount} round(s).`,
     };
   }
 
@@ -165,14 +161,13 @@ async function refuseIfTaken(
   fields: ReturnType<typeof normalize>,
   { excludeId, checkEmail = true }: { excludeId?: string; checkEmail?: boolean } = {},
 ): Promise<{ ok: false; error: string } | null> {
-  const others = (condition: SQL) =>
-    excludeId ? and(condition, ne(users.id, excludeId)) : condition;
-
+  // Callers skip the email check when it's unchanged, so only the username
+  // query can match the Player being edited.
   if (checkEmail) {
     const [taken] = await db
       .select({ id: users.id })
       .from(users)
-      .where(others(sql`lower(${users.email}) = ${fields.email}`))
+      .where(sql`lower(${users.email}) = ${fields.email}`)
       .limit(1);
     if (taken) return { ok: false, error: "That email is already in use." };
   }
@@ -181,7 +176,11 @@ async function refuseIfTaken(
     const [taken] = await db
       .select({ id: users.id })
       .from(users)
-      .where(others(eq(users.username, fields.username)))
+      .where(
+        excludeId
+          ? and(eq(users.username, fields.username), ne(users.id, excludeId))
+          : eq(users.username, fields.username),
+      )
       .limit(1);
     if (taken) return { ok: false, error: "That username is already in use." };
   }

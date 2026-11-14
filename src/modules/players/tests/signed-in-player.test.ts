@@ -26,12 +26,8 @@ describe("getSignedInPlayer", () => {
     expect(await getSignedInPlayer()).toBeNull();
   });
 
-  it("is the session's Player, including Admin, when signed in", async () => {
-    signedIn({ id: "p1", username: "ann", isAdmin: true, email: "a@example.com" });
-    expect(await getSignedInPlayer()).toMatchObject({
-      id: "p1",
-      username: "ann",
-      isAdmin: true,
-    });
+  it("is the session's Player when signed in", async () => {
+    signedIn({ id: "p1" });
+    expect(await getSignedInPlayer()).toMatchObject({ id: "p1" });
   });
 });

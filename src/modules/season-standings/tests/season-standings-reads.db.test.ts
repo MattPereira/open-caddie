@@ -6,7 +6,7 @@ import * as schema from "@/db/schema";
 import { createRoundFixtures, PAR_THREE_HOLES } from "@/lib/rounds/test-fixtures";
 import * as standings from "../index";
 
-describe("Season Standings read", () => {
+describe("Season Standings reads", () => {
   const fixtures = createRoundFixtures(db, schema);
 
   type Course = Awaited<ReturnType<typeof fixtures.course>>;
@@ -462,7 +462,7 @@ describe("Season Standings read", () => {
   });
 });
 
-describe("Club Seasons read", () => {
+describe("Club Season reads", () => {
   const fixtures = createRoundFixtures(db, schema);
 
   it("lists the Club's Seasons with Tournaments, newest first, once each", async () => {

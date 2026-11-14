@@ -5,7 +5,7 @@ import * as schema from "@/db/schema";
 import { createRoundFixtures } from "@/lib/rounds/test-fixtures";
 import * as players from "../index";
 
-describe("Players read", () => {
+describe("Player reads", () => {
   const fixtures = createRoundFixtures(db, schema);
 
   type Player = Awaited<ReturnType<typeof fixtures.player>>;

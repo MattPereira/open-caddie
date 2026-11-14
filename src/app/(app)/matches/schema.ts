@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { matchFormatPolicy } from "@/lib/matches/formats";
+import { matchFormatPolicy } from "@/modules/matches/formats";
 
 export const MatchFormatSchema = z.enum([
   "singles_match_play",

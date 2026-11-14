@@ -110,6 +110,7 @@ _Avoid_: best rounds, scoring rounds
 
 **Match**:
 An Event created by one Player, its creator, holding the Rounds of the Players in it. Its format caps its Rounds: Singles at 2, Three-Ball at 3, and Four-Ball needs exactly 4. Only its creator or a Platform Admin may change or delete it.
+_Avoid_: Head-to-Head (for Singles)
 
 **Match Team**:
 One of the two sides in a Four-Ball Match, each holding two of its Rounds.
@@ -117,6 +118,10 @@ _Avoid_: pair, side
 
 **Match Play**:
 A per-hole game in which the unique lowest net team score wins the hole. Singles and Three-Ball use 100% relative Playing Handicaps; Four-Ball uses 90% relative Playing Handicaps.
+
+**Match Play Contest**:
+One Match Play between two Players or two Match Teams of a Match. Singles and Four-Ball have one; Three-Ball has three, one per pair of Players.
+_Avoid_: Head-to-Head
 
 **Match Skins**:
 A Match's per-hole game using relative Playing Handicaps. A unique low net score wins the hole; tied completed holes carry their skins forward until a later unique low net score wins them.

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { getSignedInPlayer } from "@/modules/players";
-import * as mutations from "@/lib/matches/mutations";
+import * as matches from "@/modules/matches";
 import {
   roundScorecardImports,
   type UploadRoundScorecardState,
@@ -30,7 +30,7 @@ export async function createMatch(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  return mutations.createMatch(actor.id, parsed.data);
+  return matches.createMatch(actor.id, parsed.data);
 }
 
 export async function updateMatch(
@@ -46,7 +46,7 @@ export async function updateMatch(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  return mutations.updateMatch(actor.id, parsed.data);
+  return matches.updateMatch(actor.id, parsed.data);
 }
 
 export async function deleteMatch(id: number): Promise<ActionResult> {
@@ -55,7 +55,7 @@ export async function deleteMatch(id: number): Promise<ActionResult> {
     return { ok: false, error: "You must be signed in." };
   }
 
-  return mutations.deleteMatch(actor.id, id);
+  return matches.deleteMatch(actor.id, id);
 }
 
 export async function uploadMatchRoundScorecard(

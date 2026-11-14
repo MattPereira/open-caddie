@@ -17,11 +17,11 @@ export type ScoringHole = { hole: number; handicap: number | null };
 export type ScoringTeam = { id: number; rounds: ScoringRound[] };
 
 /** Who a contest side is, so views can label it without re-deriving format. */
-export type MatchPlaySide =
+type MatchPlaySide =
   | { kind: "team"; matchTeamId: number }
   | { kind: "player"; playerId: string };
 
-export type ScoredMatchPlayTeam = {
+type ScoredMatchPlayTeam = {
   id: string;
   side: MatchPlaySide;
   roundIds: number[];
@@ -46,7 +46,7 @@ export type ScoredContest = {
   state: "unstarted" | "in_progress" | "closed" | "complete";
 };
 
-export type MatchPlayScoringResult =
+type MatchPlayScoringResult =
   | { status: "unavailable"; reason: "round_count" | "teams" }
   | { status: "ready"; contests: ScoredContest[] };
 

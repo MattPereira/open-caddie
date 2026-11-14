@@ -1,5 +1,9 @@
 import { comparePlayers, type SortablePlayer } from "@/modules/players/player-name";
 import { hasAllPutts } from "@/lib/rounds/completeness";
+import {
+  compareNullableNumbers,
+  compareRoundsByScore,
+} from "@/lib/rounds/ranking";
 import { HOLE_COUNT, HOLE_NUMBERS } from "@/modules/courses/holes";
 
 type ResultsPlayer = SortablePlayer;
@@ -41,25 +45,7 @@ export type TournamentSkin<T extends TournamentSkinsRound> = {
 export function rankStrokes<T extends StrokesResultRound>(rounds: readonly T[]) {
   return rounds
     .filter((round) => round.isComplete && round.netStrokes != null)
-    .sort(compareTournamentRanking);
-}
-
-export type RankedRound = ResultsPlayer & {
-  netStrokes: number | null;
-  totalStrokes: number;
-};
-
-/**
- * Tournament ranking order: Rounds without net strokes last (by player), then
- * net, then gross, then player. Every leaderboard sorts with this.
- */
-export function compareTournamentRanking(a: RankedRound, b: RankedRound) {
-  if (a.netStrokes == null && b.netStrokes == null) return comparePlayers(a, b);
-  return (
-    compareNullableNumbers(a.netStrokes, b.netStrokes) ||
-    a.totalStrokes - b.totalStrokes ||
-    comparePlayers(a, b)
-  );
+    .sort(compareRoundsByScore);
 }
 
 export function rankPutts<T extends PuttsResultRound>(rounds: readonly T[]) {
@@ -134,11 +120,4 @@ function compareGreenies(a: GreenieResult, b: GreenieResult) {
     a.feet * 12 + a.inches - (b.feet * 12 + b.inches) ||
     comparePlayers(a, b)
   );
-}
-
-function compareNullableNumbers(a: number | null, b: number | null) {
-  if (a == null && b == null) return 0;
-  if (a == null) return 1;
-  if (b == null) return -1;
-  return a - b;
 }

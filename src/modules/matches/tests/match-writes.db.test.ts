@@ -24,7 +24,6 @@ describe("Match mutations", () => {
     updateTag.mockClear();
   });
 
-  // The "Match changed" page set, in invalidatedPaths' form.
   function matchChanged(matchId: number) {
     return ["/matches", `/matches/${matchId}`];
   }

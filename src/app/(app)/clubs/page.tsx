@@ -4,7 +4,7 @@ import { appPageIcons } from "@/components/layout/app-nav-items";
 import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
 import { getAllClubsFull } from "@/lib/clubs/queries";
-import { getCurrentPlayer } from "@/lib/players/queries";
+import { getCurrentPlayer } from "@/modules/players";
 import { AddClubButton } from "./_components/add-club-button";
 import { ClubsBrowser } from "./_components/clubs-browser";
 

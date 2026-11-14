@@ -6,7 +6,7 @@ import { PageHeading } from "@/components/layout/page-heading";
 import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
 import { getCoursesWithTees } from "@/lib/courses/queries";
 import { getAllTournaments } from "@/lib/tournaments/queries";
-import { getCurrentPlayer } from "@/lib/players/queries";
+import { getCurrentPlayer } from "@/modules/players";
 import { AddTournamentButton } from "./_components/add-tournament-button";
 import { TournamentsBrowser } from "./_components/tournaments-browser";
 

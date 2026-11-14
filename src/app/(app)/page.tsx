@@ -14,7 +14,7 @@ import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
 import { getCoursesWithTees } from "@/lib/courses/queries";
 import { getActiveRoundForPlayer } from "@/lib/rounds/queries";
 import { getHomeEvents } from "@/lib/home/queries";
-import { getAllPlayers, getCurrentPlayer } from "@/lib/players/queries";
+import { getAllPlayers, getCurrentPlayer } from "@/modules/players";
 import { createPageMetadata } from "@/app/metadata";
 import { cn } from "@/lib/utils";
 import { AddMatchButton } from "./matches/_components/add-match-button";

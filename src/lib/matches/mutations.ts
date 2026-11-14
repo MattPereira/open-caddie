@@ -22,7 +22,7 @@ import {
   syncEventRounds,
   type ChangedRound,
 } from "@/lib/rounds/lifecycle";
-import { isAdmin } from "@/lib/players/admin";
+import { isPlatformAdmin } from "@/modules/players";
 import { matchFormatPolicy } from "./formats";
 
 // Match writes. Plain module: route actions authenticate and parse untrusted
@@ -259,7 +259,7 @@ async function canManageMatch(
     .where(eq(matches.id, matchId))
     .limit(1);
   if (!match) return { ok: false, error: "Match not found." };
-  if (match.createdByPlayerId !== playerId && !(await isAdmin(playerId))) {
+  if (match.createdByPlayerId !== playerId && !(await isPlatformAdmin(playerId))) {
     return { ok: false, error: "Only the match creator can edit this match." };
   }
   return { ok: true };

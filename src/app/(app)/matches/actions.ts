@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { getSignedInPlayer } from "@/lib/players/queries";
+import { getSignedInPlayer } from "@/modules/players";
 import * as mutations from "@/lib/matches/mutations";
 import {
   importRoundScorecard,

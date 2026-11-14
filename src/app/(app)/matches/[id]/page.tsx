@@ -8,7 +8,7 @@ import { UrlTabs } from "@/components/shared/url-tabs";
 import { getCoursesWithTees } from "@/lib/courses/queries";
 import { getMatchById } from "@/lib/matches/queries";
 import { getEventRoundAccess } from "@/lib/rounds/access";
-import { getAllPlayers, getCurrentPlayer } from "@/lib/players/queries";
+import { getAllPlayers, getCurrentPlayer } from "@/modules/players";
 import { createPageMetadata } from "@/app/metadata";
 import { matchFormatLabel } from "@/lib/matches/formats";
 import { formatDate } from "@/lib/dates";

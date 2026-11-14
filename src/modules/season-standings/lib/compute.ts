@@ -1,4 +1,4 @@
-import { comparePlayers, type SortablePlayer } from "@/lib/players/player-name";
+import { comparePlayers, type SortablePlayer } from "@/modules/players/player-name";
 import { rankPutts, rankStrokes } from "@/lib/tournaments/results";
 
 import type { PointRules } from "../point-rules";

@@ -33,7 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { HoldToConfirmButton } from "@/components/shared/hold-to-confirm-button";
 import { PlayerCard } from "@/components/domain/player-card";
-import { displayName } from "@/lib/players/player-name";
+import { displayName } from "@/modules/players/player-name";
 import { PAIRING_MAX_MEMBERS } from "@/lib/tournaments/pairings";
 import type {
   TournamentPairing,

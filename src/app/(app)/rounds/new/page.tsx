@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { getSignedInPlayer } from "@/lib/players/queries";
+import { getSignedInPlayer } from "@/modules/players";
 import { getAllCourses, getCoursesWithTees } from "@/lib/courses/queries";
 import { getUpcomingTournamentsForPlayer } from "@/lib/tournaments/queries";
 import { toIsoDate } from "@/lib/dates";

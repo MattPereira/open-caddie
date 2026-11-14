@@ -3,7 +3,7 @@ import { count, desc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { pairingMembers, pairings, rounds, tournaments } from "@/db/schema";
-import { requireAdmin } from "@/lib/players/admin";
+import { requirePlatformAdmin } from "@/modules/players";
 import { PAIRING_MAX_MEMBERS } from "./pairings";
 
 // Plain module: only route actions authenticate and parse untrusted input.
@@ -18,7 +18,7 @@ export async function createPairing(
   playerId: string,
   values: { tournamentId: number },
 ): Promise<PairingWriteResult> {
-  const admin = await requireAdmin(playerId, NOT_ADMIN);
+  const admin = await requirePlatformAdmin(playerId, NOT_ADMIN);
   if (!admin.ok) return admin;
 
   const { tournamentId } = values;
@@ -70,7 +70,7 @@ export async function renamePairing(
   playerId: string,
   values: { pairingId: number; name: string },
 ): Promise<PairingWriteResult> {
-  const admin = await requireAdmin(playerId, NOT_ADMIN);
+  const admin = await requirePlatformAdmin(playerId, NOT_ADMIN);
   if (!admin.ok) return admin;
 
   const { pairingId } = values;
@@ -91,7 +91,7 @@ export async function deletePairing(
   playerId: string,
   values: { pairingId: number },
 ): Promise<PairingWriteResult> {
-  const admin = await requireAdmin(playerId, NOT_ADMIN);
+  const admin = await requirePlatformAdmin(playerId, NOT_ADMIN);
   if (!admin.ok) return admin;
 
   const { pairingId } = values;
@@ -111,7 +111,7 @@ export async function assignRoundToPairing(
   playerId: string,
   values: { pairingId: number; roundId: number },
 ): Promise<PairingWriteResult> {
-  const admin = await requireAdmin(playerId, NOT_ADMIN);
+  const admin = await requirePlatformAdmin(playerId, NOT_ADMIN);
   if (!admin.ok) return admin;
 
   const { pairingId, roundId } = values;
@@ -183,7 +183,7 @@ export async function removeRoundFromPairing(
   playerId: string,
   values: { roundId: number },
 ): Promise<PairingWriteResult> {
-  const admin = await requireAdmin(playerId, NOT_ADMIN);
+  const admin = await requirePlatformAdmin(playerId, NOT_ADMIN);
   if (!admin.ok) return admin;
 
   const { roundId } = values;

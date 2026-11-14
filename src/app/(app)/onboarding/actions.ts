@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { unstable_update } from "@/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { getSignedInPlayer } from "@/lib/players/queries";
+import { getSignedInPlayer } from "@/modules/players";
 import { slugify } from "./slugify";
 import { OnboardingSchema, type OnboardingValues } from "./schema";
 

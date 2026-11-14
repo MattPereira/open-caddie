@@ -1,15 +1,13 @@
-export type PlayerCardPlayer = {
+// Client-safe: no server imports.
+
+export type NamedPlayer = {
   email: string | null;
   firstName: string | null;
   lastName: string | null;
   username: string | null;
-  image: string | null;
-  isAdmin?: boolean;
-  roundsCount?: number;
-  greeniesCount?: number;
 };
 
-export function displayName(player: PlayerCardPlayer) {
+export function displayName(player: NamedPlayer) {
   const full = [player.firstName, player.lastName]
     .filter(Boolean)
     .join(" ")
@@ -17,7 +15,7 @@ export function displayName(player: PlayerCardPlayer) {
   return full || player.username || player.email || "Unnamed player";
 }
 
-export function getInitials(player: PlayerCardPlayer) {
+export function getInitials(player: NamedPlayer) {
   const first = player.firstName?.trim()?.[0];
   const last = player.lastName?.trim()?.[0];
   const initials = `${first ?? ""}${last ?? ""}`.toUpperCase();

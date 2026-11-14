@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { clubs } from "@/db/schema";
-import { getCurrentPlayer } from "@/lib/players/queries";
+import { getCurrentPlayer } from "@/modules/players";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import {
   ClubCreateSchema,

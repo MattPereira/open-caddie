@@ -5,6 +5,8 @@ date: 2026-07-13
 
 # Data-access placement: `src/db/` is the Drizzle boundary, reads live in `src/lib/<domain>/`
 
+> **Migrating domains:** for a domain already in `src/modules/<name>`, read `lib/<domain>/` below as that module, and follow the 2026-11-13 amendment. The `lib/<domain>/` paths apply only to domains not yet migrated (#126).
+
 `src/db/` holds only the Drizzle boundary — how we talk to Postgres — and nothing else:
 
 - `src/db/index.ts` — the drizzle client (connection).
@@ -33,7 +35,14 @@ The agent-facing placement rule: **Reads → `lib/<domain>/queries.ts`. Writes e
 
 ## Amendments
 
-**2026-11-13: domain code moves into modules ([ADR 0009](./0009-domain-code-in-enforced-modules.md)).** `lib/<domain>` is migrating into `src/modules/<name>`, one slice at a time. The placement rules above still apply inside a module. Reads sit behind the module's entry points (e.g. `@/modules/season-standings`) instead of `lib/<domain>/queries.ts`. Writes still enter via the route's `actions.ts`.
+**2026-11-13: domain code moves into modules ([ADR 0009](./0009-domain-code-in-enforced-modules.md)).** `lib/<domain>` is migrating into `src/modules/<name>`, one slice at a time (#126). The rules above still apply inside a module, but the seam moves:
+
+- **Reads** live in the module's private `lib/` (e.g. `lib/queries.ts`) and are exported from an entry point. The read seam is the **entry point** (`@/modules/<name>`), not a file named `queries.ts`. The filename rule above applies only to unmigrated `lib/<domain>`.
+- **Extracted writes** live in the module's private `lib/` and are exported from the same server entry point. They are still plain (never `"use server"`), take the acting Player's id first, own authorization and invalidation, and return `{ ok: true } | { ok: false; error }`.
+- **Writes still enter via the route's `actions.ts`**: session, zod parsing, `redirect`, and request-only work such as headers or sending sign-in email. The extraction trigger is unchanged.
+- **Callers import entry points only.** `pnpm lint:boundaries` fails a deep import.
+
+Examples: `src/modules/season-standings` (reads), `src/modules/players` (reads and extracted writes).
 
 **2026-11-12: application source under `src/` (#109).** Connection and schema move to `src/db/`; generated migrations remain at root `db/migrations/`. This supersedes the original single-folder Drizzle layout. `drizzle.config.ts` connects the two paths. Application `lib/` and route paths in this ADR are relative to `src/`; placement rules and `@/db` imports remain unchanged.
 

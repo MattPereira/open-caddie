@@ -1,4 +1,4 @@
-import { displayName, getInitials } from "@/lib/players/player-name";
+import { displayName, getInitials } from "@/modules/players/player-name";
 import type {
   DisplayRound,
   RoundHoleGreenie,

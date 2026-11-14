@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { appPageIcons } from "@/components/layout/app-nav-items";
 import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
-import { getAllPlayers, getCurrentPlayer } from "@/lib/players/queries";
+import { getAllPlayers, getCurrentPlayer } from "@/modules/players";
 import { AddPlayerButton } from "./_components/add-player-button";
 import { PlayersBrowser } from "./_components/players-browser";
 

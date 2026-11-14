@@ -11,7 +11,7 @@ import {
   teeYardages,
   tournaments,
 } from "@/db/schema";
-import { getCurrentPlayer } from "@/lib/players/queries";
+import { getCurrentPlayer } from "@/modules/players";
 import { safeDeleteBlob } from "@/lib/images/blob";
 import { invalidateHomeEventsCache } from "@/lib/home/cache";
 import { pgCode } from "@/lib/pg-errors";

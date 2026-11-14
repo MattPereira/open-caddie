@@ -13,7 +13,7 @@ import {
   syncEventRounds,
   type ChangedRound,
 } from "@/lib/rounds/lifecycle";
-import { requireAdmin } from "@/lib/players/admin";
+import { requirePlatformAdmin } from "@/modules/players";
 
 // Tournament and Season writes. Plain module: route actions authenticate and
 // parse untrusted input, then pass the acting Player's id in (ADR 0003).
@@ -47,7 +47,7 @@ export async function createTournament(
   playerId: string,
   values: TournamentCreateInput,
 ): Promise<TournamentWriteResult> {
-  const admin = await requireAdmin(playerId, NOT_ADMIN);
+  const admin = await requirePlatformAdmin(playerId, NOT_ADMIN);
   if (!admin.ok) return admin;
 
   const resolved = await resolveTournamentFields(values);
@@ -87,7 +87,7 @@ export async function updateTournament(
   playerId: string,
   values: TournamentUpdateInput,
 ): Promise<TournamentWriteResult> {
-  const admin = await requireAdmin(playerId, NOT_ADMIN);
+  const admin = await requirePlatformAdmin(playerId, NOT_ADMIN);
   if (!admin.ok) return admin;
 
   const { id } = values;
@@ -130,7 +130,7 @@ export async function deleteTournament(
   playerId: string,
   id: number,
 ): Promise<TournamentWriteResult> {
-  const admin = await requireAdmin(playerId, NOT_ADMIN);
+  const admin = await requirePlatformAdmin(playerId, NOT_ADMIN);
   if (!admin.ok) return admin;
 
   const [{ value: roundCount }] = await db
@@ -155,7 +155,7 @@ export async function addPlayersToTournament(
   playerId: string,
   values: { tournamentId: number; playerIds: string[] },
 ): Promise<{ ok: true; added: number } | { ok: false; error: string }> {
-  const admin = await requireAdmin(playerId, "Only admins can add players.");
+  const admin = await requirePlatformAdmin(playerId, "Only admins can add players.");
   if (!admin.ok) return admin;
 
   const { tournamentId, playerIds } = values;

@@ -1,4 +1,4 @@
-import { displayName, getInitials } from "@/lib/players/player-name";
+import { displayName, getInitials } from "@/modules/players/player-name";
 import type { ReactNode } from "react";
 import { TableFrame } from "@/components/shared/responsive-table";
 import type { NetScoringRound } from "@/lib/rounds/reads";

@@ -8,7 +8,7 @@ export {
   getLowestRoundsByCourseId,
   type CourseForEdit,
   type CourseForEditTee,
-} from "./lib/queries";
+} from "./lib/reads";
 export { getCourseIdByHandle, isTeeForCourse } from "./lib/tees";
 export {
   deleteCourse,

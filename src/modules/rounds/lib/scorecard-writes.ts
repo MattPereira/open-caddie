@@ -10,7 +10,7 @@ import {
   type AccessedRound,
   type RoundManageFailure,
 } from "./access";
-import { invalidateRoundChanged } from "./lifecycle";
+import { invalidateRoundChanged } from "./writes";
 import { HOLE_COUNT } from "@/modules/courses/holes";
 
 // The one write path for a Round's scorecard and settings.

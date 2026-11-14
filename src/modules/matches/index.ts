@@ -1,4 +1,4 @@
-export { getAllMatches, getMatchById } from "./lib/queries";
+export { getAllMatches, getMatchById } from "./lib/reads";
 export {
   createMatch,
   deleteMatch,
@@ -6,4 +6,4 @@ export {
   type MatchCreateInput,
   type MatchUpdateInput,
   type MatchWriteResult,
-} from "./lib/mutations";
+} from "./lib/writes";

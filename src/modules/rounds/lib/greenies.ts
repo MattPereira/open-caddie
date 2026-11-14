@@ -1,34 +1,12 @@
-import { cache } from "react";
-import { asc, desc, eq } from "drizzle-orm";
-import { db } from "@/db";
-import { clubs, courses, greenies, rounds, seasons, tournaments, users } from "@/db/schema";
+import type { DisplayRound } from "./display-round-reads";
 
-export const getClosestGreenies = cache(async (limit = 10) => {
-  return db
-    .select({
-      roundId: greenies.roundId,
-      hole: greenies.hole,
-      feet: greenies.feet,
-      inches: greenies.inches,
-      roundDate: rounds.date,
-      firstName: users.firstName,
-      lastName: users.lastName,
-      username: users.username,
-      image: users.image,
-      courseId: courses.id,
-      courseHandle: courses.handle,
-      courseName: courses.name,
-      courseImgUrl: courses.imgUrl,
-      clubName: clubs.name,
-      season: seasons.number,
-    })
-    .from(greenies)
-    .innerJoin(rounds, eq(greenies.roundId, rounds.id))
-    .innerJoin(users, eq(rounds.playerId, users.id))
-    .innerJoin(courses, eq(rounds.courseId, courses.id))
-    .leftJoin(tournaments, eq(rounds.tournamentId, tournaments.id))
-    .leftJoin(seasons, eq(tournaments.seasonId, seasons.id))
-    .leftJoin(clubs, eq(seasons.clubId, clubs.id))
-    .orderBy(asc(greenies.feet), asc(greenies.inches), desc(rounds.date))
-    .limit(limit);
-});
+/** Every Greenie of the Rounds, closest first within a hole. */
+export function eventGreenies(rounds: readonly DisplayRound[]) {
+  return rounds
+    .flatMap((round) => round.greenies)
+    .sort(
+      (a, b) =>
+        a.hole - b.hole ||
+        a.feet * 12 + a.inches - (b.feet * 12 + b.inches),
+    );
+}

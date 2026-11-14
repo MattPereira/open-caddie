@@ -31,6 +31,7 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "coverage/**",
     // Agent worktrees are full copies of the repo, and ESLint doesn't read
     // .gitignore. Also excluded in tsconfig.json and vitest.config.ts.
     ".claude/worktrees/**",

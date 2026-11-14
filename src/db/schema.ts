@@ -100,7 +100,7 @@ export const clubs = pgTable("clubs", {
   handle: text("handle").notNull().unique(),
   name: text("name").notNull(),
   logo: text("logo"),
-  pointRules: jsonb("point_rules").notNull().default({}),
+  pointRules: jsonb("point_rules").notNull(),
 });
 
 export const clubMembers = pgTable(

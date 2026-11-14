@@ -1,0 +1,1 @@
+ALTER TABLE "clubs" ALTER COLUMN "point_rules" DROP DEFAULT;

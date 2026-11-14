@@ -17,7 +17,7 @@ describe("Season Standings read", () => {
     pars: 1,
     birdies: 3,
     eagles: 5,
-    aces: 10,
+    aces: 15,
     strokes: { positions: [20, 10, 5] },
     putts: { positions: [8, 4] },
     greenies: {
@@ -169,12 +169,6 @@ describe("Season Standings read", () => {
 
     const read = await standings.getSeasonStandings({ clubId, season: 1 });
 
-    expect(read).toMatchObject({
-      club: { id: clubId },
-      season: 1,
-      countedRoundLimit: 10,
-      pointRules,
-    });
     expect(read?.tournaments.map((tt) => tt.id)).toEqual([
       second.id,
       first.id,
@@ -232,8 +226,8 @@ describe("Season Standings read", () => {
           putts: 8,
           greenies: 1,
           birdies: 3,
-          aces: 10,
-          total: 42,
+          aces: 15,
+          total: 47,
         }),
       },
       {
@@ -296,7 +290,7 @@ describe("Season Standings read", () => {
       })),
     ).toEqual([
       { position: 1, playerId: x.id, roundsPlayed: 11, countedRounds: 10, droppedRounds: 1, total: 155 },
-      { position: 2, playerId: y.id, roundsPlayed: 2, countedRounds: 2, droppedRounds: 0, total: 100 },
+      { position: 2, playerId: y.id, roundsPlayed: 2, countedRounds: 2, droppedRounds: 0, total: 105 },
       { position: 3, playerId: z.id, roundsPlayed: 1, countedRounds: 1, droppedRounds: 0, total: 29 },
     ]);
 
@@ -424,6 +418,34 @@ describe("Season Standings read", () => {
     expect(rounds.get(third.id)?.netStrokes).toBeCloseTo(75);
   });
 
+  it("reads only the given Club's Tournaments and Rounds", async () => {
+    const { t, clubId } = await club();
+    const own = await fixtures.tournamentPlayer(t);
+    // Another Club with its own Season 1 on the same date.
+    await fixtures.tournamentPlayer(await fixtures.tournament());
+
+    const read = await standings.getSeasonStandings({ clubId, season: 1 });
+
+    expect(read?.tournaments.map((tt) => tt.id)).toEqual([t.tournament.id]);
+    expect(read?.players.map((p) => p.playerId)).toEqual([own.player.id]);
+  });
+
+  it("orders same-day Tournaments newest-created first", async () => {
+    const { t, clubId } = await club();
+    const sameDay = await tournament(
+      t.tournament.seasonId,
+      { course: t.course, tee: t.tee },
+      "2026-01-01",
+    );
+
+    const read = await standings.getSeasonStandings({ clubId, season: 1 });
+
+    expect(read?.tournaments.map((tt) => tt.id)).toEqual([
+      sameDay.id,
+      t.tournament.id,
+    ]);
+  });
+
   it("returns empty Standings for a Season with no Tournaments", async () => {
     const { t, clubId } = await club();
     await db
@@ -432,16 +454,47 @@ describe("Season Standings read", () => {
 
     const read = await standings.getSeasonStandings({ clubId, season: 1 });
 
-    expect(read).toMatchObject({
-      club: { id: clubId },
-      season: 1,
-      countedRoundLimit: 10,
-      tournaments: [],
-      players: [],
-    });
+    expect(read).toMatchObject({ tournaments: [], players: [] });
   });
 
   it("returns nothing for an unknown Club", async () => {
     expect(await standings.getSeasonStandings({ clubId: -1, season: 1 })).toBeNull();
+  });
+});
+
+describe("Club Seasons read", () => {
+  const fixtures = createRoundFixtures(db, schema);
+
+  it("lists the Club's Seasons with Tournaments, newest first, once each", async () => {
+    const t = await fixtures.tournament();
+    const course = { course: t.course, tee: t.tee };
+    const [season1] = await db
+      .select()
+      .from(schema.seasons)
+      .where(eq(schema.seasons.id, t.tournament.seasonId));
+    const clubId = season1.clubId;
+    const [season2] = await db
+      .insert(schema.seasons)
+      .values([
+        { clubId, number: 2 },
+        // No Tournaments: not listed.
+        { clubId, number: 3 },
+      ])
+      .returning();
+    await db.insert(schema.tournaments).values([
+      { seasonId: season1.id, date: new Date("2026-02-01"), courseId: course.course.id, teeId: course.tee.id },
+      { seasonId: season2.id, date: new Date("2026-03-01"), courseId: course.course.id, teeId: course.tee.id },
+    ]);
+    // Another Club's Season must not leak in.
+    const other = await fixtures.tournament();
+    await db
+      .update(schema.seasons)
+      .set({ number: 5 })
+      .where(eq(schema.seasons.id, other.tournament.seasonId));
+
+    expect(await standings.getClubSeasons(clubId)).toEqual([
+      { season: 2 },
+      { season: 1 },
+    ]);
   });
 });

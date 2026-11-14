@@ -4,8 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { getSignedInPlayer } from "@/modules/players";
-import * as mutations from "@/lib/tournaments/mutations";
-import * as pairingWrites from "@/lib/tournaments/pairing-writes";
+import * as tournaments from "@/modules/tournaments";
 import {
   roundScorecardImports,
   type UploadRoundScorecardState,
@@ -33,7 +32,7 @@ export async function createTournament(
   }
 
   const { seasonId, ...rest } = parsed.data;
-  return mutations.createTournament(actor.id, {
+  return tournaments.createTournament(actor.id, {
     ...rest,
     seasonId: seasonId === "" ? null : seasonId,
   });
@@ -52,7 +51,7 @@ export async function updateTournament(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  return mutations.updateTournament(actor.id, parsed.data);
+  return tournaments.updateTournament(actor.id, parsed.data);
 }
 
 export async function deleteTournament(id: number): Promise<ActionResult> {
@@ -61,7 +60,7 @@ export async function deleteTournament(id: number): Promise<ActionResult> {
     return { ok: false, error: "You must be signed in." };
   }
 
-  return mutations.deleteTournament(actor.id, id);
+  return tournaments.deleteTournament(actor.id, id);
 }
 
 const AddPlayersSchema = z.object({
@@ -84,7 +83,7 @@ export async function addPlayersToTournament(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  return mutations.addPlayersToTournament(actor.id, parsed.data);
+  return tournaments.addPlayersToTournament(actor.id, parsed.data);
 }
 
 const PairingCreateSchema = z.object({
@@ -128,7 +127,7 @@ export async function createPairing(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  return pairingWrites.createPairing(actor.id, parsed.data);
+  return tournaments.createPairing(actor.id, parsed.data);
 }
 
 export async function renamePairing(
@@ -144,7 +143,7 @@ export async function renamePairing(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  return pairingWrites.renamePairing(actor.id, parsed.data);
+  return tournaments.renamePairing(actor.id, parsed.data);
 }
 
 export async function deletePairing(
@@ -160,7 +159,7 @@ export async function deletePairing(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  return pairingWrites.deletePairing(actor.id, parsed.data);
+  return tournaments.deletePairing(actor.id, parsed.data);
 }
 
 export async function assignRoundToPairing(
@@ -176,7 +175,7 @@ export async function assignRoundToPairing(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  return pairingWrites.assignRoundToPairing(actor.id, parsed.data);
+  return tournaments.assignRoundToPairing(actor.id, parsed.data);
 }
 
 export async function removeRoundFromPairing(
@@ -192,7 +191,7 @@ export async function removeRoundFromPairing(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  return pairingWrites.removeRoundFromPairing(actor.id, parsed.data);
+  return tournaments.removeRoundFromPairing(actor.id, parsed.data);
 }
 
 export async function uploadTournamentRoundScorecard(

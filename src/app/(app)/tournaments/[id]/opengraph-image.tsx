@@ -3,7 +3,7 @@ import {
   openGraphImageContentType,
   openGraphImageSize,
 } from "@/app/og-image";
-import { getTournamentById } from "@/lib/tournaments/queries";
+import { getTournamentById } from "@/modules/tournaments";
 import { formatDate } from "@/lib/dates";
 
 type TournamentImageProps = {

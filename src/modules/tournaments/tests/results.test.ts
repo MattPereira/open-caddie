@@ -5,9 +5,9 @@ import { comparePlayers } from "@/modules/players/player-name";
 import {
   tournamentSkins,
   greenieWinners,
-  rankPutts,
-  rankStrokes,
-} from "./results";
+  tournamentRankingByPutts,
+  tournamentRankingByStrokes,
+} from "@/modules/tournaments/results";
 
 type Player = {
   playerId: string;
@@ -64,9 +64,9 @@ describe("comparePlayers (Tournament ranking tiebreak)", () => {
   });
 });
 
-describe("rankStrokes", () => {
+describe("tournamentRankingByStrokes", () => {
   it("ranks complete Rounds by net, then gross, then player", () => {
-    const ranked = rankStrokes([
+    const ranked = tournamentRankingByStrokes([
       round("d", { netStrokes: 70 }),
       round("c", { netStrokes: 68, totalStrokes: 82 }),
       round("b", { netStrokes: 68, totalStrokes: 80 }),
@@ -77,7 +77,7 @@ describe("rankStrokes", () => {
   });
 
   it("excludes incomplete Rounds and Rounds without a net score", () => {
-    const ranked = rankStrokes([
+    const ranked = tournamentRankingByStrokes([
       round("a", { isComplete: false, netStrokes: 60 }),
       round("b", { netStrokes: null }),
       round("c"),
@@ -87,9 +87,9 @@ describe("rankStrokes", () => {
   });
 });
 
-describe("rankPutts", () => {
+describe("tournamentRankingByPutts", () => {
   it("ranks by putts, then net, then gross, then player", () => {
-    const ranked = rankPutts([
+    const ranked = tournamentRankingByPutts([
       round("e", { totalPutts: 30, netStrokes: 70, totalStrokes: 80 }),
       round("d", { totalPutts: 30, netStrokes: 70, totalStrokes: 80 }),
       round("c", { totalPutts: 30, netStrokes: 70, totalStrokes: 78 }),
@@ -101,7 +101,7 @@ describe("rankPutts", () => {
   });
 
   it("ranks a Round without a net score after one with a net score", () => {
-    const ranked = rankPutts([
+    const ranked = tournamentRankingByPutts([
       round("a", { totalPutts: 30, netStrokes: null }),
       round("b", { totalPutts: 30, netStrokes: 80 }),
     ]);
@@ -110,7 +110,7 @@ describe("rankPutts", () => {
   });
 
   it("requires a complete Round with putts on all 18 holes", () => {
-    const ranked = rankPutts([
+    const ranked = tournamentRankingByPutts([
       round("a", { recordedPuttsCount: 17, totalPutts: 20 }),
       round("b", { isComplete: false, totalPutts: 20 }),
       round("c"),

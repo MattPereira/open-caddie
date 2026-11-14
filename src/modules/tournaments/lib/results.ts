@@ -8,13 +8,13 @@ import { HOLE_COUNT, HOLE_NUMBERS } from "@/modules/courses/holes";
 
 type ResultsPlayer = SortablePlayer;
 
-export type StrokesResultRound = ResultsPlayer & {
+export type StrokesRankingRound = ResultsPlayer & {
   isComplete: boolean;
   netStrokes: number | null;
   totalStrokes: number;
 };
 
-export type PuttsResultRound = StrokesResultRound & {
+export type PuttsRankingRound = StrokesRankingRound & {
   totalPutts: number;
   recordedPuttsCount: number;
 };
@@ -42,13 +42,13 @@ export type TournamentSkin<T extends TournamentSkinsRound> = {
   netStrokes: number;
 };
 
-export function rankStrokes<T extends StrokesResultRound>(rounds: readonly T[]) {
+export function tournamentRankingByStrokes<T extends StrokesRankingRound>(rounds: readonly T[]) {
   return rounds
     .filter((round) => round.isComplete && round.netStrokes != null)
     .sort(compareRoundsByScore);
 }
 
-export function rankPutts<T extends PuttsResultRound>(rounds: readonly T[]) {
+export function tournamentRankingByPutts<T extends PuttsRankingRound>(rounds: readonly T[]) {
   return rounds
     .filter((round) => round.isComplete && hasAllPutts(round))
     .sort(

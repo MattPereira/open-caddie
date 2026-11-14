@@ -8,7 +8,7 @@ import {
   type AccessedRound,
   type DisplayRound,
 } from "@/modules/rounds";
-import { getTournamentById } from "@/lib/tournaments/queries";
+import { getTournamentById } from "@/modules/tournaments";
 import { getCurrentPlayer } from "@/modules/players";
 import { pickPlayRounds } from "./_components/play-rounds";
 import { RoundPlay } from "./_components/round-play";

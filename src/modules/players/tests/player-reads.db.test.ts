@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { createRoundFixtures } from "@/lib/rounds/test-fixtures";
+import { createRoundFixtures } from "@/test/fixtures/rounds";
 import * as players from "../index";
 
 describe("Player reads", () => {

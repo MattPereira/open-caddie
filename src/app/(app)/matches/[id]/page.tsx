@@ -7,7 +7,7 @@ import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/shared/url-tabs";
 import { getCoursesWithTees } from "@/modules/courses";
 import { getMatchById } from "@/lib/matches/queries";
-import { getEventRoundAccess } from "@/lib/rounds/access";
+import { getEventRoundAccess } from "@/modules/rounds";
 import { getAllPlayers, getCurrentPlayer } from "@/modules/players";
 import { createPageMetadata } from "@/app/metadata";
 import { matchFormatLabel } from "@/lib/matches/formats";

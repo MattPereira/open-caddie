@@ -1,4 +1,4 @@
-import type { RoundEvent } from "@/lib/rounds/reads";
+import type { RoundEvent } from "@/modules/rounds";
 
 /** The page of the played Round's event, or null for a casual Round. */
 export function eventPage(round: RoundEvent) {

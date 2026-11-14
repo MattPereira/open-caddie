@@ -3,6 +3,7 @@ import { and, asc, eq, ne } from "drizzle-orm";
 
 import { db } from "@/db";
 import { matches, pairingMembers, rounds, users } from "@/db/schema";
+import { isPlatformAdmin } from "@/modules/players";
 import { EVENT_KINDS, type EventKind } from "./events";
 
 const accessedRoundColumns = {
@@ -171,12 +172,7 @@ export const getEventRoundAccess = cache(
 );
 
 async function readViewer(playerId: string): Promise<Viewer> {
-  const [player] = await db
-    .select({ isAdmin: users.isAdmin })
-    .from(users)
-    .where(eq(users.id, playerId))
-    .limit(1);
-  return { id: playerId, isAdmin: player?.isAdmin === true };
+  return { id: playerId, isAdmin: await isPlatformAdmin(playerId) };
 }
 
 type EventScoringGroups = {

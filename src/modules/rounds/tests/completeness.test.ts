@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasAllPutts, isComplete } from "./completeness";
+import { hasAllPutts, isComplete } from "../completeness";
 
 const counts = (recordedStrokesCount: number, recordedPuttsCount: number) => ({
   recordedStrokesCount,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { assessHandicap, calculateNetStrokes } from "./index";
+import { assessHandicap, calculateNetStrokes } from "../handicap";
 
 function priorRound(id: number, date: string, scoreDifferential: number) {
   return { id, date: new Date(date), scoreDifferential };

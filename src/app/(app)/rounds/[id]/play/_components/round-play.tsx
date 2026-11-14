@@ -4,7 +4,7 @@ import { useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import type { RoundScoresTableRound } from "@/components/features/scores/round-scores-card";
-import type { CourseHole, DisplayRound, RoundEvent } from "@/lib/rounds/reads";
+import type { CourseHole, DisplayRound, RoundEvent } from "@/modules/rounds";
 import type { MatchScoreboard } from "./live-scores";
 import { eventPage } from "./play-rounds";
 import { RoundScoresForm, type SettingsTee } from "./round-scores-form";

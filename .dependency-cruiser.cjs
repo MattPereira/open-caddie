@@ -66,6 +66,14 @@ module.exports = {
       to: { path: `^${R}/[^/]+/tests/` },
     },
     {
+      name: "test-support-only-from-tests",
+      comment:
+        "Shared test support (src/test/, e.g. fixtures every module's tests use) is reachable only from test files and from src/test/ itself, so it never ships in app code.",
+      severity: "error",
+      from: { pathNot: ["\\.test\\.tsx?$", "^src/test/"] },
+      to: { path: "^src/test/" },
+    },
+    {
       name: "no-circular",
       comment: "No runtime dependency cycles (type-only edges are ignored). Scope to `^${R}/` if you want to allow cycles outside modules.",
       severity: "error",

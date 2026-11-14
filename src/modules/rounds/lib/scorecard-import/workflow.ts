@@ -3,10 +3,10 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { courseHoles, roundScorecardUploads, rounds, users } from "@/db/schema";
 import { isVercelBlobUrl } from "@/lib/images/blob";
-import { getEventRoundAccess, readRoundAccess } from "@/lib/rounds/access";
-import { EVENT_KINDS, type EventKind } from "@/lib/rounds/events";
-import { recordScorecardChanges } from "@/lib/rounds/scorecard-writes";
-import { parseRoundScorecardImage } from "./parser";
+import { getEventRoundAccess, readRoundAccess } from "../access";
+import { EVENT_KINDS, type EventKind } from "../events";
+import { recordScorecardChanges } from "../scorecard-writes";
+import type { RoundScorecard, RoundScorecardContext } from "./parser";
 import { HOLE_COUNT } from "@/modules/courses/holes";
 
 // Not a "use server" module: it takes the acting Player's id, so thin actions in
@@ -58,21 +58,44 @@ export async function getScorecardImportPlayers(
 export type ImportRoundScorecardResult =
   { ok: true; redirectPath: string } | { ok: false; error: string };
 
-/**
- * The Round Scorecard Import: parses the uploaded image and records the scores
- * for the selected Rounds through record scorecard changes, all or nothing.
- */
-export async function importRoundScorecard({
-  playerId,
-  eventKind,
-  eventId,
-  formData,
-}: {
+export type ImportRoundScorecardInput = {
   playerId: string;
   eventKind: EventKind;
   eventId: number;
   formData: FormData;
-}): Promise<ImportRoundScorecardResult> {
+};
+
+export type RoundScorecardImportDependencies = {
+  /** Reads the selected Rounds' scores off the scorecard image. */
+  parseImage(
+    image: Buffer,
+    mediaType: string,
+    context: RoundScorecardContext,
+  ): Promise<{ parsed: RoundScorecard; sumChecks: string[] }>;
+};
+
+export type RoundScorecardImport = {
+  importRoundScorecard(
+    input: ImportRoundScorecardInput,
+  ): Promise<ImportRoundScorecardResult>;
+};
+
+export function createRoundScorecardImport(
+  deps: RoundScorecardImportDependencies,
+): RoundScorecardImport {
+  return {
+    importRoundScorecard: (input) => importRoundScorecard(deps, input),
+  };
+}
+
+/**
+ * The Round Scorecard Import: parses the uploaded image and records the scores
+ * for the selected Rounds through record scorecard changes, all or nothing.
+ */
+async function importRoundScorecard(
+  { parseImage }: RoundScorecardImportDependencies,
+  { playerId, eventKind, eventId, formData }: ImportRoundScorecardInput,
+): Promise<ImportRoundScorecardResult> {
   if (!Number.isInteger(eventId) || eventId <= 0) {
     return { ok: false, error: "Event not found." };
   }
@@ -193,7 +216,7 @@ export async function importRoundScorecard({
 
   let parsed;
   try {
-    parsed = await parseRoundScorecardImage(image.buffer, image.mediaType, {
+    parsed = await parseImage(image.buffer, image.mediaType, {
       rounds: contextRounds,
       holes,
       additionalContext,
@@ -332,7 +355,7 @@ function displayName(player: {
 }
 
 function validateParsedRoundScores(
-  parsed: Awaited<ReturnType<typeof parseRoundScorecardImage>>["parsed"],
+  parsed: RoundScorecard,
   selectedRoundIdSet: Set<number>,
 ) {
   const parsedRoundIds = new Set<number>();

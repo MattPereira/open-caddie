@@ -1,4 +1,4 @@
-import type { NetScoringRound } from "@/lib/rounds/reads";
+import type { NetScoringRound } from "@/modules/rounds";
 import type { MatchSkinHoleResult, MatchSkinsResult } from "@/lib/matches/scoring";
 import { displayName, getInitials } from "@/modules/players/player-name";
 

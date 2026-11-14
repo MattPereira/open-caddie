@@ -8,7 +8,7 @@ import {
   computeSeasonStandings,
   type ComputedSeasonStandings,
 } from "./compute";
-import { readSeasonRounds } from "@/lib/rounds/reads";
+import { getSeasonRounds } from "@/modules/rounds";
 
 // Single declaration so it can later become a Club setting on the read side.
 const COUNTED_ROUND_LIMIT = 10;
@@ -68,7 +68,7 @@ export const getSeasonStandings = cache(
           and(eq(seasons.clubId, clubId), eq(seasons.number, season)),
         )
         .orderBy(desc(tournaments.date), desc(tournaments.id)),
-      readSeasonRounds(clubId, season),
+      getSeasonRounds(clubId, season),
     ]);
 
     if (!club) return null;

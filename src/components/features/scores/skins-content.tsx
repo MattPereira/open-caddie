@@ -1,4 +1,4 @@
-import type { HandicapHole, NetScoringRound } from "@/lib/rounds/reads";
+import type { HandicapHole, NetScoringRound } from "@/modules/rounds";
 import { TableFrame } from "@/components/shared/responsive-table";
 import {
   toSkinsView,

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { getRoundById } from "@/lib/rounds/queries";
+import { getRoundById } from "@/modules/rounds";
 import * as writes from "./pairing-writes";
 import * as queries from "./queries";
 

@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import * as lifecycle from "./lifecycle";
-import * as scorecardWrites from "./scorecard-writes";
-import { createRoundFixtures } from "./test-fixtures";
+import { holdTransaction, waitForLockWaits } from "@/test/db-locks";
+import { createRoundFixtures } from "@/test/fixtures/rounds";
+import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
+import * as eventRounds from "../event-rounds";
+import { recordScorecardChanges } from "../index";
 
 const { revalidatePath, updateTag } = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
@@ -13,35 +15,8 @@ const { revalidatePath, updateTag } = vi.hoisted(() => ({
 }));
 vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
 
-describe("Round lifecycle", () => {
+describe("Event Rounds", () => {
   const fixtures = createRoundFixtures(db, schema);
-
-  function invalidatedPaths() {
-    return (revalidatePath.mock.calls as unknown as string[][])
-      .map((call) => call.join(" "))
-      .sort();
-  }
-
-  function roundChangedPaths(round: {
-    id: number;
-    playerId: string;
-    tournamentId?: number | null;
-    matchId?: number | null;
-  }) {
-    return [
-      ["/"],
-      ["/records"],
-      ["/clubs/[handle]", "page"],
-      [`/players/${round.playerId}`],
-      [`/rounds/${round.id}`],
-      ...(round.tournamentId != null
-        ? [[`/tournaments/${round.tournamentId}`]]
-        : []),
-      ...(round.matchId != null ? [[`/matches/${round.matchId}`]] : []),
-    ]
-      .map((call) => call.join(" "))
-      .sort();
-  }
 
   async function roundRow(id: number) {
     const [round] = await db
@@ -51,283 +26,9 @@ describe("Round lifecycle", () => {
     return round ?? null;
   }
 
-  type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
-  // Runs `body` in a transaction on its own connection and keeps it open,
-  // holding its locks, until release() is called.
-  async function holdTransaction(body: (tx: Tx) => Promise<unknown>) {
-    let release!: () => void;
-    const gate = new Promise<void>((resolve) => (release = resolve));
-    let ready!: () => void;
-    const started = new Promise<void>((resolve) => (ready = resolve));
-    const done = db.transaction(async (tx) => {
-      await body(tx);
-      ready();
-      await gate;
-    });
-    await Promise.race([started, done]);
-    return { release, done };
-  }
-
-  // Waits until `count` queries touching `table` are queued behind a lock.
-  async function waitForLockWaits(table: string, count: number) {
-    for (let attempt = 0; attempt < 100; attempt++) {
-      const { rows } = await db.execute<{ waiting: number }>(sql`
-        select count(*)::int as waiting from pg_stat_activity
-        where datname = current_database()
-          and wait_event_type = 'Lock'
-          and query ilike ${`%${table}%`}`);
-      if (rows[0].waiting >= count) return;
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    }
-    throw new Error(`Expected ${count} queries on ${table} waiting on a lock.`);
-  }
-
   beforeEach(() => {
     revalidatePath.mockClear();
     updateTag.mockClear();
-  });
-
-  describe("create Round", () => {
-    it("creates a casual Round on the chosen tee without touching home events", async () => {
-      const { course, tee } = await fixtures.course();
-      const player = await fixtures.player();
-
-      const result = await lifecycle.createRound(player.id, {
-        courseHandle: course.handle,
-        date: "2026-03-04",
-        tournamentId: null,
-        teeId: tee.id,
-      });
-
-      if (!result.ok) throw new Error(result.error);
-      expect(await roundRow(result.roundId)).toMatchObject({
-        playerId: player.id,
-        courseId: course.id,
-        teeId: tee.id,
-        tournamentId: null,
-        matchId: null,
-        date: new Date("2026-03-04T00:00:00.000Z"),
-      });
-      expect(invalidatedPaths()).toEqual(
-        roundChangedPaths({ id: result.roundId, playerId: player.id }),
-      );
-      expect(updateTag).not.toHaveBeenCalled();
-    });
-
-    it("refuses a casual Round on a tee from another course", async () => {
-      const { course } = await fixtures.course();
-      const other = await fixtures.course();
-      const player = await fixtures.player();
-
-      expect(
-        await lifecycle.createRound(player.id, {
-          courseHandle: course.handle,
-          date: "2026-03-04",
-          tournamentId: null,
-          teeId: other.tee.id,
-        }),
-      ).toEqual({
-        ok: false,
-        error: "Selected tees do not belong to this course.",
-      });
-      expect(revalidatePath).not.toHaveBeenCalled();
-    });
-
-    it("refuses a casual Round without tees", async () => {
-      const { course } = await fixtures.course();
-      const player = await fixtures.player();
-
-      expect(
-        await lifecycle.createRound(player.id, {
-          courseHandle: course.handle,
-          date: "2026-03-04",
-          tournamentId: null,
-          teeId: null,
-        }),
-      ).toEqual({ ok: false, error: "Tees are required." });
-    });
-
-    it("joins a Tournament on its tee and refreshes home events", async () => {
-      const t = await fixtures.tournament();
-      const player = await fixtures.player();
-
-      const result = await lifecycle.createRound(player.id, {
-        courseHandle: t.course.handle,
-        date: "2026-01-01",
-        tournamentId: t.tournament.id,
-        teeId: null,
-      });
-
-      if (!result.ok) throw new Error(result.error);
-      expect(await roundRow(result.roundId)).toMatchObject({
-        playerId: player.id,
-        tournamentId: t.tournament.id,
-        courseId: t.course.id,
-        teeId: t.tee.id,
-      });
-      expect(updateTag).toHaveBeenCalledWith("home-events");
-      expect(invalidatedPaths()).toEqual(
-        roundChangedPaths({
-          id: result.roundId,
-          playerId: player.id,
-          tournamentId: t.tournament.id,
-        }),
-      );
-    });
-
-    it("joins a Tournament on its date and course whatever the form says", async () => {
-      const t = await fixtures.tournament();
-      const other = await fixtures.course();
-      const player = await fixtures.player();
-
-      const result = await lifecycle.createRound(player.id, {
-        courseHandle: other.course.handle,
-        date: "2026-05-05",
-        tournamentId: t.tournament.id,
-        teeId: other.tee.id,
-      });
-
-      if (!result.ok) throw new Error(result.error);
-      expect(await roundRow(result.roundId)).toMatchObject({
-        courseId: t.course.id,
-        teeId: t.tee.id,
-        date: t.tournament.date,
-      });
-    });
-
-    it("joins on the Tournament's new course when an edit of it is in flight", async () => {
-      const t = await fixtures.tournament();
-      const next = await fixtures.course();
-      const player = await fixtures.player();
-      const edit = await holdTransaction(async (tx) => {
-        await tx
-          .select({ id: schema.tournaments.id })
-          .from(schema.tournaments)
-          .where(eq(schema.tournaments.id, t.tournament.id))
-          .for("update");
-        await tx
-          .update(schema.tournaments)
-          .set({ courseId: next.course.id, teeId: next.tee.id })
-          .where(eq(schema.tournaments.id, t.tournament.id));
-      });
-
-      const join = lifecycle.createRound(player.id, {
-        courseHandle: t.course.handle,
-        date: "2026-01-01",
-        tournamentId: t.tournament.id,
-        teeId: null,
-      });
-      try {
-        await waitForLockWaits("tournaments", 1);
-      } finally {
-        edit.release();
-        await edit.done;
-      }
-      const result = await join;
-
-      if (!result.ok) throw new Error(result.error);
-      expect(await roundRow(result.roundId)).toMatchObject({
-        courseId: next.course.id,
-        teeId: next.tee.id,
-      });
-    });
-
-    it("refuses joining a Tournament twice", async () => {
-      const t = await fixtures.tournament();
-      const player = await fixtures.tournamentPlayer(t);
-
-      expect(
-        await lifecycle.createRound(player.player.id, {
-          courseHandle: t.course.handle,
-          date: "2026-01-01",
-          tournamentId: t.tournament.id,
-          teeId: null,
-        }),
-      ).toEqual({
-        ok: false,
-        error: "You already have a round for this tournament.",
-      });
-    });
-  });
-
-  describe("delete Round", () => {
-    it("lets the Round's player delete it, refreshing the home events cache", async () => {
-      const { match, players } = await fixtures.match(2);
-      const [a] = players;
-
-      expect(await lifecycle.deleteRound(a.player.id, a.round.id)).toEqual({
-        ok: true,
-      });
-
-      expect(await roundRow(a.round.id)).toBeNull();
-      expect(updateTag).toHaveBeenCalledWith("home-events");
-      expect(invalidatedPaths()).toEqual(
-        roundChangedPaths({
-          id: a.round.id,
-          playerId: a.player.id,
-          matchId: match.id,
-        }),
-      );
-    });
-
-    it("lets an admin delete someone else's Round", async () => {
-      const t = await fixtures.tournament();
-      const player = await fixtures.tournamentPlayer(t);
-      const admin = await fixtures.player({ isAdmin: true });
-
-      expect(
-        await lifecycle.deleteRound(admin.id, player.round.id),
-      ).toEqual({ ok: true });
-      expect(await roundRow(player.round.id)).toBeNull();
-    });
-
-    it("gives a Scorer who can't manage the Round a distinct error and keeps it", async () => {
-      const { players } = await fixtures.match(2);
-      const [a, b] = players;
-
-      expect(await lifecycle.deleteRound(b.player.id, a.round.id)).toMatchObject({
-        ok: false,
-        error: "You can't delete this Round.",
-      });
-      expect(await roundRow(a.round.id)).not.toBeNull();
-      expect(revalidatePath).not.toHaveBeenCalled();
-    });
-
-    it("waits for an edit of the Round's Match before deleting", async () => {
-      const { match, players } = await fixtures.match(2);
-      const [a] = players;
-      const edit = await holdTransaction((tx) =>
-        tx
-          .select({ id: schema.matches.id })
-          .from(schema.matches)
-          .where(eq(schema.matches.id, match.id))
-          .for("update"),
-      );
-
-      const deletion = lifecycle.deleteRound(a.player.id, a.round.id);
-      try {
-        await waitForLockWaits("matches", 1);
-        expect(await roundRow(a.round.id)).not.toBeNull();
-      } finally {
-        edit.release();
-        await edit.done;
-      }
-
-      expect(await deletion).toEqual({ ok: true });
-      expect(await roundRow(a.round.id)).toBeNull();
-    });
-
-    it("reports not found to someone who can't score the Round", async () => {
-      const t = await fixtures.tournament();
-      const player = await fixtures.tournamentPlayer(t);
-      const stranger = await fixtures.tournamentPlayer(t);
-
-      expect(
-        await lifecycle.deleteRound(stranger.player.id, player.round.id),
-      ).toMatchObject({ ok: false, error: "Round not found." });
-      expect(await roundRow(player.round.id)).not.toBeNull();
-    });
   });
 
   describe("event Round helpers", () => {
@@ -337,7 +38,7 @@ describe("Round lifecycle", () => {
       const b = await fixtures.player();
 
       const inserted = await db.transaction((tx) =>
-        lifecycle.insertEventRounds(
+        eventRounds.insertEventRounds(
           tx,
           { tournamentId: t.tournament.id },
           [a.id, b.id],
@@ -365,7 +66,7 @@ describe("Round lifecycle", () => {
       const newcomer = await fixtures.player();
 
       const inserted = await db.transaction((tx) =>
-        lifecycle.insertEventRounds(
+        eventRounds.insertEventRounds(
           tx,
           { tournamentId: t.tournament.id },
           [existing.player.id, newcomer.id],
@@ -381,7 +82,7 @@ describe("Round lifecycle", () => {
       const player = await fixtures.player();
 
       const [inserted] = await db.transaction((tx) =>
-        lifecycle.insertEventRounds(
+        eventRounds.insertEventRounds(
           tx,
           { matchId: match.id, teeId: white.id },
           [player.id],
@@ -402,7 +103,7 @@ describe("Round lifecycle", () => {
       const { match, players } = await fixtures.match(2);
 
       const deleted = await db.transaction((tx) =>
-        lifecycle.deleteEventRounds(tx, { matchId: match.id }),
+        eventRounds.deleteEventRounds(tx, { matchId: match.id }),
       );
 
       expect(deleted.map((round) => round.id).sort()).toEqual(
@@ -411,19 +112,16 @@ describe("Round lifecycle", () => {
       for (const p of players) expect(await roundRow(p.round.id)).toBeNull();
     });
 
-    it("refreshes Round changed pages and home events for created or deleted event Rounds", async () => {
-      const { match, players } = await fixtures.match(1);
-      const [{ round }] = players;
+    it("refreshes the Round changed pages of the Rounds it's given, leaving home events to the caller", async () => {
+      const { players } = await fixtures.match(1);
+      const t = await fixtures.tournament();
+      const entrant = await fixtures.tournamentPlayer(t);
 
-      lifecycle.invalidateRoundsAddedOrRemoved([round]);
+      eventRounds.invalidateRoundChanged([players[0].round, entrant.round]);
 
-      expect(updateTag).toHaveBeenCalledWith("home-events");
-      expect(invalidatedPaths()).toEqual(
-        roundChangedPaths({
-          id: round.id,
-          playerId: round.playerId,
-          matchId: match.id,
-        }),
+      expect(updateTag).not.toHaveBeenCalled();
+      expect(invalidatedPaths(revalidatePath)).toEqual(
+        roundChangedPaths(players[0].round, entrant.round),
       );
     });
   });
@@ -447,7 +145,7 @@ describe("Round lifecycle", () => {
           .update(schema.tournaments)
           .set(next)
           .where(eq(schema.tournaments.id, t.tournament.id));
-        return lifecycle.syncEventRounds(
+        return eventRounds.syncEventRounds(
           tx,
           { tournamentId: t.tournament.id },
           previous,
@@ -505,7 +203,7 @@ describe("Round lifecycle", () => {
         teeId: next.tee.id,
       }).catch((e: unknown) => e);
 
-      expect(error).toBeInstanceOf(lifecycle.EventCourseLockedError);
+      expect(error).toBeInstanceOf(eventRounds.EventCourseLockedError);
       const message = (error as Error).message;
       expect(message).toContain(`Player ${scored.player.lastName}`);
       expect(message).toContain(`Player ${greenieOnly.player.lastName}`);
@@ -554,7 +252,7 @@ describe("Round lifecycle", () => {
           .for("update"),
       );
 
-      const writing = scorecardWrites.recordScorecardChanges(p.player.id, {
+      const writing = recordScorecardChanges(p.player.id, {
         scores: [{ roundId: p.round.id, hole: 1, strokes: 4 }],
       });
       let editing: Promise<unknown> | undefined;
@@ -572,7 +270,7 @@ describe("Round lifecycle", () => {
       const [write, edit] = await Promise.all([writing, editing]);
 
       expect(write).toEqual({ ok: true });
-      expect(edit).toBeInstanceOf(lifecycle.EventCourseLockedError);
+      expect(edit).toBeInstanceOf(eventRounds.EventCourseLockedError);
       expect(await roundRow(p.round.id)).toMatchObject({
         courseId: t.course.id,
         teeId: t.tee.id,
@@ -635,12 +333,12 @@ describe("Round lifecycle", () => {
             .update(schema.matches)
             .set(next)
             .where(eq(schema.matches.id, m.match.id));
-          const synced = await lifecycle.syncEventRounds(
+          const synced = await eventRounds.syncEventRounds(
             tx,
             { matchId: m.match.id, teeId },
             previous,
           );
-          const repaired = await lifecycle.insertEventRounds(
+          const repaired = await eventRounds.insertEventRounds(
             tx,
             { matchId: m.match.id, teeId },
             repairPlayerIds,
@@ -683,7 +381,7 @@ describe("Round lifecycle", () => {
 
         await expect(
           editMatch(m, { courseId: next.course.id }, next.tee.id),
-        ).rejects.toThrow(lifecycle.EventCourseLockedError);
+        ).rejects.toThrow(eventRounds.EventCourseLockedError);
         const [match] = await db
           .select()
           .from(schema.matches)

@@ -5,7 +5,7 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import * as clubs from "@/modules/clubs";
 import * as standings from "@/modules/season-standings";
-import { createRoundFixtures } from "@/lib/rounds/test-fixtures";
+import { createRoundFixtures } from "@/test/fixtures/rounds";
 import * as mutations from "./mutations";
 import * as queries from "./queries";
 

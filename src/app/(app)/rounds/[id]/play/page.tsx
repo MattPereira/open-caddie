@@ -2,9 +2,12 @@ import { notFound } from "next/navigation";
 
 import { CourseRecords } from "@/components/features/course-records/course-records";
 import { getMatchById } from "@/lib/matches/queries";
-import { getRoundAccess, type AccessedRound } from "@/lib/rounds/access";
-import { getRoundById } from "@/lib/rounds/queries";
-import type { DisplayRound } from "@/lib/rounds/reads";
+import {
+  getRoundAccess,
+  getRoundById,
+  type AccessedRound,
+  type DisplayRound,
+} from "@/modules/rounds";
 import { getTournamentById } from "@/lib/tournaments/queries";
 import { getCurrentPlayer } from "@/modules/players";
 import { pickPlayRounds } from "./_components/play-rounds";

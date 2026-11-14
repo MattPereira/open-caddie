@@ -5,9 +5,9 @@ import { redirect } from "next/navigation";
 import { getSignedInPlayer } from "@/modules/players";
 import * as mutations from "@/lib/matches/mutations";
 import {
-  importRoundScorecard,
+  roundScorecardImports,
   type UploadRoundScorecardState,
-} from "@/lib/rounds/scorecard-import";
+} from "@/modules/rounds/scorecard-import";
 import {
   MatchCreateSchema,
   MatchUpdateSchema,
@@ -66,7 +66,7 @@ export async function uploadMatchRoundScorecard(
   const actor = await getSignedInPlayer();
   if (!actor) return { error: "You must be signed in." };
 
-  const result = await importRoundScorecard({
+  const result = await roundScorecardImports.importRoundScorecard({
     playerId: actor.id,
     eventKind: "match",
     eventId: matchId,

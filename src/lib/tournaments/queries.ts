@@ -12,7 +12,7 @@ import {
   tournaments,
   users,
 } from "@/db/schema";
-import { eventGreenies, readTournamentRounds } from "@/lib/rounds/reads";
+import { eventGreenies, getTournamentRounds } from "@/modules/rounds";
 
 export const getAllTournaments = cache(async () => {
   return db
@@ -89,7 +89,7 @@ export const getTournamentById = cache(async (tournamentId: number) => {
         .innerJoin(courses, eq(tournaments.courseId, courses.id))
         .where(eq(tournaments.id, tournamentId))
         .limit(1),
-      readTournamentRounds(tournamentId),
+      getTournamentRounds(tournamentId),
     ]);
 
   if (!tournament) {

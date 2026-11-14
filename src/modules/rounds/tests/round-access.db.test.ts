@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { getEventRoundAccess, getRoundAccess } from "./access";
-import { createRoundFixtures } from "./test-fixtures";
+import { getEventRoundAccess, getRoundAccess } from "../index";
+import { createRoundFixtures } from "@/test/fixtures/rounds";
 
 describe("Round access", () => {
   const fixtures = createRoundFixtures(db, schema);

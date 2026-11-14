@@ -8,7 +8,7 @@ import {
   baseDatabaseName,
   templateName,
   workerNamePattern,
-} from "./test-databases";
+} from "./databases";
 
 const baseName = baseDatabaseName(process.env);
 

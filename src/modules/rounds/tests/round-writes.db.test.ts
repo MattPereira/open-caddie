@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { holdTransaction, waitForLockWaits } from "@/test/db-locks";
+import { holdTransaction, waitForLockWaits } from "@/test/db/locks";
 import { createRoundFixtures, PAR_THREE_HOLES } from "@/test/fixtures/rounds";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
 import * as rounds from "../index";

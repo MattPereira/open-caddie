@@ -6,11 +6,11 @@ import { RoundsTabContent } from "@/components/features/scores/rounds-tab-conten
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/shared/url-tabs";
 import { getCoursesWithTees } from "@/modules/courses";
-import { getMatchById } from "@/lib/matches/queries";
+import { getMatchById } from "@/modules/matches";
 import { getEventRoundAccess } from "@/modules/rounds";
 import { getAllPlayers, getCurrentPlayer } from "@/modules/players";
 import { createPageMetadata } from "@/app/metadata";
-import { matchFormatLabel } from "@/lib/matches/formats";
+import { matchFormatLabel } from "@/modules/matches/formats";
 import { formatDate } from "@/lib/dates";
 import { PageContent } from "@/components/layout/page-content";
 import { UploadScorecardButton } from "@/components/features/scorecard-import/upload-scorecard-button";

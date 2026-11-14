@@ -4,7 +4,7 @@ import { appPageIcons } from "@/components/layout/app-nav-items";
 import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
 import { getCoursesWithTees } from "@/modules/courses";
-import { getAllMatches } from "@/lib/matches/queries";
+import { getAllMatches } from "@/modules/matches";
 import { getAllPlayers, getCurrentPlayer } from "@/modules/players";
 import { AddMatchButton } from "./_components/add-match-button";
 import { MatchesBrowser } from "./_components/matches-browser";

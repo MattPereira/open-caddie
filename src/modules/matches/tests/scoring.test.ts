@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { scoreMatchPlay, scoreMatchSkins, type ScoringRound } from "./scoring";
+import { scoreMatchPlay, scoreMatchSkins, type ScoringRound } from "@/modules/matches/scoring";
 
 const holes = Array.from({ length: 18 }, (_, index) => ({
   hole: index + 1,

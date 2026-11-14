@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { CourseRecords } from "@/components/features/course-records/course-records";
-import { getMatchById } from "@/lib/matches/queries";
+import { getMatchById } from "@/modules/matches";
 import {
   getRoundAccess,
   getRoundById,

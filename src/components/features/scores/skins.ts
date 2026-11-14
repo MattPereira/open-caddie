@@ -1,11 +1,11 @@
 import type { NetScoringRound } from "@/modules/rounds";
-import type { MatchSkinHoleResult, MatchSkinsResult } from "@/lib/matches/scoring";
+import type { MatchSkinHoleResult, MatchSkinsResult } from "@/modules/matches/scoring";
 import { displayName, getInitials } from "@/modules/players/player-name";
 
 export type SkinHoleRow = MatchSkinHoleResult;
 export type SkinPlayerView = ReturnType<typeof toSkinsView>["players"][number];
 
-/** Add display metadata to the scoring result; game rules live in lib/matches. */
+/** Add display metadata to the scoring result; game rules live in the matches module. */
 export function toSkinsView(
   result: Extract<MatchSkinsResult, { status: "ready" }>,
   rounds: NetScoringRound[],

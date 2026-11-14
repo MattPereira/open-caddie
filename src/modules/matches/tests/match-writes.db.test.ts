@@ -3,8 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
+import * as matches from "@/modules/matches";
 import { createRoundFixtures } from "@/test/fixtures/rounds";
-import * as mutations from "./mutations";
+import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
 
 const { revalidatePath, updateTag } = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
@@ -23,10 +24,8 @@ describe("Match mutations", () => {
     updateTag.mockClear();
   });
 
-  function invalidatedPaths() {
-    return (revalidatePath.mock.calls as unknown as string[][]).map((call) =>
-      call.join(" "),
-    );
+  function matchChanged(matchId: number) {
+    return ["/matches", `/matches/${matchId}`];
   }
 
   async function players(count: number) {
@@ -42,7 +41,7 @@ describe("Match mutations", () => {
     playerIds: string[],
     teams: [string[], string[]] = [[], []],
   ) {
-    const result = await mutations.createMatch(creatorId, {
+    const result = await matches.createMatch(creatorId, {
       date: "2026-01-01",
       courseHandle: c.course.handle,
       format,
@@ -94,7 +93,7 @@ describe("Match mutations", () => {
     m: Awaited<ReturnType<typeof fixtures.match>>,
     courseHandle: string,
     teeId: number,
-    overrides: Partial<Parameters<typeof mutations.updateMatch>[1]> = {},
+    overrides: Partial<Parameters<typeof matches.updateMatch>[1]> = {},
   ) {
     return {
       id: m.match.id,
@@ -136,13 +135,8 @@ describe("Match mutations", () => {
       expect(rounds.map((r) => r.playerId).sort()).toEqual([a.id, b.id].sort());
       for (const r of rounds) expect(r.teeId).toBe(c.tee.id);
       expect(updateTag).toHaveBeenCalledWith("home-events");
-      expect(invalidatedPaths()).toEqual(
-        expect.arrayContaining([
-          "/matches",
-          `/matches/${result.id}`,
-          `/players/${b.id}`,
-          ...rounds.map((r) => `/rounds/${r.id}`),
-        ]),
+      expect(invalidatedPaths(revalidatePath)).toEqual(
+        [...matchChanged(result.id), ...roundChangedPaths(...rounds)].sort(),
       );
     });
 
@@ -194,23 +188,27 @@ describe("Match mutations", () => {
         date: "2026-02-01",
       });
 
-      expect(await mutations.updateMatch(m.players[0].player.id, input)).toEqual({
+      expect(await matches.updateMatch(m.players[0].player.id, input)).toEqual({
         ok: false,
         error: "Only the match creator can edit this match.",
       });
       expect((await matchRow(m.match.id))?.date).toEqual(m.match.date);
 
-      expect(await mutations.updateMatch(m.creator.id, input)).toEqual({ ok: true });
+      expect(await matches.updateMatch(m.creator.id, input)).toEqual({ ok: true });
       const admin = await fixtures.player({ isAdmin: true });
+      revalidatePath.mockClear();
       expect(
-        await mutations.updateMatch(admin.id, { ...input, date: "2026-03-01" }),
+        await matches.updateMatch(admin.id, { ...input, date: "2026-03-01" }),
       ).toEqual({ ok: true });
       expect((await matchRow(m.match.id))?.date).toEqual(
         new Date("2026-03-01T00:00:00.000Z"),
       );
       expect(updateTag).toHaveBeenCalledWith("home-events");
-      expect(invalidatedPaths()).toEqual(
-        expect.arrayContaining(["/matches", `/matches/${m.match.id}`]),
+      expect(invalidatedPaths(revalidatePath)).toEqual(
+        [
+          ...matchChanged(m.match.id),
+          ...roundChangedPaths(...(await matchRounds(m.match.id))),
+        ].sort(),
       );
     });
 
@@ -220,7 +218,7 @@ describe("Match mutations", () => {
       const [round] = await matchRounds(m.match.id);
 
       expect(
-        await mutations.updateMatch(
+        await matches.updateMatch(
           m.creator.id,
           updateInput(m, course.handle, round.teeId, {
             format: "three_ball_match_play",
@@ -231,7 +229,7 @@ describe("Match mutations", () => {
         error: "Three-ball match play requires 3 or fewer player rounds.",
       });
       expect(
-        await mutations.updateMatch(
+        await matches.updateMatch(
           m.creator.id,
           updateInput(m, course.handle, round.teeId, {
             format: "singles_match_play",
@@ -262,7 +260,7 @@ describe("Match mutations", () => {
         (await matchRounds(created.id)).map((r) => [r.playerId, r.id]),
       );
 
-      const result = await mutations.updateMatch(a.id, {
+      const result = await matches.updateMatch(a.id, {
         id: created.id,
         date: "2026-01-01",
         courseHandle: c.course.handle,
@@ -289,7 +287,7 @@ describe("Match mutations", () => {
       const fourth = await fixtures.player();
       const [a, b, d] = m.players.map((p) => p.player.id);
 
-      const result = await mutations.updateMatch(
+      const result = await matches.updateMatch(
         m.creator.id,
         updateInput(m, course.handle, round.teeId, {
           format: "four_ball_match_play",
@@ -309,7 +307,10 @@ describe("Match mutations", () => {
         "Team A": [a, fourth.id].sort(),
         "Team B": [b, d].sort(),
       });
-      expect(invalidatedPaths()).toContain(`/players/${fourth.id}`);
+      const added = rounds.filter((r) => r.playerId === fourth.id);
+      expect(invalidatedPaths(revalidatePath)).toEqual(
+        [...matchChanged(m.match.id), ...roundChangedPaths(...added)].sort(),
+      );
     });
 
     it("refuses a refill that drops a current player", async () => {
@@ -320,7 +321,7 @@ describe("Match mutations", () => {
       const [a, b] = m.players.map((p) => p.player.id);
 
       expect(
-        await mutations.updateMatch(
+        await matches.updateMatch(
           m.creator.id,
           updateInput(m, course.handle, round.teeId, {
             format: "four_ball_match_play",
@@ -355,7 +356,7 @@ describe("Match mutations", () => {
       )!;
       await db.delete(schema.rounds).where(eq(schema.rounds.id, eRound.id));
 
-      const result = await mutations.updateMatch(a.id, {
+      const result = await matches.updateMatch(a.id, {
         id: created.id,
         date: "2026-01-01",
         courseHandle: c.course.handle,
@@ -382,7 +383,7 @@ describe("Match mutations", () => {
         .values({ roundId: m.players[0].round.id, hole: 1, strokes: 4 });
       const next = await fixtures.course();
 
-      const result = await mutations.updateMatch(
+      const result = await matches.updateMatch(
         m.creator.id,
         updateInput(m, next.course.handle, next.tee.id),
       );
@@ -399,7 +400,7 @@ describe("Match mutations", () => {
       const m = await fixtures.match(2, { creatorPlays: false });
 
       expect(
-        await mutations.deleteMatch(m.players[0].player.id, m.match.id),
+        await matches.deleteMatch(m.players[0].player.id, m.match.id),
       ).toEqual({
         ok: false,
         error: "Only the match creator can edit this match.",
@@ -410,19 +411,18 @@ describe("Match mutations", () => {
     it("deletes the Match and its Rounds, refreshing Match and Round pages", async () => {
       const m = await fixtures.match(2);
 
-      expect(await mutations.deleteMatch(m.creator.id, m.match.id)).toEqual({
+      expect(await matches.deleteMatch(m.creator.id, m.match.id)).toEqual({
         ok: true,
       });
 
       expect(await matchRow(m.match.id)).toBeNull();
       expect(await matchRounds(m.match.id)).toHaveLength(0);
       expect(updateTag).toHaveBeenCalledWith("home-events");
-      expect(invalidatedPaths()).toEqual(
-        expect.arrayContaining([
-          "/matches",
-          `/matches/${m.match.id}`,
-          ...m.players.map((p) => `/rounds/${p.round.id}`),
-        ]),
+      expect(invalidatedPaths(revalidatePath)).toEqual(
+        [
+          ...matchChanged(m.match.id),
+          ...roundChangedPaths(...m.players.map((p) => p.round)),
+        ].sort(),
       );
     });
   });

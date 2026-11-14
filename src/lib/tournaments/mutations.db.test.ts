@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import * as clubQueries from "@/lib/clubs/queries";
+import * as clubs from "@/modules/clubs";
 import * as standings from "@/modules/season-standings";
 import { createRoundFixtures } from "@/lib/rounds/test-fixtures";
 import * as mutations from "./mutations";
@@ -107,7 +107,7 @@ describe("Tournament Season mutations", () => {
     const f = { club, course, tee };
     await create(f);
     await create(f, { startNextSeason: true });
-    const clubRow = (await clubQueries.getAllClubsFull()).find((row) => row.id === club.id);
+    const clubRow = (await clubs.getAllClubsFull()).find((row) => row.id === club.id);
     expect(clubRow).toMatchObject({ tournamentsCount: 2 });
   });
 

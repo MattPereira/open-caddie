@@ -1,88 +1,35 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import { clubs } from "@/db/schema";
-import { getCurrentPlayer } from "@/modules/players";
-import { invalidateHomeEventsCache } from "@/lib/home/cache";
-import {
-  ClubCreateSchema,
-  ClubUpdateSchema,
-  type ClubCreateValues,
-  type ClubUpdateValues,
-} from "./schema";
+import * as clubs from "@/modules/clubs";
+import { getSignedInPlayer } from "@/modules/players";
+import { ClubFormSchema, type ClubFormValues } from "./schema";
 
-type ActionResult = { ok: true } | { ok: false; error: string };
-
-async function requireAdmin() {
-  const me = await getCurrentPlayer();
-  if (!me?.isAdmin) {
-    throw new Error("Forbidden");
-  }
-  return me;
-}
+const SIGNED_OUT = { ok: false, error: "You must be signed in." } as const;
 
 export async function createClub(
-  values: ClubCreateValues,
-): Promise<ActionResult> {
-  await requireAdmin();
+  values: ClubFormValues,
+): Promise<clubs.ClubWriteResult> {
+  const actor = await getSignedInPlayer();
+  if (!actor) return SIGNED_OUT;
 
-  const parsed = ClubCreateSchema.safeParse(values);
+  const parsed = ClubFormSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  const { handle, name, pointRules } = parsed.data;
-  const logo = parsed.data.logo.length > 0 ? parsed.data.logo : null;
-
-  try {
-    await db.insert(clubs).values({ handle, name, logo, pointRules });
-  } catch (e: unknown) {
-    const code =
-      (e as { cause?: { code?: string }; code?: string })?.cause?.code ??
-      (e as { code?: string })?.code;
-    if (code === "23505") {
-      return { ok: false, error: "A club with that handle already exists." };
-    }
-    throw e;
-  }
-
-  revalidatePath("/clubs");
-  revalidatePath("/clubs/[handle]", "page");
-  return { ok: true };
+  return clubs.createClub(actor.id, parsed.data);
 }
 
 export async function updateClub(
-  values: ClubUpdateValues,
-): Promise<ActionResult> {
-  await requireAdmin();
+  values: ClubFormValues,
+): Promise<clubs.ClubWriteResult> {
+  const actor = await getSignedInPlayer();
+  if (!actor) return SIGNED_OUT;
 
-  const parsed = ClubUpdateSchema.safeParse(values);
+  const parsed = ClubFormSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  const { handle, name, pointRules } = parsed.data;
-  const logo = parsed.data.logo.length > 0 ? parsed.data.logo : null;
-
-  const [current] = await db
-    .select({ handle: clubs.handle })
-    .from(clubs)
-    .where(eq(clubs.handle, handle))
-    .limit(1);
-  if (!current) {
-    return { ok: false, error: "Club not found." };
-  }
-
-  await db
-    .update(clubs)
-    .set({ name, logo, pointRules })
-    .where(eq(clubs.handle, handle));
-
-  invalidateHomeEventsCache();
-  revalidatePath("/clubs");
-  revalidatePath(`/clubs/${handle}`);
-  revalidatePath("/clubs/[handle]", "page");
-  return { ok: true };
+  return clubs.updateClub(actor.id, parsed.data);
 }

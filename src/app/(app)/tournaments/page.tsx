@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { appPageIcons } from "@/components/layout/app-nav-items";
 import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
-import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
+import { getAllClubsWithSeasons } from "@/modules/clubs";
 import { getCoursesWithTees } from "@/modules/courses";
 import { getAllTournaments } from "@/lib/tournaments/queries";
 import { getCurrentPlayer } from "@/modules/players";

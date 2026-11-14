@@ -10,7 +10,7 @@ import { PointRulesSummary } from "@/app/(app)/clubs/[handle]/_components/point-
 import { appPageIcons } from "@/components/layout/app-nav-items";
 import { StandingsTable } from "@/components/features/standings/standings-table";
 import { Badge } from "@/components/ui/badge";
-import { getClubByHandle, getClubMembersByHandle } from "@/lib/clubs/queries";
+import { getClubByHandle, getClubPlayersByHandle } from "@/modules/clubs";
 import { getClubSeasons, getSeasonStandings } from "@/modules/season-standings";
 import { getCurrentPlayer } from "@/modules/players";
 import { PageContent } from "@/components/layout/page-content";
@@ -49,7 +49,7 @@ export default async function ClubPage({
     await Promise.all([
       searchParams,
       getCurrentPlayer(),
-      getClubMembersByHandle(club.handle),
+      getClubPlayersByHandle(club.handle),
       getClubSeasons(club.id),
     ]);
   const seasonOptions = seasons.map((season) => season.season);

@@ -9,7 +9,7 @@ import { UrlTabs } from "@/components/shared/url-tabs";
 import { PageContent } from "@/components/layout/page-content";
 import { CourseHero } from "@/components/domain/course-hero";
 import { TournamentForm } from "../../_components/tournament-form";
-import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
+import { getAllClubsWithSeasons } from "@/modules/clubs";
 import { getCoursesWithTees } from "@/modules/courses";
 import {
   getAddablePlayersForTournament,

@@ -36,6 +36,10 @@ One Player's play of one course on one date, casual or within an Event. A Round'
 **Complete Round**:
 A Round with strokes recorded on all 18 holes. Only Complete Rounds count toward Player Indexes, Tournament Skins and Tournament Ranking.
 
+**Course Record**:
+A course's best result in one category: lowest gross strokes and fewest putts among its Complete Rounds (putts only from Rounds with putts on all 18 holes), and the closest Greenie on each par 3 from any Round there.
+_Avoid_: Leaderboard
+
 **Match**:
 An Event created by one Player, its creator, holding the Rounds of the Players in it. Its format caps its Rounds: Singles at 2, Three-Ball at 3, and Four-Ball needs exactly 4. Only its creator or a Platform Admin may change or delete it.
 
@@ -111,6 +115,10 @@ _Avoid_: Skins (alone)
 
 **Standings**:
 A Season's points table, built from its Tournaments' results: participation, scoring, Tournament Ranking positions and Greenies. Every Tournament Round earns participation, scoring and Greenie points; only Complete Rounds earn Tournament Ranking position points. Scoring points follow gross strokes, and a hole in one earns ace points only.
+
+**Point Rules**:
+A Club's setting for how many Standings points each result earns: participation, pars, birdies, eagles, aces, each Tournament Ranking position for strokes and putts, and each Greenie distance tier. One set per Club, applied to all of its Seasons.
+_Avoid_: scoring rules, points config
 
 **Counted Round**:
 One of a Player's highest-scoring Tournament Rounds in a Season, by Standings points, up to a fixed number; only Counted Rounds add to the Player's Standings total. The rest are dropped.

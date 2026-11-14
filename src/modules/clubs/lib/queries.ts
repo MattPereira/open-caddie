@@ -38,7 +38,7 @@ export const getAllClubsWithSeasons = cache(async () => {
 });
 
 export const getAllClubsFull = cache(async () => {
-  const playersCountSq = db
+  const membersCountSq = db
     .select({
       clubId: clubMembers.clubId,
       value: count().as("value"),
@@ -64,11 +64,11 @@ export const getAllClubsFull = cache(async () => {
       name: clubs.name,
       logo: clubs.logo,
       pointRules: clubs.pointRules,
-      playersCount: sql<number>`coalesce("mc"."value", 0)`.mapWith(Number),
+      membersCount: sql<number>`coalesce("mc"."value", 0)`.mapWith(Number),
       tournamentsCount: sql<number>`coalesce("tc"."value", 0)`.mapWith(Number),
     })
     .from(clubs)
-    .leftJoin(playersCountSq, eq(playersCountSq.clubId, clubs.id))
+    .leftJoin(membersCountSq, eq(membersCountSq.clubId, clubs.id))
     .leftJoin(tournamentsCountSq, eq(tournamentsCountSq.clubId, clubs.id))
     .orderBy(asc(clubs.name));
   return rows.map((r) => ({
@@ -98,7 +98,7 @@ export const getClubByHandle = cache(async (handle: string) => {
     : null;
 });
 
-export const getClubPlayersByHandle = cache(async (handle: string) => {
+export const getClubMembersByHandle = cache(async (handle: string) => {
   const roundsCountSq = db
     .select({
       playerId: rounds.playerId,

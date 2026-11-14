@@ -2,7 +2,7 @@ export {
   getAllClubsFull,
   getAllClubsWithSeasons,
   getClubByHandle,
-  getClubPlayersByHandle,
+  getClubMembersByHandle,
 } from "./lib/queries";
 export {
   createClub,

@@ -78,7 +78,7 @@ describe("Player writes", () => {
         input({ email, firstName: " Ann ", lastName: "  ", username: "  ", isAdmin: true }),
       );
 
-      expect(result).toEqual({ ok: true });
+      expect(result).toEqual({ ok: true, email: email.toLowerCase() });
       expect(await storedByEmail(email.toLowerCase())).toMatchObject({
         firstName: "Ann",
         lastName: null,
@@ -92,7 +92,7 @@ describe("Player writes", () => {
 
     it("stores the full name, username and image", async () => {
       const values = input({ username: "ann-lee", image: `${BLOB}/a.png` });
-      expect(await players.createPlayer(admin.id, values)).toEqual({ ok: true });
+      expect(await players.createPlayer(admin.id, values)).toEqual({ ok: true, email: values.email });
       expect(await storedByEmail(values.email)).toMatchObject({
         name: "Ann Lee",
         username: "ann-lee",

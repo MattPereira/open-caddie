@@ -12,6 +12,7 @@ export {
   deletePlayer,
   updatePlayer,
   type PlayerCreateInput,
+  type PlayerCreateResult,
   type PlayerUpdateInput,
   type PlayerWriteResult,
 } from "./lib/writes";

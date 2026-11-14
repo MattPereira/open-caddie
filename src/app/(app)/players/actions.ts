@@ -30,11 +30,11 @@ export async function createPlayer(
   if (!result.ok) return result;
 
   await signIn("resend", {
-    email: parsed.data.email.toLowerCase(),
+    email: result.email,
     redirect: false,
     redirectTo: "/",
   });
-  return result;
+  return { ok: true };
 }
 
 export async function updatePlayer(

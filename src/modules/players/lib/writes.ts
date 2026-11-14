@@ -12,6 +12,11 @@ import { isPlatformAdmin, requirePlatformAdmin } from "./platform-admin";
 
 export type PlayerWriteResult = { ok: true } | { ok: false; error: string };
 
+/** `email` is the stored address, so the caller's sign-in email matches it. */
+export type PlayerCreateResult =
+  | { ok: true; email: string }
+  | { ok: false; error: string };
+
 /** Form values; blank strings mean "none". */
 export type PlayerCreateInput = {
   email: string;
@@ -29,7 +34,7 @@ const IN_USE = "Email or username already in use.";
 export async function createPlayer(
   actingPlayerId: string,
   values: PlayerCreateInput,
-): Promise<PlayerWriteResult> {
+): Promise<PlayerCreateResult> {
   const admin = await requirePlatformAdmin(
     actingPlayerId,
     "Only Platform Admins can add Players.",
@@ -48,7 +53,7 @@ export async function createPlayer(
   }
 
   revalidatePath("/players");
-  return { ok: true };
+  return { ok: true, email: fields.email };
 }
 
 export async function updatePlayer(
@@ -159,7 +164,7 @@ function emptyToNull(s: string) {
 async function refuseIfTaken(
   fields: ReturnType<typeof normalize>,
   { excludeId, checkEmail = true }: { excludeId?: string; checkEmail?: boolean } = {},
-): Promise<PlayerWriteResult | null> {
+): Promise<{ ok: false; error: string } | null> {
   const others = (condition: SQL) =>
     excludeId ? and(condition, ne(users.id, excludeId)) : condition;
 

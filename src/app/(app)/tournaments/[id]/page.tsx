@@ -12,7 +12,7 @@ import { RoundsTabContent } from "@/components/features/scores/rounds-tab-conten
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/shared/url-tabs";
 import { getEventRoundAccess } from "@/modules/rounds";
-import { getTournamentById } from "@/lib/tournaments/queries";
+import { getTournamentById } from "@/modules/tournaments";
 import { getCurrentPlayer } from "@/modules/players";
 import { createPageMetadata } from "@/app/metadata";
 import { formatDate } from "@/lib/dates";

@@ -34,11 +34,11 @@ import { Input } from "@/components/ui/input";
 import { HoldToConfirmButton } from "@/components/shared/hold-to-confirm-button";
 import { PlayerCard } from "@/components/domain/player-card";
 import { displayName } from "@/modules/players/player-name";
-import { PAIRING_MAX_MEMBERS } from "@/lib/tournaments/pairings";
+import { PAIRING_MAX_MEMBERS } from "@/modules/tournaments/pairings";
 import type {
   TournamentPairing,
   TournamentPairingMember,
-} from "@/lib/tournaments/queries";
+} from "@/modules/tournaments";
 import type { ActionResult } from "../../../actions";
 import { AddPlayersSheet, type AddablePlayer } from "./add-players-sheet";
 import {

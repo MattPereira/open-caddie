@@ -1,5 +1,5 @@
 import { comparePlayers, type SortablePlayer } from "@/modules/players/player-name";
-import { rankPutts, rankStrokes } from "@/lib/tournaments/results";
+import { tournamentRankingByPutts, tournamentRankingByStrokes } from "@/modules/tournaments/results";
 
 import type { PointRules } from "@/modules/clubs/point-rules";
 
@@ -71,11 +71,11 @@ export function computeSeasonStandings({
       ...(roundsByTournamentId.get(tournament.id) ?? []),
     ].sort(comparePlayers);
     const strokePoints = positionPoints(
-      rankStrokes(tournamentRounds),
+      tournamentRankingByStrokes(tournamentRounds),
       pointRules.strokes.positions,
     );
     const puttPoints = positionPoints(
-      rankPutts(tournamentRounds),
+      tournamentRankingByPutts(tournamentRounds),
       pointRules.putts.positions,
     );
 

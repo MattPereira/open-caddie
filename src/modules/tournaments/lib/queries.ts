@@ -161,14 +161,6 @@ export const getAddablePlayersForTournament = cache(
   },
 );
 
-export const getRoundsCountByTournamentId = cache(async (tournamentId: number) => {
-  const [row] = await db
-    .select({ value: count() })
-    .from(rounds)
-    .where(eq(rounds.tournamentId, tournamentId));
-  return row?.value ?? 0;
-});
-
 // Every Tournament Round with the Pairing it belongs to, if any. Both Pairing
 // reads below start here so a Round can never be missing from one and present
 // in the other: cached, the two share one result within a render, so a Round

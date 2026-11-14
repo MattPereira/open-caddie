@@ -5,10 +5,10 @@ import { TabsContent } from "@/components/ui/tabs";
 import {
   tournamentSkins,
   greenieWinners,
-  rankPutts,
-  rankStrokes,
-} from "@/lib/tournaments/results";
-import type { getTournamentById } from "@/lib/tournaments/queries";
+  tournamentRankingByPutts,
+  tournamentRankingByStrokes,
+} from "@/modules/tournaments/results";
+import type { getTournamentById } from "@/modules/tournaments";
 
 type Tournament = NonNullable<Awaited<ReturnType<typeof getTournamentById>>>;
 type TournamentRound = Tournament["rounds"][number];
@@ -38,10 +38,10 @@ export function WinnersTabContent({
   greenies: Tournament["greenies"];
 }) {
   const strokesWinners = toWinnerRows(
-    rankStrokes(rounds).slice(0, 3),
+    tournamentRankingByStrokes(rounds).slice(0, 3),
     "strokes",
   );
-  const puttsWinners = toWinnerRows(rankPutts(rounds).slice(0, 3), "putts");
+  const puttsWinners = toWinnerRows(tournamentRankingByPutts(rounds).slice(0, 3), "putts");
   const greenieRows = greenieWinners(greenies);
   const skinWinners = toSkinWinnerRows(rounds);
   const hasWinners =

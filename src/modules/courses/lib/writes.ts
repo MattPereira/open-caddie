@@ -10,7 +10,7 @@ import {
   teeYardages,
   tournaments,
 } from "@/db/schema";
-import { invalidateHomeEventsCache } from "@/lib/home/cache";
+import { invalidateHomeEventsCache } from "@/lib/cache-tags";
 import { safeDeleteBlob } from "@/lib/images/blob";
 import { pgCode } from "@/lib/pg-errors";
 import { requirePlatformAdmin } from "@/modules/players";

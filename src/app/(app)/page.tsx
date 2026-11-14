@@ -13,7 +13,7 @@ import { brandFont } from "@/app/fonts";
 import { getAllClubsWithSeasons } from "@/modules/clubs";
 import { getCoursesWithTees } from "@/modules/courses";
 import { getActiveRoundForPlayer } from "@/modules/rounds";
-import { getHomeEvents } from "@/lib/home/queries";
+import { getHomeEvents } from "./_lib/home-events";
 import { getAllPlayers, getCurrentPlayer } from "@/modules/players";
 import { createPageMetadata } from "@/app/metadata";
 import { cn } from "@/lib/utils";

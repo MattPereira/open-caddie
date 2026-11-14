@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { clubs, rounds, seasons, tournaments, users } from "@/db/schema";
 import { getCourseIdByHandle, isTeeForCourse } from "@/modules/courses";
 import { parseDateOnly } from "@/lib/dates";
-import { invalidateHomeEventsCache } from "@/lib/home/cache";
+import { invalidateHomeEventsCache } from "@/lib/cache-tags";
 import { pgCode } from "@/lib/pg-errors";
 import {
   insertEventRounds,

@@ -13,6 +13,7 @@ import {
   users,
 } from "@/db/schema";
 import { eventGreenies, readTournamentRounds } from "@/lib/rounds/reads";
+import { compareTournamentRanking } from "@/lib/tournaments/results";
 
 export const getAllTournaments = cache(async () => {
   return db
@@ -99,7 +100,7 @@ export const getTournamentById = cache(async (tournamentId: number) => {
   return {
     ...tournament,
     course,
-    rounds: tournamentRounds,
+    rounds: tournamentRounds.toSorted(compareTournamentRanking),
     greenies: eventGreenies(tournamentRounds),
   };
 });

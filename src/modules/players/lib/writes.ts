@@ -32,13 +32,13 @@ export async function createPlayer(
 ): Promise<PlayerWriteResult> {
   const admin = await requirePlatformAdmin(
     actingPlayerId,
-    "Only admins can add players.",
+    "Only Platform Admins can add Players.",
   );
   if (!admin.ok) return admin;
 
-  const fields = clean(values);
-  const taken = await findTaken(fields);
-  if (taken) return taken;
+  const fields = normalize(values);
+  const refused = await refuseIfTaken(fields);
+  if (refused) return refused;
 
   try {
     await db.insert(users).values({ ...fields, isAdmin: values.isAdmin });
@@ -68,13 +68,13 @@ export async function updatePlayer(
     .limit(1);
   if (!current) return { ok: false, error: "Player not found." };
 
-  const fields = clean(values);
+  const fields = normalize(values);
   const emailChanged = current.email?.toLowerCase() !== fields.email;
-  const taken = await findTaken(fields, {
+  const refused = await refuseIfTaken(fields, {
     excludeId: id,
     checkEmail: emailChanged,
   });
-  if (taken) return taken;
+  if (refused) return refused;
 
   try {
     await db
@@ -106,7 +106,7 @@ export async function deletePlayer(
 ): Promise<PlayerWriteResult> {
   const admin = await requirePlatformAdmin(
     actingPlayerId,
-    "Only admins can delete players.",
+    "Only Platform Admins can delete Players.",
   );
   if (!admin.ok) return admin;
 
@@ -137,7 +137,7 @@ export async function deletePlayer(
   return { ok: true };
 }
 
-function clean(values: PlayerCreateInput) {
+function normalize(values: PlayerCreateInput) {
   const firstName = emptyToNull(values.firstName);
   const lastName = emptyToNull(values.lastName);
   const full = [firstName, lastName].filter(Boolean).join(" ");
@@ -156,8 +156,8 @@ function emptyToNull(s: string) {
   return t.length > 0 ? t : null;
 }
 
-async function findTaken(
-  fields: ReturnType<typeof clean>,
+async function refuseIfTaken(
+  fields: ReturnType<typeof normalize>,
   { excludeId, checkEmail = true }: { excludeId?: string; checkEmail?: boolean } = {},
 ): Promise<PlayerWriteResult | null> {
   const others = (condition: SQL) =>

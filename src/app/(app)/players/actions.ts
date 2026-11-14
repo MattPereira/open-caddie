@@ -66,7 +66,7 @@ export async function createPlayerSignInLink(
 
   const admin = await players.requirePlatformAdmin(
     actor.id,
-    "Only admins can create sign-in links.",
+    "Only Platform Admins can create sign-in links.",
   );
   if (!admin.ok) return admin;
 

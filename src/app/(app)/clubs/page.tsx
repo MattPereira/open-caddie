@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { appPageIcons } from "@/components/layout/app-nav-items";
 import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
-import { getAllClubsFull } from "@/lib/clubs/queries";
+import { getAllClubsFull } from "@/modules/clubs";
 import { getCurrentPlayer } from "@/modules/players";
 import { AddClubButton } from "./_components/add-club-button";
 import { ClubsBrowser } from "./_components/clubs-browser";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { PointRules } from "../point-rules";
+import type { PointRules } from "@/modules/clubs/point-rules";
 import {
   computeSeasonStandings,
   type SeasonStandingsRoundInput,

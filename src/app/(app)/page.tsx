@@ -10,7 +10,7 @@ import { PageContent } from "@/components/layout/page-content";
 import { PlayRoundButton } from "@/components/domain/play-round-button";
 import { matchFormatLabel } from "@/lib/matches/formats";
 import { brandFont } from "@/app/fonts";
-import { getAllClubsWithSeasons } from "@/lib/clubs/queries";
+import { getAllClubsWithSeasons } from "@/modules/clubs";
 import { getCoursesWithTees } from "@/modules/courses";
 import { getActiveRoundForPlayer } from "@/lib/rounds/queries";
 import { getHomeEvents } from "@/lib/home/queries";

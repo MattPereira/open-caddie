@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   PointRulesSchema,
   type PointRules,
-} from "@/modules/season-standings/point-rules";
+} from "@/modules/clubs/point-rules";
 
 export const ClubFormSchema = z.object({
   handle: z
@@ -16,10 +16,5 @@ export const ClubFormSchema = z.object({
   pointRules: PointRulesSchema,
 });
 
-export const ClubCreateSchema = ClubFormSchema;
-export const ClubUpdateSchema = ClubFormSchema;
-
 export type ClubFormValues = z.infer<typeof ClubFormSchema>;
-export type ClubCreateValues = z.infer<typeof ClubCreateSchema>;
-export type ClubUpdateValues = z.infer<typeof ClubUpdateSchema>;
 export type { PointRules };

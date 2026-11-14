@@ -10,9 +10,9 @@ import {
   tournaments,
   users,
 } from "@/db/schema";
-import type { PointRules } from "@/modules/season-standings/point-rules";
+import type { PointRules } from "../point-rules";
 
-export const getAllClubs = cache(async () => {
+const getAllClubs = cache(async () => {
   return db
     .select({ id: clubs.id, handle: clubs.handle, name: clubs.name })
     .from(clubs)
@@ -38,7 +38,7 @@ export const getAllClubsWithSeasons = cache(async () => {
 });
 
 export const getAllClubsFull = cache(async () => {
-  const membersCountSq = db
+  const playersCountSq = db
     .select({
       clubId: clubMembers.clubId,
       value: count().as("value"),
@@ -64,11 +64,11 @@ export const getAllClubsFull = cache(async () => {
       name: clubs.name,
       logo: clubs.logo,
       pointRules: clubs.pointRules,
-      membersCount: sql<number>`coalesce("mc"."value", 0)`.mapWith(Number),
+      playersCount: sql<number>`coalesce("mc"."value", 0)`.mapWith(Number),
       tournamentsCount: sql<number>`coalesce("tc"."value", 0)`.mapWith(Number),
     })
     .from(clubs)
-    .leftJoin(membersCountSq, eq(membersCountSq.clubId, clubs.id))
+    .leftJoin(playersCountSq, eq(playersCountSq.clubId, clubs.id))
     .leftJoin(tournamentsCountSq, eq(tournamentsCountSq.clubId, clubs.id))
     .orderBy(asc(clubs.name));
   return rows.map((r) => ({
@@ -98,7 +98,7 @@ export const getClubByHandle = cache(async (handle: string) => {
     : null;
 });
 
-export const getClubMembersByHandle = cache(async (handle: string) => {
+export const getClubPlayersByHandle = cache(async (handle: string) => {
   const roundsCountSq = db
     .select({
       playerId: rounds.playerId,

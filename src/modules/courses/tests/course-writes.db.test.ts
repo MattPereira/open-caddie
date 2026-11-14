@@ -21,25 +21,12 @@ describe("Course writes", () => {
   let admin: Awaited<ReturnType<typeof fixtures.player>>;
   let player: Awaited<ReturnType<typeof fixtures.player>>;
 
-  async function storedCourse(id: number) {
-    const [row] = await db.select().from(schema.courses).where(eq(schema.courses.id, id));
-    return row;
+  async function stored(handle: string) {
+    return courses.getCourseForEdit(handle);
   }
 
-  async function storedTees(courseId: number) {
-    return db
-      .select()
-      .from(schema.courseTees)
-      .where(eq(schema.courseTees.courseId, courseId))
-      .orderBy(schema.courseTees.sortOrder);
-  }
-
-  async function storedYardages(teeId: number) {
-    return db
-      .select({ hole: schema.teeYardages.hole, yards: schema.teeYardages.yards })
-      .from(schema.teeYardages)
-      .where(eq(schema.teeYardages.teeId, teeId))
-      .orderBy(schema.teeYardages.hole);
+  async function storedTees(handle: string) {
+    return (await stored(handle))?.tees ?? [];
   }
 
   async function casualRound(courseId: number, teeId: number) {
@@ -127,7 +114,7 @@ describe("Course writes", () => {
         editOf(course, [tee], { name: "Renamed" }),
       );
       expect(result).toEqual({ ok: false, error: expect.stringMatching(/Platform Admin/) });
-      expect((await storedCourse(course.id)).name).toBe(course.name);
+      expect((await stored(course.handle))?.name).toBe(course.name);
       expect(revalidatePath).not.toHaveBeenCalled();
     });
 
@@ -154,21 +141,17 @@ describe("Course writes", () => {
       const result = await courses.updateCourse(admin.id, input);
 
       expect(result).toEqual({ ok: true, handle: course.handle, renamed: false });
-      expect((await storedCourse(course.id)).name).toBe("New Name");
-      const tees = await storedTees(course.id);
-      expect(tees.map((t) => [t.id === tee.id, t.name, t.color, t.slope, t.sortOrder])).toEqual([
-        [true, "Black", "black", 130, 0],
-        [false, "Red", null, 110, 1],
+      const saved = await stored(course.handle);
+      expect(saved?.name).toBe("New Name");
+      expect(
+        saved?.tees.map((t) => [t.id === tee.id, t.name, t.color, t.rating, t.slope, t.sortOrder]),
+      ).toEqual([
+        [true, "Black", "black", tee.rating, 130, 0],
+        [false, "Red", null, "68.5", 110, 1],
       ]);
-      expect(await storedYardages(tee.id)).toEqual([{ hole: 1, yards: 420 }]);
-      expect(await storedYardages(tees[1].id)).toHaveLength(18);
-      const [hole1] = await db
-        .select()
-        .from(schema.courseHoles)
-        .where(eq(schema.courseHoles.courseId, course.id))
-        .orderBy(schema.courseHoles.hole)
-        .limit(1);
-      expect(hole1.par).toBe(5);
+      expect(saved?.tees[0].yardages).toEqual([420, ...Array(17).fill(null)]);
+      expect(saved?.tees[1].yardages).toEqual(Array(18).fill(300));
+      expect(saved?.holes).toEqual(input.holes);
       expect(updateTag).toHaveBeenCalledWith("home-events");
       expect(refreshed()).toEqual(coursePaths(course.handle));
     });
@@ -178,7 +161,7 @@ describe("Course writes", () => {
       await fixtures.tee(course.id);
       const result = await courses.updateCourse(admin.id, editOf(course, [tee]));
       expect(result.ok).toBe(true);
-      expect((await storedTees(course.id)).map((t) => t.id)).toEqual([tee.id]);
+      expect((await storedTees(course.handle)).map((t) => t.id)).toEqual([tee.id]);
     });
 
     it("refuses removing tees used by Tournaments or Rounds, with counts per tee", async () => {
@@ -199,7 +182,7 @@ describe("Course writes", () => {
       expect(result.error).toContain("Blue: 1 tournament(s)");
       expect(result.error).toContain("Blue: 1 round(s)");
       expect(result.error).toContain("Casual: 2 round(s)");
-      expect(await storedTees(t.course.id)).toHaveLength(3);
+      expect(await storedTees(t.course.handle)).toHaveLength(3);
       expect(revalidatePath).not.toHaveBeenCalled();
     });
 
@@ -214,7 +197,7 @@ describe("Course writes", () => {
         ok: false,
         error: "A course or tee with that name already exists.",
       });
-      expect((await storedCourse(course.id)).name).toBe(course.name);
+      expect((await stored(course.handle))?.name).toBe(course.name);
     });
 
     it("refuses a new tee named like an existing one", async () => {
@@ -226,7 +209,7 @@ describe("Course writes", () => {
         ok: false,
         error: "A course or tee with that name already exists.",
       });
-      expect(await storedTees(course.id)).toHaveLength(1);
+      expect(await storedTees(course.handle)).toHaveLength(1);
     });
 
     it("refuses a course that doesn't exist", async () => {
@@ -243,7 +226,8 @@ describe("Course writes", () => {
       const handle = `renamed-${crypto.randomUUID()}`;
       const result = await courses.updateCourse(admin.id, editOf(course, [tee], { handle }));
       expect(result).toEqual({ ok: true, handle, renamed: true });
-      expect((await storedCourse(course.id)).handle).toBe(handle);
+      expect((await stored(handle))?.id).toBe(course.id);
+      expect(await stored(course.handle)).toBeUndefined();
       expect(refreshed()).toEqual(coursePaths(course.handle, handle));
     });
 
@@ -259,7 +243,7 @@ describe("Course writes", () => {
       );
 
       expect(result.ok).toBe(true);
-      expect((await storedCourse(course.id)).imgUrl).toBe(newImg);
+      expect((await stored(course.handle))?.imgUrl).toBe(newImg);
       expect(del).toHaveBeenCalledExactlyOnceWith(oldImg);
     });
 
@@ -267,7 +251,8 @@ describe("Course writes", () => {
       const { course, tee } = await fixtures.course();
       const img = `${BLOB}/same-${crypto.randomUUID()}.webp`;
       await db.update(schema.courses).set({ imgUrl: img }).where(eq(schema.courses.id, course.id));
-      await courses.updateCourse(admin.id, editOf({ ...course, imgUrl: img }, [tee]));
+      const result = await courses.updateCourse(admin.id, editOf({ ...course, imgUrl: img }, [tee]));
+      expect(result.ok).toBe(true);
       expect(del).not.toHaveBeenCalled();
     });
   });
@@ -277,7 +262,7 @@ describe("Course writes", () => {
       const { course } = await fixtures.course();
       const result = await courses.deleteCourse(player.id, course.id);
       expect(result).toEqual({ ok: false, error: expect.stringMatching(/Platform Admin/) });
-      expect(await storedCourse(course.id)).toBeDefined();
+      expect(await stored(course.handle)).toBeDefined();
     });
 
     it("refuses a course with Tournaments", async () => {
@@ -287,7 +272,7 @@ describe("Course writes", () => {
         ok: false,
         error: "Cannot delete: course is assigned to 1 tournament(s).",
       });
-      expect(await storedCourse(t.course.id)).toBeDefined();
+      expect(await stored(t.course.handle)).toBeDefined();
     });
 
     it("refuses a course with Rounds", async () => {
@@ -299,7 +284,7 @@ describe("Course writes", () => {
         ok: false,
         error: "Cannot delete: course is assigned to 2 round(s).",
       });
-      expect(await storedCourse(course.id)).toBeDefined();
+      expect(await stored(course.handle)).toBeDefined();
     });
 
     it("deletes the course and both images, and refreshes its pages", async () => {
@@ -314,7 +299,7 @@ describe("Course writes", () => {
       const result = await courses.deleteCourse(admin.id, course.id);
 
       expect(result).toEqual({ ok: true });
-      expect(await storedCourse(course.id)).toBeUndefined();
+      expect(await stored(course.handle)).toBeUndefined();
       expect(del.mock.calls.map(([url]) => url).sort()).toEqual([scorecard, img].sort());
       expect(refreshed()).toEqual(coursePaths(course.handle));
       expect(updateTag).not.toHaveBeenCalled();

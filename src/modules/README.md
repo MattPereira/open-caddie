@@ -19,6 +19,8 @@ A module has at most three entry points, named by **where they may run**:
 - **`server.ts`** is server only. Import it as `@/modules/<name>/server`. Its first line is `import "server-only"`, so a client component that imports it fails the build. Client components may still `import type` from it.
 - **`client.ts`** is browser only. None exist yet; add one only when a module gets browser-only code.
 
+**Which file?** If the code needs the server to run (the db, the session, `next/cache`, Blob, secrets), it goes in `server.ts`. Otherwise it goes in `index.ts`, even if only server code calls it today (e.g. `computeSeasonStandings`).
+
 No other root files. A module with no runs-anywhere code has no `index.ts`. Same pattern as `@clerk/nextjs` / `@clerk/nextjs/server`.
 
 The split is a **bundle boundary, not caller identity**. `server.ts` means "needs the server", not "trusted callers only". If only some modules should call a function, that's a layering rule (see below), not a separate entry point.

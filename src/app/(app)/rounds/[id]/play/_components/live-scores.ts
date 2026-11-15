@@ -1,11 +1,10 @@
 import type { MatchFormat } from "@/app/(app)/matches/schema";
-import { calculateNetStrokes } from "@/modules/rounds";
 import type {
   CourseHole,
   DisplayRound,
   RoundHoleScore,
 } from "@/modules/rounds/server";
-import { isComplete } from "@/modules/rounds";
+import { calculateNetStrokes, isComplete } from "@/modules/rounds";
 import { HOLE_NUMBERS } from "@/modules/courses";
 
 // Converts server Round snapshots into per-hole score entries for the live

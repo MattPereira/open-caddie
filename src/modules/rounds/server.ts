@@ -27,12 +27,11 @@ export {
   type AccessedRound,
 } from "./lib/access";
 export { changeRoundSettings, recordScorecardChanges } from "./lib/scorecard-writes";
-// Tournament and Match writes call the event-round functions inside their own
-// transaction, then invalidateRoundChanged after commit.
+export { createRound, deleteRound } from "./lib/writes";
+// Tournament and Match writes call these inside their own transaction, then
+// invalidateRoundChanged after commit.
 export {
-  createRound,
   deleteEventRounds,
-  deleteRound,
   EventCourseLockedError,
   insertEventRounds,
   invalidateRoundChanged,

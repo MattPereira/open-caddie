@@ -1,8 +1,8 @@
 import { comparePlayers, type SortablePlayer } from "@/modules/players";
-import { hasAllPutts } from "@/modules/rounds";
 import {
   compareNullableNumbers,
   compareRoundsByScore,
+  hasAllPutts,
 } from "@/modules/rounds";
 import { HOLE_COUNT, HOLE_NUMBERS } from "@/modules/courses";
 

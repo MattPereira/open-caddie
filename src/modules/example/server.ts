@@ -1,3 +1,3 @@
 import "server-only";
 
-export { getPlayerCount } from "./lib/reads";
+export { getDatabaseName } from "./lib/reads";

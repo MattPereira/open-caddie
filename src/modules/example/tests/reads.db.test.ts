@@ -1,17 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { createRoundFixtures } from "@/test/fixtures/rounds";
-import { getPlayerCount } from "../server";
+import { getDatabaseName } from "../server";
 
-describe("getPlayerCount", () => {
-  const fixtures = createRoundFixtures(db, schema);
-
-  it("counts every Player", async () => {
-    const before = await getPlayerCount();
-    await fixtures.player();
-    await fixtures.player();
-    expect(await getPlayerCount()).toBe(before + 2);
+describe("getDatabaseName", () => {
+  it("names the connected database", async () => {
+    expect(await getDatabaseName()).toMatch(/\S/);
   });
 });

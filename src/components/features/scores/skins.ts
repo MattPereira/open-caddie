@@ -1,6 +1,6 @@
-import type { NetScoringRound } from "@/modules/rounds";
-import type { MatchSkinHoleResult, MatchSkinsResult } from "@/modules/matches/scoring";
-import { displayName, getInitials } from "@/modules/players/player-name";
+import type { NetScoringRound } from "@/modules/rounds/server";
+import type { MatchSkinHoleResult, MatchSkinsResult } from "@/modules/matches";
+import { displayName, getInitials } from "@/modules/players";
 
 export type SkinHoleRow = MatchSkinHoleResult;
 export type SkinPlayerView = ReturnType<typeof toSkinsView>["players"][number];

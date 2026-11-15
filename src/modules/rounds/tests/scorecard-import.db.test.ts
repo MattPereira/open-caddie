@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { createRoundFixtures } from "@/test/fixtures/rounds";
-import { getRoundById } from "../index";
-import { createRoundScorecardImport } from "../scorecard-import";
+import { getRoundById } from "../server";
+import { createRoundScorecardImport } from "../server";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),

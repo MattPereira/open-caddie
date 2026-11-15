@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import * as courses from "../index";
+import * as courses from "../server";
 
 describe("Course reads", () => {
   type TeeSetup = {

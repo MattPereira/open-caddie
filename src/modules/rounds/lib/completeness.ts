@@ -2,7 +2,7 @@
 // (db/schema.ts, modules/courses/lib/reads.ts, modules/players/lib/reads.ts) mirror these
 // rules and must change with them.
 
-import { HOLE_COUNT } from "@/modules/courses/holes";
+import { HOLE_COUNT } from "@/modules/courses";
 
 export type RecordedCounts = {
   recordedStrokesCount: number;

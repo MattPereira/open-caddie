@@ -3,7 +3,7 @@ import { and, asc, eq, ne } from "drizzle-orm";
 
 import { db } from "@/db";
 import { matches, pairingMembers, rounds, users } from "@/db/schema";
-import { isPlatformAdmin } from "@/modules/players";
+import { isPlatformAdmin } from "@/modules/players/server";
 import { EVENT_KINDS, type EventKind } from "./events";
 
 const accessedRoundColumns = {

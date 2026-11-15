@@ -2,7 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 
 import { db, type Transaction } from "@/db";
 import { courseHoles, greenies, roundScores, rounds } from "@/db/schema";
-import { isTeeForCourse } from "@/modules/courses";
+import { isTeeForCourse } from "@/modules/courses/server";
 import {
   CANNOT_MANAGE_ROUND as CANNOT_MANAGE,
   ROUND_NOT_FOUND as NOT_FOUND,
@@ -11,7 +11,7 @@ import {
   type RoundManageFailure,
 } from "./access";
 import { invalidateRoundChanged } from "./writes";
-import { HOLE_COUNT } from "@/modules/courses/holes";
+import { HOLE_COUNT } from "@/modules/courses";
 
 // The one write path for a Round's scorecard and settings.
 

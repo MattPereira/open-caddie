@@ -1,4 +1,4 @@
-import { displayName, getInitials } from "@/modules/players/player-name";
+import { displayName, getInitials } from "@/modules/players";
 import { GreenieCard } from "@/components/domain/greenie-card";
 import { WinnerCard } from "@/components/domain/winner-card";
 import { TabsContent } from "@/components/ui/tabs";
@@ -7,8 +7,8 @@ import {
   greenieWinners,
   tournamentRankingByPutts,
   tournamentRankingByStrokes,
-} from "@/modules/tournaments/results";
-import type { getTournamentById } from "@/modules/tournaments";
+} from "@/modules/tournaments";
+import type { getTournamentById } from "@/modules/tournaments/server";
 
 type Tournament = NonNullable<Awaited<ReturnType<typeof getTournamentById>>>;
 type TournamentRound = Tournament["rounds"][number];

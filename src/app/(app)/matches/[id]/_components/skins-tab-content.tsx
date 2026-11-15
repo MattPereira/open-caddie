@@ -1,5 +1,5 @@
 import { SkinsContent } from "@/components/features/scores/skins-content";
-import type { HandicapHole, NetScoringRound } from "@/modules/rounds";
+import type { HandicapHole, NetScoringRound } from "@/modules/rounds/server";
 import { TabsContent } from "@/components/ui/tabs";
 
 export function SkinsTabContent({

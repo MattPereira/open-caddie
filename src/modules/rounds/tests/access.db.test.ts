@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { getEventRoundAccess, getRoundAccess } from "../index";
+import { getEventRoundAccess, getRoundAccess } from "../server";
 import { createRoundFixtures } from "@/test/fixtures/rounds";
 
 describe("Round access", () => {

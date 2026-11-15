@@ -1,7 +1,7 @@
 "use server";
 
-import { getSignedInPlayer } from "@/modules/players";
-import * as rounds from "@/modules/rounds";
+import { getSignedInPlayer } from "@/modules/players/server";
+import * as rounds from "@/modules/rounds/server";
 import {
   RoundConfigSchema,
   RoundGreenieDeleteSchema,

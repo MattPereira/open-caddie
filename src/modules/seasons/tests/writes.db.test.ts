@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { getOrCreateCurrentSeason, requireClubSeason, startNextSeason } from "../index";
+import { getOrCreateCurrentSeason, requireClubSeason, startNextSeason } from "../server";
 
 describe("Season writes", () => {
   async function club() {

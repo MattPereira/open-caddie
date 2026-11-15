@@ -7,7 +7,7 @@ import {
   getActiveRoundForPlayer,
   getClosestGreenies,
   getLowestRounds,
-} from "../index";
+} from "../server";
 
 describe("Round reads", () => {
   const fixtures = createRoundFixtures(db, schema);

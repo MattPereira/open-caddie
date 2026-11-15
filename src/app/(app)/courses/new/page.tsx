@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { PageContent } from "@/components/layout/page-content";
-import { getCurrentPlayer } from "@/modules/players";
+import { getCurrentPlayer } from "@/modules/players/server";
 import { CourseCreateForm } from "../_components/course-create-form";
 
 export const metadata: Metadata = {

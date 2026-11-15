@@ -27,7 +27,7 @@ import { PlayerCard } from "@/components/domain/player-card";
 import type {
   ScorecardImportPlayer,
   UploadRoundScorecardState,
-} from "@/modules/rounds/scorecard-import";
+} from "@/modules/rounds/server";
 
 type ScorecardUploadFormProps = {
   action: (

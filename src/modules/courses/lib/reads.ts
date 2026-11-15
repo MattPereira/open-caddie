@@ -11,7 +11,7 @@ import {
   teeYardages,
   users,
 } from "@/db/schema";
-import { HOLE_COUNT } from "../holes";
+import { HOLE_COUNT } from "./holes";
 
 type PrimaryTee = { rating: string; slope: number };
 

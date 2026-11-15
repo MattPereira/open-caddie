@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { HOLE_COUNT } from "@/modules/courses/holes";
-import { TEE_SLOPE_MAX, TEE_SLOPE_MIN } from "@/modules/courses/tee-limits";
+import { HOLE_COUNT } from "@/modules/courses";
+import { TEE_SLOPE_MAX, TEE_SLOPE_MIN } from "@/modules/courses";
 
 const teeColorSchema = z
   .string()

@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { signIn } from "@/auth";
 import { createSignInLink } from "@/lib/auth/sign-in-link";
-import * as players from "@/modules/players";
+import * as players from "@/modules/players/server";
 import {
   PlayerCreateSchema,
   PlayerUpdateSchema,

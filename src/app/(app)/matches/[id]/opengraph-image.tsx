@@ -3,8 +3,8 @@ import {
   openGraphImageContentType,
   openGraphImageSize,
 } from "@/app/og-image";
-import { getMatchById } from "@/modules/matches";
-import { matchFormatLabel } from "@/modules/matches/formats";
+import { getMatchById } from "@/modules/matches/server";
+import { matchFormatLabel } from "@/modules/matches";
 import { formatDate } from "@/lib/dates";
 
 type MatchImageProps = {

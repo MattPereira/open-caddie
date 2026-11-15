@@ -33,12 +33,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { HoldToConfirmButton } from "@/components/shared/hold-to-confirm-button";
 import { PlayerCard } from "@/components/domain/player-card";
-import { displayName } from "@/modules/players/player-name";
-import { PAIRING_MAX_MEMBERS } from "@/modules/tournaments/pairings";
+import { displayName } from "@/modules/players";
+import { PAIRING_MAX_MEMBERS } from "@/modules/tournaments";
 import type {
   TournamentPairing,
   TournamentPairingMember,
-} from "@/modules/tournaments";
+} from "@/modules/tournaments/server";
 import type { ActionResult } from "../../../actions";
 import { AddPlayersSheet, type AddablePlayer } from "./add-players-sheet";
 import {

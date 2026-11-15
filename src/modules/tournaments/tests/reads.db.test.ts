@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import * as tournaments from "@/modules/tournaments";
+import * as tournaments from "@/modules/tournaments/server";
 import { createRoundFixtures } from "@/test/fixtures/rounds";
 
 describe("Tournament reads", () => {

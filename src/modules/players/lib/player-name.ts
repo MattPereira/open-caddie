@@ -1,5 +1,3 @@
-// Client-safe: no server imports.
-
 export type NamedPlayer = {
   email: string | null;
   firstName: string | null;

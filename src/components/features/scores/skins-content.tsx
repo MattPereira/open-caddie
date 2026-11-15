@@ -1,4 +1,4 @@
-import type { HandicapHole, NetScoringRound } from "@/modules/rounds";
+import type { HandicapHole, NetScoringRound } from "@/modules/rounds/server";
 import { TableFrame } from "@/components/shared/responsive-table";
 import {
   toSkinsView,
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/table";
 import { WinnerCard } from "@/components/domain/winner-card";
 import { cn } from "@/lib/utils";
-import { scoreMatchSkins } from "@/modules/matches/scoring";
+import { scoreMatchSkins } from "@/modules/matches";
 
 export function SkinsContent({
   rounds,

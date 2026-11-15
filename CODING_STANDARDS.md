@@ -30,8 +30,9 @@ in `src/test/fixtures/` follow the same rule.
 ## Import a module only through its entry points
 
 A module in `src/modules/` exposes its root files and hides everything in
-its subfolders. Import `@/modules/<name>` (or another root entry file), never
-`@/modules/<name>/lib/...`, and have the module's own tests do the same.
+its subfolders. Import `@/modules/<name>` (runs anywhere) or
+`@/modules/<name>/server` (server only), never `@/modules/<name>/lib/...`, and
+have the module's own tests do the same.
 
 ## A route does not query data a module owns
 

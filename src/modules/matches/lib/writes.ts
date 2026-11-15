@@ -10,7 +10,7 @@ import {
   users,
   type MatchFormat,
 } from "@/db/schema";
-import { getCourseIdByHandle, isTeeForCourse } from "@/modules/courses";
+import { getCourseIdByHandle, isTeeForCourse } from "@/modules/courses/server";
 import { parseDateOnly } from "@/lib/dates";
 import { invalidateHomeEventsCache } from "@/lib/cache-tags";
 import { pgCode } from "@/lib/pg-errors";
@@ -21,8 +21,8 @@ import {
   invalidateRoundChanged,
   syncEventRounds,
   type ChangedRound,
-} from "@/modules/rounds/event-rounds";
-import { isPlatformAdmin } from "@/modules/players";
+} from "@/modules/rounds/server";
+import { isPlatformAdmin } from "@/modules/players/server";
 import { matchFormatPolicy } from "./formats";
 
 // Match writes. Plain module: route actions authenticate and parse untrusted

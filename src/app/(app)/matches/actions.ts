@@ -2,12 +2,12 @@
 
 import { redirect } from "next/navigation";
 
-import { getSignedInPlayer } from "@/modules/players";
-import * as matches from "@/modules/matches";
+import { getSignedInPlayer } from "@/modules/players/server";
+import * as matches from "@/modules/matches/server";
 import {
   roundScorecardImports,
   type UploadRoundScorecardState,
-} from "@/modules/rounds/scorecard-import";
+} from "@/modules/rounds/server";
 import {
   MatchCreateSchema,
   MatchUpdateSchema,

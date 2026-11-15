@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
-import { displayName, getInitials } from "@/modules/players/player-name";
+import { displayName, getInitials } from "@/modules/players";
 import { StatTile } from "@/components/shared/stat-tile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -10,7 +10,7 @@ import {
   getPlayerById,
   getPlayerStatsById,
   getPlayerRoundsById,
-} from "@/modules/players";
+} from "@/modules/players/server";
 import { PageContent } from "@/components/layout/page-content";
 import { PlayerProfileActions } from "./_components/player-profile-actions";
 import { PlayerRoundsBrowser } from "./_components/player-rounds-browser";

@@ -1,8 +1,8 @@
 import { unstable_cache } from "next/cache";
 
 import { toIsoDate } from "@/lib/dates";
-import { getAllMatches } from "@/modules/matches";
-import { getAllTournaments } from "@/modules/tournaments";
+import { getAllMatches } from "@/modules/matches/server";
+import { getAllTournaments } from "@/modules/tournaments/server";
 import { HOME_EVENTS_CACHE_TAG } from "@/lib/cache-tags";
 
 export const getHomeEvents = unstable_cache(

@@ -6,7 +6,7 @@ import {
   getInitials,
   type NamedPlayer,
   type SortablePlayer,
-} from "../player-name";
+} from "../index";
 
 function named(overrides: Partial<NamedPlayer> = {}): NamedPlayer {
   return { email: null, firstName: null, lastName: null, username: null, ...overrides };

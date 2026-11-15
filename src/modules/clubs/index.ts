@@ -1,12 +1,1 @@
-export {
-  getAllClubsFull,
-  getAllClubsWithSeasons,
-  getClubByHandle,
-  getClubMembersByHandle,
-} from "./lib/reads";
-export {
-  createClub,
-  updateClub,
-  type ClubWriteInput,
-  type ClubWriteResult,
-} from "./lib/writes";
+export { PointRulesSchema, type PointRules } from "./lib/point-rules";

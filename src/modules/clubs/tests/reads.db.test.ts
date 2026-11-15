@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { createRoundFixtures, PAR_THREE_HOLES } from "@/test/fixtures/rounds";
-import * as clubs from "../index";
-import type { PointRules } from "../point-rules";
+import * as clubs from "../server";
+import type { PointRules } from "../index";
 
 const POINT_RULES: PointRules = {
   participation: 5,

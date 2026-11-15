@@ -3,9 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { getRoundById } from "@/modules/rounds";
-import * as tournaments from "@/modules/tournaments";
-import { PAIRING_MAX_MEMBERS } from "@/modules/tournaments/pairings";
+import { getRoundById } from "@/modules/rounds/server";
+import * as tournaments from "@/modules/tournaments/server";
+import { PAIRING_MAX_MEMBERS } from "@/modules/tournaments";
 
 const cache = vi.hoisted(() => ({
   revalidatePath: vi.fn(),

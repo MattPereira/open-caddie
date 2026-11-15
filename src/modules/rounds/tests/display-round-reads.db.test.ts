@@ -8,7 +8,7 @@ import {
   getMatchRounds,
   getRoundById,
   getTournamentRounds,
-} from "../index";
+} from "../server";
 
 describe("Display Round reads", () => {
   const fixtures = createRoundFixtures(db, schema);

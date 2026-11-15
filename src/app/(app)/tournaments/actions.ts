@@ -3,12 +3,12 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
-import { getSignedInPlayer } from "@/modules/players";
-import * as tournaments from "@/modules/tournaments";
+import { getSignedInPlayer } from "@/modules/players/server";
+import * as tournaments from "@/modules/tournaments/server";
 import {
   roundScorecardImports,
   type UploadRoundScorecardState,
-} from "@/modules/rounds/scorecard-import";
+} from "@/modules/rounds/server";
 import {
   TournamentCreateSchema,
   TournamentUpdateSchema,

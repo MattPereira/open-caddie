@@ -11,7 +11,7 @@ import type {
   RoundScoreRow,
   ScoreMetric,
 } from "@/components/features/scores/round-scores";
-import { HOLE_NUMBERS } from "@/modules/courses/holes";
+import { HOLE_NUMBERS } from "@/modules/courses";
 
 export type {
   MetricValues,

@@ -2,7 +2,7 @@ import { z } from "zod";
 import {
   PointRulesSchema,
   type PointRules,
-} from "@/modules/clubs/point-rules";
+} from "@/modules/clubs";
 
 export const ClubFormSchema = z.object({
   handle: z

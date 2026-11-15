@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { createRoundFixtures, PAR_THREE_HOLES } from "@/test/fixtures/rounds";
-import * as standings from "../index";
+import * as standings from "../server";
 
 describe("Season Standings reads", () => {
   const fixtures = createRoundFixtures(db, schema);

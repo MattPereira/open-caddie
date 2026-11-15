@@ -9,7 +9,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { getCurrentPlayer, getSignedInPlayer } from "@/modules/players";
+import { getCurrentPlayer, getSignedInPlayer } from "@/modules/players/server";
 
 export const dynamic = "force-dynamic";
 

@@ -1,10 +1,10 @@
-import { displayName, getInitials } from "@/modules/players/player-name";
+import { displayName, getInitials } from "@/modules/players";
 import type {
   DisplayRound,
   RoundHoleGreenie,
   RoundHoleScore,
-} from "@/modules/rounds";
-import { HOLE_NUMBERS } from "@/modules/courses/holes";
+} from "@/modules/rounds/server";
+import { HOLE_NUMBERS } from "@/modules/courses";
 
 export type RoundScoresTableRound = Pick<
   DisplayRound,

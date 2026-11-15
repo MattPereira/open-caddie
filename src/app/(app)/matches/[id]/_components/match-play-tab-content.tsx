@@ -1,8 +1,8 @@
-import type { HandicapHole, NetScoringRound } from "@/modules/rounds";
+import type { HandicapHole, NetScoringRound } from "@/modules/rounds/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { TabsContent } from "@/components/ui/tabs";
 import type { MatchFormat } from "../../schema";
-import { scoreMatchPlay } from "@/modules/matches/scoring";
+import { scoreMatchPlay } from "@/modules/matches";
 import { FourBallMatchPlayContent } from "./four-ball-match-play";
 import { toMatchPlayView, type StoredMatchPlayTeam } from "./match-play-shared";
 import { SinglesMatchPlayContent } from "./singles-match-play";

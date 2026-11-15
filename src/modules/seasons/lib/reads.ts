@@ -3,12 +3,12 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 
 import { clubs, courses, seasons, tournaments } from "@/db/schema";
-import type { PointRules } from "@/modules/clubs/point-rules";
+import type { PointRules } from "@/modules/clubs";
 import {
   computeSeasonStandings,
   type ComputedSeasonStandings,
 } from "./standings";
-import { getSeasonRounds } from "@/modules/rounds";
+import { getSeasonRounds } from "@/modules/rounds/server";
 
 // Single declaration so it can later become a Club setting on the read side.
 const COUNTED_ROUND_LIMIT = 10;

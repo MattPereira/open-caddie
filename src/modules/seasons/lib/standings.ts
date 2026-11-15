@@ -1,7 +1,7 @@
-import { comparePlayers, type SortablePlayer } from "@/modules/players/player-name";
-import { tournamentRankingByPutts, tournamentRankingByStrokes } from "@/modules/tournaments/results";
+import { comparePlayers, type SortablePlayer } from "@/modules/players";
+import { tournamentRankingByPutts, tournamentRankingByStrokes } from "@/modules/tournaments";
 
-import type { PointRules } from "@/modules/clubs/point-rules";
+import type { PointRules } from "@/modules/clubs";
 
 export type StandingPlayer = SortablePlayer & {
   email: string | null;

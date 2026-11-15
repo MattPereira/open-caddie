@@ -43,8 +43,8 @@ import {
   type CourseFormValues,
   type TeeFormValues,
 } from "../schema";
-import type { CourseForEdit, CourseForEditTee } from "@/modules/courses";
-import { HOLE_COUNT } from "@/modules/courses/holes";
+import type { CourseForEdit, CourseForEditTee } from "@/modules/courses/server";
+import { HOLE_COUNT } from "@/modules/courses";
 
 type CourseFormProps = {
   course: CourseForEdit;

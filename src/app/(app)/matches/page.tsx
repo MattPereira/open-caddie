@@ -3,9 +3,9 @@ import type { Metadata } from "next";
 import { appPageIcons } from "@/components/layout/app-nav-items";
 import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
-import { getCoursesWithTees } from "@/modules/courses";
-import { getAllMatches } from "@/modules/matches";
-import { getAllPlayers, getCurrentPlayer } from "@/modules/players";
+import { getCoursesWithTees } from "@/modules/courses/server";
+import { getAllMatches } from "@/modules/matches/server";
+import { getAllPlayers, getCurrentPlayer } from "@/modules/players/server";
 import { AddMatchButton } from "./_components/add-match-button";
 import { MatchesBrowser } from "./_components/matches-browser";
 

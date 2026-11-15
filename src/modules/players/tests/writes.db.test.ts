@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { createRoundFixtures } from "@/test/fixtures/rounds";
-import * as players from "../index";
+import * as players from "../server";
 
 const { revalidatePath, del } = vi.hoisted(() => ({
   revalidatePath: vi.fn(),

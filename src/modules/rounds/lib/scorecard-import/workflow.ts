@@ -7,7 +7,7 @@ import { getEventRoundAccess, readRoundAccess } from "../access";
 import { EVENT_KINDS, type EventKind } from "../events";
 import { recordScorecardChanges } from "../scorecard-writes";
 import type { RoundScorecard, RoundScorecardContext } from "./parser";
-import { HOLE_COUNT } from "@/modules/courses/holes";
+import { HOLE_COUNT } from "@/modules/courses";
 
 export type UploadRoundScorecardState = {
   error: string | null;

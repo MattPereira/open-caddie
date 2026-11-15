@@ -13,7 +13,7 @@ import {
 import { invalidateHomeEventsCache } from "@/lib/cache-tags";
 import { safeDeleteBlob } from "@/lib/images/blob";
 import { pgCode } from "@/lib/pg-errors";
-import { requirePlatformAdmin } from "@/modules/players";
+import { requirePlatformAdmin } from "@/modules/players/server";
 
 // Course writes. Plain module: route actions authenticate and parse untrusted
 // input, then pass the acting Player's id in (CODING_STANDARDS.md).

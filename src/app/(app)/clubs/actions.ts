@@ -1,7 +1,7 @@
 "use server";
 
-import * as clubs from "@/modules/clubs";
-import { getSignedInPlayer } from "@/modules/players";
+import * as clubs from "@/modules/clubs/server";
+import { getSignedInPlayer } from "@/modules/players/server";
 import { ClubFormSchema, type ClubFormValues } from "./schema";
 
 const SIGNED_OUT = { ok: false, error: "You must be signed in." } as const;

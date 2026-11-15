@@ -8,7 +8,7 @@ import { Calendar01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { PlayerCard, type PlayerCardPlayer } from "@/components/domain/player-card";
-import { displayName } from "@/modules/players/player-name";
+import { displayName } from "@/modules/players";
 import { SearchInput } from "@/components/shared/search-input";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -41,7 +41,7 @@ import {
 } from "@/components/shared/sheet-actions";
 import { formatDate } from "@/lib/dates";
 import { cn } from "@/lib/utils";
-import { matchFormatPolicy } from "@/modules/matches/formats";
+import { matchFormatPolicy } from "@/modules/matches";
 import { createMatch, deleteMatch, updateMatch } from "../actions";
 import {
   MatchCreateSchema,

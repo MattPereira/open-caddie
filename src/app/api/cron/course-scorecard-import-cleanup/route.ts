@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { courseScorecardImports } from "@/modules/courses/scorecard-import";
+import { courseScorecardImports } from "@/modules/courses/server";
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;

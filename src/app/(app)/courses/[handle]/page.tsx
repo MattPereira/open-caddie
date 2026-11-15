@@ -4,8 +4,8 @@ import { notFound } from "next/navigation";
 import { CourseHero } from "@/components/domain/course-hero";
 import { CourseHolesTable } from "./_components/course-holes-table";
 import { CourseRecords } from "@/components/features/course-records/course-records";
-import { getCourseByHandle } from "@/modules/courses";
-import { getCurrentPlayer } from "@/modules/players";
+import { getCourseByHandle } from "@/modules/courses/server";
+import { getCurrentPlayer } from "@/modules/players/server";
 import { PageContent } from "@/components/layout/page-content";
 import { EditCourseButton } from "./_components/edit-course-button";
 

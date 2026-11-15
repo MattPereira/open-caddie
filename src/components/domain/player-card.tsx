@@ -10,7 +10,7 @@ import {
   displayName,
   getInitials,
   type NamedPlayer,
-} from "@/modules/players/player-name";
+} from "@/modules/players";
 
 export type PlayerCardPlayer = NamedPlayer & {
   image: string | null;

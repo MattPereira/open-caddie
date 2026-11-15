@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { courseHandleFromName } from "../handle";
+import { courseHandleFromName } from "../index";
 
 describe("courseHandleFromName", () => {
   it("lowercases and joins words with hyphens", () => {

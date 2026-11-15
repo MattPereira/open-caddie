@@ -5,8 +5,8 @@ import { db } from "@/db";
 import { clubs } from "@/db/schema";
 import { invalidateHomeEventsCache } from "@/lib/cache-tags";
 import { pgCode } from "@/lib/pg-errors";
-import { requirePlatformAdmin } from "@/modules/players";
-import type { PointRules } from "../point-rules";
+import { requirePlatformAdmin } from "@/modules/players/server";
+import type { PointRules } from "./point-rules";
 
 // Club writes. Plain module: route actions authenticate and parse untrusted
 // input, then pass the acting Player's id in (CODING_STANDARDS.md).

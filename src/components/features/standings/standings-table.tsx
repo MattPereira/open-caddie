@@ -1,4 +1,4 @@
-import { displayName } from "@/modules/players/player-name";
+import { displayName } from "@/modules/players";
 import { ResponsiveTable, TableFrame } from "@/components/shared/responsive-table";
 import {
   StandingsDesktopRowGroup,
@@ -14,7 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { SeasonStandings } from "@/modules/seasons";
+import type { SeasonStandings } from "@/modules/seasons/server";
 import { cn } from "@/lib/utils";
 
 type Standing = SeasonStandings["players"][number];

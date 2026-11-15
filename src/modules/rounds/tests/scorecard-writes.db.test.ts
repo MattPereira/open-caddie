@@ -5,7 +5,7 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { createRoundFixtures, PAR_THREE_HOLES } from "@/test/fixtures/rounds";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
-import * as rounds from "../index";
+import * as rounds from "../server";
 
 const { revalidatePath, updateTag } = vi.hoisted(() => ({
   revalidatePath: vi.fn(),

@@ -3,7 +3,7 @@ import { count, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
 import { clubs, rounds, tournaments, users } from "@/db/schema";
-import { getCourseIdByHandle, isTeeForCourse } from "@/modules/courses";
+import { getCourseIdByHandle, isTeeForCourse } from "@/modules/courses/server";
 import { parseDateOnly } from "@/lib/dates";
 import { invalidateHomeEventsCache } from "@/lib/cache-tags";
 import { pgCode } from "@/lib/pg-errors";
@@ -12,13 +12,13 @@ import {
   invalidateRoundChanged,
   syncEventRounds,
   type ChangedRound,
-} from "@/modules/rounds/event-rounds";
-import { requirePlatformAdmin } from "@/modules/players";
+} from "@/modules/rounds/server";
+import { requirePlatformAdmin } from "@/modules/players/server";
 import {
   getOrCreateCurrentSeason,
   requireClubSeason,
   startNextSeason,
-} from "@/modules/seasons";
+} from "@/modules/seasons/server";
 
 // Tournament writes. Plain module: route actions authenticate and
 // parse untrusted input, then pass the acting Player's id in

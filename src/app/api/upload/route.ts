@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 
 import { getImageUploadMaxBytes } from "@/lib/images/upload-limits";
-import { getPlayerById, getSignedInPlayer } from "@/modules/players";
+import { getPlayerById, getSignedInPlayer } from "@/modules/players/server";
 
 const ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/webp"];
 

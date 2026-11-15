@@ -5,17 +5,31 @@ Each folder here is a **deep module**: a lot of behaviour behind a small interfa
 ```
 src/modules/
   <name>/
-    index.ts        ← entry point (public). Import this from outside.
-    client.ts       ← another entry point, e.g. client-safe exports.
+    index.ts        ← runs anywhere: pure logic, constants, Zod schemas, types.
+    server.ts       ← server only: reads, writes, tx helpers. Starts with `import "server-only"`.
     lib/            ← implementation. Private; files import each other freely.
     tests/          ← tests and fixtures. Private; tests use entry points only.
 ```
 
+## Entry points
+
+A module has at most three entry points, named by **where they may run**:
+
+- **`index.ts`** runs anywhere, including the browser. Import it as `@/modules/<name>`. It never reaches `@/db` or a `server.ts` at runtime; `import type` is fine, since types are erased.
+- **`server.ts`** is server only. Import it as `@/modules/<name>/server`. Its first line is `import "server-only"`, so a client component that imports it fails the build. Client components may still `import type` from it.
+- **`client.ts`** is browser only. None exist yet; add one only when a module gets browser-only code.
+
+**Which file?** If the code needs the server to run (the db, the session, `next/cache`, Blob, secrets), it goes in `server.ts`. Otherwise it goes in `index.ts`, even if only server code calls it today (e.g. `computeSeasonStandings`).
+
+No other root files. A module with no runs-anywhere code has no `index.ts`. Same pattern as `@clerk/nextjs` / `@clerk/nextjs/server`.
+
+The split is a **bundle boundary, not caller identity**. `server.ts` means "needs the server", not "trusted callers only". If only some modules should call a function, that's a layering rule (see below), not a separate entry point.
+
 Copy [`example/`](./example) to start a new module. Modules are flat: one tier under `src/modules`, and a module never contains another module.
 
-**Import only through a module's entry points.** Write `@/modules/seasons`, never `@/modules/seasons/lib/reads`.
+**Import only through a module's entry points.** Write `@/modules/seasons/server`, never `@/modules/seasons/lib/reads`.
 
-**No barrel files.** Don't funnel a whole subtree through one `index.ts` that re-exports everything. Expose several small entry points instead (`index.ts` for server reads, `point-rules.ts` for client-safe schemas), each exporting only what callers need.
+**No barrel files.** An entry point exports only what callers need, not everything under `lib/`.
 
 ## File names
 
@@ -43,6 +57,7 @@ Domain code used to live in `lib/<domain>` folders where any file could import a
 - **`src/packages`**: collides with pnpm workspace packages.
 - **`src/app/modules` or `src/app/_modules`**: `src/app` is the Next.js router; domain code doesn't belong there.
 - **Convention without enforcement**: an agent follows a failing check more reliably than a paragraph.
+- **One entry point per idea** (`player-name.ts`, `holes.ts`, …): the file names didn't say why they were split out. Most existed only to keep `@/db` out of the browser bundle, marked by `// Client-safe.` comments that nothing enforced. Naming entry points by runtime makes the build and depcruise check it.
 
 Entry points import the db directly (no DB injection); DB-backed tests use per-worker databases ([ADR 0008](../../docs/adr/0008-per-worker-test-databases.md)). Layering and UI ownership are deferred.
 
@@ -59,6 +74,8 @@ All are `error`. Run them with `pnpm lint:boundaries`. They also run in `pnpm ch
 **`tests-folder-is-private`.** Only tests may import from a `tests/` folder, so test fixtures never ship in app code.
 
 **`test-support-only-from-tests`.** Fixtures shared across modules' tests (e.g. `createRoundFixtures`) live in `src/test/fixtures/`. Only `*.test.ts` files and `src/test/` itself may import `src/test/`.
+
+**`index-runs-anywhere`.** No runtime path from a module's `index.ts` may reach `src/db`, `server-only` or any `server.ts`. It's transitive, so it catches a pure-looking lib file that imports the db. It lives in `.dependency-cruiser.runtime.cjs`, a second pass with type-only imports erased (`reachable` rules can't skip them, and pure code legitimately type-imports server files).
 
 **`no-circular`.** No runtime dependency cycles anywhere in `src`. Cycles that close only through `import type` edges are allowed, since types are erased at runtime.
 

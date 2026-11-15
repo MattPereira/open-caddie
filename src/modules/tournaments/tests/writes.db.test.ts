@@ -3,10 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import * as clubs from "@/modules/clubs";
-import * as standings from "@/modules/seasons";
+import * as clubs from "@/modules/clubs/server";
+import * as seasons from "@/modules/seasons/server";
 import { createRoundFixtures } from "@/test/fixtures/rounds";
-import * as tournaments from "@/modules/tournaments";
+import * as tournaments from "@/modules/tournaments/server";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
 
 const { revalidatePath, updateTag } = vi.hoisted(() => ({
@@ -112,8 +112,8 @@ describe("Tournament Season mutations", () => {
     await create(f);
     const second = await create(f, { startNextSeason: true });
     await db.delete(schema.tournaments).where(eq(schema.tournaments.id, second.id));
-    expect(await standings.getClubSeasons(club.id)).toEqual([{ season: 1 }]);
-    expect((await standings.getSeasonStandings({ clubId: club.id, season: 1 }))?.tournaments).toHaveLength(1);
+    expect(await seasons.getClubSeasons(club.id)).toEqual([{ season: 1 }]);
+    expect((await seasons.getSeasonStandings({ clubId: club.id, season: 1 }))?.tournaments).toHaveLength(1);
   });
 
   it("refuses a Season from another Club", async () => {

@@ -1,4 +1,4 @@
-import { comparePlayers, type SortablePlayer } from "@/modules/players/player-name";
+import { comparePlayers, type SortablePlayer } from "@/modules/players";
 
 export type ScoredRound = SortablePlayer & {
   netStrokes: number | null;

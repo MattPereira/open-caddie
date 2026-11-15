@@ -9,10 +9,10 @@ import {
   teeYardages,
 } from "@/db/schema";
 import type { Scorecard, ScorecardWarning } from "./parser";
-import { courseHandleFromName } from "../../handle";
-import { isPlatformAdmin } from "@/modules/players";
-import { HOLE_COUNT } from "../../holes";
-import { TEE_RATING_MIN, TEE_SLOPE_MIN, TEE_SLOPE_MAX } from "../../tee-limits";
+import { courseHandleFromName } from "../handle";
+import { isPlatformAdmin } from "@/modules/players/server";
+import { HOLE_COUNT } from "../holes";
+import { TEE_RATING_MIN, TEE_SLOPE_MIN, TEE_SLOPE_MAX } from "../tee-limits";
 
 const IMPORT_DOCUMENT_VERSION = 1;
 const IMPORT_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;

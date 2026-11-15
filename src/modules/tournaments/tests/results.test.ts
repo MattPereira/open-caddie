@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { comparePlayers } from "@/modules/players/player-name";
+import { comparePlayers } from "@/modules/players";
 
 import {
   tournamentSkins,
   greenieWinners,
   tournamentRankingByPutts,
   tournamentRankingByStrokes,
-} from "@/modules/tournaments/results";
+} from "@/modules/tournaments";
 
 type Player = {
   playerId: string;

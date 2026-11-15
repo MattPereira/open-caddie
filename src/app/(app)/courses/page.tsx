@@ -7,8 +7,8 @@ import { appPageIcons } from "@/components/layout/app-nav-items";
 import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
 import { Button } from "@/components/ui/button";
-import { getAllCourses } from "@/modules/courses";
-import { getCurrentPlayer } from "@/modules/players";
+import { getAllCourses } from "@/modules/courses/server";
+import { getCurrentPlayer } from "@/modules/players/server";
 import { CoursesBrowser } from "./_components/courses-browser";
 
 export const dynamic = "force-dynamic";

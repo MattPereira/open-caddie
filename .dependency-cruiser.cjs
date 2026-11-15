@@ -5,9 +5,9 @@
 // behind a small interface. A module's PUBLIC SURFACE is its ENTRY POINTS:
 // the files at the module root. Implementation lives in SUBFOLDERS and is
 // private (by convention `lib/` for implementation and `tests/` for tests,
-// though any subfolder is private). A module may expose several small entry
-// points (index.ts, client.ts, server.ts, …); prefer that over one giant
-// barrel index.
+// though any subfolder is private). Entry points are named by where they may
+// run: index.ts (anywhere), server.ts (server only), client.ts (browser only).
+// .dependency-cruiser.runtime.cjs checks that index.ts stays runtime-safe.
 //
 // The only thing you should ever need to edit here is MODULES_ROOT.
 

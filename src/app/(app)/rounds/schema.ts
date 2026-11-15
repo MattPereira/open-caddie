@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { HOLE_COUNT } from "@/modules/courses/holes";
+import { HOLE_COUNT } from "@/modules/courses";
 
 export const RoundConfigSchema = z.object({
   courseHandle: z.string().trim().min(1, "Course is required"),

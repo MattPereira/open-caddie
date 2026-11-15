@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { createRoundFixtures, PAR_THREE_HOLES } from "@/test/fixtures/rounds";
-import * as standings from "../index";
+import * as seasons from "../server";
 
 describe("Season Standings reads", () => {
   const fixtures = createRoundFixtures(db, schema);
@@ -167,7 +167,7 @@ describe("Season Standings reads", () => {
     const fillerRounds = [];
     for (const filler of fillers) fillerRounds.push(await enter(filler, x));
 
-    const read = await standings.getSeasonStandings({ clubId, season: 1 });
+    const read = await seasons.getSeasonStandings({ clubId, season: 1 });
 
     expect(read?.tournaments.map((tt) => tt.id)).toEqual([
       second.id,
@@ -347,7 +347,7 @@ describe("Season Standings reads", () => {
     );
     await card(current.id, { strokes: (hole) => (hole === 18 ? 12 : 4) }); // 80
 
-    const read = await standings.getSeasonStandings({ clubId, season: 2 });
+    const read = await seasons.getSeasonStandings({ clubId, season: 2 });
 
     expect(read?.tournaments).toHaveLength(1);
     const [round] = read!.tournaments[0].rounds;
@@ -382,7 +382,7 @@ describe("Season Standings reads", () => {
     );
     await card(current.id, { strokes: (hole) => (hole === 18 ? 12 : 4) }); // 80
 
-    const read = await standings.getSeasonStandings({ clubId, season: 2 });
+    const read = await seasons.getSeasonStandings({ clubId, season: 2 });
 
     const [round] = read!.tournaments[0].rounds;
     // The 77 and 79 (differentials 4.71 and 6.59) average to 5.65, a
@@ -404,7 +404,7 @@ describe("Season Standings reads", () => {
     const third = await enter(await tournament(seasonId, course, "2025-04-01"), player);
     await card(third.id, { strokes: (hole) => (hole === 18 ? 12 : 4) }); // 80
 
-    const read = await standings.getSeasonStandings({ clubId, season: 1 });
+    const read = await seasons.getSeasonStandings({ clubId, season: 1 });
 
     const rounds = new Map(
       read!.tournaments
@@ -424,7 +424,7 @@ describe("Season Standings reads", () => {
     // Another Club with its own Season 1 on the same date.
     await fixtures.tournamentPlayer(await fixtures.tournament());
 
-    const read = await standings.getSeasonStandings({ clubId, season: 1 });
+    const read = await seasons.getSeasonStandings({ clubId, season: 1 });
 
     expect(read?.tournaments.map((tt) => tt.id)).toEqual([t.tournament.id]);
     expect(read?.players.map((p) => p.playerId)).toEqual([own.player.id]);
@@ -438,7 +438,7 @@ describe("Season Standings reads", () => {
       "2026-01-01",
     );
 
-    const read = await standings.getSeasonStandings({ clubId, season: 1 });
+    const read = await seasons.getSeasonStandings({ clubId, season: 1 });
 
     expect(read?.tournaments.map((tt) => tt.id)).toEqual([
       sameDay.id,
@@ -452,13 +452,13 @@ describe("Season Standings reads", () => {
       .delete(schema.tournaments)
       .where(eq(schema.tournaments.id, t.tournament.id));
 
-    const read = await standings.getSeasonStandings({ clubId, season: 1 });
+    const read = await seasons.getSeasonStandings({ clubId, season: 1 });
 
     expect(read).toMatchObject({ tournaments: [], players: [] });
   });
 
   it("returns nothing for an unknown Club", async () => {
-    expect(await standings.getSeasonStandings({ clubId: -1, season: 1 })).toBeNull();
+    expect(await seasons.getSeasonStandings({ clubId: -1, season: 1 })).toBeNull();
   });
 });
 
@@ -492,7 +492,7 @@ describe("Club Season reads", () => {
       .set({ number: 5 })
       .where(eq(schema.seasons.id, other.tournament.seasonId));
 
-    expect(await standings.getClubSeasons(clubId)).toEqual([
+    expect(await seasons.getClubSeasons(clubId)).toEqual([
       { season: 2 },
       { season: 1 },
     ]);

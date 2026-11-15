@@ -18,7 +18,7 @@ import {
   PlayerCard,
   type PlayerCardPlayer,
 } from "@/components/domain/player-card";
-import { displayName } from "@/modules/players/player-name";
+import { displayName } from "@/modules/players";
 import { SearchInput } from "@/components/shared/search-input";
 import { addPlayersToTournament } from "../../../actions";
 

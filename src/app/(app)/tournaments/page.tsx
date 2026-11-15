@@ -3,10 +3,10 @@ import type { Metadata } from "next";
 import { appPageIcons } from "@/components/layout/app-nav-items";
 import { PageContent } from "@/components/layout/page-content";
 import { PageHeading } from "@/components/layout/page-heading";
-import { getAllClubsWithSeasons } from "@/modules/clubs";
-import { getCoursesWithTees } from "@/modules/courses";
-import { getAllTournaments } from "@/modules/tournaments";
-import { getCurrentPlayer } from "@/modules/players";
+import { getAllClubsWithSeasons } from "@/modules/clubs/server";
+import { getCoursesWithTees } from "@/modules/courses/server";
+import { getAllTournaments } from "@/modules/tournaments/server";
+import { getCurrentPlayer } from "@/modules/players/server";
 import { AddTournamentButton } from "./_components/add-tournament-button";
 import { TournamentsBrowser } from "./_components/tournaments-browser";
 

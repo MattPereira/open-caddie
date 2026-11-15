@@ -10,7 +10,7 @@ import { EventCard } from "@/components/domain/event-card";
 import { SearchInput } from "@/components/shared/search-input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { matchFormatLabel } from "@/modules/matches/formats";
+import { matchFormatLabel } from "@/modules/matches";
 import { formatDate } from "@/lib/dates";
 
 type Match = {

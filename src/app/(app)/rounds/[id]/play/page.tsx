@@ -1,15 +1,15 @@
 import { notFound } from "next/navigation";
 
 import { CourseRecords } from "@/components/features/course-records/course-records";
-import { getMatchById } from "@/modules/matches";
+import { getMatchById } from "@/modules/matches/server";
 import {
   getRoundAccess,
   getRoundById,
   type AccessedRound,
   type DisplayRound,
-} from "@/modules/rounds";
-import { getTournamentById } from "@/modules/tournaments";
-import { getCurrentPlayer } from "@/modules/players";
+} from "@/modules/rounds/server";
+import { getTournamentById } from "@/modules/tournaments/server";
+import { getCurrentPlayer } from "@/modules/players/server";
 import { pickPlayRounds } from "./_components/play-rounds";
 import { RoundPlay } from "./_components/round-play";
 

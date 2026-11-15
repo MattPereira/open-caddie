@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { HOLE_NUMBERS } from "@/modules/courses/holes";
+import { HOLE_NUMBERS } from "@/modules/courses";
 import {
   buildScoreBase,
   projectLiveRounds,

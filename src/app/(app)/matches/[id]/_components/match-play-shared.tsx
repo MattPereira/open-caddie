@@ -1,7 +1,7 @@
-import { displayName, getInitials } from "@/modules/players/player-name";
+import { displayName, getInitials } from "@/modules/players";
 import type { ReactNode } from "react";
 import { TableFrame } from "@/components/shared/responsive-table";
-import type { NetScoringRound } from "@/modules/rounds";
+import type { NetScoringRound } from "@/modules/rounds/server";
 import { WinnerCard } from "@/components/domain/winner-card";
 import {
   Accordion,
@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { MatchPlayStatus, ScoredContest } from "@/modules/matches/scoring";
+import type { MatchPlayStatus, ScoredContest } from "@/modules/matches";
 import { cn } from "@/lib/utils";
 
 export type MatchPlayTeamView = {

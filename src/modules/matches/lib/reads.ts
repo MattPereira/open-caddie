@@ -10,7 +10,8 @@ import {
   rounds,
   users,
 } from "@/db/schema";
-import { eventGreenies, getMatchRounds } from "@/modules/rounds";
+import { eventGreenies } from "@/modules/rounds";
+import { getMatchRounds } from "@/modules/rounds/server";
 
 export const getAllMatches = cache(async () => {
   return db

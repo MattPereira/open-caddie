@@ -3,9 +3,9 @@ import { notFound, redirect } from "next/navigation";
 
 import { PageContent } from "@/components/layout/page-content";
 import { ScorecardUploadForm } from "@/components/features/scorecard-import/scorecard-upload-form";
-import { getScorecardImportPlayers } from "@/modules/rounds/scorecard-import";
-import { getTournamentById } from "@/modules/tournaments";
-import { getCurrentPlayer } from "@/modules/players";
+import { getScorecardImportPlayers } from "@/modules/rounds/server";
+import { getTournamentById } from "@/modules/tournaments/server";
+import { getCurrentPlayer } from "@/modules/players/server";
 import { uploadTournamentRoundScorecard } from "@/app/(app)/tournaments/actions";
 import { formatDate } from "@/lib/dates";
 

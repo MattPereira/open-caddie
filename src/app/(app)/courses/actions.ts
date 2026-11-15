@@ -1,14 +1,14 @@
 "use server";
 
-import * as courses from "@/modules/courses";
+import * as courses from "@/modules/courses/server";
 import {
   courseScorecardImports,
   type HoleCorrection,
   type ImportOutcome,
   type CourseScorecardImportView,
   type TeeCorrection,
-} from "@/modules/courses/scorecard-import";
-import { getCurrentPlayer, getSignedInPlayer } from "@/modules/players";
+} from "@/modules/courses/server";
+import { getCurrentPlayer, getSignedInPlayer } from "@/modules/players/server";
 import {
   CourseCreateInputSchema,
   CourseUpdateSchema,

@@ -30,8 +30,11 @@ in `src/test/fixtures/` follow the same rule.
 ## Import a module only through its entry points
 
 A module in `src/modules/` exposes its root files and hides everything in
-its subfolders. Import `@/modules/<name>` (or another root entry file), never
-`@/modules/<name>/lib/...`, and have the module's own tests do the same.
+its subfolders. Import `@/modules/<name>` (runs anywhere) or
+`@/modules/<name>/server` (server only), never `@/modules/<name>/lib/...`, and
+have the module's own tests do the same. Code that needs the server (db,
+session, `next/cache`, Blob, secrets) goes in `server.ts`; everything else goes
+in `index.ts`, even if only server code calls it today.
 
 ## A route does not query data a module owns
 
@@ -47,3 +50,7 @@ the module, then `redirect`. The module write takes the acting Player's id
 first, owns authorization and invalidation, and returns
 `{ ok: true } | { ok: false; error }`. Tests pass the Player id in instead of
 mocking auth.
+
+Only `actions.ts` uses `"use server"`. A module's `server.ts` uses
+`import "server-only"`; `"use server"` there would expose every read and write
+as an unauthenticated endpoint.

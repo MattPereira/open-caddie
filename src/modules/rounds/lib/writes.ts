@@ -10,11 +10,11 @@ import {
   tournaments,
   users,
 } from "@/db/schema";
-import { getCourseIdByHandle, isTeeForCourse } from "@/modules/courses";
+import { getCourseIdByHandle, isTeeForCourse } from "@/modules/courses/server";
 import { parseDateOnly } from "@/lib/dates";
 import { invalidateHomeEventsCache } from "@/lib/cache-tags";
 import { pgCode } from "@/lib/pg-errors";
-import { displayName } from "@/modules/players/player-name";
+import { displayName } from "@/modules/players";
 import {
   CANNOT_MANAGE_ROUND,
   ROUND_NOT_FOUND,

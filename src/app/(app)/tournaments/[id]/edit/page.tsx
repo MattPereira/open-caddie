@@ -9,15 +9,15 @@ import { UrlTabs } from "@/components/shared/url-tabs";
 import { PageContent } from "@/components/layout/page-content";
 import { CourseHero } from "@/components/domain/course-hero";
 import { TournamentForm } from "../../_components/tournament-form";
-import { getAllClubsWithSeasons } from "@/modules/clubs";
-import { getCoursesWithTees } from "@/modules/courses";
+import { getAllClubsWithSeasons } from "@/modules/clubs/server";
+import { getCoursesWithTees } from "@/modules/courses/server";
 import {
   getAddablePlayersForTournament,
   getPairingsForTournament,
   getTournamentById,
   getUnassignedRoundsForTournament,
-} from "@/modules/tournaments";
-import { getCurrentPlayer } from "@/modules/players";
+} from "@/modules/tournaments/server";
+import { getCurrentPlayer } from "@/modules/players/server";
 import { PairingBoard } from "./_components/pairing-board";
 
 type EditTournamentPageProps = {

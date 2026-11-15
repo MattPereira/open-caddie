@@ -13,7 +13,7 @@ src/modules/
 
 Copy [`example/`](./example) to start a new module. Modules are flat: one tier under `src/modules`, and a module never contains another module.
 
-**Import only through a module's entry points.** Write `@/modules/season-standings`, never `@/modules/season-standings/lib/reads`.
+**Import only through a module's entry points.** Write `@/modules/seasons`, never `@/modules/seasons/lib/reads`.
 
 **No barrel files.** Don't funnel a whole subtree through one `index.ts` that re-exports everything. Expose several small entry points instead (`index.ts` for server reads, `point-rules.ts` for client-safe schemas), each exporting only what callers need.
 

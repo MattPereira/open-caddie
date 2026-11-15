@@ -1,8 +1,8 @@
 import { revalidatePath } from "next/cache";
-import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
+import { count, eq, inArray } from "drizzle-orm";
 
 import { db } from "@/db";
-import { clubs, rounds, seasons, tournaments, users } from "@/db/schema";
+import { clubs, rounds, tournaments, users } from "@/db/schema";
 import { getCourseIdByHandle, isTeeForCourse } from "@/modules/courses";
 import { parseDateOnly } from "@/lib/dates";
 import { invalidateHomeEventsCache } from "@/lib/cache-tags";
@@ -14,8 +14,13 @@ import {
   type ChangedRound,
 } from "@/modules/rounds/event-rounds";
 import { requirePlatformAdmin } from "@/modules/players";
+import {
+  getOrCreateCurrentSeason,
+  requireClubSeason,
+  startNextSeason,
+} from "@/modules/seasons";
 
-// Tournament and Season writes. Plain module: route actions authenticate and
+// Tournament writes. Plain module: route actions authenticate and
 // parse untrusted input, then pass the acting Player's id in
 // (CODING_STANDARDS.md).
 
@@ -34,6 +39,7 @@ type TournamentInput = {
 export type TournamentCreateInput = TournamentInput & {
   /** Null places the Tournament in the Club's Current Season. */
   seasonId: number | null;
+  /** Wins over `seasonId`. */
   startNextSeason: boolean;
 };
 
@@ -57,16 +63,11 @@ export async function createTournament(
 
   try {
     const tournament = await db.transaction(async (tx) => {
-      await tx.execute(sql`select id from clubs where id = ${clubId} for update`);
-      let season = values.seasonId == null ? null : await getSeason(tx, values.seasonId, clubId);
-
-      if (values.startNextSeason) {
-        const current = await getCurrentSeason(tx, clubId);
-        [season] = await tx.insert(seasons).values({ clubId, number: (current?.number ?? 0) + 1 }).returning();
-      } else if (!season) {
-        season = await getCurrentSeason(tx, clubId);
-        if (!season) [season] = await tx.insert(seasons).values({ clubId, number: 1 }).returning();
-      }
+      const season = values.startNextSeason
+        ? await startNextSeason(tx, clubId)
+        : values.seasonId != null
+          ? await requireClubSeason(tx, values.seasonId, clubId)
+          : await getOrCreateCurrentSeason(tx, clubId);
 
       const [created] = await tx.insert(tournaments).values({
         seasonId: season.id,
@@ -106,7 +107,7 @@ export async function updateTournament(
         .for("update");
       if (!previous) return null;
 
-      const season = await getSeason(tx, values.seasonId, clubId);
+      const season = await requireClubSeason(tx, values.seasonId, clubId);
       await tx.update(tournaments).set({
         seasonId: season.id,
         date: parseDateOnly(values.date),
@@ -226,18 +227,4 @@ async function getClubIdByHandle(handle: string) {
     .where(eq(clubs.handle, handle))
     .limit(1);
   return club?.id ?? null;
-}
-
-type SeasonReader = Pick<typeof db, "select">;
-
-// A Club's Current Season is its highest-numbered one; null until it has any.
-async function getCurrentSeason(reader: SeasonReader, clubId: number) {
-  const [season] = await reader.select().from(seasons).where(eq(seasons.clubId, clubId)).orderBy(desc(seasons.number)).limit(1);
-  return season ?? null;
-}
-
-async function getSeason(reader: SeasonReader, seasonId: number, clubId: number) {
-  const [season] = await reader.select().from(seasons).where(and(eq(seasons.id, seasonId), eq(seasons.clubId, clubId))).limit(1);
-  if (!season) throw new Error("Selected Season does not belong to this Club.");
-  return season;
 }

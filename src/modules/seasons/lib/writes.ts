@@ -5,31 +5,15 @@ import { seasons } from "@/db/schema";
 
 export type Season = typeof seasons.$inferSelect;
 
-export type NewTournamentSeason = {
-  /** Null means the Club's Current Season, creating Season 1 if it has none. */
-  seasonId: number | null;
-  /** Wins over `seasonId`. */
-  startNextSeason: boolean;
-};
+/** Season 1 if the Club has none yet. */
+export async function startNextSeason(tx: Transaction, clubId: number): Promise<Season> {
+  await lockClubSeasons(tx, clubId);
+  const current = await getCurrentSeason(tx, clubId);
+  return insertSeason(tx, clubId, (current?.number ?? 0) + 1);
+}
 
-/**
- * The Season a new Tournament goes in (ADR 0004). May create a Season, so the
- * caller inserts the Tournament in the same transaction.
- */
-export async function resolveNewTournamentSeason(
-  tx: Transaction,
-  clubId: number,
-  choice: NewTournamentSeason,
-): Promise<Season> {
-  // Serializes Season creation per Club so concurrent creates can't race on
-  // the next number.
-  await tx.execute(sql`select id from clubs where id = ${clubId} for update`);
-
-  if (choice.startNextSeason) {
-    const current = await getCurrentSeason(tx, clubId);
-    return insertSeason(tx, clubId, (current?.number ?? 0) + 1);
-  }
-  if (choice.seasonId != null) return requireClubSeason(tx, choice.seasonId, clubId);
+export async function getOrCreateCurrentSeason(tx: Transaction, clubId: number): Promise<Season> {
+  await lockClubSeasons(tx, clubId);
   return (await getCurrentSeason(tx, clubId)) ?? insertSeason(tx, clubId, 1);
 }
 
@@ -45,6 +29,12 @@ export async function requireClubSeason(
     .limit(1);
   if (!season) throw new Error("Selected Season does not belong to this Club.");
   return season;
+}
+
+// Serializes Season creation per Club so concurrent writes can't race on the
+// next number. Held until the caller's transaction ends.
+async function lockClubSeasons(tx: Transaction, clubId: number) {
+  await tx.execute(sql`select id from clubs where id = ${clubId} for update`);
 }
 
 // A Club's Current Season is its highest-numbered one; null until it has any.

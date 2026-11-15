@@ -15,9 +15,9 @@ import {
 } from "@/modules/rounds/event-rounds";
 import { requirePlatformAdmin } from "@/modules/players";
 import {
+  getOrCreateCurrentSeason,
   requireClubSeason,
-  resolveNewTournamentSeason,
-  type NewTournamentSeason,
+  startNextSeason,
 } from "@/modules/seasons";
 
 // Tournament writes. Plain module: route actions authenticate and
@@ -36,7 +36,12 @@ type TournamentInput = {
   teeId: number;
 };
 
-export type TournamentCreateInput = TournamentInput & NewTournamentSeason;
+export type TournamentCreateInput = TournamentInput & {
+  /** Null places the Tournament in the Club's Current Season. */
+  seasonId: number | null;
+  /** Wins over `seasonId`. */
+  startNextSeason: boolean;
+};
 
 export type TournamentUpdateInput = TournamentInput & {
   id: number;
@@ -58,7 +63,11 @@ export async function createTournament(
 
   try {
     const tournament = await db.transaction(async (tx) => {
-      const season = await resolveNewTournamentSeason(tx, clubId, values);
+      const season = values.startNextSeason
+        ? await startNextSeason(tx, clubId)
+        : values.seasonId != null
+          ? await requireClubSeason(tx, values.seasonId, clubId)
+          : await getOrCreateCurrentSeason(tx, clubId);
 
       const [created] = await tx.insert(tournaments).values({
         seasonId: season.id,

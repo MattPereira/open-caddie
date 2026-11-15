@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { requireClubSeason, resolveNewTournamentSeason } from "../index";
+import { getOrCreateCurrentSeason, requireClubSeason, startNextSeason } from "../index";
 
 describe("Season writes", () => {
   async function club() {
@@ -16,56 +16,68 @@ describe("Season writes", () => {
     return created;
   }
 
-  const resolve = (clubId: number, seasonId: number | null, startNextSeason = false) =>
-    db.transaction((tx) => resolveNewTournamentSeason(tx, clubId, { seasonId, startNextSeason }));
+  const startNext = (clubId: number) => db.transaction((tx) => startNextSeason(tx, clubId));
+  const current = (clubId: number) => db.transaction((tx) => getOrCreateCurrentSeason(tx, clubId));
 
   const seasonNumbers = async (clubId: number) =>
     (await db.select().from(schema.seasons).where(eq(schema.seasons.clubId, clubId)).orderBy(schema.seasons.number))
       .map(({ number }) => number);
 
-  it("creates Season 1 when the Club has none", async () => {
-    const c = await club();
-    expect(await resolve(c.id, null)).toMatchObject({ clubId: c.id, number: 1 });
-    expect(await seasonNumbers(c.id)).toEqual([1]);
+  describe("startNextSeason", () => {
+    it("starts Season 1 when the Club has none", async () => {
+      const c = await club();
+      expect(await startNext(c.id)).toMatchObject({ clubId: c.id, number: 1 });
+    });
+
+    it("numbers after the Current Season", async () => {
+      const c = await club();
+      await startNext(c.id);
+      expect(await startNext(c.id)).toMatchObject({ number: 2 });
+    });
+
+    it("serializes concurrent starts", async () => {
+      const c = await club();
+      await Promise.all([startNext(c.id), startNext(c.id)]);
+      expect(await seasonNumbers(c.id)).toEqual([1, 2]);
+    });
   });
 
-  it("defaults to the Current Season without creating one", async () => {
-    const c = await club();
-    await resolve(c.id, null);
-    const second = await resolve(c.id, null, true);
-    expect(await resolve(c.id, null)).toEqual(second);
-    expect(await seasonNumbers(c.id)).toEqual([1, 2]);
+  describe("getOrCreateCurrentSeason", () => {
+    it("creates Season 1 when the Club has none", async () => {
+      const c = await club();
+      expect(await current(c.id)).toMatchObject({ clubId: c.id, number: 1 });
+      expect(await seasonNumbers(c.id)).toEqual([1]);
+    });
+
+    it("returns the highest-numbered Season without creating one", async () => {
+      const c = await club();
+      await startNext(c.id);
+      const second = await startNext(c.id);
+      expect(await current(c.id)).toEqual(second);
+      expect(await seasonNumbers(c.id)).toEqual([1, 2]);
+    });
+
+    it("serializes concurrent first calls", async () => {
+      const c = await club();
+      const [a, b] = await Promise.all([current(c.id), current(c.id)]);
+      expect(a).toEqual(b);
+      expect(await seasonNumbers(c.id)).toEqual([1]);
+    });
   });
 
-  it("starts the next Season, ignoring a picked Season", async () => {
-    const c = await club();
-    const first = await resolve(c.id, null);
-    expect(await resolve(c.id, first.id, true)).toMatchObject({ number: 2 });
-  });
+  describe("requireClubSeason", () => {
+    it("returns a Past Season of the Club", async () => {
+      const c = await club();
+      const first = await startNext(c.id);
+      await startNext(c.id);
+      expect(await db.transaction((tx) => requireClubSeason(tx, first.id, c.id))).toEqual(first);
+    });
 
-  it("starts Season 1 as the next Season of an empty Club", async () => {
-    const c = await club();
-    expect(await resolve(c.id, null, true)).toMatchObject({ number: 1 });
-  });
-
-  it("uses a picked Past Season", async () => {
-    const c = await club();
-    const first = await resolve(c.id, null);
-    await resolve(c.id, null, true);
-    expect(await resolve(c.id, first.id)).toEqual(first);
-  });
-
-  it("serializes concurrent next-Season starts", async () => {
-    const c = await club();
-    await Promise.all([resolve(c.id, null, true), resolve(c.id, null, true)]);
-    expect(await seasonNumbers(c.id)).toEqual([1, 2]);
-  });
-
-  it("refuses another Club's Season", async () => {
-    const [a, b] = [await club(), await club()];
-    const other = await resolve(b.id, null);
-    const error = "Selected Season does not belong to this Club.";
-    await expect(resolve(a.id, other.id)).rejects.toThrow(error);
-    await expect(db.transaction((tx) => requireClubSeason(tx, other.id, a.id))).rejects.toThrow(error);
+    it("refuses another Club's Season", async () => {
+      const [a, b] = [await club(), await club()];
+      const other = await startNext(b.id);
+      await expect(db.transaction((tx) => requireClubSeason(tx, other.id, a.id)))
+        .rejects.toThrow("Selected Season does not belong to this Club.");
+    });
   });
 });

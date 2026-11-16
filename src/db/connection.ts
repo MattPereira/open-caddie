@@ -14,7 +14,7 @@ export function nodePostgresConfig(
     ? {
         host: env.DATABASE_LOCAL_SOCKET,
         database,
-        // eslint-disable-next-line local/player-domain-term -- Postgres role, not a Player
+        // oxlint-disable-next-line local/player-domain-term -- Postgres role, not a Player
         user: env.DATABASE_USER,
       }
     : { connectionString };

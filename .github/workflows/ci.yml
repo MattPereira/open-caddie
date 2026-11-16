@@ -77,17 +77,16 @@ jobs:
 
       # Restore/save split so red runs still save (actions/cache only saves on
       # success). Keyed per commit; restores the newest from this branch, then
-      # main. All three tools recheck changed files, so a stale cache is safe.
-      - name: Restore lint/tsc/boundaries cache
+      # main. Both tools recheck changed files, so a stale cache is safe.
+      - name: Restore tsc/boundaries cache
         uses: actions/cache/restore@v6
         with:
           path: |
-            .eslintcache
             tsconfig.tsbuildinfo
             node_modules/.cache/dependency-cruiser
-          key: lint-tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          key: tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
           restore-keys: |
-            lint-tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+            tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
 
       # Each check runs even if an earlier one fails, so one push surfaces all
       # failures. Skipped if install failed, since every check would fail anyway.
@@ -115,15 +114,14 @@ jobs:
         if: ${{ !cancelled() }}
         uses: docker://rhysd/actionlint:1.7.12
 
-      - name: Save lint/tsc/boundaries cache
+      - name: Save tsc/boundaries cache
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         uses: actions/cache/save@v6
         with:
           path: |
-            .eslintcache
             tsconfig.tsbuildinfo
             node_modules/.cache/dependency-cruiser
-          key: lint-tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
+          key: tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
 
   detect-migration-changes:
     name: Detect migration changes

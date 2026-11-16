@@ -50,3 +50,8 @@ evals/scorecard-import/runs/
 
 # Project-local Neon CLI credentials and state
 /.neon-local/
+
+# Stryker mutation testing
+.stryker-tmp/
+reports/
+stryker.log

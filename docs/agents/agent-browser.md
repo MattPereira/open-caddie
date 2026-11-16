@@ -12,15 +12,6 @@ npm install -g agent-browser
 agent-browser install
 ```
 
-On Ubuntu 23.10+, the bundled Chrome may fail to launch with
-`No usable sandbox!`. AppArmor blocks the unprivileged user namespaces that
-Chrome's sandbox needs. System Chrome ships an AppArmor profile that allows
-them, so point agent-browser at it rather than passing `--no-sandbox`:
-
-```bash
-echo '{"executablePath": "/opt/google/chrome/chrome"}' > ~/.agent-browser/config.json
-```
-
 ## Asking your own question
 
 Start the app with `pnpm dev` first. The examples below use
@@ -81,7 +72,7 @@ permission covers the `pr-screenshots` branch and nothing else.
 To shoot both themes, set the color scheme rather than clicking the toggle:
 `agent-browser set media dark` (or `light`), then reload.
 
-## Things that will bite you
+## Two things that will bite you
 
 **Hydration lags "networkidle".** The button is in the server HTML before
 React attaches its `onClick`, so the first click can be a silent no-op. Poll
@@ -91,15 +82,4 @@ for the click's effect and click again, rather than waiting a fixed time.
 first load of a route can take seconds and may trigger a reload once it
 finishes. Warm the route with a throwaway `open` before the real loop;
 otherwise it lands mid-interaction and clicks hit a page that is navigating
-away. The same delay applies to a click that navigates to a cold route: an
-immediate `get url` still shows the old page, so poll it.
-
-**`find` can cause a hydration error.** `find` marks the element it matches
-with `data-agent-browser-located`. If it runs before hydration, React logs
-"A tree hydrated but some attributes … didn't match". The tool caused that
-error, not the app.
-
-**The console buffer is shared.** The agent-browser daemon can keep messages
-from another project's session. Treat `console` lines that don't match this
-app (for example `[vite]`) as noise, or pass `--session <name>` to isolate
-your run.
+away.

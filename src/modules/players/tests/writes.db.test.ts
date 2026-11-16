@@ -5,6 +5,7 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { createRoundFixtures } from "@/test/fixtures/rounds";
 import * as players from "../server";
+import { required } from "@/lib/required";
 
 const { revalidatePath, del } = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
@@ -162,7 +163,7 @@ describe("Player writes", () => {
     it("refuses an email already in use, ignoring case", async () => {
       const result = await players.createPlayer(
         admin.id,
-        input({ email: player.email!.toUpperCase() }),
+        input({ email: required(player.email, "fixture email").toUpperCase() }),
       );
       expect(result).toEqual({
         ok: false,
@@ -250,7 +251,9 @@ describe("Player writes", () => {
 
       await players.updatePlayer(
         player.id,
-        editOf(player, { email: player.email!.toUpperCase() }),
+        editOf(player, {
+          email: required(player.email, "fixture email").toUpperCase(),
+        }),
       );
       expect((await stored(player.id)).emailVerified).toEqual(verified);
 
@@ -277,7 +280,7 @@ describe("Player writes", () => {
       expect(
         await players.updatePlayer(
           player.id,
-          editOf(me, { email: other.email! }),
+          editOf(me, { email: required(other.email, "fixture email") }),
         ),
       ).toEqual({
         ok: false,

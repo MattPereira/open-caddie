@@ -12,6 +12,7 @@ import {
 } from "./access";
 import { invalidateRoundChanged } from "./writes";
 import { HOLE_COUNT } from "@/modules/courses";
+import { required } from "@/lib/required";
 
 // The one write path for a Round's scorecard and settings.
 
@@ -137,19 +138,20 @@ export async function recordScorecardChanges(
     const courseIdByRound = new Map(
       locked.map((round) => [round.id, round.courseId]),
     );
+    // Every change's Round is in `locked`: the length check above proves it.
+    const courseIdOf = (roundId: number) =>
+      required(courseIdByRound.get(roundId), `locked Round ${roundId}`);
 
     const parThreesByCourse = await readParThreeHoles(
       tx,
       greenieChanges
         .filter((change) => change.distance != null)
-        .map((change) => courseIdByRound.get(change.roundId)!),
+        .map((change) => courseIdOf(change.roundId)),
     );
     const offParThree = greenieChanges.some(
       (change) =>
         change.distance != null &&
-        !parThreesByCourse
-          .get(courseIdByRound.get(change.roundId)!)
-          ?.has(change.hole),
+        !parThreesByCourse.get(courseIdOf(change.roundId))?.has(change.hole),
     );
     if (offParThree) return GREENIE_NOT_PAR_THREE;
 

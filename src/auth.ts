@@ -40,7 +40,9 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
     },
     async jwt({ token, user, trigger, session }) {
       if (user) {
-        token.id = user.id!;
+        if (!user.id)
+          throw new Error("Auth.js adapter returned a user without an id");
+        token.id = user.id;
         token.username = user.username ?? null;
         token.firstName = user.firstName ?? null;
         token.lastName = user.lastName ?? null;

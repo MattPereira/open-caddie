@@ -159,7 +159,8 @@ describe("tournamentSkins", () => {
       scores: Array.from({ length: 18 }, (_, index) => ({
         hole: index + 1,
         handicap: index + 1,
-        strokes: index + 1 in strokesByHole ? strokesByHole[index + 1]! : 4,
+        strokes:
+          index + 1 in strokesByHole ? (strokesByHole[index + 1] ?? null) : 4,
       })),
     };
   }

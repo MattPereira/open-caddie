@@ -12,7 +12,12 @@ import {
 export type TestEnv = ConnectionEnv;
 
 export function baseDatabaseName(env: TestEnv) {
-  return new URL(env.TEST_DATABASE_URL!).pathname.slice(1);
+  return testDatabaseUrl(env).pathname.slice(1);
+}
+
+function testDatabaseUrl(env: TestEnv) {
+  if (!env.TEST_DATABASE_URL) throw new Error("TEST_DATABASE_URL is not set");
+  return new URL(env.TEST_DATABASE_URL);
 }
 
 export function templateName(base: string) {
@@ -32,7 +37,7 @@ export function workerNamePattern(base: string) {
 }
 
 export function databaseUrl(env: TestEnv, database: string) {
-  const url = new URL(env.TEST_DATABASE_URL!);
+  const url = testDatabaseUrl(env);
   url.pathname = `/${database}`;
   return url.toString();
 }

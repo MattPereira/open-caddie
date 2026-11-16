@@ -1,6 +1,7 @@
 import type { NetScoringRound } from "@/modules/rounds/server";
 import type { MatchSkinHoleResult, MatchSkinsResult } from "@/modules/matches";
 import { displayName, getInitials } from "@/modules/players";
+import { required } from "@/lib/required";
 
 export type SkinHoleRow = MatchSkinHoleResult;
 export type SkinPlayerView = ReturnType<typeof toSkinsView>["players"][number];
@@ -14,7 +15,7 @@ export function toSkinsView(
   return {
     holes: result.holes,
     players: result.players.map((player) => {
-      const round = roundsById.get(player.id)!;
+      const round = required(roundsById.get(player.id), `Round ${player.id}`);
       return {
         ...player,
         name: displayName({ ...round, email: null }),

@@ -36,7 +36,10 @@ export function assertLocalConnection(
 
 function connectionHost(config: ClientConfig, env: ConnectionEnv) {
   if (config.host) return config.host;
-  const url = new URL(config.connectionString!);
+  if (!config.connectionString) {
+    throw new Error("Database config has neither host nor connectionString");
+  }
+  const url = new URL(config.connectionString);
   const host = (
     url.searchParams.get("host") ?? decodeURIComponent(url.hostname)
   ).replace(/^\[(.*)\]$/, "$1");

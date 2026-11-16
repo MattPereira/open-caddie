@@ -128,8 +128,16 @@
       "rules": { "local/player-domain-term": "off" }
     },
     {
-      "files": ["src/modules/**"],
-      "rules": { "local/no-use-server-in-modules": "error" }
+      "files": ["src/**"],
+      "rules": { "local/use-server-only-in-actions": "error" }
+    },
+    {
+      "files": ["src/app/**/actions.ts"],
+      "rules": { "local/use-server-only-in-actions": "off" }
+    },
+    {
+      "files": ["src/modules/*/server.ts"],
+      "rules": { "local/server-entry-guard": "error" }
     }
   ]
 }

@@ -25,6 +25,7 @@ export default async function Image() {
         color: "white",
       }}
     >
+      {/* oxlint-disable-next-line nextjs/no-img-element -- next/image can't render inside ImageResponse */}
       <img
         src={bgDataUrl}
         alt=""

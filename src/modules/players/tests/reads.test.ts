@@ -9,7 +9,7 @@ process.env.DATABASE_URL ??= "postgres://unused@localhost/unused";
 const { getSignedInPlayer } = await import("../server");
 
 function signedIn(identity: Record<string, unknown>) {
-  // eslint-disable-next-line local/player-domain-term -- Auth.js session shape
+  // oxlint-disable-next-line local/player-domain-term -- Auth.js session shape
   auth.mockResolvedValue({ user: identity });
 }
 

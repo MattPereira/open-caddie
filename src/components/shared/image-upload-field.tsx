@@ -257,7 +257,7 @@ export function ImageUploadField({
               className="relative w-full overflow-hidden rounded-md border"
               style={{ aspectRatio: `${previewAspectRatio}` }}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {/* oxlint-disable-next-line nextjs/no-img-element */}
               <img
                 src={value}
                 alt=""
@@ -265,7 +265,7 @@ export function ImageUploadField({
               />
             </div>
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element
+            // oxlint-disable-next-line nextjs/no-img-element
             <img
               src={value}
               alt=""

@@ -19,4 +19,4 @@ Renaming the Auth.js `user` table, and its `userId` references in `account` and 
 
 ## Lint guard
 
-`local/player-domain-term` (`eslint-rules/player-domain-term.mjs`) fails on any declared identifier or JSX prop with a "user" word in its name. Sign-in files and third-party shapes are exempt; the rule file documents its allowances.
+`local/player-domain-term` (`lint-rules/player-domain-term.mjs`, an oxlint JS plugin) fails on any declared identifier or JSX prop with a "user" word in its name. Sign-in files and third-party shapes are exempt; the rule file documents its allowances.

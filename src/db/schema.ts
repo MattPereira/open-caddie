@@ -52,7 +52,7 @@ export const users = pgTable("user", {
 });
 
 // Auth.js adapter tables keep User naming (ADR 0007).
-/* eslint-disable local/player-domain-term */
+/* oxlint-disable local/player-domain-term */
 export const accounts = pgTable(
   "account",
   {
@@ -83,7 +83,7 @@ export const sessions = pgTable("session", {
   expires: timestamp("expires", { mode: "date" }).notNull(),
 });
 
-/* eslint-enable local/player-domain-term */
+/* oxlint-enable local/player-domain-term */
 
 export const verificationTokens = pgTable(
   "verificationToken",

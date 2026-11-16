@@ -11,7 +11,7 @@ const EDITABLE_CODE = "*.{js,mjs,cjs,ts,tsx}";
 const config = {
   [EDITABLE_CODE]: [
     "node scripts/check-file-tokens.mjs",
-    "eslint --cache --cache-strategy content --fix --max-warnings 0",
+    "oxlint --fix --no-error-on-unmatched-pattern",
     "oxfmt --no-error-on-unmatched-pattern",
   ],
   [`!(${EDITABLE_CODE})`]: "oxfmt --no-error-on-unmatched-pattern",

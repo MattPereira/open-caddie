@@ -77,6 +77,42 @@ describe("Player writes", () => {
     del.mockReset();
   });
 
+  describe("completeOnboarding", () => {
+    const shortId = () => crypto.randomUUID().slice(0, 8);
+
+    it("saves the name and a username slugged from it", async () => {
+      const lastName = `Lee ${shortId()}`;
+      const result = await players.completeOnboarding(player.id, {
+        firstName: "Ann",
+        lastName,
+      });
+      const username = `ann-${lastName.toLowerCase().replace(" ", "-")}`;
+      expect(result).toEqual({ ok: true, username });
+      expect(await stored(player.id)).toMatchObject({
+        firstName: "Ann",
+        lastName,
+        name: `Ann ${lastName}`,
+        username,
+      });
+    });
+
+    it("appends a suffix when the username is taken", async () => {
+      const lastName = shortId();
+      const other = await fixtures.player();
+      await players.completeOnboarding(other.id, {
+        firstName: "Ann",
+        lastName,
+      });
+
+      expect(
+        await players.completeOnboarding(player.id, {
+          firstName: "Ann",
+          lastName,
+        }),
+      ).toEqual({ ok: true, username: `ann-${lastName}-2` });
+    });
+  });
+
   describe("createPlayer", () => {
     it("creates a Player, cleaning up blank fields and the email", async () => {
       const email = `New-${crypto.randomUUID()}@Example.com`;

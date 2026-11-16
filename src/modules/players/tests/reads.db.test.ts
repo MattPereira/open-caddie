@@ -65,6 +65,19 @@ describe("Player reads", () => {
     });
   });
 
+  describe("hasPlayerWithEmail", () => {
+    it("finds a Player by stored email", async () => {
+      const player = await fixtures.player();
+      expect(await players.hasPlayerWithEmail(player.email ?? "")).toBe(true);
+    });
+
+    it("is false for an unknown email", async () => {
+      expect(
+        await players.hasPlayerWithEmail(`nobody-${crypto.randomUUID()}@x.com`),
+      ).toBe(false);
+    });
+  });
+
   describe("getAllPlayers", () => {
     it("counts each Player's Rounds and Greenies, zero when none", async () => {
       const active = await fixtures.player();

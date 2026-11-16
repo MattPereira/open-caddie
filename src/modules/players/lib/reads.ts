@@ -18,6 +18,16 @@ export const getPlayerById = cache(async (id: string) => {
   return row ?? null;
 });
 
+/** `email` must already be trimmed and lowercased, as stored. */
+export async function hasPlayerWithEmail(email: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+  return row !== undefined;
+}
+
 // The one place the session becomes a Player (ADR 0007). Reads only the
 // session token, so `isAdmin` and names may be stale; use getCurrentPlayer for
 // the stored row.

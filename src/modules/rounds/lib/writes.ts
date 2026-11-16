@@ -21,7 +21,6 @@ import {
   readRoundAccess,
   type RoundManageFailure,
 } from "./access";
-import { required } from "@/lib/required";
 
 // Owns whether a Round exists: every Round insert and delete goes through
 // here. The event helpers expect an already-authorized caller, take a
@@ -77,7 +76,9 @@ export async function createRound(
 ): Promise<CreateRoundResult> {
   const { courseHandle, date, tournamentId, teeId } = values;
 
-  let casualValues: typeof rounds.$inferInsert | null = null;
+  let source:
+    | { kind: "casual"; values: typeof rounds.$inferInsert }
+    | { kind: "tournament"; tournamentId: number };
   if (tournamentId == null) {
     const courseId = await getCourseIdByHandle(courseHandle);
     if (!courseId) {
@@ -92,21 +93,30 @@ export async function createRound(
         error: "Selected tees do not belong to this course.",
       };
     }
-    casualValues = { playerId, courseId, teeId, date: parseDateOnly(date) };
+    source = {
+      kind: "casual",
+      values: { playerId, courseId, teeId, date: parseDateOnly(date) },
+    };
+  } else {
+    source = { kind: "tournament", tournamentId };
   }
 
   let created: ChangedRound | null;
   try {
     created = await db.transaction(async (tx) => {
-      let roundValues = casualValues;
-      if (tournamentId != null) {
-        const event = await readEventRoundValues(tx, { tournamentId });
+      let roundValues: typeof rounds.$inferInsert;
+      if (source.kind === "casual") {
+        roundValues = source.values;
+      } else {
+        const event = await readEventRoundValues(tx, {
+          tournamentId: source.tournamentId,
+        });
         if (!event) return null;
         roundValues = { ...event, playerId };
       }
       const [row] = await tx
         .insert(rounds)
-        .values(required(roundValues, "casual or Tournament Round values"))
+        .values(roundValues)
         .returning(changedRoundColumns);
       return row;
     });
@@ -280,26 +290,25 @@ export async function syncEventRounds(
 }
 
 function hasScoresOrGreenies(tx: Transaction) {
-  const condition = or(
-    exists(
-      tx
-        .select({ one: sql`1` })
-        .from(roundScores)
-        .where(
-          and(
-            eq(roundScores.roundId, rounds.id),
-            or(isNotNull(roundScores.strokes), isNotNull(roundScores.putts)),
-          ),
+  const hasScores = exists(
+    tx
+      .select({ one: sql`1` })
+      .from(roundScores)
+      .where(
+        and(
+          eq(roundScores.roundId, rounds.id),
+          or(isNotNull(roundScores.strokes), isNotNull(roundScores.putts)),
         ),
-    ),
-    exists(
-      tx
-        .select({ one: sql`1` })
-        .from(greenies)
-        .where(eq(greenies.roundId, rounds.id)),
-    ),
+      ),
   );
-  return required(condition, "or() of two conditions");
+  const hasGreenies = exists(
+    tx
+      .select({ one: sql`1` })
+      .from(greenies)
+      .where(eq(greenies.roundId, rounds.id)),
+  );
+  // Raw `or` because drizzle's `or()` is typed `SQL | undefined`.
+  return sql<boolean>`(${hasScores} or ${hasGreenies})`;
 }
 
 export async function deleteEventRounds(

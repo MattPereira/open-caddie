@@ -105,7 +105,7 @@ export function PlayerSheet({
   const serverError = form.formState.errors.root?.server?.message;
   const isDirty = form.formState.isDirty;
   const showAdminControls = mode === "create" || canManagePlayers;
-  const showDelete = mode === "edit" && canManagePlayers && player;
+  const showDelete = mode === "edit" && canManagePlayers;
   const playerImagePathSegment = player?.username?.trim() || player?.id;
 
   useEffect(() => {
@@ -139,7 +139,7 @@ export function PlayerSheet({
   };
 
   const onDelete = () => {
-    if (!player) return;
+    if (mode !== "edit") return;
     setDeleteError(null);
     startDeleteTransition(async () => {
       const result = await deletePlayer(player.id);
@@ -163,9 +163,10 @@ export function PlayerSheet({
               username: inferUsername(values.firstName, values.lastName),
             }
           : values;
-      const result = player
-        ? await updatePlayer({ ...submitValues, id: player.id })
-        : await createPlayer(submitValues);
+      const result =
+        mode === "edit"
+          ? await updatePlayer({ ...submitValues, id: player.id })
+          : await createPlayer(submitValues);
 
       if (!result.ok) {
         form.setError("root.server", {
@@ -270,7 +271,7 @@ export function PlayerSheet({
                   />
                 ) : null}
 
-                {mode === "edit" && player ? (
+                {mode === "edit" ? (
                   <FormField
                     control={form.control}
                     name="image"

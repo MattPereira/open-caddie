@@ -4,6 +4,7 @@
 // legitimately type-imports server files (e.g. `import type { MatchFormat }
 // from "@/db/schema"`), so these rules can't live in .dependency-cruiser.cjs.
 
+// oxlint-disable-next-line typescript/no-require-imports -- CJS config file
 const base = require("./.dependency-cruiser.cjs");
 
 const R = "src/modules";

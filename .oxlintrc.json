@@ -13,13 +13,8 @@
     // look like it still suppresses something.
     "respectEslintDisableDirectives": false
   },
+  // oxlint also skips everything in .gitignore.
   "ignorePatterns": [
-    ".next/**",
-    ".vercel/**",
-    "out/**",
-    "build/**",
-    "next-env.d.ts",
-    "coverage/**",
     // Agent worktrees are full copies of the repo. Also excluded in
     // tsconfig.json and vitest.config.ts.
     ".claude/worktrees/**"
@@ -112,35 +107,13 @@
   },
   "overrides": [
     {
-      // TypeScript already reports these; eslint-config-next/typescript turns
-      // them off for TS files.
       "files": ["**/*.{ts,tsx,mts,cts}"],
       "rules": {
-        "constructor-super": "off",
-        "getter-return": "off",
-        "no-class-assign": "off",
-        "no-const-assign": "off",
-        "no-dupe-class-members": "off",
-        "no-dupe-keys": "off",
-        "no-func-assign": "off",
-        "no-import-assign": "off",
-        "no-new-native-nonconstructor": "off",
-        "no-obj-calls": "off",
-        "no-redeclare": "off",
-        "no-setter-return": "off",
-        "no-this-before-super": "off",
-        "no-unreachable": "off",
-        "no-unsafe-negation": "off",
         "no-var": "error",
-        "no-with": "off",
         "prefer-const": "error",
         "prefer-rest-params": "error",
         "prefer-spread": "error"
       }
-    },
-    {
-      "files": ["**/*.cjs"],
-      "rules": { "typescript/no-require-imports": "off" }
     },
     {
       // Sign-in side of ADR 0007: Auth.js config, session types, sign-in links

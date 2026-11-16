@@ -87,10 +87,10 @@ const domainFile = (kind: string, i: number) =>
 
 const FIXTURES: Record<string, string> = {
   ...Object.fromEntries(
-    REJECTED.map(([, code], i) => [domainFile("r", i), code]),
+    REJECTED.map(([, code], i) => [domainFile("rejected", i), code]),
   ),
   ...Object.fromEntries(
-    ALLOWED.map(([, code], i) => [domainFile("a", i), code]),
+    ALLOWED.map(([, code], i) => [domainFile("allowed", i), code]),
   ),
   ...Object.fromEntries(
     SIGN_IN_FILES.map((path) => [path, "export const userId = '1';"]),
@@ -114,8 +114,8 @@ function violations(path: string) {
 describe("player-domain-term lint rule (ADR 0007)", () => {
   it.each(REJECTED.map((c, i) => [...c, i] as const))(
     "rejects a User-named %s in domain code",
-    (_, __, names, i) => {
-      expect(violations(domainFile("r", i))).toEqual(names);
+    (_name, _code, names, i) => {
+      expect(violations(domainFile("rejected", i))).toEqual(names);
     },
   );
 
@@ -125,8 +125,8 @@ describe("player-domain-term lint rule (ADR 0007)", () => {
 
   it.each(ALLOWED.map((c, i) => [...c, i] as const))(
     "allows %s in domain code",
-    (_, __, i) => {
-      expect(violations(domainFile("a", i))).toEqual([]);
+    (_name, _code, i) => {
+      expect(violations(domainFile("allowed", i))).toEqual([]);
     },
   );
 

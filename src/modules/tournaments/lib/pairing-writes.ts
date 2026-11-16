@@ -11,7 +11,8 @@ import { PAIRING_MAX_MEMBERS } from "./pairings";
 // every Pairing write revalidates the Tournament edit page and nothing else.
 
 type PairingWriteResult =
-  { ok: true; id?: number } | { ok: false; error: string };
+  | { ok: true; id?: number }
+  | { ok: false; error: string };
 
 const NOT_ADMIN = "Only admins can manage Pairings.";
 

@@ -29,7 +29,8 @@ import { matchFormatPolicy } from "./formats";
 // input, then pass the acting Player's id in (CODING_STANDARDS.md).
 
 export type MatchWriteResult =
-  { ok: true; id?: number } | { ok: false; error: string };
+  | { ok: true; id?: number }
+  | { ok: false; error: string };
 
 type MatchInput = {
   /** yyyy-mm-dd */

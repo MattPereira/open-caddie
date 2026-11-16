@@ -53,7 +53,8 @@ export async function getScorecardImportPlayers(
 }
 
 export type ImportRoundScorecardResult =
-  { ok: true; redirectPath: string } | { ok: false; error: string };
+  | { ok: true; redirectPath: string }
+  | { ok: false; error: string };
 
 export type ImportRoundScorecardInput = {
   playerId: string;

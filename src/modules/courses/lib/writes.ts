@@ -39,7 +39,8 @@ export type CourseUpdateInput = {
 };
 
 export type CourseUpdateResult =
-  { ok: true; handle: string; renamed: boolean } | { ok: false; error: string };
+  | { ok: true; handle: string; renamed: boolean }
+  | { ok: false; error: string };
 
 export type CourseDeleteResult = { ok: true } | { ok: false; error: string };
 

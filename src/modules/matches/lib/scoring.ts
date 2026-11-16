@@ -18,7 +18,8 @@ export type ScoringTeam = { id: number; rounds: ScoringRound[] };
 
 /** Who a contest side is, so views can label it without re-deriving format. */
 type MatchPlaySide =
-  { kind: "team"; matchTeamId: number } | { kind: "player"; playerId: string };
+  | { kind: "team"; matchTeamId: number }
+  | { kind: "player"; playerId: string };
 
 type ScoredMatchPlayTeam = {
   id: string;

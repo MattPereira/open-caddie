@@ -17,7 +17,8 @@ import {
 } from "./schema";
 
 export type ActionResult =
-  { ok: true; id?: number } | { ok: false; error: string };
+  | { ok: true; id?: number }
+  | { ok: false; error: string };
 
 export async function createTournament(
   values: TournamentCreateValues,

@@ -138,7 +138,8 @@ export type ImportOutcome =
 export type StartCourseScorecardImportInput = {
   actorId: string;
   target:
-    { kind: "new"; name: string } | { kind: "existing"; courseId: number };
+    | { kind: "new"; name: string }
+    | { kind: "existing"; courseId: number };
   stagedScorecardImageHandle: string;
   stagedCourseImageHandle?: string;
 };

@@ -55,3 +55,8 @@ evals/scorecard-import/runs/
 .stryker-tmp/
 reports/
 stryker.log
+
+# Local staging for browser-loop screenshots. Upload them for a PR with
+# scripts/pr-screenshots.sh; the folder itself stays so save paths always exist.
+/screenshots/*
+!/screenshots/.gitkeep

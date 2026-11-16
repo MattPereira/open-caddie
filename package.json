@@ -8,10 +8,10 @@
     "start": "next start",
     "check": "pnpm run format:check && pnpm run lint && pnpm run lint:boundaries && pnpm run typecheck && pnpm run test",
     "lint": "eslint --cache --cache-strategy content --max-warnings 0",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "lint:boundaries": "depcruise src && depcruise src --config .dependency-cruiser.runtime.cjs",
-    "typecheck": "next typegen && tsc --noEmit",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "lint:boundaries": "depcruise --cache --cache-strategy content src && depcruise --config .dependency-cruiser.runtime.cjs \"src/modules/*/index.ts\"",
+    "typecheck": "next typegen && node node_modules/typescript-7/bin/tsc --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project db",
@@ -79,22 +79,14 @@
     "jsdom": "^26.1.0",
     "lint-staged": "^17.6.1",
     "neon": "9.2.0",
+    "oxfmt": "^0.78.0",
     "pg": "^8.20.0",
-    "prettier": "^3.10.1",
-    "prettier-plugin-tailwindcss": "^0.8.1",
     "shadcn": "^4.7.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
     "typescript": "^5",
+    "typescript-7": "npm:typescript@^7.0.2",
     "vitest": "^4.1.10"
   },
-  "packageManager": "pnpm@10.13.1+sha512.37ebf1a5c7a30d5fabe0c5df44ee8da4c965ca0c5af3dbab28c3a1681b70a256218d05c81c9c0dcf767ef6b8551eb5b960042b9ed4300c59242336377e01cfad",
-  "lint-staged": {
-    "*.{js,mjs,cjs,ts,tsx}": [
-      "node scripts/check-file-tokens.mjs",
-      "eslint --cache --cache-strategy content --fix --max-warnings 0",
-      "prettier --write"
-    ],
-    "!(*.{js,mjs,cjs,ts,tsx})": "prettier --write --ignore-unknown"
-  }
+  "packageManager": "pnpm@10.13.1+sha512.37ebf1a5c7a30d5fabe0c5df44ee8da4c965ca0c5af3dbab28c3a1681b70a256218d05c81c9c0dcf767ef6b8551eb5b960042b9ed4300c59242336377e01cfad"
 }

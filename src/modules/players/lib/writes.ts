@@ -14,7 +14,8 @@ export type PlayerWriteResult = { ok: true } | { ok: false; error: string };
 
 /** `email` is the stored address, so the caller's sign-in email matches it. */
 export type PlayerCreateResult =
-  { ok: true; email: string } | { ok: false; error: string };
+  | { ok: true; email: string }
+  | { ok: false; error: string };
 
 /** Form values; blank strings mean "none". */
 export type PlayerCreateInput = {

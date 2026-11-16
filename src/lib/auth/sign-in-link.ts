@@ -18,7 +18,8 @@ async function hashToken(token: string, secret: string) {
 }
 
 type SignInLinkResult =
-  { ok: true; url: string } | { ok: false; error: string };
+  | { ok: true; url: string }
+  | { ok: false; error: string };
 
 /**
  * Mints a one-time sign-in link for a player so an admin can text it to them.

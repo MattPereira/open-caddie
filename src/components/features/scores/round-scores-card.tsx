@@ -25,7 +25,11 @@ const frontNine = HOLE_NUMBERS.slice(0, 9);
 const backNine = HOLE_NUMBERS.slice(9);
 
 type ScoreSymbol =
-  "double-circle" | "circle" | "none" | "square" | "double-square";
+  | "double-circle"
+  | "circle"
+  | "none"
+  | "square"
+  | "double-square";
 
 export function RoundScoresCard({
   action,

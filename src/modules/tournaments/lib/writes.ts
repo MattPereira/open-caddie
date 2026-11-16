@@ -25,7 +25,8 @@ import {
 // (CODING_STANDARDS.md).
 
 export type TournamentWriteResult =
-  { ok: true; id?: number } | { ok: false; error: string };
+  | { ok: true; id?: number }
+  | { ok: false; error: string };
 
 type TournamentInput = {
   clubHandle: string;

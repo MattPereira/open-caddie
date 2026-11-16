@@ -104,7 +104,9 @@ export default async function PlayRoundPage({ params }: PlayPageProps) {
           prefillDelegateRoundIds={prefillDelegateRoundIds}
           canManage={access.canManage}
           matchScoreboard={play.matchScoreboard}
-          courseRecords={<CourseRecords courseId={play.courseId} variant="tabs" />}
+          courseRecords={
+            <CourseRecords courseId={play.courseId} variant="tabs" />
+          }
         />
       </section>
     </main>

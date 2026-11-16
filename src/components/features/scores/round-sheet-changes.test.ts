@@ -34,9 +34,10 @@ function edit(
 
 describe("round sheet changes", () => {
   it("sends nothing when nothing changed", () => {
-    expect(toRoundSheetChanges(sheet(), sheet(), { canManage: true })).toEqual(
-      { scorecard: null, settings: null },
-    );
+    expect(toRoundSheetChanges(sheet(), sheet(), { canManage: true })).toEqual({
+      scorecard: null,
+      settings: null,
+    });
   });
 
   it("sends only the fields of the holes that changed", () => {

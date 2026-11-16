@@ -36,7 +36,8 @@ export type ChangedRound = {
 };
 
 /** Matches have no tee column, so the caller supplies their starting tee. */
-export type EventRef = { tournamentId: number } | { matchId: number; teeId: number };
+export type EventRef =
+  { tournamentId: number } | { matchId: number; teeId: number };
 
 export type CreateRoundValues = {
   courseHandle: string;
@@ -47,8 +48,7 @@ export type CreateRoundValues = {
 };
 
 export type CreateRoundResult =
-  | { ok: true; roundId: number }
-  | { ok: false; error: string };
+  { ok: true; roundId: number } | { ok: false; error: string };
 
 export type DeleteRoundResult = { ok: true } | RoundManageFailure;
 

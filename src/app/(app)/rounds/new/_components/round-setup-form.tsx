@@ -180,8 +180,8 @@ export function RoundSetupForm({
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex w-full flex-col gap-4"
       >
-        <div className="flex flex-col gap-1 mb-2">
-          <h1 className="text-2xl font-medium tracking-normal text-center">
+        <div className="mb-2 flex flex-col gap-1">
+          <h1 className="text-center text-2xl font-medium tracking-normal">
             Set up round
           </h1>
         </div>
@@ -229,7 +229,7 @@ export function RoundSetupForm({
             control={form.control}
             name="tournamentId"
             render={() => (
-              <FormItem className="flex flex-col mb-31">
+              <FormItem className="mb-31 flex flex-col">
                 <div className="flex gap-2">
                   <Popover
                     open={tournamentOpen}
@@ -440,7 +440,7 @@ export function RoundSetupForm({
                     <FormControl>
                       <select
                         className={cn(
-                          "flex h-12 w-full rounded-md border border-input bg-transparent px-3 text-base shadow-xs outline-none transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+                          "flex h-12 w-full rounded-md border border-input bg-transparent px-3 text-base shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
                           field.value == null && "text-muted-foreground",
                         )}
                         disabled={disabled}

@@ -79,7 +79,10 @@ describe("Course writes", () => {
     return [
       "/clubs/[handle] page",
       "/courses",
-      ...handles.flatMap((handle) => [`/courses/${handle}`, `/courses/${handle}/edit`]),
+      ...handles.flatMap((handle) => [
+        `/courses/${handle}`,
+        `/courses/${handle}/edit`,
+      ]),
     ].sort();
   }
 
@@ -95,7 +98,9 @@ describe("Course writes", () => {
     it("finds a course id by handle, or null", async () => {
       const { course } = await fixtures.course();
       expect(await courses.getCourseIdByHandle(course.handle)).toBe(course.id);
-      expect(await courses.getCourseIdByHandle(`missing-${crypto.randomUUID()}`)).toBeNull();
+      expect(
+        await courses.getCourseIdByHandle(`missing-${crypto.randomUUID()}`),
+      ).toBeNull();
     });
 
     it("knows whether a tee belongs to a course", async () => {
@@ -113,7 +118,10 @@ describe("Course writes", () => {
         player.id,
         editOf(course, [tee], { name: "Renamed" }),
       );
-      expect(result).toEqual({ ok: false, error: expect.stringMatching(/Platform Admin/) });
+      expect(result).toEqual({
+        ok: false,
+        error: expect.stringMatching(/Platform Admin/),
+      });
       expect((await stored(course.handle))?.name).toBe(course.name);
       expect(revalidatePath).not.toHaveBeenCalled();
     });
@@ -140,11 +148,22 @@ describe("Course writes", () => {
 
       const result = await courses.updateCourse(admin.id, input);
 
-      expect(result).toEqual({ ok: true, handle: course.handle, renamed: false });
+      expect(result).toEqual({
+        ok: true,
+        handle: course.handle,
+        renamed: false,
+      });
       const saved = await stored(course.handle);
       expect(saved?.name).toBe("New Name");
       expect(
-        saved?.tees.map((t) => [t.id === tee.id, t.name, t.color, t.rating, t.slope, t.sortOrder]),
+        saved?.tees.map((t) => [
+          t.id === tee.id,
+          t.name,
+          t.color,
+          t.rating,
+          t.slope,
+          t.sortOrder,
+        ]),
       ).toEqual([
         [true, "Black", "black", tee.rating, 130, 0],
         [false, "Red", null, "68.5", 110, 1],
@@ -159,9 +178,14 @@ describe("Course writes", () => {
     it("removes a tee nobody has used", async () => {
       const { course, tee } = await fixtures.course();
       await fixtures.tee(course.id);
-      const result = await courses.updateCourse(admin.id, editOf(course, [tee]));
+      const result = await courses.updateCourse(
+        admin.id,
+        editOf(course, [tee]),
+      );
       expect(result.ok).toBe(true);
-      expect((await storedTees(course.handle)).map((t) => t.id)).toEqual([tee.id]);
+      expect((await storedTees(course.handle)).map((t) => t.id)).toEqual([
+        tee.id,
+      ]);
     });
 
     it("refuses removing tees used by Tournaments or Rounds, with counts per tee", async () => {
@@ -172,7 +196,10 @@ describe("Course writes", () => {
       await casualRound(t.course.id, casualTee.id);
       await casualRound(t.course.id, casualTee.id);
 
-      const result = await courses.updateCourse(admin.id, editOf(t.course, [keep]));
+      const result = await courses.updateCourse(
+        admin.id,
+        editOf(t.course, [keep]),
+      );
 
       expect(result).toEqual({
         ok: false,
@@ -224,7 +251,10 @@ describe("Course writes", () => {
     it("on rename, reports it and refreshes both handles' pages", async () => {
       const { course, tee } = await fixtures.course();
       const handle = `renamed-${crypto.randomUUID()}`;
-      const result = await courses.updateCourse(admin.id, editOf(course, [tee], { handle }));
+      const result = await courses.updateCourse(
+        admin.id,
+        editOf(course, [tee], { handle }),
+      );
       expect(result).toEqual({ ok: true, handle, renamed: true });
       expect((await stored(handle))?.id).toBe(course.id);
       expect(await stored(course.handle)).toBeUndefined();
@@ -234,7 +264,10 @@ describe("Course writes", () => {
     it("deletes a replaced image", async () => {
       const { course, tee } = await fixtures.course();
       const oldImg = `${BLOB}/old-${crypto.randomUUID()}.webp`;
-      await db.update(schema.courses).set({ imgUrl: oldImg }).where(eq(schema.courses.id, course.id));
+      await db
+        .update(schema.courses)
+        .set({ imgUrl: oldImg })
+        .where(eq(schema.courses.id, course.id));
       const newImg = `${BLOB}/new-${crypto.randomUUID()}.webp`;
 
       const result = await courses.updateCourse(
@@ -250,8 +283,14 @@ describe("Course writes", () => {
     it("keeps an unchanged image", async () => {
       const { course, tee } = await fixtures.course();
       const img = `${BLOB}/same-${crypto.randomUUID()}.webp`;
-      await db.update(schema.courses).set({ imgUrl: img }).where(eq(schema.courses.id, course.id));
-      const result = await courses.updateCourse(admin.id, editOf({ ...course, imgUrl: img }, [tee]));
+      await db
+        .update(schema.courses)
+        .set({ imgUrl: img })
+        .where(eq(schema.courses.id, course.id));
+      const result = await courses.updateCourse(
+        admin.id,
+        editOf({ ...course, imgUrl: img }, [tee]),
+      );
       expect(result.ok).toBe(true);
       expect(del).not.toHaveBeenCalled();
     });
@@ -261,7 +300,10 @@ describe("Course writes", () => {
     it("refuses a Player who isn't a Platform Admin", async () => {
       const { course } = await fixtures.course();
       const result = await courses.deleteCourse(player.id, course.id);
-      expect(result).toEqual({ ok: false, error: expect.stringMatching(/Platform Admin/) });
+      expect(result).toEqual({
+        ok: false,
+        error: expect.stringMatching(/Platform Admin/),
+      });
       expect(await stored(course.handle)).toBeDefined();
     });
 
@@ -300,7 +342,9 @@ describe("Course writes", () => {
 
       expect(result).toEqual({ ok: true });
       expect(await stored(course.handle)).toBeUndefined();
-      expect(del.mock.calls.map(([url]) => url).sort()).toEqual([scorecard, img].sort());
+      expect(del.mock.calls.map(([url]) => url).sort()).toEqual(
+        [scorecard, img].sort(),
+      );
       expect(refreshed()).toEqual(coursePaths(course.handle));
       expect(updateTag).not.toHaveBeenCalled();
     });

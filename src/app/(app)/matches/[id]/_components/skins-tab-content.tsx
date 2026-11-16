@@ -10,7 +10,7 @@ export function SkinsTabContent({
   holes: HandicapHole[];
 }) {
   return (
-    <TabsContent value="skins" className="flex flex-col gap-5 ">
+    <TabsContent value="skins" className="flex flex-col gap-5">
       <SkinsContent rounds={rounds} holes={holes} />
     </TabsContent>
   );

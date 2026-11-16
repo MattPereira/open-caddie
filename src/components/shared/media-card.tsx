@@ -66,7 +66,7 @@ export function MediaCard({
               <Badge
                 key={index}
                 variant={badge.variant ?? "outline"}
-                className="max-w-full truncate font-light lg:text-sm lg:p-3"
+                className="max-w-full truncate font-light lg:p-3 lg:text-sm"
               >
                 {badge.label}
               </Badge>

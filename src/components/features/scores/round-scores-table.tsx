@@ -17,7 +17,10 @@ import {
   type ScoreMetric,
 } from "@/components/features/scores/round-scores-card";
 import { toRoundScoreRow } from "@/components/features/scores/round-scores";
-import { ResponsiveTable, TableFrame } from "@/components/shared/responsive-table";
+import {
+  ResponsiveTable,
+  TableFrame,
+} from "@/components/shared/responsive-table";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -88,9 +91,7 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
   const sortedRows =
     metric === "strokes" ? rows : [...rows].sort(compareRoundScoreRowsByPutts);
   const greenieHoles = new Set(
-    rows.flatMap(
-      (row) => row.round.greenies.map((greenie) => greenie.hole),
-    ),
+    rows.flatMap((row) => row.round.greenies.map((greenie) => greenie.hole)),
   );
 
   return (
@@ -142,7 +143,9 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
               <TableHead className="w-10 bg-muted/60 px-1 text-center">
                 Tot
               </TableHead>
-              <TableHead className="w-10 px-1 text-center text-muted-foreground">Hcp</TableHead>
+              <TableHead className="w-10 px-1 text-center text-muted-foreground">
+                Hcp
+              </TableHead>
               <TableHead className="w-10 px-1 text-center">Net</TableHead>
             </TableRow>
           </TableHeader>
@@ -168,7 +171,10 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
                       />
                     </TableCell>
                   ))}
-                  <ScoreTotalCell value={values.out} className="border-x bg-muted/20" />
+                  <ScoreTotalCell
+                    value={values.out}
+                    className="border-x bg-muted/20"
+                  />
                   {values.scores.slice(9).map((score, index) => (
                     <TableCell
                       key={`${row.round.id}-b${index}`}
@@ -182,9 +188,19 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
                       />
                     </TableCell>
                   ))}
-                  <ScoreTotalCell value={values.in} className="border-x bg-muted/20" />
-                  <ScoreTotalCell value={values.total} strong className="bg-muted/20" />
-                  <DerivedScoreCell value={row.round.playingHandicap} className="font-normal text-muted-foreground" />
+                  <ScoreTotalCell
+                    value={values.in}
+                    className="border-x bg-muted/20"
+                  />
+                  <ScoreTotalCell
+                    value={values.total}
+                    strong
+                    className="bg-muted/20"
+                  />
+                  <DerivedScoreCell
+                    value={row.round.playingHandicap}
+                    className="font-normal text-muted-foreground"
+                  />
                   <DerivedScoreCell value={row.round.netStrokes} strong />
                 </TableRow>
               );

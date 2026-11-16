@@ -29,8 +29,7 @@ import { matchFormatPolicy } from "./formats";
 // input, then pass the acting Player's id in (CODING_STANDARDS.md).
 
 export type MatchWriteResult =
-  | { ok: true; id?: number }
-  | { ok: false; error: string };
+  { ok: true; id?: number } | { ok: false; error: string };
 
 type MatchInput = {
   /** yyyy-mm-dd */
@@ -97,7 +96,9 @@ export async function createMatch(
         playerIds,
       );
       if (format === "four_ball_match_play") {
-        const roundIdByPlayerId = new Map(inserted.map((r) => [r.playerId, r.id]));
+        const roundIdByPlayerId = new Map(
+          inserted.map((r) => [r.playerId, r.id]),
+        );
         await insertMatchTeams(
           tx,
           match.id,
@@ -259,7 +260,10 @@ async function canManageMatch(
     .where(eq(matches.id, matchId))
     .limit(1);
   if (!match) return { ok: false, error: "Match not found." };
-  if (match.createdByPlayerId !== playerId && !(await isPlatformAdmin(playerId))) {
+  if (
+    match.createdByPlayerId !== playerId &&
+    !(await isPlatformAdmin(playerId))
+  ) {
     return { ok: false, error: "Only the match creator can edit this match." };
   }
   return { ok: true };

@@ -226,7 +226,8 @@ export const getCourseByHandle = cache(async (handle: string) => {
       slope: tee.slope,
       sortOrder: tee.sortOrder,
       yardages:
-        yardagesByTee.get(tee.id) ?? Array<number | null>(HOLE_COUNT).fill(null),
+        yardagesByTee.get(tee.id) ??
+        Array<number | null>(HOLE_COUNT).fill(null),
     })),
   };
 });
@@ -323,7 +324,9 @@ export const getCourseForEdit = cache(
         rating: t.rating,
         slope: t.slope,
         sortOrder: t.sortOrder,
-        yardages: yardagesByTee.get(t.id) ?? Array<number | null>(HOLE_COUNT).fill(null),
+        yardages:
+          yardagesByTee.get(t.id) ??
+          Array<number | null>(HOLE_COUNT).fill(null),
       })),
       holes,
     };

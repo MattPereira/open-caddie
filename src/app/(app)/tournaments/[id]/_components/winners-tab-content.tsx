@@ -41,7 +41,10 @@ export function WinnersTabContent({
     tournamentRankingByStrokes(rounds).slice(0, 3),
     "strokes",
   );
-  const puttsWinners = toWinnerRows(tournamentRankingByPutts(rounds).slice(0, 3), "putts");
+  const puttsWinners = toWinnerRows(
+    tournamentRankingByPutts(rounds).slice(0, 3),
+    "putts",
+  );
   const greenieRows = greenieWinners(greenies);
   const skinWinners = toSkinWinnerRows(rounds);
   const hasWinners =
@@ -62,7 +65,7 @@ export function WinnersTabContent({
 
   return (
     <TabsContent value="winners">
-      <div className="flex flex-col gap-6 max-w-6xl">
+      <div className="flex max-w-6xl flex-col gap-6">
         <WinnersSection
           title="Strokes"
           description="Lowest net strokes"

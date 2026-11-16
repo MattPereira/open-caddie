@@ -59,9 +59,7 @@ export const RoundGreenieDeleteSchema = RoundGreenieSchema.pick({
   hole: true,
 });
 
-export type RoundGreenieDeleteValues = z.infer<
-  typeof RoundGreenieDeleteSchema
->;
+export type RoundGreenieDeleteValues = z.infer<typeof RoundGreenieDeleteSchema>;
 
 function optionalInt(label: string, min: number, max?: number) {
   const numberSchema = z

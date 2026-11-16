@@ -119,7 +119,10 @@ function greenie(feet: number, inches = 0) {
 
 describe("computeSeasonStandings", () => {
   it("gives every Tournament Round participation points", () => {
-    expect(pointsOf(round("a"))).toMatchObject({ participation: 10, total: 10 });
+    expect(pointsOf(round("a"))).toMatchObject({
+      participation: 10,
+      total: 10,
+    });
   });
 
   it("gives par, birdie and eagle points from gross strokes", () => {
@@ -146,13 +149,15 @@ describe("computeSeasonStandings", () => {
   });
 
   it("gives a hole in one ace points only", () => {
-    expect(pointsOf(round("a", 1, { scores: [score(1, 3, 1)] }))).toMatchObject({
-      pars: 0,
-      birdies: 0,
-      eagles: 0,
-      aces: 15,
-      total: 25,
-    });
+    expect(pointsOf(round("a", 1, { scores: [score(1, 3, 1)] }))).toMatchObject(
+      {
+        pars: 0,
+        birdies: 0,
+        eagles: 0,
+        aces: 15,
+        total: 25,
+      },
+    );
   });
 
   it("gives no scoring points on a hole without a par", () => {
@@ -175,7 +180,12 @@ describe("computeSeasonStandings", () => {
     const { tournaments } = computeSeasonStandings({
       pointRules: {
         ...pointRules,
-        greenies: { tiers: [{ maxFt: 3, pts: 6 }, { maxFt: 10, pts: 3 }] },
+        greenies: {
+          tiers: [
+            { maxFt: 3, pts: 6 },
+            { maxFt: 10, pts: 3 },
+          ],
+        },
       },
       countedRoundLimit: 10,
       tournaments: [tournament(1)],
@@ -253,7 +263,11 @@ describe("computeSeasonStandings", () => {
       round("c", 1, { greenies: [greenie(1)] }),
     ]);
 
-    expect(tournaments[0].rounds.map((r) => r.playerId)).toEqual(["b", "c", "a"]);
+    expect(tournaments[0].rounds.map((r) => r.playerId)).toEqual([
+      "b",
+      "c",
+      "a",
+    ]);
   });
 
   it("orders a Tournament's equal-point Rounds by Player name", () => {
@@ -282,9 +296,7 @@ describe("computeSeasonStandings", () => {
       droppedRounds: 1,
       points: { total: 16 + 11, greenies: 7 },
     });
-    expect(
-      standing.roundBreakdown.map((r) => [r.id, r.counted]),
-    ).toEqual([
+    expect(standing.roundBreakdown.map((r) => [r.id, r.counted])).toEqual([
       [high.id, true],
       [mid.id, true],
       [low.id, false],
@@ -297,13 +309,25 @@ describe("computeSeasonStandings", () => {
 
     expect(
       compute(rounds(), { tournaments, countedRoundLimit: 1 }).players[0],
-    ).toMatchObject({ countedRounds: 1, droppedRounds: 2, points: { total: 10 } });
+    ).toMatchObject({
+      countedRounds: 1,
+      droppedRounds: 2,
+      points: { total: 10 },
+    });
     expect(
       compute(rounds(), { tournaments, countedRoundLimit: 3 }).players[0],
-    ).toMatchObject({ countedRounds: 3, droppedRounds: 0, points: { total: 30 } });
+    ).toMatchObject({
+      countedRounds: 3,
+      droppedRounds: 0,
+      points: { total: 30 },
+    });
     expect(
       compute(rounds(), { tournaments, countedRoundLimit: 5 }).players[0],
-    ).toMatchObject({ countedRounds: 3, droppedRounds: 0, points: { total: 30 } });
+    ).toMatchObject({
+      countedRounds: 3,
+      droppedRounds: 0,
+      points: { total: 30 },
+    });
   });
 
   it("counts a Player's equal-point Rounds in Round order", () => {
@@ -317,9 +341,7 @@ describe("computeSeasonStandings", () => {
       countedRoundLimit: 2,
     }).players;
 
-    expect(
-      standing.roundBreakdown.map((r) => [r.id, r.counted]),
-    ).toEqual([
+    expect(standing.roundBreakdown.map((r) => [r.id, r.counted])).toEqual([
       [first.id, true],
       [second.id, true],
       [third.id, false],
@@ -352,7 +374,13 @@ describe("computeSeasonStandings", () => {
     const { players } = compute(
       [
         round("one-round", 1, {
-          greenies: [greenie(1), greenie(20), greenie(20), greenie(20), greenie(20)],
+          greenies: [
+            greenie(1),
+            greenie(20),
+            greenie(20),
+            greenie(20),
+            greenie(20),
+          ],
         }),
         round("two-rounds", 1),
         round("two-rounds", 2),

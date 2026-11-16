@@ -49,11 +49,7 @@ export function UrlTabs({
   }
 
   return (
-    <Tabs
-      value={selectedValue}
-      onValueChange={handleValueChange}
-      {...props}
-    />
+    <Tabs value={selectedValue} onValueChange={handleValueChange} {...props} />
   );
 }
 

@@ -214,9 +214,9 @@ describe("Round writes", () => {
       const player = await fixtures.tournamentPlayer(t);
       const admin = await fixtures.player({ isAdmin: true });
 
-      expect(
-        await rounds.deleteRound(admin.id, player.round.id),
-      ).toEqual({ ok: true });
+      expect(await rounds.deleteRound(admin.id, player.round.id)).toEqual({
+        ok: true,
+      });
       expect(await roundRow(player.round.id)).toBeNull();
     });
 

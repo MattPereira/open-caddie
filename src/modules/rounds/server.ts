@@ -26,7 +26,10 @@ export {
   getRoundAccess,
   type AccessedRound,
 } from "./lib/access";
-export { changeRoundSettings, recordScorecardChanges } from "./lib/scorecard-writes";
+export {
+  changeRoundSettings,
+  recordScorecardChanges,
+} from "./lib/scorecard-writes";
 export { createRound, deleteRound } from "./lib/writes";
 // Tournament and Match writes call these inside their own transaction, then
 // invalidateRoundChanged after commit.

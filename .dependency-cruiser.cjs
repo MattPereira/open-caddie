@@ -75,7 +75,8 @@ module.exports = {
     },
     {
       name: "no-circular",
-      comment: "No runtime dependency cycles (type-only edges are ignored). Scope to `^${R}/` if you want to allow cycles outside modules.",
+      comment:
+        "No runtime dependency cycles (type-only edges are ignored). Scope to `^${R}/` if you want to allow cycles outside modules.",
       severity: "error",
       from: {},
       // Type-only edges are erased at runtime, so cycles through them are harmless.

@@ -465,12 +465,15 @@ export function CourseForm({ course }: CourseFormProps) {
       });
       return;
     }
-    if (result.outcome === "paused") router.push(`/courses/imports/${result.import.id}`);
-    if (result.outcome === "published") router.push(`/courses/${result.handle}`);
+    if (result.outcome === "paused")
+      router.push(`/courses/imports/${result.import.id}`);
+    if (result.outcome === "published")
+      router.push(`/courses/${result.handle}`);
     if (result.outcome === "stale" || result.outcome === "cancelled") {
       form.setError("root.server", {
         type: "server",
-        message: "The scorecard import is no longer active. Start a new import.",
+        message:
+          "The scorecard import is no longer active. Start a new import.",
       });
     }
   };

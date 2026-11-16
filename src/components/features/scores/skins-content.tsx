@@ -51,7 +51,7 @@ export function SkinsContent({
 
   return (
     <>
-      <div className="max-w-3xl flex flex-col gap-5">
+      <div className="flex max-w-3xl flex-col gap-5">
         <Accordion type="single" collapsible className="rounded-lg border px-4">
           <AccordionItem value="rules">
             <AccordionTrigger className="text-base">
@@ -109,7 +109,7 @@ function SkinsTable({
       <div className="hidden lg:block">
         <SkinsFullTable holes={holes} players={players} />
       </div>
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-5 *:w-full sm:w-fit lg:hidden">
+      <div className="grid grid-cols-1 gap-5 *:w-full sm:w-fit md:grid-cols-2 md:gap-5 lg:hidden">
         <SkinsNineTable
           label="Out"
           holes={holes.slice(0, 9)}
@@ -331,7 +331,7 @@ function NetScore({
   return (
     <span
       className={cn(
-        "inline-flex size-7 items-center justify-center rounded-full border border-transparent tabular-nums text-foreground outline outline-0 outline-offset-2 outline-transparent",
+        "inline-flex size-7 items-center justify-center rounded-full border border-transparent text-foreground tabular-nums outline outline-0 outline-offset-2 outline-transparent",
         wonHole && "border-foreground",
         wonHole && skinsAwarded > 1 && "outline-1 outline-foreground",
         wonHole &&

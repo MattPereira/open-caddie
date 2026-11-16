@@ -84,7 +84,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
         ) : null}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <section className="flex min-w-0 flex-col gap-3">
           <div className="flex items-center gap-2">
             <h2 className="text-lg font-semibold tracking-normal">Scores</h2>
@@ -133,9 +133,7 @@ export default async function RoundPage({ params }: RoundPageProps) {
         </section>
       </div>
 
-      {round.handicapDetails ? (
-        <HandicapSection round={round} />
-      ) : null}
+      {round.handicapDetails ? <HandicapSection round={round} /> : null}
     </PageContent>
   );
 }

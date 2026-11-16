@@ -33,13 +33,13 @@ export function ParsingOverlay({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 px-6 backdrop-blur-sm">
-      <div className="flex w-full max-w-xs animate-in fade-in zoom-in-95 flex-col items-center gap-4 rounded-2xl border bg-card p-8 text-center shadow-lg">
+      <div className="flex w-full max-w-xs animate-in flex-col items-center gap-4 rounded-2xl border bg-card p-8 text-center shadow-lg zoom-in-95 fade-in">
         <Spinner className="size-10 text-primary" />
         <div className="flex flex-col gap-1">
           <p className="font-semibold">{title}</p>
           <p
             key={messages[messageIndex]}
-            className="animate-in fade-in text-sm text-muted-foreground"
+            className="animate-in text-sm text-muted-foreground fade-in"
             aria-live="polite"
           >
             {messages[messageIndex]}

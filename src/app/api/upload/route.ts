@@ -82,11 +82,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   } catch (error) {
     const message = error instanceof Error ? error.message : "Upload failed";
     const status =
-      message === "Unauthorized"
-        ? 401
-        : message === "Forbidden"
-          ? 403
-          : 400;
+      message === "Unauthorized" ? 401 : message === "Forbidden" ? 403 : 400;
     return NextResponse.json({ error: message }, { status });
   }
 }

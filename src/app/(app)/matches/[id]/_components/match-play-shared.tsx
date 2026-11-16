@@ -114,7 +114,7 @@ export function MatchPlayCardRow({
   });
 
   return (
-    <div className="max-w-3xl flex flex-col gap-5">
+    <div className="flex max-w-3xl flex-col gap-5">
       <div className="grid w-full grid-cols-1 items-center gap-2 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-3">
         {teamCards[0]}
         <div className="flex items-center justify-center text-sm font-semibold text-muted-foreground">
@@ -135,7 +135,7 @@ export function MatchPlaySection({
 }) {
   return (
     <section className="grid gap-3">
-      <h3 className="font-medium text-lg">{title}</h3>
+      <h3 className="text-lg font-medium">{title}</h3>
       {children}
     </section>
   );
@@ -467,7 +467,7 @@ function NetScore({
   return (
     <span
       className={cn(
-        "inline-flex size-7 items-center justify-center rounded-full border border-transparent tabular-nums text-foreground",
+        "inline-flex size-7 items-center justify-center rounded-full border border-transparent text-foreground tabular-nums",
         wonHole && "border-foreground",
         adjusted && "text-red-600 dark:text-red-500",
       )}

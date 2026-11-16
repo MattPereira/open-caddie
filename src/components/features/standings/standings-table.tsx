@@ -1,5 +1,8 @@
 import { displayName } from "@/modules/players";
-import { ResponsiveTable, TableFrame } from "@/components/shared/responsive-table";
+import {
+  ResponsiveTable,
+  TableFrame,
+} from "@/components/shared/responsive-table";
 import {
   StandingsDesktopRowGroup,
   type DesktopStanding,
@@ -8,12 +11,7 @@ import {
   StandingsMobileRow,
   type MobileStanding,
 } from "@/components/features/standings/standings-mobile-row";
-import {
-  Table,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { SeasonStandings } from "@/modules/seasons/server";
 import { cn } from "@/lib/utils";
 
@@ -45,11 +43,7 @@ const pointColumns: PointSummaryColumn[] = [
   { key: "aces", label: "ACE", desktopClassName: "w-14" },
 ];
 
-export function StandingsTable({
-  standings,
-}: {
-  standings: SeasonStandings;
-}) {
+export function StandingsTable({ standings }: { standings: SeasonStandings }) {
   if (standings.players.length === 0) {
     return (
       <p className="rounded-lg bg-muted px-3 py-6 text-center text-sm text-muted-foreground">

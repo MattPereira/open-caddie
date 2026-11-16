@@ -18,5 +18,7 @@ export async function requirePlatformAdmin(
   playerId: string,
   error: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  return (await isPlatformAdmin(playerId)) ? { ok: true } : { ok: false, error };
+  return (await isPlatformAdmin(playerId))
+    ? { ok: true }
+    : { ok: false, error };
 }

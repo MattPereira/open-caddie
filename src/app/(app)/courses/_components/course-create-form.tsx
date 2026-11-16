@@ -65,7 +65,10 @@ export function CourseCreateForm() {
       }
       form.setError("root.server", {
         type: "server",
-        message: result.outcome === "rejected" ? result.error : "Course import was cancelled.",
+        message:
+          result.outcome === "rejected"
+            ? result.error
+            : "Course import was cancelled.",
       });
     });
   };

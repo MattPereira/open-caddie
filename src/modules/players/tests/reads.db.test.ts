@@ -27,7 +27,11 @@ describe("Player reads", () => {
 
   async function card(
     roundId: number,
-    { strokes, putts, holes = 18 }: { strokes: number; putts: number | null; holes?: number },
+    {
+      strokes,
+      putts,
+      holes = 18,
+    }: { strokes: number; putts: number | null; holes?: number },
   ) {
     await db.insert(schema.roundScores).values(
       Array.from({ length: holes }, (_, index) => ({
@@ -51,7 +55,9 @@ describe("Player reads", () => {
     it("refuses with the caller's error unless a Platform Admin", async () => {
       const admin = await fixtures.player({ isAdmin: true });
       const player = await fixtures.player();
-      expect(await players.requirePlatformAdmin(admin.id, "Nope.")).toEqual({ ok: true });
+      expect(await players.requirePlatformAdmin(admin.id, "Nope.")).toEqual({
+        ok: true,
+      });
       expect(await players.requirePlatformAdmin(player.id, "Nope.")).toEqual({
         ok: false,
         error: "Nope.",
@@ -65,8 +71,12 @@ describe("Player reads", () => {
       const idle = await fixtures.player();
       const first = await round(active);
       await round(active);
-      await db.insert(schema.roundScores).values({ roundId: first.id, hole: 3, strokes: 3, putts: 1 });
-      await db.insert(schema.greenies).values({ roundId: first.id, hole: 3, feet: 4, inches: 0 });
+      await db
+        .insert(schema.roundScores)
+        .values({ roundId: first.id, hole: 3, strokes: 3, putts: 1 });
+      await db
+        .insert(schema.greenies)
+        .values({ roundId: first.id, hole: 3, feet: 4, inches: 0 });
 
       const all = await players.getAllPlayers();
 
@@ -90,7 +100,9 @@ describe("Player reads", () => {
       await card(missingPutt.id, { strokes: 5, putts: null }); // 90 strokes, 17 putts recorded
       const partial = await round(player);
       await card(partial.id, { strokes: 3, putts: 1, holes: 9 });
-      await db.insert(schema.greenies).values({ roundId: complete.id, hole: 3, feet: 4, inches: 0 });
+      await db
+        .insert(schema.greenies)
+        .values({ roundId: complete.id, hole: 3, feet: 4, inches: 0 });
 
       expect(await players.getPlayerStatsById(player.id)).toEqual({
         roundsCount: 3,

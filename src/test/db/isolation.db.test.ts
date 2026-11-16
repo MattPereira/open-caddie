@@ -4,11 +4,7 @@ import { describe, expect, it } from "vitest";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 
-import {
-  baseDatabaseName,
-  templateName,
-  workerNamePattern,
-} from "./databases";
+import { baseDatabaseName, templateName, workerNamePattern } from "./databases";
 
 const baseName = baseDatabaseName(process.env);
 

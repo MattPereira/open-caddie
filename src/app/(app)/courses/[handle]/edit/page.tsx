@@ -22,9 +22,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function EditCoursePage({
-  params,
-}: EditCoursePageProps) {
+export default async function EditCoursePage({ params }: EditCoursePageProps) {
   const { handle } = await params;
   const [player, course] = await Promise.all([
     getCurrentPlayer(),

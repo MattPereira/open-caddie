@@ -10,10 +10,7 @@ export async function withGatewayFallback<T, GatewayModel, DirectModel>(
   } catch (error) {
     if (!GatewayError.isInstance(error)) throw error;
 
-    console.warn(
-      "AI Gateway request failed; retrying direct provider.",
-      error,
-    );
+    console.warn("AI Gateway request failed; retrying direct provider.", error);
 
     return operation(directModel);
   }

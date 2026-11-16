@@ -9,10 +9,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import {
-  TournamentForm,
-  type TournamentFormHandle,
-} from "./tournament-form";
+import { TournamentForm, type TournamentFormHandle } from "./tournament-form";
 
 export type {
   ClubOption,

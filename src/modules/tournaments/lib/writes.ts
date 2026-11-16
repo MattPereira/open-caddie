@@ -25,8 +25,7 @@ import {
 // (CODING_STANDARDS.md).
 
 export type TournamentWriteResult =
-  | { ok: true; id?: number }
-  | { ok: false; error: string };
+  { ok: true; id?: number } | { ok: false; error: string };
 
 type TournamentInput = {
   clubHandle: string;
@@ -69,12 +68,15 @@ export async function createTournament(
           ? await requireClubSeason(tx, values.seasonId, clubId)
           : await getOrCreateCurrentSeason(tx, clubId);
 
-      const [created] = await tx.insert(tournaments).values({
-        seasonId: season.id,
-        date: parseDateOnly(values.date),
-        courseId,
-        teeId: values.teeId,
-      }).returning({ id: tournaments.id });
+      const [created] = await tx
+        .insert(tournaments)
+        .values({
+          seasonId: season.id,
+          date: parseDateOnly(values.date),
+          courseId,
+          teeId: values.teeId,
+        })
+        .returning({ id: tournaments.id });
       return created;
     });
 
@@ -101,19 +103,26 @@ export async function updateTournament(
   try {
     const result = await db.transaction(async (tx) => {
       const [previous] = await tx
-        .select({ courseId: tournaments.courseId, teeId: tournaments.teeId, date: tournaments.date })
+        .select({
+          courseId: tournaments.courseId,
+          teeId: tournaments.teeId,
+          date: tournaments.date,
+        })
         .from(tournaments)
         .where(eq(tournaments.id, id))
         .for("update");
       if (!previous) return null;
 
       const season = await requireClubSeason(tx, values.seasonId, clubId);
-      await tx.update(tournaments).set({
-        seasonId: season.id,
-        date: parseDateOnly(values.date),
-        courseId,
-        teeId: values.teeId,
-      }).where(eq(tournaments.id, id));
+      await tx
+        .update(tournaments)
+        .set({
+          seasonId: season.id,
+          date: parseDateOnly(values.date),
+          courseId,
+          teeId: values.teeId,
+        })
+        .where(eq(tournaments.id, id));
       return syncEventRounds(tx, { tournamentId: id }, previous);
     });
     if (!result) return { ok: false, error: "Tournament not found." };
@@ -157,7 +166,10 @@ export async function addPlayersToTournament(
   playerId: string,
   values: { tournamentId: number; playerIds: string[] },
 ): Promise<{ ok: true; added: number } | { ok: false; error: string }> {
-  const admin = await requirePlatformAdmin(playerId, "Only admins can add players.");
+  const admin = await requirePlatformAdmin(
+    playerId,
+    "Only admins can add players.",
+  );
   if (!admin.ok) return admin;
 
   const { tournamentId, playerIds } = values;
@@ -176,7 +188,10 @@ export async function addPlayersToTournament(
     .from(users)
     .where(inArray(users.id, playerIds));
   if (existingPlayers.length !== new Set(playerIds).size) {
-    return { ok: false, error: "One or more selected players no longer exist." };
+    return {
+      ok: false,
+      error: "One or more selected players no longer exist.",
+    };
   }
 
   const inserted = await db.transaction((tx) =>
@@ -203,19 +218,31 @@ function invalidateTournamentChanged(id: number) {
 
 function writeFailure(e: unknown, fallback: string) {
   if (pgCode(e) === "23503") {
-    return { ok: false as const, error: "Selected club or course does not exist." };
+    return {
+      ok: false as const,
+      error: "Selected club or course does not exist.",
+    };
   }
-  return { ok: false as const, error: e instanceof Error ? e.message : fallback };
+  return {
+    ok: false as const,
+    error: e instanceof Error ? e.message : fallback,
+  };
 }
 
 async function resolveTournamentFields(values: TournamentInput) {
   const clubId = await getClubIdByHandle(values.clubHandle);
   const courseId = await getCourseIdByHandle(values.courseHandle);
   if (!clubId || !courseId) {
-    return { ok: false as const, error: "Selected club or course does not exist." };
+    return {
+      ok: false as const,
+      error: "Selected club or course does not exist.",
+    };
   }
   if (!(await isTeeForCourse(values.teeId, courseId))) {
-    return { ok: false as const, error: "Selected tee does not belong to this course." };
+    return {
+      ok: false as const,
+      error: "Selected tee does not belong to this course.",
+    };
   }
   return { ok: true as const, clubId, courseId };
 }

@@ -53,7 +53,7 @@ export function HoldToConfirmButton({
       onPointerUp={cancel}
       onPointerLeave={cancel}
       onPointerCancel={cancel}
-      className="relative overflow-hidden touch-none select-none"
+      className="relative touch-none overflow-hidden select-none"
     >
       <span
         aria-hidden

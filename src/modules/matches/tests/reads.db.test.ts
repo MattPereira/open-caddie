@@ -10,7 +10,12 @@ describe("Match reads", () => {
 
   type Match = Awaited<ReturnType<typeof fixtures.match>>;
 
-  async function team(m: Match, name: string, sortOrder: number, roundIds: number[]) {
+  async function team(
+    m: Match,
+    name: string,
+    sortOrder: number,
+    roundIds: number[],
+  ) {
     const [created] = await db
       .insert(schema.matchTeams)
       .values({ matchId: m.match.id, name, sortOrder })
@@ -18,7 +23,9 @@ describe("Match reads", () => {
     if (roundIds.length) {
       await db
         .insert(schema.matchTeamMembers)
-        .values(roundIds.map((roundId) => ({ matchTeamId: created.id, roundId })));
+        .values(
+          roundIds.map((roundId) => ({ matchTeamId: created.id, roundId })),
+        );
     }
     return created;
   }
@@ -68,7 +75,10 @@ describe("Match reads", () => {
       const match = await matches.getMatchById(m.match.id);
 
       expect(
-        match?.teams.map((t) => ({ id: t.id, rounds: t.rounds.map((r) => r.id).sort() })),
+        match?.teams.map((t) => ({
+          id: t.id,
+          rounds: t.rounds.map((r) => r.id).sort(),
+        })),
       ).toEqual([
         { id: first.id, rounds: [a, c].sort() },
         { id: second.id, rounds: [b, d].sort() },

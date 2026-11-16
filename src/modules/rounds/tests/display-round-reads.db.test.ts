@@ -4,11 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { createRoundFixtures } from "@/test/fixtures/rounds";
-import {
-  getMatchRounds,
-  getRoundById,
-  getTournamentRounds,
-} from "../server";
+import { getMatchRounds, getRoundById, getTournamentRounds } from "../server";
 
 describe("Display Round reads", () => {
   const fixtures = createRoundFixtures(db, schema);
@@ -204,9 +200,7 @@ describe("Display Round reads", () => {
       expect(handicaps[c.round.id]).toBe(0);
       for (const { round } of [a, b, c]) {
         const alone = await getRoundById(round.id);
-        expect(alone?.playingHandicap).toBeCloseTo(
-          handicaps[round.id],
-        );
+        expect(alone?.playingHandicap).toBeCloseTo(handicaps[round.id]);
       }
     });
   });
@@ -252,7 +246,13 @@ describe("Display Round reads", () => {
   it("sorts by net, then gross, then name, with no net strokes last", async () => {
     const t = await fixtures.tournament();
     const players = [];
-    for (const lastName of ["Incomplete", "Bravo", "Alpha", "Handicap", "Low"]) {
+    for (const lastName of [
+      "Incomplete",
+      "Bravo",
+      "Alpha",
+      "Handicap",
+      "Low",
+    ]) {
       const player = await fixtures.tournamentPlayer(t);
       await db
         .update(schema.users)
@@ -350,7 +350,10 @@ describe("Display Round reads", () => {
       const byId = new Map(rounds.map((round) => [round.id, round]));
 
       expect(byId.get(blue.round.id)?.yards).toHaveLength(18);
-      expect(byId.get(blue.round.id)?.yards[0]).toEqual({ hole: 1, yards: 400 });
+      expect(byId.get(blue.round.id)?.yards[0]).toEqual({
+        hole: 1,
+        yards: 400,
+      });
       expect(byId.get(onWhite.round.id)?.yards).toHaveLength(18);
       expect(byId.get(onWhite.round.id)?.yards[17]).toEqual({
         hole: 18,
@@ -384,7 +387,10 @@ describe("Display Round reads", () => {
       const details = read?.handicapDetails;
 
       expect(
-        details?.priorRounds.map((prior) => [prior.id, prior.usedForPlayerIndex]),
+        details?.priorRounds.map((prior) => [
+          prior.id,
+          prior.usedForPlayerIndex,
+        ]),
       ).toEqual([
         [used78.id, true],
         [unused90.id, false],

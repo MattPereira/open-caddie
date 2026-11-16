@@ -215,7 +215,7 @@ export function ScoreEntrySheet({
       <SheetContent
         side="bottom"
         showCloseButton={false}
-        className="max-h-[90svh] gap-10 overflow-y-auto rounded-t-2xl px-5 pb-8 pt-5"
+        className="max-h-[90svh] gap-10 overflow-y-auto rounded-t-2xl px-5 pt-5 pb-8"
       >
         <SheetHeader className="gap-1 p-0">
           <SheetTitle className="truncate font-heading text-xl font-semibold">
@@ -239,7 +239,7 @@ export function ScoreEntrySheet({
         </SheetHeader>
 
         <section className="flex flex-col gap-2">
-          <SheetDescription className="text-sm font-medium uppercase tracking-wide">
+          <SheetDescription className="text-sm font-medium tracking-wide uppercase">
             Strokes
           </SheetDescription>
           <OptionGrid
@@ -255,7 +255,7 @@ export function ScoreEntrySheet({
 
         {showPutts ? (
           <section className="flex flex-col gap-2">
-            <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
               Putts
             </p>
             <OptionGrid
@@ -271,7 +271,7 @@ export function ScoreEntrySheet({
 
         {showGreenie ? (
           <section className="flex flex-col gap-2">
-            <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
               Greenie
             </p>
             <GreenieInputs
@@ -351,7 +351,7 @@ function OptionGrid({
           variant="outline"
           aria-label="Show higher options"
           className={cn(
-            "flex items-center justify-center px-0 text-2xl font-semibold leading-none text-muted-foreground",
+            "flex items-center justify-center px-0 text-2xl leading-none font-semibold text-muted-foreground",
             labelFor ? "h-20" : "h-16",
           )}
           onClick={onMoreAction}
@@ -390,11 +390,11 @@ function ChoiceButton({
       )}
       onClick={() => onSelectAction(value)}
     >
-      <span className="text-2xl font-semibold tabular-nums leading-none">
+      <span className="text-2xl leading-none font-semibold tabular-nums">
         {value}
       </span>
       {label ? (
-        <span className="text-xs font-medium uppercase tracking-wide leading-none opacity-70">
+        <span className="text-xs leading-none font-medium tracking-wide uppercase opacity-70">
           {label}
         </span>
       ) : null}

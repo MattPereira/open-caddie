@@ -18,7 +18,13 @@ export function PlayRoundButton({
   return (
     <div className={cn("w-full sm:w-64", className)}>
       <motion.div
-        animate={{ boxShadow: ["0 0 0 0px oklch(0.55 0.15 145 / 0.45)", "0 0 0 14px oklch(0.55 0.15 145 / 0)", "0 0 0 0px oklch(0.55 0.15 145 / 0)"] }}
+        animate={{
+          boxShadow: [
+            "0 0 0 0px oklch(0.55 0.15 145 / 0.45)",
+            "0 0 0 14px oklch(0.55 0.15 145 / 0)",
+            "0 0 0 0px oklch(0.55 0.15 145 / 0)",
+          ],
+        }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeOut" }}
         className="w-full rounded-lg"
       >

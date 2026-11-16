@@ -110,7 +110,7 @@ export function AppSidebar({ player }: { player: SidebarPlayer | null }) {
                       <AvatarFallback>{initials}</AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-medium text-base">
+                      <span className="truncate text-base font-medium">
                         {player.name}
                       </span>
                       <span className="truncate text-xs text-muted-foreground">
@@ -132,7 +132,10 @@ export function AppSidebar({ player }: { player: SidebarPlayer | null }) {
                         href={`/players/${player.id}`}
                         onNavigate={closeMobileSidebar}
                       >
-                        <HugeiconsIcon icon={UserCircleIcon} className="size-5" />
+                        <HugeiconsIcon
+                          icon={UserCircleIcon}
+                          className="size-5"
+                        />
                         Profile
                       </Link>
                     </DropdownMenuItem>

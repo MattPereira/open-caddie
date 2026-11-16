@@ -1,5 +1,8 @@
 import { comparePlayers, type SortablePlayer } from "@/modules/players";
-import { tournamentRankingByPutts, tournamentRankingByStrokes } from "@/modules/tournaments";
+import {
+  tournamentRankingByPutts,
+  tournamentRankingByStrokes,
+} from "@/modules/tournaments";
 
 import type { PointRules } from "@/modules/clubs";
 
@@ -37,7 +40,9 @@ export type SeasonStandingsRoundInput = StandingPlayer & {
   greenies: Array<{ feet: number; inches: number }>;
 };
 
-export type StandingsRound = SeasonStandingsRoundInput & { points: RoundPoints };
+export type StandingsRound = SeasonStandingsRoundInput & {
+  points: RoundPoints;
+};
 
 export type PlayerStanding = StandingPlayer & {
   position: number;
@@ -49,7 +54,9 @@ export type PlayerStanding = StandingPlayer & {
 };
 
 export type ComputedSeasonStandings = {
-  tournaments: Array<SeasonStandingsTournamentInput & { rounds: StandingsRound[] }>;
+  tournaments: Array<
+    SeasonStandingsTournamentInput & { rounds: StandingsRound[] }
+  >;
   players: PlayerStanding[];
 };
 
@@ -64,7 +71,10 @@ export function computeSeasonStandings({
   tournaments: SeasonStandingsTournamentInput[];
   rounds: SeasonStandingsRoundInput[];
 }): ComputedSeasonStandings {
-  const roundsByTournamentId = Map.groupBy(rounds, (round) => round.tournamentId);
+  const roundsByTournamentId = Map.groupBy(
+    rounds,
+    (round) => round.tournamentId,
+  );
 
   const standingsTournaments = tournaments.map((tournament) => {
     const tournamentRounds = [
@@ -115,10 +125,7 @@ const pointCategories = [
 
 type PointCategory = (typeof pointCategories)[number];
 
-function positionPoints(
-  ranking: Array<{ id: number }>,
-  pointValues: number[],
-) {
+function positionPoints(ranking: Array<{ id: number }>, pointValues: number[]) {
   return new Map(
     ranking.map((round, index) => [round.id, pointValues[index] ?? 0]),
   );
@@ -223,7 +230,10 @@ function emptyPointTotals() {
 }
 
 function withTotal(totals: Record<PointCategory, number>): RoundPoints {
-  const total = pointCategories.reduce((sum, category) => sum + totals[category], 0);
+  const total = pointCategories.reduce(
+    (sum, category) => sum + totals[category],
+    0,
+  );
   return { ...totals, total };
 }
 

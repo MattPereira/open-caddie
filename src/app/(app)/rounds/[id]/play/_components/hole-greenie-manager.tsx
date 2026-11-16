@@ -99,12 +99,12 @@ function GreenieField({
         placeholder={label}
         value={value}
         onChange={(e) => onChangeAction(e.target.value)}
-        className="h-16 w-full text-center text-2xl font-semibold tabular-nums md:text-2xl placeholder:text-base placeholder:font-normal"
+        className="h-16 w-full text-center text-2xl font-semibold tabular-nums placeholder:text-base placeholder:font-normal md:text-2xl"
       />
       {showUnit ? (
         <span
           aria-hidden
-          className="pointer-events-none absolute right-2 top-1.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
+          className="pointer-events-none absolute top-1.5 right-2 text-[10px] font-medium tracking-wide text-muted-foreground uppercase"
         >
           {label}
         </span>

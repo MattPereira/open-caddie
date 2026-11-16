@@ -14,8 +14,7 @@ export type PlayerWriteResult = { ok: true } | { ok: false; error: string };
 
 /** `email` is the stored address, so the caller's sign-in email matches it. */
 export type PlayerCreateResult =
-  | { ok: true; email: string }
-  | { ok: false; error: string };
+  { ok: true; email: string } | { ok: false; error: string };
 
 /** Form values; blank strings mean "none". */
 export type PlayerCreateInput = {
@@ -159,7 +158,10 @@ function emptyToNull(s: string) {
 
 async function refuseIfTaken(
   fields: ReturnType<typeof normalize>,
-  { excludeId, checkEmail = true }: { excludeId?: string; checkEmail?: boolean } = {},
+  {
+    excludeId,
+    checkEmail = true,
+  }: { excludeId?: string; checkEmail?: boolean } = {},
 ): Promise<{ ok: false; error: string } | null> {
   // Callers skip the email check when it's unchanged, so only the username
   // query can match the Player being edited.

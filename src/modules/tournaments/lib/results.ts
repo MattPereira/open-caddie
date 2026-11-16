@@ -42,13 +42,17 @@ export type TournamentSkin<T extends TournamentSkinsRound> = {
   netStrokes: number;
 };
 
-export function tournamentRankingByStrokes<T extends StrokesRankingRound>(rounds: readonly T[]) {
+export function tournamentRankingByStrokes<T extends StrokesRankingRound>(
+  rounds: readonly T[],
+) {
   return rounds
     .filter((round) => round.isComplete && round.netStrokes != null)
     .sort(compareRoundsByScore);
 }
 
-export function tournamentRankingByPutts<T extends PuttsRankingRound>(rounds: readonly T[]) {
+export function tournamentRankingByPutts<T extends PuttsRankingRound>(
+  rounds: readonly T[],
+) {
   return rounds
     .filter((round) => round.isComplete && hasAllPutts(round))
     .sort(
@@ -60,7 +64,9 @@ export function tournamentRankingByPutts<T extends PuttsRankingRound>(rounds: re
     );
 }
 
-export function greenieWinners<T extends GreenieResult>(greenies: readonly T[]) {
+export function greenieWinners<T extends GreenieResult>(
+  greenies: readonly T[],
+) {
   const winnersByHole = new Map<number, T>();
 
   for (const greenie of [...greenies].sort(compareGreenies)) {
@@ -97,7 +103,10 @@ export function tournamentSkins<T extends TournamentSkinsRound>(
       ];
     });
 
-    if (holeScores.length === 0 || holeScores.length !== completeRounds.length) {
+    if (
+      holeScores.length === 0 ||
+      holeScores.length !== completeRounds.length
+    ) {
       continue;
     }
 

@@ -42,10 +42,10 @@ export function HoleScoreRow({
       {/* The hole number reads as the row's header, so it carries the same
           muted fill and text colour as the column header row. self-stretch fills
           the row height, which items-center would otherwise collapse to text. */}
-      <div className="flex self-stretch items-center justify-center bg-muted text-base font-medium tabular-nums text-muted-foreground">
+      <div className="flex items-center justify-center self-stretch bg-muted text-base font-medium text-muted-foreground tabular-nums">
         {hole}
       </div>
-      <div className="text-center text-base tabular-nums text-muted-foreground">
+      <div className="text-center text-base text-muted-foreground tabular-nums">
         {par ?? "—"}
       </div>
       {cells.map((cell) => (
@@ -73,7 +73,7 @@ export function HoleScoreRow({
             <HoleScore score={cell.strokes} par={par} showSymbol size="lg" />
           )}
           {showPutts && cell.putts != null ? (
-            <span className="absolute right-1 top-0.5 text-xs tabular-nums text-muted-foreground">
+            <span className="absolute top-0.5 right-1 text-xs text-muted-foreground tabular-nums">
               {cell.putts}
             </span>
           ) : null}

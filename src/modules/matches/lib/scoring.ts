@@ -18,8 +18,7 @@ export type ScoringTeam = { id: number; rounds: ScoringRound[] };
 
 /** Who a contest side is, so views can label it without re-deriving format. */
 type MatchPlaySide =
-  | { kind: "team"; matchTeamId: number }
-  | { kind: "player"; playerId: string };
+  { kind: "team"; matchTeamId: number } | { kind: "player"; playerId: string };
 
 type ScoredMatchPlayTeam = {
   id: string;
@@ -147,7 +146,9 @@ export function scoreMatchSkins(
   holes: ScoringHole[],
 ): MatchSkinsResult {
   const eligibleRounds = rounds.filter(isMatchPlayRound);
-  if (eligibleRounds.filter((round) => round.recordedStrokesCount > 0).length < 2)
+  if (
+    eligibleRounds.filter((round) => round.recordedStrokesCount > 0).length < 2
+  )
     return { status: "unavailable", reason: "players_with_scores" };
 
   const players = eligibleRounds.map((round) => ({

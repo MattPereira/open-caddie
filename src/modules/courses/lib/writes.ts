@@ -39,8 +39,7 @@ export type CourseUpdateInput = {
 };
 
 export type CourseUpdateResult =
-  | { ok: true; handle: string; renamed: boolean }
-  | { ok: false; error: string };
+  { ok: true; handle: string; renamed: boolean } | { ok: false; error: string };
 
 export type CourseDeleteResult = { ok: true } | { ok: false; error: string };
 
@@ -67,8 +66,12 @@ export async function updateCourse(
     .select({ id: courseTees.id, name: courseTees.name })
     .from(courseTees)
     .where(eq(courseTees.courseId, id));
-  const submittedTeeIds = new Set(tees.map((tee) => tee.id).filter((teeId) => teeId != null));
-  const teesToDelete = existingTees.filter((tee) => !submittedTeeIds.has(tee.id));
+  const submittedTeeIds = new Set(
+    tees.map((tee) => tee.id).filter((teeId) => teeId != null),
+  );
+  const teesToDelete = existingTees.filter(
+    (tee) => !submittedTeeIds.has(tee.id),
+  );
 
   const refused = await refuseIfTeesInUse(teesToDelete);
   if (refused) return refused;
@@ -135,7 +138,10 @@ export async function updateCourse(
     });
   } catch (e) {
     if (pgCode(e) === "23505") {
-      return { ok: false, error: "A course or tee with that name already exists." };
+      return {
+        ok: false,
+        error: "A course or tee with that name already exists.",
+      };
     }
     throw e;
   }
@@ -217,18 +223,23 @@ async function refuseIfTeesInUse(
       .where(inArray(rounds.teeId, teeIds))
       .groupBy(rounds.teeId),
   ]);
-  if (tournamentBlockers.length === 0 && roundBlockers.length === 0) return null;
+  if (tournamentBlockers.length === 0 && roundBlockers.length === 0)
+    return null;
 
   const nameById = new Map(tees.map((tee) => [tee.id, tee.name]));
   const messages = [
     ...tournamentBlockers.map(
-      (row) => `${nameById.get(row.teeId) ?? "Tee"}: ${row.value} tournament(s)`,
+      (row) =>
+        `${nameById.get(row.teeId) ?? "Tee"}: ${row.value} tournament(s)`,
     ),
     ...roundBlockers.map(
       (row) => `${nameById.get(row.teeId) ?? "Tee"}: ${row.value} round(s)`,
     ),
   ];
-  return { ok: false, error: `Cannot remove tees in use — ${messages.join("; ")}` };
+  return {
+    ok: false,
+    error: `Cannot remove tees in use — ${messages.join("; ")}`,
+  };
 }
 
 function revalidateCoursePaths(handles: string[]) {
@@ -240,7 +251,10 @@ function revalidateCoursePaths(handles: string[]) {
   }
 }
 
-function yardageRows(teeId: number, yardages: CourseUpdateInput["tees"][number]["yardages"]) {
+function yardageRows(
+  teeId: number,
+  yardages: CourseUpdateInput["tees"][number]["yardages"],
+) {
   return yardages.flatMap((yards, index) =>
     typeof yards === "number" ? [{ teeId, hole: index + 1, yards }] : [],
   );

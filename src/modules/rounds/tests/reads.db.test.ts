@@ -143,7 +143,9 @@ describe("Round reads", () => {
 
       const lowest = await getLowestRounds(3);
 
-      expect(lowest.map((round) => [round.roundId, round.totalStrokes])).toEqual([
+      expect(
+        lowest.map((round) => [round.roundId, round.totalStrokes]),
+      ).toEqual([
         [low.id, 70],
         [tieLater.id, 75],
         [tieEarlier.id, 75],

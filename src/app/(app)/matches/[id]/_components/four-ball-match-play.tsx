@@ -51,8 +51,8 @@ function FourBallTeamCard({
       <CardContent className="flex min-h-20 items-center gap-3 px-0">
         <FourBallTeamAvatarPair team={team} />
         <div className="flex min-w-0 flex-1 flex-col justify-center">
-          <div className="truncate font-medium text-base">{label}</div>
-          <div className="truncate text-sm text-muted-foreground leading-snug">
+          <div className="truncate text-base font-medium">{label}</div>
+          <div className="truncate text-sm leading-snug text-muted-foreground">
             {secondary}
           </div>
         </div>

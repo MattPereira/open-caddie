@@ -373,9 +373,7 @@ function BucketPanel({
               isPending ? "Deleting…" : `Hold to delete ${bucket.name}`
             }
             onConfirmAction={() =>
-              onRunAction(() =>
-                deletePairing({ pairingId: bucket.pairingId! }),
-              )
+              onRunAction(() => deletePairing({ pairingId: bucket.pairingId! }))
             }
           />
         </div>
@@ -417,7 +415,7 @@ function DraggablePlayer({
       <HugeiconsIcon
         icon={DragDropVerticalIcon}
         aria-hidden
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+        className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground"
       />
     </li>
   );

@@ -18,16 +18,30 @@ describe("Course reads", () => {
     tees = [],
     imgUrl = null,
     scorecardImgUrl = null,
-  }: { tees?: TeeSetup[]; imgUrl?: string | null; scorecardImgUrl?: string | null } = {}) {
+  }: {
+    tees?: TeeSetup[];
+    imgUrl?: string | null;
+    scorecardImgUrl?: string | null;
+  } = {}) {
     const suffix = crypto.randomUUID();
     const [course] = await db
       .insert(schema.courses)
-      .values({ handle: `course-${suffix}`, name: `Course ${suffix}`, imgUrl, scorecardImgUrl })
+      .values({
+        handle: `course-${suffix}`,
+        name: `Course ${suffix}`,
+        imgUrl,
+        scorecardImgUrl,
+      })
       .returning();
     await db.insert(schema.courseHoles).values(
       Array.from({ length: 18 }, (_, index) => {
         const hole = 18 - index;
-        return { courseId: course.id, hole, par: hole % 6 === 0 ? 5 : 4, handicap: 19 - hole };
+        return {
+          courseId: course.id,
+          hole,
+          par: hole % 6 === 0 ? 5 : 4,
+          handicap: 19 - hole,
+        };
       }),
     );
     const teeIds: Record<string, number> = {};
@@ -43,12 +57,15 @@ describe("Course reads", () => {
         })
         .returning();
       teeIds[tee.name] = created.id;
-      const yardages = Object.entries(tee.yardages ?? {}).map(([hole, yards]) => ({
-        teeId: created.id,
-        hole: Number(hole),
-        yards,
-      }));
-      if (yardages.length > 0) await db.insert(schema.teeYardages).values(yardages);
+      const yardages = Object.entries(tee.yardages ?? {}).map(
+        ([hole, yards]) => ({
+          teeId: created.id,
+          hole: Number(hole),
+          yards,
+        }),
+      );
+      if (yardages.length > 0)
+        await db.insert(schema.teeYardages).values(yardages);
     }
     return { course, teeIds };
   }
@@ -73,7 +90,10 @@ describe("Course reads", () => {
 
     it("returns 18 yardages per tee, null where none is saved", async () => {
       const { course } = await courseWith({
-        tees: [{ name: "Blue", yardages: { 1: 410, 9: 520, 18: 385 } }, { name: "Red" }],
+        tees: [
+          { name: "Blue", yardages: { 1: 410, 9: 520, 18: 385 } },
+          { name: "Red" },
+        ],
       });
       const tees = (await read(course.handle))?.tees ?? [];
       const expected = Array<number | null>(18).fill(null);
@@ -96,7 +116,12 @@ describe("Course reads", () => {
         ],
       });
       const tees = (await read(course.handle))?.tees ?? [];
-      expect(tees.map((tee) => tee.name)).toEqual(["Black", "White", "Gold", "Red"]);
+      expect(tees.map((tee) => tee.name)).toEqual([
+        "Black",
+        "White",
+        "Gold",
+        "Red",
+      ]);
     });
 
     it("returns each tee's details", async () => {
@@ -167,7 +192,9 @@ describe("Course reads", () => {
           { name: "Blue", sortOrder: 0, yardages: { 1: 400, 2: 350, 18: 500 } },
         ],
       });
-      const listed = (await courses.getCoursesWithTees()).find((c) => c.handle === course.handle);
+      const listed = (await courses.getCoursesWithTees()).find(
+        (c) => c.handle === course.handle,
+      );
       expect(listed).toEqual({
         handle: course.handle,
         name: course.name,
@@ -180,7 +207,9 @@ describe("Course reads", () => {
 
     it("lists a course without tees", async () => {
       const { course } = await courseWith();
-      const listed = (await courses.getCoursesWithTees()).find((c) => c.handle === course.handle);
+      const listed = (await courses.getCoursesWithTees()).find(
+        (c) => c.handle === course.handle,
+      );
       expect(listed?.tees).toEqual([]);
     });
   });

@@ -95,7 +95,9 @@ describe("Season Standings reads", () => {
     } = {},
   ) {
     const strokesFor = (hole: number) =>
-      typeof strokes === "function" ? strokes(hole) : (strokes[hole] ?? par(hole));
+      typeof strokes === "function"
+        ? strokes(hole)
+        : (strokes[hole] ?? par(hole));
     await db.insert(schema.roundScores).values(
       Array.from({ length: holes }, (_, index) => ({
         roundId,
@@ -106,7 +108,12 @@ describe("Season Standings reads", () => {
     );
   }
 
-  async function greenie(roundId: number, hole: number, feet: number, inches: number) {
+  async function greenie(
+    roundId: number,
+    hole: number,
+    feet: number,
+    inches: number,
+  ) {
     await db.insert(schema.greenies).values({ roundId, hole, feet, inches });
   }
 
@@ -289,9 +296,30 @@ describe("Season Standings reads", () => {
         total: standing.points.total,
       })),
     ).toEqual([
-      { position: 1, playerId: x.id, roundsPlayed: 11, countedRounds: 10, droppedRounds: 1, total: 155 },
-      { position: 2, playerId: y.id, roundsPlayed: 2, countedRounds: 2, droppedRounds: 0, total: 105 },
-      { position: 3, playerId: z.id, roundsPlayed: 1, countedRounds: 1, droppedRounds: 0, total: 29 },
+      {
+        position: 1,
+        playerId: x.id,
+        roundsPlayed: 11,
+        countedRounds: 10,
+        droppedRounds: 1,
+        total: 155,
+      },
+      {
+        position: 2,
+        playerId: y.id,
+        roundsPlayed: 2,
+        countedRounds: 2,
+        droppedRounds: 0,
+        total: 105,
+      },
+      {
+        position: 3,
+        playerId: z.id,
+        roundsPlayed: 1,
+        countedRounds: 1,
+        droppedRounds: 0,
+        total: 29,
+      },
     ]);
 
     // Equal-point Rounds are counted in Round order, so the last one drops.
@@ -366,10 +394,16 @@ describe("Season Standings reads", () => {
     const grosses = [72, 80, 77, 84, 79];
     for (const [index, gross] of grosses.entries()) {
       const prior = await enter(
-        await tournament(t.tournament.seasonId, course, `2025-0${index + 2}-01`),
+        await tournament(
+          t.tournament.seasonId,
+          course,
+          `2025-0${index + 2}-01`,
+        ),
         player,
       );
-      await card(prior.id, { strokes: (hole) => (hole === 18 ? gross - 68 : 4) });
+      await card(prior.id, {
+        strokes: (hole) => (hole === 18 ? gross - 68 : 4),
+      });
     }
 
     const [season2] = await db
@@ -397,11 +431,20 @@ describe("Season Standings reads", () => {
     const course = { course: t.course, tee: t.tee };
     const seasonId = t.tournament.seasonId;
     const player = await fixtures.player();
-    const first = await enter(await tournament(seasonId, course, "2025-02-01"), player);
+    const first = await enter(
+      await tournament(seasonId, course, "2025-02-01"),
+      player,
+    );
     await card(first.id, { strokes: (hole) => (hole === 18 ? 8 : 4) }); // 76
-    const second = await enter(await tournament(seasonId, course, "2025-03-01"), player);
+    const second = await enter(
+      await tournament(seasonId, course, "2025-03-01"),
+      player,
+    );
     await card(second.id, { strokes: (hole) => (hole === 18 ? 10 : 4) }); // 78
-    const third = await enter(await tournament(seasonId, course, "2025-04-01"), player);
+    const third = await enter(
+      await tournament(seasonId, course, "2025-04-01"),
+      player,
+    );
     await card(third.id, { strokes: (hole) => (hole === 18 ? 12 : 4) }); // 80
 
     const read = await seasons.getSeasonStandings({ clubId, season: 1 });
@@ -412,8 +455,14 @@ describe("Season Standings reads", () => {
         .map((round) => [round.id, round]),
     );
     // Fewer than 2 prior Rounds: scratch.
-    expect(rounds.get(first.id)).toMatchObject({ playerIndex: null, netStrokes: 76 });
-    expect(rounds.get(second.id)).toMatchObject({ playerIndex: null, netStrokes: 78 });
+    expect(rounds.get(first.id)).toMatchObject({
+      playerIndex: null,
+      netStrokes: 76,
+    });
+    expect(rounds.get(second.id)).toMatchObject({
+      playerIndex: null,
+      netStrokes: 78,
+    });
     expect(rounds.get(third.id)?.playerIndex).toBeCloseTo(4.708, 3);
     expect(rounds.get(third.id)?.netStrokes).toBeCloseTo(75);
   });
@@ -458,7 +507,9 @@ describe("Season Standings reads", () => {
   });
 
   it("returns nothing for an unknown Club", async () => {
-    expect(await seasons.getSeasonStandings({ clubId: -1, season: 1 })).toBeNull();
+    expect(
+      await seasons.getSeasonStandings({ clubId: -1, season: 1 }),
+    ).toBeNull();
   });
 });
 
@@ -482,8 +533,18 @@ describe("Club Season reads", () => {
       ])
       .returning();
     await db.insert(schema.tournaments).values([
-      { seasonId: season1.id, date: new Date("2026-02-01"), courseId: course.course.id, teeId: course.tee.id },
-      { seasonId: season2.id, date: new Date("2026-03-01"), courseId: course.course.id, teeId: course.tee.id },
+      {
+        seasonId: season1.id,
+        date: new Date("2026-02-01"),
+        courseId: course.course.id,
+        teeId: course.tee.id,
+      },
+      {
+        seasonId: season2.id,
+        date: new Date("2026-03-01"),
+        courseId: course.course.id,
+        teeId: course.tee.id,
+      },
     ]);
     // Another Club's Season must not leak in.
     const other = await fixtures.tournament();

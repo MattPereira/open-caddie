@@ -151,9 +151,7 @@ describe("Round access", () => {
     const { players } = await fixtures.match(2);
     const stranger = await fixtures.player();
 
-    expect(await accessOf(stranger.id, players[1].round.id)).toEqual(
-      NO_ACCESS,
-    );
+    expect(await accessOf(stranger.id, players[1].round.id)).toEqual(NO_ACCESS);
   });
 
   it("returns null for a Round that doesn't exist", async () => {
@@ -174,7 +172,11 @@ describe("Event Round access", () => {
     viewerPlayerId: string,
     event: { kind: "tournament" | "match"; id: number },
   ) {
-    const access = await getEventRoundAccess(viewerPlayerId, event.kind, event.id);
+    const access = await getEventRoundAccess(
+      viewerPlayerId,
+      event.kind,
+      event.id,
+    );
     return {
       scorable: sorted(access.scorableRoundIds),
       manageable: sorted(access.manageableRoundIds),

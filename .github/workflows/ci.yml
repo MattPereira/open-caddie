@@ -90,6 +90,10 @@ jobs:
 
       # Each check runs even if an earlier one fails, so one push surfaces all
       # failures. Skipped if install failed, since every check would fail anyway.
+      - name: Format
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: pnpm format:check
+
       - name: Lint
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: pnpm lint

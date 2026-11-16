@@ -1,11 +1,20 @@
 import { GatewayInternalServerError } from "@ai-sdk/gateway";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { withGatewayFallback } from "./gateway-fallback";
 
 describe("withGatewayFallback", () => {
   const gatewayModel = { route: "gateway" };
   const directModel = { route: "direct" };
+  let warn: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warn.mockRestore();
+  });
 
   it("returns the primary result without invoking the fallback", async () => {
     const operation = vi.fn(async (model: typeof gatewayModel) => {
@@ -34,6 +43,7 @@ describe("withGatewayFallback", () => {
     expect(operation).toHaveBeenNthCalledWith(1, gatewayModel);
     expect(operation).toHaveBeenNthCalledWith(2, directModel);
     expect(operation).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledOnce();
   });
 
   it("rethrows non-Gateway errors without invoking the fallback", async () => {
@@ -46,6 +56,7 @@ describe("withGatewayFallback", () => {
 
     expect(operation).toHaveBeenCalledTimes(1);
     expect(operation).toHaveBeenCalledWith(gatewayModel);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it("propagates a fallback failure", async () => {

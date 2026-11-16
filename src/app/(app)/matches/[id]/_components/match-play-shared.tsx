@@ -21,6 +21,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { MatchPlayStatus, ScoredContest } from "@/modules/matches";
 import { cn } from "@/lib/utils";
+import { required } from "@/lib/required";
 
 export type MatchPlayTeamView = {
   id: string;
@@ -493,9 +494,14 @@ export function toMatchPlayView(
   return {
     ...contest,
     teams: contest.teams.map((team) => {
-      const teamRounds = team.roundIds.map((id) => roundsById.get(id)!);
+      const teamRounds = team.roundIds.map((id) =>
+        required(roundsById.get(id), `Round ${id}`),
+      );
       if (team.side.kind === "team") {
-        const stored = storedTeamsById.get(team.side.matchTeamId)!;
+        const stored = required(
+          storedTeamsById.get(team.side.matchTeamId),
+          `Match Team ${team.side.matchTeamId}`,
+        );
         const initials = formatTeamPlayerInitials({ rounds: teamRounds });
         return {
           ...team,

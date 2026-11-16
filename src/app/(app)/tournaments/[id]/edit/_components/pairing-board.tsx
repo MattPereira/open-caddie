@@ -268,7 +268,8 @@ function BucketPanel({
   hasAnyPlayers: boolean;
 }) {
   const { isOver, setNodeRef } = useDroppable({ id: bucket.key });
-  const isPool = bucket.pairingId == null;
+  const { pairingId } = bucket;
+  const isPool = pairingId == null;
   const isFull = !isPool && bucket.members.length >= PAIRING_MAX_MEMBERS;
 
   return (
@@ -282,15 +283,13 @@ function BucketPanel({
         isOver ? "border-primary bg-primary/5" : "",
       ].join(" ")}
     >
-      {isEditing && bucket.pairingId != null ? (
+      {isEditing && pairingId != null ? (
         <RenameForm
           name={bucket.name}
           isPending={isPending}
           onCancelAction={onCancelAction}
           onSubmitAction={(name) =>
-            onRunAction(() =>
-              renamePairing({ pairingId: bucket.pairingId!, name }),
-            )
+            onRunAction(() => renamePairing({ pairingId, name }))
           }
         />
       ) : (
@@ -356,7 +355,7 @@ function BucketPanel({
         </p>
       ) : null}
 
-      {isDeleting && bucket.pairingId != null ? (
+      {isDeleting && pairingId != null ? (
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button
             type="button"
@@ -373,7 +372,7 @@ function BucketPanel({
               isPending ? "Deleting…" : `Hold to delete ${bucket.name}`
             }
             onConfirmAction={() =>
-              onRunAction(() => deletePairing({ pairingId: bucket.pairingId! }))
+              onRunAction(() => deletePairing({ pairingId }))
             }
           />
         </div>

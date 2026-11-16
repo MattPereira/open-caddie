@@ -83,9 +83,10 @@ export type TournamentFormHandle = {
   requestClose: () => void;
 };
 
-type TournamentFormProps = {
-  mode: "create" | "edit";
-  tournament?: TournamentSheetTournament;
+type TournamentFormProps = (
+  | { mode: "create"; tournament?: never }
+  | { mode: "edit"; tournament: TournamentSheetTournament }
+) & {
   clubs: ClubOption[];
   courses: CourseOption[];
   /** `sheet` renders the sheet footer and closes on save; `page` stays put. */
@@ -269,10 +270,9 @@ export function TournamentForm({
       return;
     form.clearErrors("root.server");
     startTransition(async () => {
-      const result =
-        mode === "create"
-          ? await createTournament(values)
-          : await updateTournament({ ...values, id: tournament!.id });
+      const result = tournament
+        ? await updateTournament({ ...values, id: tournament.id })
+        : await createTournament(values);
 
       if (!result.ok) {
         form.setError("root.server", {

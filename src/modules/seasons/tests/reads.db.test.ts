@@ -5,6 +5,7 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { createRoundFixtures, PAR_THREE_HOLES } from "@/test/fixtures/rounds";
 import * as seasons from "../server";
+import { required } from "@/lib/required";
 
 describe("Season Standings reads", () => {
   const fixtures = createRoundFixtures(db, schema);
@@ -182,7 +183,10 @@ describe("Season Standings reads", () => {
       ...fillers.map((f) => f.id).reverse(),
     ]);
 
-    const [secondRead, firstRead] = read!.tournaments;
+    const [secondRead, firstRead] = required(
+      read,
+      "Season standings",
+    ).tournaments;
     expect(firstRead).toMatchObject({
       courseHandle: courseA.course.handle,
       season: 1,
@@ -323,7 +327,7 @@ describe("Season Standings reads", () => {
     ]);
 
     // Equal-point Rounds are counted in Round order, so the last one drops.
-    const dropped = fillerRounds.at(-1)!;
+    const dropped = required(fillerRounds.at(-1), "last filler Round");
     expect(
       read?.players[0].roundBreakdown.map((round) => [round.id, round.counted]),
     ).toEqual([
@@ -378,7 +382,7 @@ describe("Season Standings reads", () => {
     const read = await seasons.getSeasonStandings({ clubId, season: 2 });
 
     expect(read?.tournaments).toHaveLength(1);
-    const [round] = read!.tournaments[0].rounds;
+    const [round] = required(read, "Season standings").tournaments[0].rounds;
     expect(round.id).toBe(current.id);
     // Differentials of the 76 and 78 on a 72 / slope 120 tee average to
     // 4.71, a Playing Handicap of 5.
@@ -418,7 +422,7 @@ describe("Season Standings reads", () => {
 
     const read = await seasons.getSeasonStandings({ clubId, season: 2 });
 
-    const [round] = read!.tournaments[0].rounds;
+    const [round] = required(read, "Season standings").tournaments[0].rounds;
     // The 77 and 79 (differentials 4.71 and 6.59) average to 5.65, a
     // Playing Handicap of 6.
     expect(round.playerIndex).toBeCloseTo(5.65, 3);
@@ -450,8 +454,8 @@ describe("Season Standings reads", () => {
     const read = await seasons.getSeasonStandings({ clubId, season: 1 });
 
     const rounds = new Map(
-      read!.tournaments
-        .flatMap((tt) => tt.rounds)
+      required(read, "Season standings")
+        .tournaments.flatMap((tt) => tt.rounds)
         .map((round) => [round.id, round]),
     );
     // Fewer than 2 prior Rounds: scratch.

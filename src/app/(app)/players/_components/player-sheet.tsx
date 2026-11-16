@@ -43,11 +43,12 @@ export type EditablePlayer = {
   isAdmin: boolean;
 };
 
-type PlayerSheetProps = {
+type PlayerSheetProps = (
+  | { mode: "create"; player?: never }
+  | { mode: "edit"; player: EditablePlayer }
+) & {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  mode: "create" | "edit";
-  player?: EditablePlayer;
   canManagePlayers?: boolean;
   onSaved?: () => void;
   onDeleted?: () => void;
@@ -162,10 +163,9 @@ export function PlayerSheet({
               username: inferUsername(values.firstName, values.lastName),
             }
           : values;
-      const result =
-        mode === "create"
-          ? await createPlayer(submitValues)
-          : await updatePlayer({ ...submitValues, id: player!.id });
+      const result = player
+        ? await updatePlayer({ ...submitValues, id: player.id })
+        : await createPlayer(submitValues);
 
       if (!result.ok) {
         form.setError("root.server", {

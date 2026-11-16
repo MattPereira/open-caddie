@@ -21,6 +21,7 @@ import {
   readRoundAccess,
   type RoundManageFailure,
 } from "./access";
+import { required } from "@/lib/required";
 
 // Owns whether a Round exists: every Round insert and delete goes through
 // here. The event helpers expect an already-authorized caller, take a
@@ -105,7 +106,7 @@ export async function createRound(
       }
       const [row] = await tx
         .insert(rounds)
-        .values(roundValues!)
+        .values(required(roundValues, "casual or Tournament Round values"))
         .returning(changedRoundColumns);
       return row;
     });
@@ -279,7 +280,7 @@ export async function syncEventRounds(
 }
 
 function hasScoresOrGreenies(tx: Transaction) {
-  return or(
+  const condition = or(
     exists(
       tx
         .select({ one: sql`1` })
@@ -297,7 +298,8 @@ function hasScoresOrGreenies(tx: Transaction) {
         .from(greenies)
         .where(eq(greenies.roundId, rounds.id)),
     ),
-  )!;
+  );
+  return required(condition, "or() of two conditions");
 }
 
 export async function deleteEventRounds(

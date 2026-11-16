@@ -6,6 +6,7 @@ import { rounds, users } from "@/db/schema";
 import { safeDeleteBlob } from "@/lib/images/blob";
 import { pgCode } from "@/lib/pg-errors";
 import { isPlatformAdmin, requirePlatformAdmin } from "./platform-admin";
+import { slugify, usernameCandidate } from "./username";
 
 // Player writes. Plain module: route actions authenticate and parse untrusted
 // input, then pass the acting Player's id in (CODING_STANDARDS.md).
@@ -136,6 +137,40 @@ export async function deletePlayer(
   revalidatePath("/players");
   revalidatePath(`/players/${id}`);
   return { ok: true };
+}
+
+export type OnboardingResult =
+  | { ok: true; username: string }
+  | { ok: false; error: string };
+
+const MAX_USERNAME_ATTEMPTS = 10;
+
+/** Saves the Player's name and gives them a unique username derived from it. */
+export async function completeOnboarding(
+  playerId: string,
+  { firstName, lastName }: { firstName: string; lastName: string },
+): Promise<OnboardingResult> {
+  const base = slugify(firstName, lastName);
+  const name = `${firstName} ${lastName}`;
+
+  for (let attempt = 0; attempt < MAX_USERNAME_ATTEMPTS; attempt++) {
+    const username = usernameCandidate(base, attempt);
+    try {
+      await db
+        .update(users)
+        .set({ username, firstName, lastName, name })
+        .where(eq(users.id, playerId));
+      return { ok: true, username };
+    } catch (e) {
+      if (pgCode(e) !== "23505") throw e;
+    }
+  }
+
+  return {
+    ok: false,
+    error:
+      "Couldn't generate a unique handle from your name. Try a slight variation.",
+  };
 }
 
 function normalize(values: PlayerCreateInput) {

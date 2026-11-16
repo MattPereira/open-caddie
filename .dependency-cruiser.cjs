@@ -74,6 +74,14 @@ module.exports = {
       to: { path: "^src/test/" },
     },
     {
+      name: "routes-ask-modules-for-data",
+      comment:
+        "Routes get data from module entry points, never the db or drizzle directly. Type imports count too: the module re-exports any type its callers need.",
+      severity: "error",
+      from: { path: "^src/app/" },
+      to: { path: ["^src/db/", "(^|/)node_modules/drizzle-orm/"] },
+    },
+    {
       name: "no-circular",
       comment:
         "No runtime dependency cycles (type-only edges are ignored). Scope to `^${R}/` if you want to allow cycles outside modules.",

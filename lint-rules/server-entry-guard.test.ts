@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { lintFixtures, type Diagnostic } from "./lint-fixtures";
+import { required } from "../src/lib/required";
 
 const RULE = "local/server-entry-guard";
 
@@ -23,7 +24,7 @@ beforeAll(async () => {
 }, 30_000);
 
 const hits = (path: keyof typeof FIXTURES) =>
-  results.get(path)?.filter((d) => d.rule === RULE) ?? [];
+  required(results.get(path), path).filter((d) => d.rule === RULE);
 
 describe("server-entry-guard lint rule", () => {
   it.each([

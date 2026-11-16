@@ -83,9 +83,10 @@ export type TournamentFormHandle = {
   requestClose: () => void;
 };
 
-type TournamentFormProps = {
-  mode: "create" | "edit";
-  tournament?: TournamentSheetTournament;
+type TournamentFormProps = (
+  | { mode: "create"; tournament?: never }
+  | { mode: "edit"; tournament: TournamentSheetTournament }
+) & {
   clubs: ClubOption[];
   courses: CourseOption[];
   /** `sheet` renders the sheet footer and closes on save; `page` stays put. */
@@ -248,7 +249,7 @@ export function TournamentForm({
   }));
 
   const onDelete = () => {
-    if (!tournament) return;
+    if (mode !== "edit") return;
     setDeleteError(null);
     startDeleteTransition(async () => {
       const result = await deleteTournament(tournament.id);
@@ -270,9 +271,9 @@ export function TournamentForm({
     form.clearErrors("root.server");
     startTransition(async () => {
       const result =
-        mode === "create"
-          ? await createTournament(values)
-          : await updateTournament({ ...values, id: tournament!.id });
+        mode === "edit"
+          ? await updateTournament({ ...values, id: tournament.id })
+          : await createTournament(values);
 
       if (!result.ok) {
         form.setError("root.server", {
@@ -518,7 +519,7 @@ export function TournamentForm({
               </Button>
             </div>
 
-            {mode === "edit" && tournament ? (
+            {mode === "edit" ? (
               <div className="flex flex-col gap-3 rounded-xl border border-destructive/30 px-4 py-4">
                 {confirmingDelete ? (
                   <SheetDeleteConfirm

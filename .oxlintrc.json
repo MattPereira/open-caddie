@@ -53,6 +53,7 @@
     "typescript/no-extra-non-null-assertion": "error",
     "typescript/no-misused-new": "error",
     "typescript/no-namespace": "error",
+    "typescript/no-non-null-assertion": "error",
     "typescript/no-non-null-asserted-optional-chain": "error",
     "typescript/no-require-imports": "error",
     "typescript/no-this-alias": "error",
@@ -126,6 +127,16 @@
         "src/app/api/auth/**"
       ],
       "rules": { "local/player-domain-term": "off" }
+    },
+    {
+      // Over the pre-commit file-token limit, so they can't be touched until
+      // split. Remove each entry when its file is split and its `!`s fixed.
+      "files": [
+        "src/modules/courses/lib/scorecard-import/workflow.ts",
+        "src/app/(app)/matches/_components/match-sheet.tsx",
+        "src/modules/courses/tests/scorecard-import.db.test.ts"
+      ],
+      "rules": { "typescript/no-non-null-assertion": "off" }
     },
     {
       "files": ["src/**"],

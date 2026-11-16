@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { lintFixtures, type Diagnostic } from "./lint-fixtures";
+import { required } from "../src/lib/required";
 
 const RULE = "local/player-domain-term";
 
@@ -105,8 +106,7 @@ beforeAll(async () => {
 }, 30_000);
 
 function violations(path: string) {
-  return results
-    .get(path)!
+  return required(results.get(path), path)
     .filter((d) => d.rule === RULE)
     .map((d) => d.message.match(/^'(\w+)'/)?.[1] ?? d.message);
 }

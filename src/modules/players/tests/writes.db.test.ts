@@ -5,6 +5,7 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { createRoundFixtures } from "@/test/fixtures/rounds";
 import * as players from "../server";
+import { required } from "@/lib/required";
 
 const { revalidatePath, del } = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
@@ -76,6 +77,42 @@ describe("Player writes", () => {
     del.mockReset();
   });
 
+  describe("completeOnboarding", () => {
+    const shortId = () => crypto.randomUUID().slice(0, 8);
+
+    it("saves the name and a username slugged from it", async () => {
+      const lastName = `Lee ${shortId()}`;
+      const result = await players.completeOnboarding(player.id, {
+        firstName: "Ann",
+        lastName,
+      });
+      const username = `ann-${lastName.toLowerCase().replace(" ", "-")}`;
+      expect(result).toEqual({ ok: true, username });
+      expect(await stored(player.id)).toMatchObject({
+        firstName: "Ann",
+        lastName,
+        name: `Ann ${lastName}`,
+        username,
+      });
+    });
+
+    it("appends a suffix when the username is taken", async () => {
+      const lastName = shortId();
+      const other = await fixtures.player();
+      await players.completeOnboarding(other.id, {
+        firstName: "Ann",
+        lastName,
+      });
+
+      expect(
+        await players.completeOnboarding(player.id, {
+          firstName: "Ann",
+          lastName,
+        }),
+      ).toEqual({ ok: true, username: `ann-${lastName}-2` });
+    });
+  });
+
   describe("createPlayer", () => {
     it("creates a Player, cleaning up blank fields and the email", async () => {
       const email = `New-${crypto.randomUUID()}@Example.com`;
@@ -126,7 +163,7 @@ describe("Player writes", () => {
     it("refuses an email already in use, ignoring case", async () => {
       const result = await players.createPlayer(
         admin.id,
-        input({ email: player.email!.toUpperCase() }),
+        input({ email: required(player.email, "fixture email").toUpperCase() }),
       );
       expect(result).toEqual({
         ok: false,
@@ -214,7 +251,9 @@ describe("Player writes", () => {
 
       await players.updatePlayer(
         player.id,
-        editOf(player, { email: player.email!.toUpperCase() }),
+        editOf(player, {
+          email: required(player.email, "fixture email").toUpperCase(),
+        }),
       );
       expect((await stored(player.id)).emailVerified).toEqual(verified);
 
@@ -241,7 +280,7 @@ describe("Player writes", () => {
       expect(
         await players.updatePlayer(
           player.id,
-          editOf(me, { email: other.email! }),
+          editOf(me, { email: required(other.email, "fixture email") }),
         ),
       ).toEqual({
         ok: false,

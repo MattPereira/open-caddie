@@ -6,6 +6,7 @@ import * as schema from "@/db/schema";
 import * as matches from "@/modules/matches/server";
 import { createRoundFixtures } from "@/test/fixtures/rounds";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
+import { required } from "@/lib/required";
 
 const { revalidatePath, updateTag } = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
@@ -275,12 +276,12 @@ describe("Match mutations", () => {
         teamOnePlayerIds: [],
         teamTwoPlayerIds: [],
         teamOneRoundIds: [
-          roundIdByPlayer.get(a.id)!,
-          roundIdByPlayer.get(e.id)!,
+          required(roundIdByPlayer.get(a.id), "a Round"),
+          required(roundIdByPlayer.get(e.id), "e Round"),
         ],
         teamTwoRoundIds: [
-          roundIdByPlayer.get(b.id)!,
-          roundIdByPlayer.get(d.id)!,
+          required(roundIdByPlayer.get(b.id), "b Round"),
+          required(roundIdByPlayer.get(d.id), "d Round"),
         ],
       });
 
@@ -362,9 +363,10 @@ describe("Match mutations", () => {
         ],
       );
       if (!created.ok || created.id == null) throw new Error("not created");
-      const eRound = (await matchRounds(created.id)).find(
-        (r) => r.playerId === e.id,
-      )!;
+      const eRound = required(
+        (await matchRounds(created.id)).find((r) => r.playerId === e.id),
+        "e Round",
+      );
       await db.delete(schema.rounds).where(eq(schema.rounds.id, eRound.id));
 
       const result = await matches.updateMatch(a.id, {

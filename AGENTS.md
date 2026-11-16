@@ -32,3 +32,11 @@ Do these checks in this order before you report a change to `src/` as complete:
 Or run the first three with `pnpm check`.
 
 `pnpm lint` lints the whole repository with oxlint (`.oxlintrc.json`).
+
+### About agent-browser
+
+agent-browser lets you drive a real browser through the app from the
+terminal: open a page, click, and read the DOM back. Use it to check a change
+that `typecheck` and `test` cannot see, and to answer a question about the
+page yourself rather than asking the person you are working for. See
+`docs/agents/agent-browser.md`.

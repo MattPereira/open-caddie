@@ -10,7 +10,7 @@ export function StatTile({ label, value, className }: StatTileProps) {
   return (
     <div
       className={cn(
-        "flex flex-col w-full justify-between rounded-lg border bg-muted px-2 py-1",
+        "flex w-full flex-col justify-between rounded-lg border bg-muted px-2 py-1",
         className,
       )}
     >

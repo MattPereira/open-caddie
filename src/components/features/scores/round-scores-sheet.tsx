@@ -377,7 +377,7 @@ export function RoundScoresSheet({
                           </FormItem>
                         )}
                       />
-  
+
                       {canEditPlayerIndexOverride ? (
                         <div className="flex flex-col gap-3">
                           <Alert variant="info">
@@ -387,7 +387,7 @@ export function RoundScoresSheet({
                               {courseHandicap.toFixed(1)}
                             </AlertDescription>
                           </Alert>
-  
+
                           <FormField
                             control={form.control}
                             name="playerIndexOverride"
@@ -637,7 +637,7 @@ function GreenieInputRow({
 
   if (!isVisible) {
     return (
-      <div className="grid grid-cols-[3.5rem_1fr] items-center gap-2 mt-5">
+      <div className="mt-5 grid grid-cols-[3.5rem_1fr] items-center gap-2">
         <div className="text-sm font-medium">Hole {greenie.hole}</div>
         <Button
           type="button"
@@ -660,7 +660,7 @@ function GreenieInputRow({
       <div className="grid grid-cols-[3.5rem_1fr] items-center gap-2">
         <div className="text-sm font-medium">Hole {greenie.hole}</div>
         <div className="flex items-center justify-end gap-1">
-          <span className="mr-auto whitespace-nowrap text-xs font-medium">
+          <span className="mr-auto text-xs font-medium whitespace-nowrap">
             Delete?
           </span>
           <Button

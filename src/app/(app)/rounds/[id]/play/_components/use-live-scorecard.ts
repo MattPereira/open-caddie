@@ -181,7 +181,9 @@ function applyScoreEdits(
   const versions = edits[cellKey("score", roundId, entry.hole)];
   if (versions == null) return entry;
   let merged = entry;
-  for (const version of Object.keys(versions).map(Number).sort((a, b) => a - b)) {
+  for (const version of Object.keys(versions)
+    .map(Number)
+    .sort((a, b) => a - b)) {
     const edit = versions[version];
     if (edit.kind === "score") merged = { ...merged, ...edit.value };
   }

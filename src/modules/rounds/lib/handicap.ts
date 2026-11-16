@@ -1,6 +1,9 @@
 const standardSlopeRating = 113;
 
-function calculateCourseHandicap(playerIndex: number | null, courseSlope: number) {
+function calculateCourseHandicap(
+  playerIndex: number | null,
+  courseSlope: number,
+) {
   if (playerIndex == null) return 0;
   return (playerIndex * courseSlope) / standardSlopeRating;
 }
@@ -14,7 +17,8 @@ export function calculateNetStrokes({
   isComplete: boolean;
   playingHandicap: number | null;
 }) {
-  if (!isComplete || totalStrokes == null || playingHandicap == null) return null;
+  if (!isComplete || totalStrokes == null || playingHandicap == null)
+    return null;
   return totalStrokes - playingHandicap;
 }
 
@@ -92,7 +96,9 @@ type EventHandicapAssessment = HandicapAssessment & {
   playingHandicap: number;
 };
 
-type MatchHandicapAssessment = EventHandicapAssessment & { playerIndex: number };
+type MatchHandicapAssessment = EventHandicapAssessment & {
+  playerIndex: number;
+};
 
 type EventSource = Exclude<HandicapSource, { kind: "casual" }>;
 
@@ -146,7 +152,11 @@ export function assessHandicap({
     playerIndex,
     courseHandicap,
     playingHandicap,
-    netStrokes: calculateNetStrokes({ totalStrokes, isComplete, playingHandicap }),
+    netStrokes: calculateNetStrokes({
+      totalStrokes,
+      isComplete,
+      playingHandicap,
+    }),
     usedPriorRoundIds,
   };
 }

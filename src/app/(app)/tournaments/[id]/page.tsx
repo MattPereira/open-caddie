@@ -44,10 +44,11 @@ export async function generateMetadata({
   });
 }
 
-export default async function TournamentPage({
-  params,
-}: TournamentPageProps) {
-  const [{ id }, currentPlayer] = await Promise.all([params, getCurrentPlayer()]);
+export default async function TournamentPage({ params }: TournamentPageProps) {
+  const [{ id }, currentPlayer] = await Promise.all([
+    params,
+    getCurrentPlayer(),
+  ]);
 
   const tournamentId = Number(id);
   if (!Number.isInteger(tournamentId) || tournamentId <= 0) notFound();
@@ -89,11 +90,7 @@ export default async function TournamentPage({
           <CourseRecordsDialog
             courseName={tournament.courseName}
             trigger={
-              <Button
-                variant="secondary"
-                size="xl"
-                className="min-w-0 w-full"
-              >
+              <Button variant="secondary" size="xl" className="w-full min-w-0">
                 <HugeiconsIcon icon={ChampionIcon} data-icon="inline-start" />
                 Course records
               </Button>
@@ -104,7 +101,7 @@ export default async function TournamentPage({
           {currentPlayerRound ? (
             <PlayRoundButton
               href={`/rounds/${currentPlayerRound.id}/play`}
-              className="min-w-0 w-full sm:w-full"
+              className="w-full min-w-0 sm:w-full"
             />
           ) : null}
         </div>
@@ -115,7 +112,7 @@ export default async function TournamentPage({
         values={tournamentTabValues}
         className="w-full"
       >
-        <TabsList className="w-full p-1 sm:w-fit mb-3 h-10!">
+        <TabsList className="mb-3 h-10! w-full p-1 sm:w-fit">
           <TabsTrigger
             value="rounds"
             className="flex-1 px-5 py-2 text-base sm:flex-none"

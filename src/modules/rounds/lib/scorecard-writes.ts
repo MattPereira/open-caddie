@@ -198,7 +198,11 @@ export async function recordScorecardChanges(
         });
       await tx
         .insert(greenies)
-        .values({ roundId: change.roundId, hole: change.hole, ...change.distance })
+        .values({
+          roundId: change.roundId,
+          hole: change.hole,
+          ...change.distance,
+        })
         .onConflictDoUpdate({
           target: [greenies.roundId, greenies.hole],
           set: change.distance,
@@ -290,7 +294,9 @@ function isGreenieInRange(change: GreenieChange) {
   if (change.distance == null) return true;
   const { feet, inches } = change.distance;
   return (
-    isWholeNumberAtLeast(feet, 0) && isWholeNumberAtLeast(inches, 0) && inches <= 11
+    isWholeNumberAtLeast(feet, 0) &&
+    isWholeNumberAtLeast(inches, 0) &&
+    inches <= 11
   );
 }
 

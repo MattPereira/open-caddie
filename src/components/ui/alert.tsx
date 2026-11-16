@@ -1,13 +1,13 @@
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 import {
   Alert02Icon,
   AlertCircleIcon,
   InformationCircleIcon,
-} from "@hugeicons/core-free-icons"
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react"
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 const alertVariants = cva(
   "group/alert relative grid w-full gap-0.5 rounded-lg border px-2.5 py-2 text-left text-sm has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pr-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-2 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-4",
@@ -27,14 +27,14 @@ const alertVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  }
-)
+  },
+);
 
 const variantIcons: Record<string, IconSvgElement> = {
   info: InformationCircleIcon,
   warning: Alert02Icon,
   error: AlertCircleIcon,
-}
+};
 
 function Alert({
   className,
@@ -44,10 +44,12 @@ function Alert({
   ...props
 }: React.ComponentProps<"div"> &
   VariantProps<typeof alertVariants> & {
-    icon?: IconSvgElement | null
+    icon?: IconSvgElement | null;
   }) {
   const resolvedIcon =
-    icon === null ? null : (icon ?? (variant ? variantIcons[variant] : undefined))
+    icon === null
+      ? null
+      : (icon ?? (variant ? variantIcons[variant] : undefined));
 
   return (
     <div
@@ -59,7 +61,7 @@ function Alert({
       {resolvedIcon ? <HugeiconsIcon icon={resolvedIcon} /> : null}
       {children}
     </div>
-  )
+  );
 }
 
 function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
@@ -68,11 +70,11 @@ function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="alert-title"
       className={cn(
         "font-medium group-has-[>svg]/alert:col-start-2 [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function AlertDescription({
@@ -84,11 +86,11 @@ function AlertDescription({
       data-slot="alert-description"
       className={cn(
         "text-sm text-muted-foreground [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4",
-        className
+        className,
       )}
       {...props}
     />
-  )
+  );
 }
 
 function AlertAction({ className, ...props }: React.ComponentProps<"div">) {
@@ -98,7 +100,7 @@ function AlertAction({ className, ...props }: React.ComponentProps<"div">) {
       className={cn("absolute top-2 right-2", className)}
       {...props}
     />
-  )
+  );
 }
 
-export { Alert, AlertTitle, AlertDescription, AlertAction }
+export { Alert, AlertTitle, AlertDescription, AlertAction };

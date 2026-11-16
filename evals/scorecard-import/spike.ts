@@ -205,7 +205,9 @@ async function main() {
 
     console.error(`\n=== Session summary (${model}) ===`);
     console.error(`images:        ${stats.length}`);
-    console.error(`clean parses:  ${cleanCount}/${stats.length} (no sum mismatches)`);
+    console.error(
+      `clean parses:  ${cleanCount}/${stats.length} (no sum mismatches)`,
+    );
     console.error(`total tokens:  in=${totIn} out=${totOut}`);
     console.error(`total time:    ${(totMs / 1000).toFixed(1)} s`);
     console.error(`total cost:    ~${fmtUsd(totCost)}`);

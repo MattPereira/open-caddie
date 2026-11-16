@@ -36,7 +36,15 @@ export const getAllTournaments = cache(async () => {
     .innerJoin(clubs, eq(seasons.clubId, clubs.id))
     .leftJoin(courses, eq(tournaments.courseId, courses.id))
     .leftJoin(rounds, eq(rounds.tournamentId, tournaments.id))
-    .groupBy(tournaments.id, seasons.id, clubs.handle, clubs.name, courses.handle, courses.name, courses.imgUrl)
+    .groupBy(
+      tournaments.id,
+      seasons.id,
+      clubs.handle,
+      clubs.name,
+      courses.handle,
+      courses.name,
+      courses.imgUrl,
+    )
     .orderBy(desc(tournaments.date), desc(tournaments.id));
 });
 
@@ -62,7 +70,15 @@ export const getTournamentsByClubHandle = cache(async (clubHandle: string) => {
     .leftJoin(courses, eq(tournaments.courseId, courses.id))
     .leftJoin(rounds, eq(rounds.tournamentId, tournaments.id))
     .where(eq(clubs.handle, clubHandle))
-    .groupBy(tournaments.id, seasons.id, clubs.handle, clubs.name, courses.handle, courses.name, courses.imgUrl)
+    .groupBy(
+      tournaments.id,
+      seasons.id,
+      clubs.handle,
+      clubs.name,
+      courses.handle,
+      courses.name,
+      courses.imgUrl,
+    )
     .orderBy(desc(tournaments.date), desc(tournaments.id));
 });
 
@@ -105,36 +121,38 @@ export const getTournamentById = cache(async (tournamentId: number) => {
   };
 });
 
-export const getUpcomingTournamentsForPlayer = cache(async (playerId: string) => {
-  const today = new Date();
-  today.setUTCHours(0, 0, 0, 0);
+export const getUpcomingTournamentsForPlayer = cache(
+  async (playerId: string) => {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
 
-  return db
-    .select({
-      id: tournaments.id,
-      date: tournaments.date,
-      season: seasons.number,
-      clubId: seasons.clubId,
-      clubName: clubs.name,
-      courseId: tournaments.courseId,
-      courseHandle: courses.handle,
-      courseName: courses.name,
-      courseImgUrl: courses.imgUrl,
-    })
-    .from(tournaments)
-    .innerJoin(seasons, eq(tournaments.seasonId, seasons.id))
-    .innerJoin(clubs, eq(seasons.clubId, clubs.id))
-    .innerJoin(courses, eq(tournaments.courseId, courses.id))
-    .innerJoin(
-      clubMembers,
-      and(
-        eq(clubMembers.clubId, seasons.clubId),
-        eq(clubMembers.playerId, playerId),
-      ),
-    )
-    .where(gte(tournaments.date, today))
-    .orderBy(asc(tournaments.date), asc(tournaments.id));
-});
+    return db
+      .select({
+        id: tournaments.id,
+        date: tournaments.date,
+        season: seasons.number,
+        clubId: seasons.clubId,
+        clubName: clubs.name,
+        courseId: tournaments.courseId,
+        courseHandle: courses.handle,
+        courseName: courses.name,
+        courseImgUrl: courses.imgUrl,
+      })
+      .from(tournaments)
+      .innerJoin(seasons, eq(tournaments.seasonId, seasons.id))
+      .innerJoin(clubs, eq(seasons.clubId, clubs.id))
+      .innerJoin(courses, eq(tournaments.courseId, courses.id))
+      .innerJoin(
+        clubMembers,
+        and(
+          eq(clubMembers.clubId, seasons.clubId),
+          eq(clubMembers.playerId, playerId),
+        ),
+      )
+      .where(gte(tournaments.date, today))
+      .orderBy(asc(tournaments.date), asc(tournaments.id));
+  },
+);
 
 export const getAddablePlayersForTournament = cache(
   async (tournamentId: number) => {
@@ -215,9 +233,7 @@ export const getPairingsForTournament = cache(async (tournamentId: number) => {
 export const getUnassignedRoundsForTournament = cache(
   async (tournamentId: number) => {
     const rows = await getTournamentRoundPlayers(tournamentId);
-    return rows
-      .filter((row) => row.pairingId == null)
-      .map((row) => row.player);
+    return rows.filter((row) => row.pairingId == null).map((row) => row.player);
   },
 );
 

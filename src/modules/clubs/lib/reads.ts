@@ -25,7 +25,9 @@ export const getAllClubsWithSeasons = cache(async () => {
     db.select().from(seasons).orderBy(asc(seasons.number)),
   ]);
   return clubRows.map((club) => {
-    const clubSeasons = seasonRows.filter((season) => season.clubId === club.id);
+    const clubSeasons = seasonRows.filter(
+      (season) => season.clubId === club.id,
+    );
     return {
       ...club,
       seasons: clubSeasons,

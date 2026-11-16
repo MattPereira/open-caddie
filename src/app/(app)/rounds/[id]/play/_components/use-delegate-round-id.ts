@@ -62,7 +62,11 @@ export function useDelegateRoundIds(
     return next;
   }, [roundId]);
 
-  const storedRoundIds = useSyncExternalStore(subscribe, getSnapshot, () => null);
+  const storedRoundIds = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    () => null,
+  );
 
   const setDelegateRoundIds = useCallback(
     (next: readonly number[]) => {
@@ -72,5 +76,8 @@ export function useDelegateRoundIds(
     [roundId],
   );
 
-  return [storedRoundIds ?? prefillDelegateRoundIds, setDelegateRoundIds] as const;
+  return [
+    storedRoundIds ?? prefillDelegateRoundIds,
+    setDelegateRoundIds,
+  ] as const;
 }

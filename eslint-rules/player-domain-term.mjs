@@ -96,7 +96,11 @@ const rule = {
       if (!isBanned(node.name)) return;
       if (isPropertyAccess(node)) return;
       if (isAllowedBinding(node, context)) return;
-      context.report({ node, messageId: "domainTerm", data: { name: node.name } });
+      context.report({
+        node,
+        messageId: "domainTerm",
+        data: { name: node.name },
+      });
     }
     return {
       Identifier: check,

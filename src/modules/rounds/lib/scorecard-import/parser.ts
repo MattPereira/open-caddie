@@ -135,8 +135,11 @@ export async function parseRoundScorecardImage(
   const directModel = google(
     model.startsWith("google/") ? model.slice("google/".length) : model,
   );
-  const result = await withGatewayFallback(model, directModel, (selectedModel) =>
-    generateText({
+  const result = await withGatewayFallback(
+    model,
+    directModel,
+    (selectedModel) =>
+      generateText({
         model: selectedModel,
         output: Output.object({
           schema: RoundScorecardSchema,

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { scoreMatchPlay, scoreMatchSkins, type ScoringRound } from "@/modules/matches";
+import {
+  scoreMatchPlay,
+  scoreMatchSkins,
+  type ScoringRound,
+} from "@/modules/matches";
 
 const holes = Array.from({ length: 18 }, (_, index) => ({
   hole: index + 1,
@@ -310,14 +314,23 @@ describe("scoreMatchSkins", () => {
     });
     expect(after.holes[4]).toEqual(before.holes[4]);
 
-    const completed = scoreMatchSkins([...started, round(3, 0, { 5: 5, 6: 6 })], holes);
+    const completed = scoreMatchSkins(
+      [...started, round(3, 0, { 5: 5, 6: 6 })],
+      holes,
+    );
     if (completed.status !== "ready") throw new Error("Expected ready Skins");
     expect(completed.holes[4]).toMatchObject({
       winningRoundId: null,
       skinsAwarded: 0,
     });
-    expect(after.holes[5]).toMatchObject({ winningRoundId: 1, skinsAwarded: 1 });
-    expect(completed.holes[5]).toMatchObject({ winningRoundId: 1, skinsAwarded: 2 });
+    expect(after.holes[5]).toMatchObject({
+      winningRoundId: 1,
+      skinsAwarded: 1,
+    });
+    expect(completed.holes[5]).toMatchObject({
+      winningRoundId: 1,
+      skinsAwarded: 2,
+    });
   });
   it("reports unavailable until at least two players can be scored", () => {
     expect(scoreMatchSkins([], holes)).toEqual({

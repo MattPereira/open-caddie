@@ -94,7 +94,10 @@ describe("assessHandicap — Tournament Round", () => {
 
   it("plays scratch with fewer than 2 prior Rounds", () => {
     const result = assessHandicap({
-      source: { kind: "tournament", priorRounds: [priorRound(1, "2026-01-01", 15)] },
+      source: {
+        kind: "tournament",
+        priorRounds: [priorRound(1, "2026-01-01", 15)],
+      },
       slope: 113,
       totalStrokes: 90,
       isComplete: true,
@@ -176,19 +179,31 @@ describe("assessHandicap — casual Round", () => {
 describe("calculateNetStrokes", () => {
   it("subtracts the Playing Handicap from a complete Round's total", () => {
     expect(
-      calculateNetStrokes({ totalStrokes: 90, isComplete: true, playingHandicap: 12 }),
+      calculateNetStrokes({
+        totalStrokes: 90,
+        isComplete: true,
+        playingHandicap: 12,
+      }),
     ).toBe(78);
   });
 
   it("is null until the Round is complete", () => {
     expect(
-      calculateNetStrokes({ totalStrokes: 45, isComplete: false, playingHandicap: 12 }),
+      calculateNetStrokes({
+        totalStrokes: 45,
+        isComplete: false,
+        playingHandicap: 12,
+      }),
     ).toBeNull();
   });
 
   it("is null without a Playing Handicap", () => {
     expect(
-      calculateNetStrokes({ totalStrokes: 90, isComplete: true, playingHandicap: null }),
+      calculateNetStrokes({
+        totalStrokes: 90,
+        isComplete: true,
+        playingHandicap: null,
+      }),
     ).toBeNull();
   });
 });

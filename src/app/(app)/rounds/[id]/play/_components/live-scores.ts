@@ -78,7 +78,8 @@ export function projectLiveRounds<R extends LiveRound>({
   return {
     round: project(round),
     leaderboardRounds: leaderboardRounds?.map(project),
-    matchScoreboard: matchScoreboard && projectMatchScoreboard(matchScoreboard, project),
+    matchScoreboard:
+      matchScoreboard && projectMatchScoreboard(matchScoreboard, project),
   };
 }
 

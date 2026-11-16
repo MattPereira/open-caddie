@@ -195,16 +195,24 @@ export const courseScorecardImports = pgTable(
   (importRow) => [
     uniqueIndex("course_scorecard_imports_active_new_handle_unique")
       .on(importRow.reservedHandle)
-      .where(sql`${importRow.status} = 'paused' and ${importRow.targetKind} = 'new'`),
+      .where(
+        sql`${importRow.status} = 'paused' and ${importRow.targetKind} = 'new'`,
+      ),
     uniqueIndex("course_scorecard_imports_active_course_unique")
       .on(importRow.courseId)
-      .where(sql`${importRow.status} = 'paused' and ${importRow.targetKind} = 'existing'`),
+      .where(
+        sql`${importRow.status} = 'paused' and ${importRow.targetKind} = 'existing'`,
+      ),
     uniqueIndex("course_scorecard_imports_new_target_image_unique")
       .on(importRow.reservedHandle, importRow.stagedScorecardImageHandle)
-      .where(sql`${importRow.status} in ('paused', 'published') and ${importRow.targetKind} = 'new'`),
+      .where(
+        sql`${importRow.status} in ('paused', 'published') and ${importRow.targetKind} = 'new'`,
+      ),
     uniqueIndex("course_scorecard_imports_existing_target_image_unique")
       .on(importRow.courseId, importRow.stagedScorecardImageHandle)
-      .where(sql`${importRow.status} in ('paused', 'published') and ${importRow.targetKind} = 'existing'`),
+      .where(
+        sql`${importRow.status} in ('paused', 'published') and ${importRow.targetKind} = 'existing'`,
+      ),
     check(
       "course_scorecard_imports_target_check",
       sql`(${importRow.targetKind} = 'new' and ${importRow.reservedHandle} is not null and ${importRow.courseId} is null) or (${importRow.targetKind} = 'existing' and ${importRow.courseId} is not null and ${importRow.reservedHandle} is null)`,
@@ -372,7 +380,9 @@ export const pairings = pgTable(
     name: text("name").notNull(),
     sortOrder: integer("sort_order").notNull().default(0),
   },
-  (p) => [uniqueIndex("pairings_id_tournament_unique").on(p.id, p.tournamentId)],
+  (p) => [
+    uniqueIndex("pairings_id_tournament_unique").on(p.id, p.tournamentId),
+  ],
 );
 
 // Membership is keyed by Round, and carries the Tournament id so the composite
@@ -437,7 +447,10 @@ export const roundScorecardUploads = pgTable(
     additionalContext: text("additional_context"),
     status: text("status").$type<RoundScorecardUploadStatus>().notNull(),
     parsed: jsonb("parsed"),
-    sumCheckIssues: jsonb("sum_check_issues").$type<string[]>().notNull().default([]),
+    sumCheckIssues: jsonb("sum_check_issues")
+      .$type<string[]>()
+      .notNull()
+      .default([]),
     error: text("error"),
     createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
   },
@@ -487,31 +500,28 @@ export const roundSummaries = pgView("round_summaries").as((qb) =>
       playerIndexOverride: rounds.playerIndexOverride,
       courseRating: courseTees.rating,
       courseSlope: courseTees.slope,
-      recordedStrokesCount:
-        sql<number>`count(${roundScores.strokes})`
-          .mapWith(Number)
-          .as("recorded_strokes_count"),
-      recordedPuttsCount:
-        sql<number>`count(${roundScores.putts})`
-          .mapWith(Number)
-          .as("recorded_putts_count"),
-      totalStrokes:
-        sql<number>`coalesce(sum(${roundScores.strokes}), 0)::int`.mapWith(
-          Number,
-        ).as("total_strokes"),
-      totalPutts:
-        sql<number>`coalesce(sum(${roundScores.putts}), 0)::int`.mapWith(
-          Number,
-        ).as("total_putts"),
+      recordedStrokesCount: sql<number>`count(${roundScores.strokes})`
+        .mapWith(Number)
+        .as("recorded_strokes_count"),
+      recordedPuttsCount: sql<number>`count(${roundScores.putts})`
+        .mapWith(Number)
+        .as("recorded_putts_count"),
+      totalStrokes: sql<number>`coalesce(sum(${roundScores.strokes}), 0)::int`
+        .mapWith(Number)
+        .as("total_strokes"),
+      totalPutts: sql<number>`coalesce(sum(${roundScores.putts}), 0)::int`
+        .mapWith(Number)
+        .as("total_putts"),
       // Mirrors isComplete in modules/rounds/lib/completeness.ts.
       isComplete: sql<boolean>`count(${roundScores.strokes}) = 18`.as(
         "is_complete",
       ),
       // Same completeness rule as isComplete above.
-      scoreDifferential:
-        sql<number | null>`case when count(${roundScores.strokes}) = 18 then ((113.0 / ${courseTees.slope}) * (sum(${roundScores.strokes}) - ${courseTees.rating}))::double precision else null end`.mapWith(
-          (value) => (value == null ? null : Number(value)),
-        ).as("score_differential"),
+      scoreDifferential: sql<
+        number | null
+      >`case when count(${roundScores.strokes}) = 18 then ((113.0 / ${courseTees.slope}) * (sum(${roundScores.strokes}) - ${courseTees.rating}))::double precision else null end`
+        .mapWith((value) => (value == null ? null : Number(value)))
+        .as("score_differential"),
     })
     .from(rounds)
     .innerJoin(courseTees, eq(rounds.teeId, courseTees.id))

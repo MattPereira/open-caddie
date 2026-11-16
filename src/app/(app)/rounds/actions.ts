@@ -60,7 +60,8 @@ export async function changeRoundSettings(
   const { roundId, teeId, playerIndexOverride } = parsed.data;
   return rounds.changeRoundSettings(actor.id, roundId, {
     teeId,
-    playerIndexOverride: playerIndexOverride === "" ? null : playerIndexOverride,
+    playerIndexOverride:
+      playerIndexOverride === "" ? null : playerIndexOverride,
   });
 }
 

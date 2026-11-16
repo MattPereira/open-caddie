@@ -38,11 +38,10 @@ describe("Event Rounds", () => {
       const b = await fixtures.player();
 
       const inserted = await db.transaction((tx) =>
-        eventRounds.insertEventRounds(
-          tx,
-          { tournamentId: t.tournament.id },
-          [a.id, b.id],
-        ),
+        eventRounds.insertEventRounds(tx, { tournamentId: t.tournament.id }, [
+          a.id,
+          b.id,
+        ]),
       );
 
       expect(inserted).toHaveLength(2);
@@ -66,11 +65,10 @@ describe("Event Rounds", () => {
       const newcomer = await fixtures.player();
 
       const inserted = await db.transaction((tx) =>
-        eventRounds.insertEventRounds(
-          tx,
-          { tournamentId: t.tournament.id },
-          [existing.player.id, newcomer.id],
-        ),
+        eventRounds.insertEventRounds(tx, { tournamentId: t.tournament.id }, [
+          existing.player.id,
+          newcomer.id,
+        ]),
       );
 
       expect(inserted.map((round) => round.playerId)).toEqual([newcomer.id]);
@@ -229,14 +227,18 @@ describe("Event Rounds", () => {
 
       await expect(
         editTournament(t, { courseId: next.course.id, teeId: next.tee.id }),
-      ).rejects.toThrow(`Player ${p.player.lastName} already has scores or Greenies`);
+      ).rejects.toThrow(
+        `Player ${p.player.lastName} already has scores or Greenies`,
+      );
     });
 
     it("refuses a course change behind a scorecard write in flight, keeping its score on the old course", async () => {
       const t = await fixtures.tournament();
       const p = await fixtures.tournamentPlayer(t);
       // Filling in an existing hole row never touches the Round's foreign key.
-      await db.insert(schema.roundScores).values({ roundId: p.round.id, hole: 1 });
+      await db
+        .insert(schema.roundScores)
+        .values({ roundId: p.round.id, hole: 1 });
       const next = await fixtures.course();
       // Pins the hole row so the scorecard write stalls mid-transaction.
       const pin = await holdTransaction((tx) =>
@@ -388,9 +390,7 @@ describe("Event Rounds", () => {
           .where(eq(schema.matches.id, m.match.id));
         expect(match.courseId).toBe(m.match.courseId);
         for (const p of m.players) {
-          expect((await roundRow(p.round.id))?.courseId).toBe(
-            m.match.courseId,
-          );
+          expect((await roundRow(p.round.id))?.courseId).toBe(m.match.courseId);
         }
       });
 

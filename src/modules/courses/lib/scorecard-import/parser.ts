@@ -124,9 +124,15 @@ export function verifySums(parsed: Scorecard): ScorecardWarning[] {
   const outPar = sum(pars.slice(0, 9));
   const inPar = sum(pars.slice(9, HOLE_COUNT));
   if (outPar !== parsed.printedOutPar)
-    issues.push({ scope: "hole", message: `par OUT: summed ${outPar} vs printed ${parsed.printedOutPar}` });
+    issues.push({
+      scope: "hole",
+      message: `par OUT: summed ${outPar} vs printed ${parsed.printedOutPar}`,
+    });
   if (inPar !== parsed.printedInPar)
-    issues.push({ scope: "hole", message: `par IN: summed ${inPar} vs printed ${parsed.printedInPar}` });
+    issues.push({
+      scope: "hole",
+      message: `par IN: summed ${inPar} vs printed ${parsed.printedInPar}`,
+    });
   if (outPar + inPar !== parsed.printedTotalPar)
     issues.push({
       scope: "hole",
@@ -153,7 +159,10 @@ export function verifySums(parsed: Scorecard): ScorecardWarning[] {
   }
   const sis = parsed.holes.map((h) => h.handicap).sort((a, b) => a - b);
   if (sis.join(",") !== HOLE_NUMBERS.join(","))
-    issues.push({ scope: "hole", message: `handicap not 1-18 unique: got [${sis.join(",")}]` });
+    issues.push({
+      scope: "hole",
+      message: `handicap not 1-18 unique: got [${sis.join(",")}]`,
+    });
   return issues;
 }
 
@@ -172,8 +181,11 @@ export async function parseScorecardImage(
   const directModel = google(
     model.startsWith("google/") ? model.slice("google/".length) : model,
   );
-  const result = await withGatewayFallback(model, directModel, (selectedModel) =>
-    generateText({
+  const result = await withGatewayFallback(
+    model,
+    directModel,
+    (selectedModel) =>
+      generateText({
         model: selectedModel,
         output: Output.object({
           schema: ScorecardSchema,

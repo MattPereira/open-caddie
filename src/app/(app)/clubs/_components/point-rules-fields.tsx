@@ -124,9 +124,7 @@ function PositionsSection({
                         value={f.value ?? ""}
                         onChange={(e) =>
                           f.onChange(
-                            e.target.value === ""
-                              ? ""
-                              : Number(e.target.value),
+                            e.target.value === "" ? "" : Number(e.target.value),
                           )
                         }
                       />
@@ -179,7 +177,7 @@ function GreeniesSection({ control }: Props) {
             Each tier awards <em>pts</em> when a greenie is within{" "}
             <em>maxFt</em>. Toggle &quot;No max&quot; for the open-ended tier.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             {fields.map((field, index) => (
               <div
                 key={field.id}
@@ -292,16 +290,14 @@ function RulesSection({
 
 function RulesCard({ children }: { children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-4 rounded-md border p-4">
-      {children}
-    </div>
+    <div className="flex flex-col gap-4 rounded-md border p-4">{children}</div>
   );
 }
 
 export function PointRulesFields({ control }: Props) {
   return (
     <div className="flex flex-col gap-5">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
         <RulesSection title="Hole scores">
           <RulesCard>
             <div className="grid grid-cols-2 gap-3">

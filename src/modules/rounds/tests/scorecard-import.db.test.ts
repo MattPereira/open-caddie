@@ -59,7 +59,8 @@ describe("Round Scorecard Import", () => {
 
   async function strokesOf(roundId: number) {
     const round = await getRoundById(roundId);
-    return (round?.scores ?? []).filter((score) => score.strokes != null).length;
+    return (round?.scores ?? []).filter((score) => score.strokes != null)
+      .length;
   }
 
   beforeEach(() => {

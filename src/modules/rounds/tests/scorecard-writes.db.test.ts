@@ -101,7 +101,10 @@ describe("Scorecard writes", () => {
         greenies: [{ roundId, hole: PAR_THREE, distance: null }],
       });
       expect(await greenieOf(roundId, PAR_THREE)).toBeNull();
-      expect(await holeOf(roundId, PAR_THREE)).toEqual({ strokes: 3, putts: 1 });
+      expect(await holeOf(roundId, PAR_THREE)).toEqual({
+        strokes: 3,
+        putts: 1,
+      });
     });
 
     it("rejects a Greenie on a hole that isn't a par 3 and writes nothing", async () => {
@@ -147,24 +150,24 @@ describe("Scorecard writes", () => {
       expect(await holeOf(roundId, 2)).toEqual({ strokes: null, putts: null });
     });
 
-    it.each([
-      [{ feet: -1, inches: 0 }],
-      [{ feet: 3, inches: 12 }],
-    ])("rejects out-of-range Greenie distance %o", async (distance) => {
-      const t = await fixtures.tournament();
-      const player = await fixtures.tournamentPlayer(t);
-      const roundId = player.round.id;
+    it.each([[{ feet: -1, inches: 0 }], [{ feet: 3, inches: 12 }]])(
+      "rejects out-of-range Greenie distance %o",
+      async (distance) => {
+        const t = await fixtures.tournament();
+        const player = await fixtures.tournamentPlayer(t);
+        const roundId = player.round.id;
 
-      expect(
-        await rounds.recordScorecardChanges(player.player.id, {
-          greenies: [{ roundId, hole: PAR_THREE, distance }],
-        }),
-      ).toMatchObject({
-        ok: false,
-        error: "Greenie distance is out of allowed range.",
-      });
-      expect(await greenieOf(roundId, PAR_THREE)).toBeNull();
-    });
+        expect(
+          await rounds.recordScorecardChanges(player.player.id, {
+            greenies: [{ roundId, hole: PAR_THREE, distance }],
+          }),
+        ).toMatchObject({
+          ok: false,
+          error: "Greenie distance is out of allowed range.",
+        });
+        expect(await greenieOf(roundId, PAR_THREE)).toBeNull();
+      },
+    );
 
     it("lets a Match creator who isn't playing record scores", async () => {
       const { creator, players } = await fixtures.match(2, {
@@ -260,10 +263,7 @@ describe("Scorecard writes", () => {
       const t = await fixtures.tournament();
       const player = await fixtures.tournamentPlayer(t);
       const mate = await fixtures.tournamentPlayer(t);
-      await fixtures.pairing(t.tournament.id, [
-        player.round.id,
-        mate.round.id,
-      ]);
+      await fixtures.pairing(t.tournament.id, [player.round.id, mate.round.id]);
       const white = await fixtures.tee(t.course.id);
       await rounds.recordScorecardChanges(player.player.id, {
         scores: [{ roundId: player.round.id, hole: 1, strokes: 5, putts: 2 }],

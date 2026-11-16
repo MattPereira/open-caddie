@@ -6,11 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription } from "@/components/ui/card";
 import { MediaCard } from "@/components/shared/media-card";
 
-import {
-  displayName,
-  getInitials,
-  type NamedPlayer,
-} from "@/modules/players";
+import { displayName, getInitials, type NamedPlayer } from "@/modules/players";
 
 export type PlayerCardPlayer = NamedPlayer & {
   image: string | null;

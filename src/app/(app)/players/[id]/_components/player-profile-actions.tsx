@@ -6,7 +6,10 @@ import { Edit03Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
 import { Button } from "@/components/ui/button";
-import { PlayerSheet, type EditablePlayer } from "../../_components/player-sheet";
+import {
+  PlayerSheet,
+  type EditablePlayer,
+} from "../../_components/player-sheet";
 import { SignInLinkButton } from "./sign-in-link-button";
 
 export function PlayerProfileActions({

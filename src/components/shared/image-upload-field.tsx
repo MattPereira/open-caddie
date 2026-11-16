@@ -269,7 +269,7 @@ export function ImageUploadField({
             <img
               src={value}
               alt=""
-              className="w-full max-h-80 rounded-md border object-contain"
+              className="max-h-80 w-full rounded-md border object-contain"
             />
           )}
           <div className="flex flex-wrap gap-2 self-start">

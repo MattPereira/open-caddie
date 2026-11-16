@@ -13,7 +13,10 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import type { PointKey, PointSummaryColumn } from "@/components/features/standings/standings-table";
+import type {
+  PointKey,
+  PointSummaryColumn,
+} from "@/components/features/standings/standings-table";
 
 export type MobileStanding = {
   playerId: string;

@@ -44,7 +44,9 @@ const teeSchema = z.object({
   color: teeColorSchema,
   rating: ratingString,
   slope: requiredInt("Slope", TEE_SLOPE_MIN, TEE_SLOPE_MAX),
-  yardages: z.array(yardageCell).length(HOLE_COUNT, "Tees must have 18 yardages"),
+  yardages: z
+    .array(yardageCell)
+    .length(HOLE_COUNT, "Tees must have 18 yardages"),
   sortOrder: z.number().int().nonnegative(),
 });
 

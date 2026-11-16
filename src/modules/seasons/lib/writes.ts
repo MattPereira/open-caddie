@@ -6,13 +6,19 @@ import { seasons } from "@/db/schema";
 export type Season = typeof seasons.$inferSelect;
 
 /** Season 1 if the Club has none yet. */
-export async function startNextSeason(tx: Transaction, clubId: number): Promise<Season> {
+export async function startNextSeason(
+  tx: Transaction,
+  clubId: number,
+): Promise<Season> {
   await lockClubSeasons(tx, clubId);
   const current = await getCurrentSeason(tx, clubId);
   return insertSeason(tx, clubId, (current?.number ?? 0) + 1);
 }
 
-export async function getOrCreateCurrentSeason(tx: Transaction, clubId: number): Promise<Season> {
+export async function getOrCreateCurrentSeason(
+  tx: Transaction,
+  clubId: number,
+): Promise<Season> {
   await lockClubSeasons(tx, clubId);
   return (await getCurrentSeason(tx, clubId)) ?? insertSeason(tx, clubId, 1);
 }
@@ -49,6 +55,9 @@ async function getCurrentSeason(tx: Transaction, clubId: number) {
 }
 
 async function insertSeason(tx: Transaction, clubId: number, number: number) {
-  const [season] = await tx.insert(seasons).values({ clubId, number }).returning();
+  const [season] = await tx
+    .insert(seasons)
+    .values({ clubId, number })
+    .returning();
   return season;
 }

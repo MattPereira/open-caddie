@@ -45,8 +45,8 @@ export function RoundScoresCard({
   );
 
   return (
-    <Card size="sm" className="min-w-0 max-w-lg gap-1.5! py-2!">
-      <CardHeader className="flex justify-between items-center gap-2">
+    <Card size="sm" className="max-w-lg min-w-0 gap-1.5! py-2!">
+      <CardHeader className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <CardTitle className="min-w-0">
             <PlayerLabel row={row} />
@@ -199,7 +199,7 @@ function MobileScoreLine({
             className={cn(
               "min-w-0 bg-muted px-1 py-1 text-center text-xs font-medium text-muted-foreground",
               greenieHoles.has(hole) &&
-                "text-green-600 font-bold dark:text-green-400",
+                "font-bold text-green-600 dark:text-green-400",
             )}
           >
             {hole}

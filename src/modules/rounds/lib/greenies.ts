@@ -6,7 +6,6 @@ export function eventGreenies(rounds: readonly DisplayRound[]) {
     .flatMap((round) => round.greenies)
     .sort(
       (a, b) =>
-        a.hole - b.hole ||
-        a.feet * 12 + a.inches - (b.feet * 12 + b.inches),
+        a.hole - b.hole || a.feet * 12 + a.inches - (b.feet * 12 + b.inches),
     );
 }

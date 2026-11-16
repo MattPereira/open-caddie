@@ -33,15 +33,31 @@ type Diff = { field: string; expected: unknown; actual: unknown };
 function diffTeeByName(exp: Tee, act: Tee | undefined, prefix: string): Diff[] {
   const diffs: Diff[] = [];
   if (!act) {
-    diffs.push({ field: `${prefix}.<missing>`, expected: exp.name, actual: undefined });
+    diffs.push({
+      field: `${prefix}.<missing>`,
+      expected: exp.name,
+      actual: undefined,
+    });
     return diffs;
   }
   if (act.rating !== exp.rating)
-    diffs.push({ field: `${prefix}.rating`, expected: exp.rating, actual: act.rating });
+    diffs.push({
+      field: `${prefix}.rating`,
+      expected: exp.rating,
+      actual: act.rating,
+    });
   if (act.slope !== exp.slope)
-    diffs.push({ field: `${prefix}.slope`, expected: exp.slope, actual: act.slope });
+    diffs.push({
+      field: `${prefix}.slope`,
+      expected: exp.slope,
+      actual: act.slope,
+    });
   if ((act.color ?? null) !== (exp.color ?? null))
-    diffs.push({ field: `${prefix}.color`, expected: exp.color ?? null, actual: act.color ?? null });
+    diffs.push({
+      field: `${prefix}.color`,
+      expected: exp.color ?? null,
+      actual: act.color ?? null,
+    });
   for (let i = 0; i < 18; i++) {
     if (act.yardages[i] !== exp.yardages[i])
       diffs.push({
@@ -80,35 +96,67 @@ function diffScorecard(expected: Scorecard, actual: Scorecard): Diff[] {
   for (const exp of expected.tees) {
     const act = actByName.get(exp.name);
     if (!act) {
-      diffs.push({ field: `tees[${exp.name}]`, expected: "present", actual: "missing" });
+      diffs.push({
+        field: `tees[${exp.name}]`,
+        expected: "present",
+        actual: "missing",
+      });
       continue;
     }
     diffs.push(...diffTeeByName(exp, act, `tees[${exp.name}]`));
   }
   for (const act of actual.tees) {
     if (!expByName.has(act.name))
-      diffs.push({ field: `tees[${act.name}]`, expected: "absent", actual: "present (extra)" });
+      diffs.push({
+        field: `tees[${act.name}]`,
+        expected: "absent",
+        actual: "present (extra)",
+      });
   }
 
   for (let i = 0; i < 18; i++) {
     const e = expected.holes[i];
     const a = actual.holes[i];
     if (!a) {
-      diffs.push({ field: `holes[${i + 1}]`, expected: "present", actual: "missing" });
+      diffs.push({
+        field: `holes[${i + 1}]`,
+        expected: "present",
+        actual: "missing",
+      });
       continue;
     }
     if (a.par !== e.par)
-      diffs.push({ field: `holes[${i + 1}].par`, expected: e.par, actual: a.par });
+      diffs.push({
+        field: `holes[${i + 1}].par`,
+        expected: e.par,
+        actual: a.par,
+      });
     if (a.handicap !== e.handicap)
-      diffs.push({ field: `holes[${i + 1}].handicap`, expected: e.handicap, actual: a.handicap });
+      diffs.push({
+        field: `holes[${i + 1}].handicap`,
+        expected: e.handicap,
+        actual: a.handicap,
+      });
   }
 
   if (actual.printedOutPar !== expected.printedOutPar)
-    diffs.push({ field: "printedOutPar", expected: expected.printedOutPar, actual: actual.printedOutPar });
+    diffs.push({
+      field: "printedOutPar",
+      expected: expected.printedOutPar,
+      actual: actual.printedOutPar,
+    });
   if (actual.printedInPar !== expected.printedInPar)
-    diffs.push({ field: "printedInPar", expected: expected.printedInPar, actual: actual.printedInPar });
+    diffs.push({
+      field: "printedInPar",
+      expected: expected.printedInPar,
+      actual: actual.printedInPar,
+    });
   if (actual.printedTotalPar !== expected.printedTotalPar)
-    diffs.push({ field: "printedTotalPar", expected: expected.printedTotalPar, actual: actual.printedTotalPar });
+    diffs.push({
+      field: "printedTotalPar",
+      expected: expected.printedTotalPar,
+      actual: actual.printedTotalPar,
+    });
 
   return diffs;
 }
@@ -129,7 +177,9 @@ async function readJson<T>(path: string): Promise<T> {
   return JSON.parse(await readFile(path, "utf8")) as T;
 }
 
-async function latestRunPerImage(modelDir: string): Promise<Map<string, string>> {
+async function latestRunPerImage(
+  modelDir: string,
+): Promise<Map<string, string>> {
   const files = await readdir(modelDir);
   // filenames: <stamp>__<image-slug>__<model-slug>.json
   const byImage = new Map<string, string>();
@@ -146,7 +196,9 @@ async function main() {
   const expectedDir = resolve("evals/scorecard-import/expected");
   const runsRoot = resolve("evals/scorecard-import/runs");
 
-  const expectedFiles = (await readdir(expectedDir)).filter((f) => f.endsWith(".json"));
+  const expectedFiles = (await readdir(expectedDir)).filter((f) =>
+    f.endsWith(".json"),
+  );
   if (expectedFiles.length === 0) {
     console.error(`No truth files in ${expectedDir}`);
     process.exit(1);
@@ -169,12 +221,22 @@ async function main() {
     const runs = await latestRunPerImage(modelDir);
     let totalFields = 0;
     let totalDiffs = 0;
-    const perCard: { image: string; fields: number; diffs: number; diffList: Diff[] }[] = [];
+    const perCard: {
+      image: string;
+      fields: number;
+      diffs: number;
+      diffList: Diff[];
+    }[] = [];
 
     for (const [slug, exp] of expected) {
       const runPath = runs.get(slug);
       if (!runPath) {
-        perCard.push({ image: slug, fields: countFields(exp), diffs: -1, diffList: [] });
+        perCard.push({
+          image: slug,
+          fields: countFields(exp),
+          diffs: -1,
+          diffList: [],
+        });
         continue;
       }
       const record = await readJson<{ parsed: Scorecard }>(runPath);
@@ -182,12 +244,20 @@ async function main() {
       const fields = countFields(exp);
       totalFields += fields;
       totalDiffs += diffs.length;
-      perCard.push({ image: slug, fields, diffs: diffs.length, diffList: diffs });
+      perCard.push({
+        image: slug,
+        fields,
+        diffs: diffs.length,
+        diffList: diffs,
+      });
     }
 
-    const acc = totalFields > 0 ? ((totalFields - totalDiffs) / totalFields) * 100 : 0;
+    const acc =
+      totalFields > 0 ? ((totalFields - totalDiffs) / totalFields) * 100 : 0;
     console.log(`=== ${model} ===`);
-    console.log(`overall accuracy: ${acc.toFixed(2)}% (${totalFields - totalDiffs}/${totalFields} fields correct)`);
+    console.log(
+      `overall accuracy: ${acc.toFixed(2)}% (${totalFields - totalDiffs}/${totalFields} fields correct)`,
+    );
     console.log();
     for (const r of perCard) {
       if (r.diffs < 0) {
@@ -195,9 +265,13 @@ async function main() {
         continue;
       }
       const cardAcc = ((r.fields - r.diffs) / r.fields) * 100;
-      console.log(`  ${r.image}: ${cardAcc.toFixed(1)}% (${r.fields - r.diffs}/${r.fields})  — ${r.diffs} diff(s)`);
+      console.log(
+        `  ${r.image}: ${cardAcc.toFixed(1)}% (${r.fields - r.diffs}/${r.fields})  — ${r.diffs} diff(s)`,
+      );
       for (const d of r.diffList) {
-        console.log(`    ${d.field}: expected=${JSON.stringify(d.expected)} actual=${JSON.stringify(d.actual)}`);
+        console.log(
+          `    ${d.field}: expected=${JSON.stringify(d.expected)} actual=${JSON.stringify(d.actual)}`,
+        );
       }
     }
     console.log();

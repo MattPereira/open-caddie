@@ -64,9 +64,7 @@ export const getSeasonStandings = cache(
         .from(tournaments)
         .innerJoin(seasons, eq(tournaments.seasonId, seasons.id))
         .innerJoin(courses, eq(tournaments.courseId, courses.id))
-        .where(
-          and(eq(seasons.clubId, clubId), eq(seasons.number, season)),
-        )
+        .where(and(eq(seasons.clubId, clubId), eq(seasons.number, season)))
         .orderBy(desc(tournaments.date), desc(tournaments.id)),
       getSeasonRounds(clubId, season),
     ]);

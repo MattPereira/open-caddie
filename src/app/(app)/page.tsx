@@ -31,14 +31,13 @@ export const metadata: Metadata = createPageMetadata({
 export default async function Home() {
   const currentPlayer = await getCurrentPlayer();
 
-  const [homeEvents, activeRound, courses, players, clubs] =
-    await Promise.all([
-      getHomeEvents(),
-      currentPlayer ? getActiveRoundForPlayer(currentPlayer.id) : null,
-      currentPlayer ? getCoursesWithTees() : [],
-      currentPlayer ? getAllPlayers() : [],
-      currentPlayer?.isAdmin ? getAllClubsWithSeasons() : [],
-    ]);
+  const [homeEvents, activeRound, courses, players, clubs] = await Promise.all([
+    getHomeEvents(),
+    currentPlayer ? getActiveRoundForPlayer(currentPlayer.id) : null,
+    currentPlayer ? getCoursesWithTees() : [],
+    currentPlayer ? getAllPlayers() : [],
+    currentPlayer?.isAdmin ? getAllClubsWithSeasons() : [],
+  ]);
 
   const today = getLocalDateKey(new Date());
   const recentTournaments = homeEvents.tournaments

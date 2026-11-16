@@ -1,7 +1,4 @@
-import {
-  openGraphImageContentType,
-  openGraphImageSize,
-} from "@/app/og-image";
+import { openGraphImageContentType, openGraphImageSize } from "@/app/og-image";
 import { siteName } from "@/app/metadata";
 import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";

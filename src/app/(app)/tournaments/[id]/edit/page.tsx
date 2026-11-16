@@ -31,7 +31,10 @@ const editTabValues = ["players", "details"] as const;
 export default async function EditTournamentPage({
   params,
 }: EditTournamentPageProps) {
-  const [{ id }, currentPlayer] = await Promise.all([params, getCurrentPlayer()]);
+  const [{ id }, currentPlayer] = await Promise.all([
+    params,
+    getCurrentPlayer(),
+  ]);
 
   const tournamentId = Number(id);
   if (!Number.isInteger(tournamentId) || tournamentId <= 0) notFound();
@@ -52,7 +55,7 @@ export default async function EditTournamentPage({
   return (
     <PageContent className="max-w-3xl">
       <div className="flex flex-col gap-3">
-        <div className="flex justify-between items-center gap-2">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex flex-col">
             <h1 className="text-2xl font-semibold tracking-normal">
               Edit tournament
@@ -76,22 +79,12 @@ export default async function EditTournamentPage({
         />
       </div>
 
-      <UrlTabs
-        defaultValue="players"
-        values={editTabValues}
-        className="w-full"
-      >
+      <UrlTabs defaultValue="players" values={editTabValues} className="w-full">
         <TabsList size="lg" className="mb-3 w-full sm:w-fit">
-          <TabsTrigger
-            value="players"
-            className="flex-1 sm:flex-none"
-          >
+          <TabsTrigger value="players" className="flex-1 sm:flex-none">
             Players
           </TabsTrigger>
-          <TabsTrigger
-            value="details"
-            className="flex-1 sm:flex-none"
-          >
+          <TabsTrigger value="details" className="flex-1 sm:flex-none">
             Details
           </TabsTrigger>
         </TabsList>
@@ -106,7 +99,11 @@ export default async function EditTournamentPage({
         </TabsContent>
 
         {/* forceMount so a half-finished edit survives a trip to another tab. */}
-        <TabsContent value="details" forceMount className="data-[state=inactive]:hidden">
+        <TabsContent
+          value="details"
+          forceMount
+          className="data-[state=inactive]:hidden"
+        >
           <TournamentForm
             surface="page"
             mode="edit"

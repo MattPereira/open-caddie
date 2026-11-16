@@ -21,10 +21,14 @@ export function CourseCard({
 }) {
   const stats: string[] = [];
   if (course.roundCount != null) {
-    stats.push(`${course.roundCount} ${course.roundCount === 1 ? "round" : "rounds"}`);
+    stats.push(
+      `${course.roundCount} ${course.roundCount === 1 ? "round" : "rounds"}`,
+    );
   }
   if (course.greenieCount != null) {
-    stats.push(`${course.greenieCount} ${course.greenieCount === 1 ? "greenie" : "greenies"}`);
+    stats.push(
+      `${course.greenieCount} ${course.greenieCount === 1 ? "greenie" : "greenies"}`,
+    );
   }
 
   return (

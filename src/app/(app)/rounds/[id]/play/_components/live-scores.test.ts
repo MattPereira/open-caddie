@@ -51,9 +51,7 @@ function edit(
   strokes: number | null,
 ): ScoreEntry[] {
   return entries.map((e) =>
-    e.hole === hole
-      ? { ...e, strokes, putts: strokes == null ? null : 2 }
-      : e,
+    e.hole === hole ? { ...e, strokes, putts: strokes == null ? null : 2 } : e,
   );
 }
 
@@ -168,7 +166,10 @@ describe("projectLiveRounds", () => {
   });
 
   it("matches the server's totals when nothing has been edited", () => {
-    const self = serverRound(1, [...allFives().slice(0, 9), ...empty().slice(9)]);
+    const self = serverRound(1, [
+      ...allFives().slice(0, 9),
+      ...empty().slice(9),
+    ]);
     const mate = serverRound(2, allFives(), 12);
     const base = buildScoreBase([self, mate], holes);
 

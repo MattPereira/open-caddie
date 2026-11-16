@@ -20,7 +20,9 @@ export default async function CourseImportPage({
         <h1 className="text-2xl font-semibold tracking-normal">
           Complete course import
         </h1>
-        <p className="text-sm text-muted-foreground">{result.import.target.name}</p>
+        <p className="text-sm text-muted-foreground">
+          {result.import.target.name}
+        </p>
       </div>
       <CourseImportReview initialImport={result.import} />
     </PageContent>

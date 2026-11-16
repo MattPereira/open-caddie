@@ -2,7 +2,10 @@
 
 import { useMemo, useState } from "react";
 
-import { ResponsiveTable, TableFrame } from "@/components/shared/responsive-table";
+import {
+  ResponsiveTable,
+  TableFrame,
+} from "@/components/shared/responsive-table";
 import {
   Select,
   SelectContent,
@@ -335,7 +338,7 @@ function MobileNineGrid({
   const totalYards = sumValues(yardages);
 
   return (
-    <div className="grid min-w-0 grid-cols-[repeat(9,minmax(0,1fr))_auto] overflow-hidden rounded-lg ring-1 ring-border text-sm">
+    <div className="grid min-w-0 grid-cols-[repeat(9,minmax(0,1fr))_auto] overflow-hidden rounded-lg text-sm ring-1 ring-border">
       {holes.map((h) => (
         <HeaderCell key={`${label}-h-${h.hole}`}>{h.hole}</HeaderCell>
       ))}

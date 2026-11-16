@@ -19,7 +19,11 @@ module.exports = {
       severity: "error",
       from: { path: `^${R}/[^/]+/index\\.ts$` },
       to: {
-        path: ["^src/db/", `^${R}/[^/]+/server\\.ts$`, "node_modules/server-only/"],
+        path: [
+          "^src/db/",
+          `^${R}/[^/]+/server\\.ts$`,
+          "node_modules/server-only/",
+        ],
         reachable: true,
       },
     },

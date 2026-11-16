@@ -24,7 +24,11 @@ describe("Club reads", () => {
     const suffix = crypto.randomUUID();
     const [created] = await db
       .insert(schema.clubs)
-      .values({ handle: `club-${suffix}`, name: `Club ${suffix}`, pointRules: POINT_RULES })
+      .values({
+        handle: `club-${suffix}`,
+        name: `Club ${suffix}`,
+        pointRules: POINT_RULES,
+      })
       .returning();
     // Inserted out of order so the Current Season comes from the number, not insertion.
     const seasonIds: Record<number, number> = {};
@@ -55,12 +59,22 @@ describe("Club reads", () => {
       .returning();
     const holes = PAR_THREE_HOLES.slice(0, greenies);
     if (holes.length > 0) {
-      await db
-        .insert(schema.roundScores)
-        .values(holes.map((hole) => ({ roundId: created.id, hole, strokes: 3, putts: 1 })));
-      await db
-        .insert(schema.greenies)
-        .values(holes.map((hole) => ({ roundId: created.id, hole, feet: 5, inches: 0 })));
+      await db.insert(schema.roundScores).values(
+        holes.map((hole) => ({
+          roundId: created.id,
+          hole,
+          strokes: 3,
+          putts: 1,
+        })),
+      );
+      await db.insert(schema.greenies).values(
+        holes.map((hole) => ({
+          roundId: created.id,
+          hole,
+          feet: 5,
+          inches: 0,
+        })),
+      );
     }
   }
 
@@ -77,14 +91,18 @@ describe("Club reads", () => {
   describe("getAllClubsWithSeasons", () => {
     it("makes the highest-numbered Season the Current Season", async () => {
       const { club: created, seasonIds } = await club({ seasons: [1, 2, 3] });
-      const row = (await clubs.getAllClubsWithSeasons()).find((c) => c.id === created.id);
+      const row = (await clubs.getAllClubsWithSeasons()).find(
+        (c) => c.id === created.id,
+      );
       expect(row?.seasons.map((s) => s.number)).toEqual([1, 2, 3]);
       expect(row?.currentSeasonId).toBe(seasonIds[3]);
     });
 
     it("has no Current Season when the Club has no Seasons", async () => {
       const { club: created } = await club();
-      const row = (await clubs.getAllClubsWithSeasons()).find((c) => c.id === created.id);
+      const row = (await clubs.getAllClubsWithSeasons()).find(
+        (c) => c.id === created.id,
+      );
       expect(row).toMatchObject({ seasons: [], currentSeasonId: null });
     });
   });
@@ -97,7 +115,9 @@ describe("Club reads", () => {
       await tournament(seasonIds[1]);
       await tournament(seasonIds[2]);
       await tournament(seasonIds[2]);
-      const row = (await clubs.getAllClubsFull()).find((c) => c.id === created.id);
+      const row = (await clubs.getAllClubsFull()).find(
+        (c) => c.id === created.id,
+      );
       expect(row).toEqual({
         id: created.id,
         handle: created.handle,
@@ -111,7 +131,9 @@ describe("Club reads", () => {
 
     it("counts zero for a Club with no Players or Tournaments", async () => {
       const { club: created } = await club();
-      const row = (await clubs.getAllClubsFull()).find((c) => c.id === created.id);
+      const row = (await clubs.getAllClubsFull()).find(
+        (c) => c.id === created.id,
+      );
       expect(row).toMatchObject({ membersCount: 0, tournamentsCount: 0 });
     });
   });
@@ -129,7 +151,9 @@ describe("Club reads", () => {
     });
 
     it("returns null for an unknown handle", async () => {
-      expect(await clubs.getClubByHandle(`missing-${crypto.randomUUID()}`)).toBeNull();
+      expect(
+        await clubs.getClubByHandle(`missing-${crypto.randomUUID()}`),
+      ).toBeNull();
     });
   });
 

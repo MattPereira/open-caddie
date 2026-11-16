@@ -40,13 +40,10 @@ export async function getCroppedBlob(
     );
 
     return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => {
-          if (blob) resolve(blob);
-          else reject(new Error("Canvas export failed"));
-        },
-        "image/png",
-      );
+      canvas.toBlob((blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Canvas export failed"));
+      }, "image/png");
     });
   } finally {
     URL.revokeObjectURL(url);

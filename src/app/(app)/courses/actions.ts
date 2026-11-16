@@ -26,8 +26,10 @@ export type CourseScorecardImportResult =
 const SIGNED_OUT = { ok: false, error: "You must be signed in." } as const;
 
 function toActionResult(result: ImportOutcome): CourseScorecardImportResult {
-  if (result.outcome === "published") return { outcome: "published", handle: result.handle };
-  if (result.outcome === "paused" || result.outcome === "cancelled") return result;
+  if (result.outcome === "published")
+    return { outcome: "published", handle: result.handle };
+  if (result.outcome === "paused" || result.outcome === "cancelled")
+    return result;
   if (result.outcome === "stale") return result;
   return { outcome: "rejected", error: result.reason };
 }
@@ -89,8 +91,14 @@ export async function continueCourseScorecardImport(input: {
     holes?: Record<string, HoleCorrection>;
   };
   excludeTees?: string[];
-  teeResolutions?: Record<string, { kind: "new" } | { kind: "existing"; teeId: number }>;
-  placeholderResolutions?: Record<string, { kind: "keep" } | { kind: "map"; teeId: string }>;
+  teeResolutions?: Record<
+    string,
+    { kind: "new" } | { kind: "existing"; teeId: number }
+  >;
+  placeholderResolutions?: Record<
+    string,
+    { kind: "keep" } | { kind: "map"; teeId: string }
+  >;
 }): Promise<CourseScorecardImportResult> {
   const actor = await getCurrentPlayer();
   if (!actor) return { outcome: "rejected", error: "forbidden" };
@@ -137,7 +145,10 @@ export async function replaceCourseScorecardImport(input: {
     actorId: actor.id,
     importId: input.importId,
     expectedRevision: input.expectedRevision,
-    intent: { kind: "replace_scorecard_image", stagedScorecardImageHandle: input.stagedScorecardImageHandle },
+    intent: {
+      kind: "replace_scorecard_image",
+      stagedScorecardImageHandle: input.stagedScorecardImageHandle,
+    },
   });
   return toActionResult(result);
 }
@@ -147,7 +158,10 @@ export async function inspectCourseScorecardImport(
 ): Promise<CourseScorecardImportResult> {
   const actor = await getCurrentPlayer();
   if (!actor) return { outcome: "rejected", error: "forbidden" };
-  const result = await courseScorecardImports.inspect({ actorId: actor.id, importId });
+  const result = await courseScorecardImports.inspect({
+    actorId: actor.id,
+    importId,
+  });
   return toActionResult(result);
 }
 

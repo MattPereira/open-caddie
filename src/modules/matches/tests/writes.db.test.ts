@@ -72,7 +72,10 @@ describe("Match mutations", () => {
   // Team name → sorted Player ids.
   async function teams(matchId: number) {
     const rows = await db
-      .select({ name: schema.matchTeams.name, playerId: schema.rounds.playerId })
+      .select({
+        name: schema.matchTeams.name,
+        playerId: schema.rounds.playerId,
+      })
       .from(schema.matchTeams)
       .innerJoin(
         schema.matchTeamMembers,
@@ -194,7 +197,9 @@ describe("Match mutations", () => {
       });
       expect((await matchRow(m.match.id))?.date).toEqual(m.match.date);
 
-      expect(await matches.updateMatch(m.creator.id, input)).toEqual({ ok: true });
+      expect(await matches.updateMatch(m.creator.id, input)).toEqual({
+        ok: true,
+      });
       const admin = await fixtures.player({ isAdmin: true });
       revalidatePath.mockClear();
       expect(
@@ -269,8 +274,14 @@ describe("Match mutations", () => {
         playerIds: [a.id, b.id, d.id, e.id],
         teamOnePlayerIds: [],
         teamTwoPlayerIds: [],
-        teamOneRoundIds: [roundIdByPlayer.get(a.id)!, roundIdByPlayer.get(e.id)!],
-        teamTwoRoundIds: [roundIdByPlayer.get(b.id)!, roundIdByPlayer.get(d.id)!],
+        teamOneRoundIds: [
+          roundIdByPlayer.get(a.id)!,
+          roundIdByPlayer.get(e.id)!,
+        ],
+        teamTwoRoundIds: [
+          roundIdByPlayer.get(b.id)!,
+          roundIdByPlayer.get(d.id)!,
+        ],
       });
 
       expect(result).toEqual({ ok: true });

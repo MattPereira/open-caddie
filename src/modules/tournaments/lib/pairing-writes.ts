@@ -10,7 +10,8 @@ import { PAIRING_MAX_MEMBERS } from "./pairings";
 // Pairings do not appear in home events, and play pages are force-dynamic, so
 // every Pairing write revalidates the Tournament edit page and nothing else.
 
-type PairingWriteResult = { ok: true; id?: number } | { ok: false; error: string };
+type PairingWriteResult =
+  { ok: true; id?: number } | { ok: false; error: string };
 
 const NOT_ADMIN = "Only admins can manage Pairings.";
 
@@ -134,7 +135,8 @@ export async function assignRoundToPairing(
       .from(rounds)
       .where(eq(rounds.id, roundId))
       .limit(1);
-    if (!round) return { ok: false as const, error: "Player's round not found." };
+    if (!round)
+      return { ok: false as const, error: "Player's round not found." };
     if (round.tournamentId !== pairing.tournamentId) {
       return {
         ok: false as const,
@@ -163,7 +165,9 @@ export async function assignRoundToPairing(
     }
 
     if (existing) {
-      await tx.delete(pairingMembers).where(eq(pairingMembers.roundId, roundId));
+      await tx
+        .delete(pairingMembers)
+        .where(eq(pairingMembers.roundId, roundId));
     }
     await tx.insert(pairingMembers).values({
       tournamentId: pairing.tournamentId,

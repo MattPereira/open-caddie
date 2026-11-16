@@ -7,7 +7,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Calendar01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import { PlayerCard, type PlayerCardPlayer } from "@/components/domain/player-card";
+import {
+  PlayerCard,
+  type PlayerCardPlayer,
+} from "@/components/domain/player-card";
 import { displayName } from "@/modules/players";
 import { SearchInput } from "@/components/shared/search-input";
 import { Button } from "@/components/ui/button";
@@ -189,8 +192,10 @@ function toFormValues(match?: MatchSheetMatch): MatchFormValues {
     format: match.format,
     teeId: match.rounds[0]?.teeId ?? 0,
     playerIds: match.rounds.map((round) => round.playerId),
-    teamOnePlayerIds: match.teams[0]?.rounds.map((round) => round.playerId) ?? [],
-    teamTwoPlayerIds: match.teams[1]?.rounds.map((round) => round.playerId) ?? [],
+    teamOnePlayerIds:
+      match.teams[0]?.rounds.map((round) => round.playerId) ?? [],
+    teamTwoPlayerIds:
+      match.teams[1]?.rounds.map((round) => round.playerId) ?? [],
     teamOneRoundIds: defaultTeamOneRoundIds,
     teamTwoRoundIds: defaultTeamTwoRoundIds,
   };
@@ -466,7 +471,8 @@ export function MatchSheet({
   const togglePlayer = (playerId: string) => {
     const selected = selectedPlayerIds.includes(playerId);
     if (selected) {
-      if (canRepairFourBallTeams && existingMatchPlayerIds.has(playerId)) return;
+      if (canRepairFourBallTeams && existingMatchPlayerIds.has(playerId))
+        return;
 
       setArrayValue(
         "playerIds",

@@ -20,7 +20,12 @@ const POINT_RULES: PointRules = {
   aces: 10,
   strokes: { positions: [10, 5] },
   putts: { positions: [4] },
-  greenies: { tiers: [{ maxFt: 3, pts: 2 }, { maxFt: null, pts: 1 }] },
+  greenies: {
+    tiers: [
+      { maxFt: 3, pts: 2 },
+      { maxFt: null, pts: 1 },
+    ],
+  },
 };
 
 const LOGO = "https://example.com/logo.png";
@@ -30,7 +35,9 @@ describe("Club writes", () => {
   let admin: Awaited<ReturnType<typeof fixtures.player>>;
   let player: Awaited<ReturnType<typeof fixtures.player>>;
 
-  function input(overrides: Partial<clubs.ClubWriteInput> = {}): clubs.ClubWriteInput {
+  function input(
+    overrides: Partial<clubs.ClubWriteInput> = {},
+  ): clubs.ClubWriteInput {
     const suffix = crypto.randomUUID();
     return {
       handle: `club-${suffix}`,
@@ -65,7 +72,10 @@ describe("Club writes", () => {
     it("refuses a Player who isn't a Platform Admin", async () => {
       const values = input();
       const result = await clubs.createClub(player.id, values);
-      expect(result).toEqual({ ok: false, error: expect.stringMatching(/Platform Admin/) });
+      expect(result).toEqual({
+        ok: false,
+        error: expect.stringMatching(/Platform Admin/),
+      });
       expect(await clubs.getClubByHandle(values.handle)).toBeNull();
       expect(revalidatePath).not.toHaveBeenCalled();
     });
@@ -80,9 +90,17 @@ describe("Club writes", () => {
       const values = input();
       await clubs.createClub(admin.id, values);
       revalidatePath.mockClear();
-      const result = await clubs.createClub(admin.id, { ...values, name: "Other" });
-      expect(result).toEqual({ ok: false, error: "A club with that handle already exists." });
-      expect((await clubs.getClubByHandle(values.handle))?.name).toBe(values.name);
+      const result = await clubs.createClub(admin.id, {
+        ...values,
+        name: "Other",
+      });
+      expect(result).toEqual({
+        ok: false,
+        error: "A club with that handle already exists.",
+      });
+      expect((await clubs.getClubByHandle(values.handle))?.name).toBe(
+        values.name,
+      );
       expect(revalidatePath).not.toHaveBeenCalled();
     });
   });
@@ -116,9 +134,17 @@ describe("Club writes", () => {
 
     it("refuses a Player who isn't a Platform Admin", async () => {
       const values = await existing();
-      const result = await clubs.updateClub(player.id, { ...values, name: "Renamed" });
-      expect(result).toEqual({ ok: false, error: expect.stringMatching(/Platform Admin/) });
-      expect((await clubs.getClubByHandle(values.handle))?.name).toBe(values.name);
+      const result = await clubs.updateClub(player.id, {
+        ...values,
+        name: "Renamed",
+      });
+      expect(result).toEqual({
+        ok: false,
+        error: expect.stringMatching(/Platform Admin/),
+      });
+      expect((await clubs.getClubByHandle(values.handle))?.name).toBe(
+        values.name,
+      );
       expect(revalidatePath).not.toHaveBeenCalled();
       expect(updateTag).not.toHaveBeenCalled();
     });

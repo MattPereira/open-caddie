@@ -37,7 +37,11 @@ describe("Tournament reads", () => {
   async function named(firstName: string, lastName: string) {
     const [created] = await db
       .insert(schema.users)
-      .values({ email: `${crypto.randomUUID()}@example.com`, firstName, lastName })
+      .values({
+        email: `${crypto.randomUUID()}@example.com`,
+        firstName,
+        lastName,
+      })
       .returning();
     return created;
   }
@@ -51,7 +55,9 @@ describe("Tournament reads", () => {
 
   describe("by id", () => {
     it("is undefined for a missing Tournament", async () => {
-      expect(await tournaments.getTournamentById(2_000_000_000)).toBeUndefined();
+      expect(
+        await tournaments.getTournamentById(2_000_000_000),
+      ).toBeUndefined();
     });
 
     it("carries the Club, Season and course, with its Rounds", async () => {
@@ -69,7 +75,9 @@ describe("Tournament reads", () => {
         courseHandle: t.course.handle,
         teeId: t.tee.id,
       });
-      expect(tournament?.rounds.map((round) => round.id).sort()).toEqual([a.round.id, b.round.id].sort());
+      expect(tournament?.rounds.map((round) => round.id).sort()).toEqual(
+        [a.round.id, b.round.id].sort(),
+      );
     });
 
     it("lists every Round's Greenies by hole, closest first", async () => {
@@ -121,9 +129,14 @@ describe("Tournament reads", () => {
       const later = await sibling(t, "2026-02-01");
       await fixtures.tournament();
 
-      const byClub = await tournaments.getTournamentsByClubHandle((await clubOf(t)).handle);
+      const byClub = await tournaments.getTournamentsByClubHandle(
+        (await clubOf(t)).handle,
+      );
 
-      expect(byClub.map((row) => row.id)).toEqual([later.tournament.id, t.tournament.id]);
+      expect(byClub.map((row) => row.id)).toEqual([
+        later.tournament.id,
+        t.tournament.id,
+      ]);
     });
   });
 
@@ -131,16 +144,23 @@ describe("Tournament reads", () => {
     it("lists today's and later Tournaments of the player's Clubs, soonest first", async () => {
       const t = await fixtures.tournament();
       const player = await fixtures.player();
-      await db.insert(schema.clubMembers).values({ clubId: (await clubOf(t)).id, playerId: player.id });
+      await db
+        .insert(schema.clubMembers)
+        .values({ clubId: (await clubOf(t)).id, playerId: player.id });
       await sibling(t, isoDaysFromToday(-1));
       const today = await sibling(t, isoDaysFromToday(0));
       const soon = await sibling(t, isoDaysFromToday(7));
       const elsewhere = await fixtures.tournament();
       await sibling(elsewhere, isoDaysFromToday(3));
 
-      const upcoming = await tournaments.getUpcomingTournamentsForPlayer(player.id);
+      const upcoming = await tournaments.getUpcomingTournamentsForPlayer(
+        player.id,
+      );
 
-      expect(upcoming.map((row) => row.id)).toEqual([today.tournament.id, soon.tournament.id]);
+      expect(upcoming.map((row) => row.id)).toEqual([
+        today.tournament.id,
+        soon.tournament.id,
+      ]);
     });
   });
 
@@ -148,11 +168,15 @@ describe("Tournament reads", () => {
     it("lists players without a Round in the Tournament, by name", async () => {
       const t = await fixtures.tournament();
       const entered = await fixtures.tournamentPlayer(t);
-      const elsewhere = await fixtures.tournamentPlayer(await fixtures.tournament());
+      const elsewhere = await fixtures.tournamentPlayer(
+        await fixtures.tournament(),
+      );
       const zed = await named("Zed", "Adams");
       const amy = await named("Amy", "Young");
 
-      const addable = await tournaments.getAddablePlayersForTournament(t.tournament.id);
+      const addable = await tournaments.getAddablePlayersForTournament(
+        t.tournament.id,
+      );
       const ids = addable.map((player) => player.id);
 
       expect(ids).not.toContain(entered.player.id);
@@ -163,7 +187,9 @@ describe("Tournament reads", () => {
     it("lists no one for a missing Tournament", async () => {
       await fixtures.player();
 
-      expect(await tournaments.getAddablePlayersForTournament(2_000_000_000)).toEqual([]);
+      expect(
+        await tournaments.getAddablePlayersForTournament(2_000_000_000),
+      ).toEqual([]);
     });
   });
 });

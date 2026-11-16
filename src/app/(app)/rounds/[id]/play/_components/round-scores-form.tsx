@@ -25,10 +25,7 @@ import { SettingsDialog, type SettingsTee } from "./settings-dialog";
 import { TournamentLeaderboardDialog } from "./tournament-leaderboard-dialog";
 import { MatchScoreboardDialog } from "./match-scoreboard-dialog";
 import { selfColumnClassName } from "./self-column";
-import {
-  type GreenieEntry,
-  useLiveScorecard,
-} from "./use-live-scorecard";
+import { type GreenieEntry, useLiveScorecard } from "./use-live-scorecard";
 import { eventPage } from "./play-rounds";
 import type { PlayCourse, PlayRound } from "./round-play";
 
@@ -118,10 +115,7 @@ export function RoundScoresForm({
     saveGreenie,
     removeGreenie,
     saveError,
-  } = useLiveScorecard(
-    baseScoresByRoundId,
-    baseGreeniesByRoundId,
-  );
+  } = useLiveScorecard(baseScoresByRoundId, baseGreeniesByRoundId);
   // This Round is always in the base map, so the merge always returns it.
   const scores = scoresByRoundId[roundId];
   const live = useMemo(
@@ -323,15 +317,18 @@ export function RoundScoresForm({
         onValueChange={(value) => setActiveNine(value as Nine)}
       >
         <div className="flex items-center justify-between gap-3">
-          <h1 className="sr-only">
-            {`${course.name} scorecard`}
-          </h1>
+          <h1 className="sr-only">{`${course.name} scorecard`}</h1>
           {/* The card itself says whose it is — the tinted column and the
               column headers — so the heading slot is spent on the way out
               instead. A Round with no parent gets no link, and the tabs sit
               alone on the right. */}
           {backLink ? (
-            <Button asChild variant="secondary" size="xl" className="min-w-0 shrink">
+            <Button
+              asChild
+              variant="secondary"
+              size="xl"
+              className="min-w-0 shrink"
+            >
               <Link href={backLink.href}>
                 <HugeiconsIcon
                   icon={ArrowLeft02Icon}
@@ -465,10 +462,10 @@ function SummaryRow({
       style={{ gridTemplateColumns: columns }}
       className="grid items-center border-t border-border bg-muted"
     >
-      <div className="text-center text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+      <div className="text-center text-sm font-semibold tracking-wide text-muted-foreground uppercase">
         {label}
       </div>
-      <div className="text-center text-base font-semibold tabular-nums text-muted-foreground">
+      <div className="text-center text-base font-semibold text-muted-foreground tabular-nums">
         {par ?? "—"}
       </div>
       {players.map((player) => {
@@ -484,7 +481,7 @@ function SummaryRow({
           >
             {strokes ?? "—"}
             {showPutts && putts != null ? (
-              <span className="absolute right-1 top-0.5 text-xs font-normal text-muted-foreground">
+              <span className="absolute top-0.5 right-1 text-xs font-normal text-muted-foreground">
                 {putts}
               </span>
             ) : null}

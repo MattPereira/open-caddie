@@ -97,7 +97,10 @@ export type RoundHoleScore = Pick<
   "hole" | "par" | "strokes" | "putts"
 >;
 
-export type RoundHoleGreenie = Pick<RoundGreenieRow, "hole" | "feet" | "inches">;
+export type RoundHoleGreenie = Pick<
+  RoundGreenieRow,
+  "hole" | "feet" | "inches"
+>;
 
 /** A Round as Match Play and Match Skins score it: strokes against hole handicaps. */
 export type NetScoringRound = Pick<
@@ -172,10 +175,7 @@ const scopes = {
   round: {
     roundsIn: (id: number) => eq(rounds.id, id),
     courseOf: (id: number) =>
-      db
-        .select({ id: rounds.courseId })
-        .from(rounds)
-        .where(eq(rounds.id, id)),
+      db.select({ id: rounds.courseId }).from(rounds).where(eq(rounds.id, id)),
   },
 };
 
@@ -296,9 +296,10 @@ async function readPriorRounds(where: SQL) {
       courseSlope: roundSummaries.courseSlope,
       totalStrokes: roundSummaries.totalStrokes,
       scoreDifferential: roundSummaries.scoreDifferential,
-      recency: sql<number>`row_number() over (partition by ${current.currentRoundId} order by ${roundSummaries.date} desc, ${roundSummaries.roundId} desc)`.as(
-        "recency",
-      ),
+      recency:
+        sql<number>`row_number() over (partition by ${current.currentRoundId} order by ${roundSummaries.date} desc, ${roundSummaries.roundId} desc)`.as(
+          "recency",
+        ),
     })
     .from(current)
     .innerJoin(

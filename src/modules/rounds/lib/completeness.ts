@@ -9,7 +9,9 @@ export type RecordedCounts = {
   recordedPuttsCount: number;
 };
 
-export function isComplete(round: Pick<RecordedCounts, "recordedStrokesCount">) {
+export function isComplete(
+  round: Pick<RecordedCounts, "recordedStrokesCount">,
+) {
   return round.recordedStrokesCount === HOLE_COUNT;
 }
 

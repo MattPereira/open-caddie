@@ -19,3 +19,16 @@ Follow [CODING_STANDARDS.md](./CODING_STANDARDS.md).
 ### Modules
 
 Domain code is moving into deep modules: see [src/modules/README.md](./src/modules/README.md) before adding or importing one. `pnpm lint:boundaries` enforces it.
+
+## Verification checks
+
+Do these checks in this order before you report a change to `src/` as complete:
+
+1. `pnpm typecheck`
+2. `pnpm lint:boundaries`
+3. `pnpm test`
+4. `pnpm test:mutation <changed-files>`
+
+Or run the first three with `pnpm check`.
+
+`pnpm lint` lints the whole repository with oxlint (`.oxlintrc.json`).

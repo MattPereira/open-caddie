@@ -16,6 +16,7 @@
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project db",
     "test:coverage": "vitest run --coverage",
+    "test:mutation": "stryker run --mutate",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
@@ -63,6 +64,8 @@
     "zod": "^4.4.2"
   },
   "devDependencies": {
+    "@stryker-mutator/core": "^10.1.1",
+    "@stryker-mutator/vitest-runner": "^10.1.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/pg": "^8.20.0",

@@ -41,13 +41,3 @@ export function matchFormatPolicy(format: MatchFormat) {
 export function matchFormatLabel(format: MatchFormat | null | undefined) {
   return format ? FORMATS[format].label : null;
 }
-
-/** Three-Ball holds three Match Play Contests, so each is titled by its pair of Players. */
-export function matchPlayContestTitle(
-  format: MatchFormat,
-  teamNames: readonly string[],
-) {
-  if (format === "three_ball_match_play") return teamNames.join(" vs ");
-  if (format === "singles_match_play") return "Match Play";
-  return FORMATS[format].label;
-}

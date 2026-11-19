@@ -1,4 +1,3 @@
-import { matchPlayContestTitle } from "@/modules/matches";
 import {
   MatchPlayCardRow,
   MatchPlayRules,
@@ -28,10 +27,7 @@ export function ThreeBallMatchPlayContent({
               className="grid gap-3"
             >
               <MatchPlaySection
-                title={matchPlayContestTitle(
-                  "three_ball_match_play",
-                  matchPlay.teams.map((team) => team.name),
-                )}
+                title={matchPlay.teams.map((team) => team.name).join(" vs ")}
               >
                 <MatchPlayCardRow matchPlay={matchPlay} />
               </MatchPlaySection>

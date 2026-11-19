@@ -1,8 +1,4 @@
-export {
-  matchFormatLabel,
-  matchFormatPolicy,
-  matchPlayContestTitle,
-} from "./lib/formats";
+export { matchFormatLabel, matchFormatPolicy } from "./lib/formats";
 export {
   scoreMatchPlay,
   scoreMatchSkins,

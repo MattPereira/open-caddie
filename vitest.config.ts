@@ -17,11 +17,14 @@ function definedEnv() {
 }
 
 const DB_TESTS = "**/*.db.test.ts";
-// Claude Code checks out worktrees inside the repo, each a
-// full copy of the tree. Without this they are globbed as ordinary
-// sources and every test file runs once per worktree on top of the real
-// one.
-const EXCLUDE = [...configDefaults.exclude, ".claude/worktrees/**"];
+// Claude Code worktrees and interrupted Stryker runs leave full copies of the
+// tree inside the repo. Without this every test file runs once per copy on top
+// of the real one, and the extra db tests exhaust Postgres connections.
+const EXCLUDE = [
+  ...configDefaults.exclude,
+  ".claude/worktrees/**",
+  ".stryker-tmp/**",
+];
 
 export default defineConfig({
   resolve: {

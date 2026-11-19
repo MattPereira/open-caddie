@@ -43,6 +43,13 @@
       "skillPath": "skills/neon-realtime/SKILL.md",
       "computedHash": "0c53a628305df36d3c5926683bf5ae2b9ca8969bfb86f8e2bc4835b5fe7cf521"
     },
+    "pr": {
+      "source": "mattpocock/skills",
+      "commit": "abeeaf95660ba9e8b7c753eb38f441ca707a8823",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/pr/SKILL.md",
+      "computedHash": "a66195583d0f9323004cdd4da169f93449071f29023671f3e31a916e740f6861"
+    },
     "setup-ts-deep-modules": {
       "source": "mattpocock/skills",
       "sourceType": "github",
@@ -54,6 +61,13 @@
       "sourceType": "github",
       "skillPath": "skills/shadcn/SKILL.md",
       "computedHash": "28c135d75a16a268e26a44330ed70c831e35c6b8b6d8d384061e4adae5896a22"
+    },
+    "software-factory": {
+      "source": "mattpocock/skills",
+      "commit": "abeeaf95660ba9e8b7c753eb38f441ca707a8823",
+      "sourceType": "github",
+      "skillPath": "skills/in-progress/software-factory/SKILL.md",
+      "computedHash": "2b1ea5b8cd7d5c122f1503c71326a231791908d4f0aa107f1cec57bb6255e118"
     }
   }
 }

@@ -64,6 +64,7 @@
     "zod": "^4.4.2"
   },
   "devDependencies": {
+    "@ai-hero/sandcastle": "^0.14.0",
     "@stryker-mutator/core": "^10.1.1",
     "@stryker-mutator/vitest-runner": "^10.1.1",
     "@tailwindcss/postcss": "^4",

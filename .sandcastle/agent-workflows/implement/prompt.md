@@ -14,7 +14,7 @@ Read CODING_STANDARDS.md.
 - `pnpm build` and `pnpm check` must pass too.
 - Commit with `git commit` on the current branch. When the pre-commit hook
   rejects a commit, fix the work and commit again. The hook stays as it is:
-  no `--no-verify`, no edits to `.husky/`, `scripts/pre-commit.sh` or
+  no `--no-verify`, no edits to `.husky/`, `lint-staged.config.mjs` or
   `core.hooksPath`.
 - Finish with at least one commit and a clean working tree. The workflow
   pushes and opens the pull request.

@@ -61,8 +61,8 @@ name: Agent — Implement A Ticket
 # WHO COMMITS
 #   The agent does, and the repo's own pre-commit hook runs on every commit it
 #   makes — `pnpm install` installs it, through husky's `prepare` script,
-#   exactly as it does on your machine. When the hook rejects a commit, the agent reads
-#   the failure, fixes its work and commits again. The hook is code from the
+#   exactly as it does on your machine. When the hook rejects a commit, the
+#   agent reads the failure, fixes its work and commits again. The hook is code from the
 #   repo, so it runs only where there is no token: every git command that
 #   holds one switches hooks off with `core.hooksPath=/dev/null`.
 #
@@ -119,6 +119,7 @@ jobs:
       RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/open_caddie_test
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/open_caddie_test
+      # The app's default Neon driver can't reach a plain local Postgres.
       DATABASE_DRIVER: node-postgres
 
     steps:

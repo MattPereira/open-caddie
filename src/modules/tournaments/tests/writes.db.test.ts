@@ -446,7 +446,9 @@ describe("Tournament Season mutations", () => {
         ok: false,
         error: "Cannot delete: tournament has 1 round(s).",
       });
-      expect(await tournaments.getTournamentById(t.tournament.id)).toBeDefined();
+      expect(
+        await tournaments.getTournamentById(t.tournament.id),
+      ).toBeDefined();
       expect(revalidatePath).not.toHaveBeenCalled();
     });
 

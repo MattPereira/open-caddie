@@ -371,11 +371,7 @@ describe("Season Standings reads", () => {
     const grosses = [72, 80, 77, 84, 79];
     for (const [index, gross] of grosses.entries()) {
       const prior = await enter(
-        await tournament(
-          t,
-          course,
-          `2025-0${index + 2}-01`,
-        ),
+        await tournament(t, course, `2025-0${index + 2}-01`),
         player,
       );
       await card(prior.id, {

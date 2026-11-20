@@ -71,9 +71,11 @@ All are `error`. Run them with `pnpm lint:boundaries`. They also run in `pnpm ch
 
 **`tests-through-entrypoints`.** Files in `<module>/tests/` may import any module's entry points and their own `tests/` fixtures, but never any module's internals, not even their own. Tests exercise behaviour, not implementation.
 
+**`tests-arrange-through-entrypoints`.** Module tests and `src/test/fixtures/` may not import anything under `src/db/`, `@/db` included. They arrange data and assert on it through entry points (`createFixtures()` wraps the common setups), so a storage change breaks only the module that owns it. The db test harness in `src/test/db/` is exempt; it seeds the first Platform Admin and holds the few things no entry point can do. An entry point may exist mainly to support tests.
+
 **`tests-folder-is-private`.** Only tests may import from a `tests/` folder, so test fixtures never ship in app code.
 
-**`test-support-only-from-tests`.** Fixtures shared across modules' tests (e.g. `createRoundFixtures`) live in `src/test/fixtures/`. Only `*.test.ts` files and `src/test/` itself may import `src/test/`.
+**`test-support-only-from-tests`.** Fixtures shared across modules' tests (e.g. `createFixtures`) live in `src/test/fixtures/`. Only `*.test.ts` files and `src/test/` itself may import `src/test/`.
 
 **`index-runs-anywhere`.** No runtime path from a module's `index.ts` may reach `src/db`, `server-only` or any `server.ts`. It's transitive, so it catches a pure-looking lib file that imports the db. It lives in `.dependency-cruiser.runtime.cjs`, a second pass with type-only imports erased (`reachable` rules can't skip them, and pure code legitimately type-imports server files).
 

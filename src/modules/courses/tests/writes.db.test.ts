@@ -112,7 +112,9 @@ describe("Course writes", () => {
             color: " blue ",
             rating: "71.2",
             slope: 128,
-            yardages: Array.from({ length: 18 }, (_, i) => (i === 0 ? 410 : "")),
+            yardages: Array.from({ length: 18 }, (_, i) =>
+              i === 0 ? 410 : "",
+            ),
             sortOrder: 0,
           },
           {
@@ -164,7 +166,13 @@ describe("Course writes", () => {
         holes: input.holes,
       });
       expect(
-        saved?.tees.map((t) => [t.name, t.color, t.rating, t.slope, t.sortOrder]),
+        saved?.tees.map((t) => [
+          t.name,
+          t.color,
+          t.rating,
+          t.slope,
+          t.sortOrder,
+        ]),
       ).toEqual([
         ["Blue", "blue", "71.2", 128, 0],
         ["Red", null, "68.5", 110, 1],
@@ -374,7 +382,10 @@ describe("Course writes", () => {
     it("keeps an unchanged image", async () => {
       const img = `${BLOB}/same-${crypto.randomUUID()}.webp`;
       const { course, tee } = await fixtures.course({ imgUrl: img });
-      const result = await courses.updateCourse(admin.id, editOf(course, [tee]));
+      const result = await courses.updateCourse(
+        admin.id,
+        editOf(course, [tee]),
+      );
       expect(result.ok).toBe(true);
       expect(del).not.toHaveBeenCalled();
     });

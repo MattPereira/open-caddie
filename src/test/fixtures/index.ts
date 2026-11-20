@@ -219,7 +219,10 @@ export function createFixtures() {
   }
 
   /** Adds a tee to the course, keeping its existing tees and holes. */
-  async function tee(courseHandle: string, name = "White"): Promise<FixtureTee> {
+  async function tee(
+    courseHandle: string,
+    name = "White",
+  ): Promise<FixtureTee> {
     const courseId = await editTees(courseHandle, (tees) => [
       ...tees,
       {
@@ -248,7 +251,11 @@ export function createFixtures() {
   }
 
   /** Sets a tee's 18 hole yardages. */
-  async function yardages(courseHandle: string, teeId: number, yards: number[]) {
+  async function yardages(
+    courseHandle: string,
+    teeId: number,
+    yards: number[],
+  ) {
     await editTees(courseHandle, (tees) =>
       tees.map((t) => (t.id === teeId ? { ...t, yardages: yards } : t)),
     );
@@ -349,7 +356,11 @@ export function createFixtures() {
 
   async function casualRound(
     playerId: string,
-    { courseHandle, teeId, date = EVENT_DATE }: {
+    {
+      courseHandle,
+      teeId,
+      date = EVENT_DATE,
+    }: {
       courseHandle: string;
       teeId: number;
       date?: string;
@@ -369,10 +380,7 @@ export function createFixtures() {
 
   async function pairing(tournamentId: number, roundIds: number[]) {
     const actor = await admin();
-    const created = ok(
-      await createPairing(actor, { tournamentId }),
-      "pairing",
-    );
+    const created = ok(await createPairing(actor, { tournamentId }), "pairing");
     const pairingId = required(created.id, "pairing id");
     for (const roundId of roundIds) {
       ok(
@@ -501,9 +509,9 @@ export function createFixtures() {
 
 // Clears cache mocks once each fixture resolves, so a test's cache assertions
 // see only its act. A fixture called after the act wipes the act's calls too.
-function settled<T extends Record<string, (...args: never[]) => Promise<unknown>>>(
-  fns: T,
-): T {
+function settled<
+  T extends Record<string, (...args: never[]) => Promise<unknown>>,
+>(fns: T): T {
   return Object.fromEntries(
     Object.entries(fns).map(([name, fn]) => [
       name,

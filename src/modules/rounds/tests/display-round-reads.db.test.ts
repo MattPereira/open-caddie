@@ -155,7 +155,10 @@ describe("Display Round reads", () => {
       await priorRound(t, player, "2025-03-01", 84);
       // Neither of these may count: one is after the event, one elsewhere.
       await priorRound(t, player, "2026-02-01", 72);
-      const elsewhere = await fixtures.tournament({ date: "2025-04-01", on: t });
+      const elsewhere = await fixtures.tournament({
+        date: "2025-04-01",
+        on: t,
+      });
       const { round: otherClubRound } = await fixtures.tournamentPlayer(
         elsewhere,
         player,

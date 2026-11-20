@@ -3,11 +3,7 @@ import { addDays, format } from "date-fns";
 import { required } from "@/lib/required";
 import type { PointRules } from "@/modules/clubs";
 import { addClubMember, createClub } from "@/modules/clubs/server";
-import {
-  createCourse,
-  getCourseForEdit,
-  type CourseCreateInput,
-} from "@/modules/courses/server";
+import { createCourse, getCourseForEdit } from "@/modules/courses/server";
 import { createMatch, type MatchCreateInput } from "@/modules/matches/server";
 import {
   createFirstPlatformAdmin,
@@ -30,16 +26,39 @@ import {
 
 // A small, fixed world for agents to render. Content is the same every run;
 // ids are whatever the database hands out, and dates follow the day it runs
-// so "upcoming" and "past" both have something in them.
+// so "upcoming" and "past" both have something in them. The Players and
+// Courses borrow real names, but every score, index and rating is made up.
 
 type HoleScore = { strokes: number; putts: number };
 type Distance = { feet: number; inches: number };
 
-const PARS = [4, 5, 4, 3, 4, 4, 3, 5, 4, 4, 3, 5, 4, 4, 3, 4, 5, 4];
-const HANDICAPS = [
-  7, 1, 11, 17, 3, 9, 15, 5, 13, 8, 16, 2, 12, 4, 18, 10, 6, 14,
-];
-const PAR_THREES = PARS.flatMap((par, i) => (par === 3 ? [i + 1] : []));
+type CoursePlan = {
+  name: string;
+  handle: string;
+  pars: number[];
+  handicaps: number[];
+  tees: { name: string; color: string; rating: string; slope: number }[];
+};
+
+const PEBBLE_BEACH: CoursePlan = {
+  name: "Pebble Beach Golf Links",
+  handle: "pebble-beach",
+  pars: [4, 5, 4, 4, 3, 5, 3, 4, 4, 4, 4, 3, 4, 5, 4, 4, 3, 5],
+  handicaps: [9, 7, 13, 11, 17, 3, 15, 1, 5, 6, 12, 16, 2, 10, 8, 4, 18, 14],
+  tees: [
+    { name: "Blue", color: "#1d4ed8", rating: "74.9", slope: 144 },
+    { name: "White", color: "#e5e7eb", rating: "72.1", slope: 136 },
+  ],
+};
+
+// A short name, next to Pebble Beach's long one in course pickers.
+const RIVIERA: CoursePlan = {
+  name: "Riviera",
+  handle: "riviera",
+  pars: [5, 4, 4, 3, 4, 3, 4, 4, 4, 4, 5, 4, 4, 3, 4, 3, 5, 4],
+  handicaps: [5, 9, 7, 15, 3, 17, 1, 11, 13, 4, 8, 14, 2, 16, 10, 18, 6, 12],
+  tees: [{ name: "Gold", color: "#ca8a04", rating: "72.4", slope: 132 }],
+};
 
 const POINT_RULES: PointRules = {
   participation: 2,
@@ -59,19 +78,15 @@ const POINT_RULES: PointRules = {
 };
 
 const PLAYERS = {
-  ada: { firstName: "Ada", lastName: "Okafor", skill: -2 },
-  ben: { firstName: "Ben", lastName: "Hartley", skill: 0 },
-  cara: { firstName: "Cara", lastName: "Lindqvist", skill: 1 },
-  dev: { firstName: "Dev", lastName: "Raman", skill: -1 },
-  eli: { firstName: "Eli", lastName: "Navarro", skill: 2 },
-  finn: { firstName: "Finn", lastName: "Doyle", skill: 1 },
-  gwen: { firstName: "Gwen", lastName: "Ito", skill: 3 },
+  tiger: { firstName: "Tiger", lastName: "Woods", skill: -2 },
+  phil: { firstName: "Phil", lastName: "Mickelson", skill: 0 },
+  rory: { firstName: "Rory", lastName: "McIlroy", skill: 1 },
+  scottie: { firstName: "Scottie", lastName: "Scheffler", skill: -1 },
+  daly: { firstName: "John", lastName: "Daly", skill: 2 },
+  jordan: { firstName: "Jordan", lastName: "Spieth", skill: 1 },
+  annika: { firstName: "Annika", lastName: "Sörenstam", skill: 3 },
   // Long enough to wrap or truncate in tables and cards.
-  max: {
-    firstName: "Maximiliana",
-    lastName: "Featherstonehaugh-Worthington",
-    skill: 0,
-  },
+  christiaan: { firstName: "Christiaan", lastName: "Bezuidenhout", skill: 0 },
 };
 type PlayerKey = keyof typeof PLAYERS;
 type PlayerIds = Record<PlayerKey, string>;
@@ -103,12 +118,13 @@ function firstHoles(card: HoleScore[], holes: number) {
   return card.map((hole, i) => (i < holes ? hole : null));
 }
 
-function day(offset: number) {
+/** yyyy-mm-dd, `offset` days from today. */
+function dateFromToday(offset: number) {
   return format(addDays(new Date(), offset), "yyyy-MM-dd");
 }
 
 /** A fixed pseudo-random digit 0–9 for a Player's hole in one Event. */
-function digit(salt: number, hole: number) {
+function fixedDigit(salt: number, hole: number) {
   return (Math.imul(salt * 31 + hole, 2654435761) >>> 0) % 10;
 }
 
@@ -116,10 +132,10 @@ function digit(salt: number, hole: number) {
  * A believable card: `skill` below 0 plays better, above 0 worse. `salt`
  * makes each Player's card in each Event different but fixed.
  */
-function scorecard(skill: number, salt: number): HoleScore[] {
+function scorecard(pars: number[], skill: number, salt: number): HoleScore[] {
   const overPar = [0, 0, 0, 1, 1, 1, 2, 2, 3];
-  return PARS.map((par, i) => {
-    const r = digit(salt, i + 1);
+  return pars.map((par, i) => {
+    const r = fixedDigit(salt, i + 1);
     // About one birdie in ten holes, whatever the skill.
     const over =
       r === 0 ? -1 : overPar[Math.min(8, Math.max(0, r - 1 + skill))];
@@ -154,42 +170,42 @@ async function writeGreenie(
   );
 }
 
-function course(
-  name: string,
-  handle: string,
-  tees: { name: string; color: string; rating: string; slope: number }[],
-): CourseCreateInput {
+async function seedCourse(adminId: string, plan: CoursePlan) {
+  ok(
+    await createCourse(adminId, {
+      handle: plan.handle,
+      name: plan.name,
+      imgUrl: "",
+      tees: plan.tees.map((tee, t) => ({
+        ...tee,
+        // Back tees play about 25 yards longer per hole.
+        yardages: plan.pars.map((par, i) => par * 90 + (i % 4) * 12 - t * 25),
+        sortOrder: t,
+      })),
+      holes: plan.pars.map((par, i) => ({
+        hole: i + 1,
+        par,
+        handicap: plan.handicaps[i],
+      })),
+    }),
+    `course ${plan.handle}`,
+  );
+  const stored = required(
+    await getCourseForEdit(plan.handle),
+    `course ${plan.handle}`,
+  );
   return {
-    handle,
-    name,
-    imgUrl: "",
-    tees: tees.map((tee, t) => ({
-      ...tee,
-      // Back tees play about 25 yards longer per hole.
-      yardages: PARS.map((par, i) => par * 90 + (i % 4) * 12 - t * 25),
-      sortOrder: t,
-    })),
-    holes: PARS.map((par, i) => ({
-      hole: i + 1,
-      par,
-      handicap: HANDICAPS[i],
-    })),
+    handle: stored.handle,
+    pars: plan.pars,
+    parThrees: plan.pars.flatMap((par, i) => (par === 3 ? [i + 1] : [])),
+    tee: (name: string) =>
+      required(
+        stored.tees.find((t) => t.name === name),
+        `${plan.handle} ${name} tee`,
+      ).id,
   };
 }
-
-async function createSeedCourse(adminId: string, values: CourseCreateInput) {
-  ok(await createCourse(adminId, values), `course ${values.handle}`);
-  const stored = required(
-    await getCourseForEdit(values.handle),
-    `course ${values.handle}`,
-  );
-  const tee = (name: string) =>
-    required(
-      stored.tees.find((t) => t.name === name),
-      `${values.handle} ${name} tee`,
-    ).id;
-  return { handle: stored.handle, tee };
-}
+type SeededCourse = Awaited<ReturnType<typeof seedCourse>>;
 
 async function seedPlayers(adminId: string): Promise<PlayerIds> {
   const ids = {} as PlayerIds;
@@ -212,8 +228,8 @@ async function seedPlayers(adminId: string): Promise<PlayerIds> {
 
 type TournamentPlan = {
   date: string;
-  courseHandle: string;
-  teeId: number;
+  course: SeededCourse;
+  tee: string;
   pairings: PlayerKey[][];
   /** 0 leaves the cards empty. */
   holesScored: number;
@@ -232,8 +248,8 @@ async function seedTournament(
     await createTournament(adminId, {
       clubHandle,
       date: plan.date,
-      courseHandle: plan.courseHandle,
-      teeId: plan.teeId,
+      courseHandle: plan.course.handle,
+      teeId: plan.course.tee(plan.tee),
       seasonId: null,
       startNextSeason: false,
     }),
@@ -270,7 +286,7 @@ async function seedTournament(
   if (plan.holesScored === 0) return;
   for (const [index, key] of entrants.entries()) {
     const card = firstHoles(
-      scorecard(PLAYERS[key].skill, plan.salt * 10 + index),
+      scorecard(plan.course.pars, PLAYERS[key].skill, plan.salt * 10 + index),
       plan.holesScored,
     );
     for (const ace of plan.aces ?? []) {
@@ -292,8 +308,8 @@ type MatchPlan = {
   creator: PlayerKey;
   format: MatchCreateInput["format"];
   date: string;
-  courseHandle: string;
-  teeId: number;
+  course: SeededCourse;
+  tee: string;
   players: PlayerKey[];
   teams?: [PlayerKey[], PlayerKey[]];
   /** Missing means the Round has no Player Index Override. */
@@ -305,9 +321,9 @@ async function seedMatch(adminId: string, ids: PlayerIds, plan: MatchPlan) {
   const created = ok(
     await createMatch(ids[plan.creator], {
       date: plan.date,
-      courseHandle: plan.courseHandle,
+      courseHandle: plan.course.handle,
       format: plan.format,
-      teeId: plan.teeId,
+      teeId: plan.course.tee(plan.tee),
       playerIds: plan.players.map((key) => ids[key]),
       teamOnePlayerIds: teamOne.map((key) => ids[key]),
       teamTwoPlayerIds: teamTwo.map((key) => ids[key]),
@@ -344,19 +360,8 @@ export async function seedWorld() {
   ).id;
   const ids = await seedPlayers(adminId);
 
-  const cedar = await createSeedCourse(
-    adminId,
-    course("Cedar Ridge Golf Club", "cedar-ridge", [
-      { name: "Blue", color: "#1d4ed8", rating: "72.1", slope: 131 },
-      { name: "White", color: "#e5e7eb", rating: "69.8", slope: 124 },
-    ]),
-  );
-  const oaks = await createSeedCourse(
-    adminId,
-    course("Oaks", "oaks", [
-      { name: "Gold", color: "#ca8a04", rating: "70.4", slope: 122 },
-    ]),
-  );
+  const pebble = await seedCourse(adminId, PEBBLE_BEACH);
+  const riviera = await seedCourse(adminId, RIVIERA);
 
   const club = ok(
     await createClub(adminId, {
@@ -372,118 +377,138 @@ export async function seedWorld() {
   }
 
   // Two finished Tournaments feed Standings, Counted Rounds, Tournament
-  // Ranking and Tournament Skins. Gwen plays only the second, so in the third
-  // she has one prior Complete Round and plays off scratch.
+  // Ranking and Tournament Skins. Annika plays only the second, so in the
+  // third she has one prior Complete Round and plays off scratch.
   await seedTournament(adminId, ids, "saturday-club", {
-    date: day(-28),
-    courseHandle: cedar.handle,
-    teeId: cedar.tee("Blue"),
+    date: dateFromToday(-28),
+    course: pebble,
+    tee: "Blue",
     pairings: [
-      ["ada", "ben", "cara"],
-      ["dev", "eli", "max"],
+      ["tiger", "phil", "rory"],
+      ["scottie", "daly", "christiaan"],
     ],
     holesScored: 18,
     salt: 1,
     greenies: [
-      { player: "ada", hole: PAR_THREES[0], distance: { feet: 4, inches: 2 } },
-      { player: "dev", hole: PAR_THREES[1], distance: { feet: 12, inches: 0 } },
-      { player: "max", hole: PAR_THREES[3], distance: { feet: 2, inches: 7 } },
+      {
+        player: "tiger",
+        hole: pebble.parThrees[0],
+        distance: { feet: 4, inches: 2 },
+      },
+      {
+        player: "scottie",
+        hole: pebble.parThrees[1],
+        distance: { feet: 12, inches: 0 },
+      },
+      {
+        player: "christiaan",
+        hole: pebble.parThrees[3],
+        distance: { feet: 2, inches: 7 },
+      },
     ],
   });
   await seedTournament(adminId, ids, "saturday-club", {
-    date: day(-14),
-    courseHandle: oaks.handle,
-    teeId: oaks.tee("Gold"),
+    date: dateFromToday(-14),
+    course: riviera,
+    tee: "Gold",
     pairings: [
-      ["ada", "ben", "cara"],
-      ["dev", "gwen", "max"],
+      ["tiger", "phil", "rory"],
+      ["scottie", "annika", "christiaan"],
     ],
     holesScored: 18,
     salt: 2,
-    aces: [{ player: "dev", hole: PAR_THREES[2] }],
+    aces: [{ player: "scottie", hole: riviera.parThrees[2] }],
     greenies: [
-      { player: "cara", hole: PAR_THREES[0], distance: { feet: 9, inches: 5 } },
-      { player: "dev", hole: PAR_THREES[2], distance: { feet: 0, inches: 0 } },
+      {
+        player: "rory",
+        hole: riviera.parThrees[0],
+        distance: { feet: 9, inches: 5 },
+      },
+      {
+        player: "scottie",
+        hole: riviera.parThrees[2],
+        distance: { feet: 0, inches: 0 },
+      },
     ],
   });
   await seedTournament(adminId, ids, "saturday-club", {
-    date: day(0),
-    courseHandle: cedar.handle,
-    teeId: cedar.tee("Blue"),
-    pairings: [["ada", "ben", "cara", "gwen"], ["finn"]],
+    date: dateFromToday(0),
+    course: pebble,
+    tee: "Blue",
+    pairings: [["tiger", "phil", "rory", "annika"], ["jordan"]],
     holesScored: 9,
     salt: 3,
   });
   await seedTournament(adminId, ids, "saturday-club", {
-    date: day(7),
-    courseHandle: oaks.handle,
-    teeId: oaks.tee("Gold"),
-    pairings: [["ada", "dev", "eli"]],
+    date: dateFromToday(7),
+    course: riviera,
+    tee: "Gold",
+    pairings: [["tiger", "scottie", "daly"]],
     holesScored: 0,
     salt: 4,
   });
 
   const singles = await seedMatch(adminId, ids, {
-    creator: "ben",
+    creator: "phil",
     format: "singles_match_play",
-    date: day(-7),
-    courseHandle: cedar.handle,
-    teeId: cedar.tee("Blue"),
-    players: ["ben", "finn"],
-    overrides: { ben: 8.4, finn: 14 },
+    date: dateFromToday(-7),
+    course: pebble,
+    tee: "Blue",
+    players: ["phil", "jordan"],
+    overrides: { phil: 8.4, jordan: 14 },
   });
-  await writeScores(adminId, singles("ben"), scorecard(0, 51));
-  await writeScores(adminId, singles("finn"), scorecard(1, 52));
+  await writeScores(adminId, singles("phil"), scorecard(pebble.pars, 0, 51));
+  await writeScores(adminId, singles("jordan"), scorecard(pebble.pars, 1, 52));
 
-  // Max has no override; Dev's is a plus index.
+  // Christiaan has no override; Scottie's is a plus index.
   const threeBall = await seedMatch(adminId, ids, {
-    creator: "cara",
+    creator: "rory",
     format: "three_ball_match_play",
-    date: day(-2),
-    courseHandle: cedar.handle,
-    teeId: cedar.tee("Blue"),
-    players: ["cara", "dev", "max"],
-    overrides: { cara: 12.3, dev: -1.2 },
+    date: dateFromToday(-2),
+    course: pebble,
+    tee: "Blue",
+    players: ["rory", "scottie", "christiaan"],
+    overrides: { rory: 12.3, scottie: -1.2 },
   });
   ok(
-    await changeRoundSettings(adminId, threeBall("max"), {
-      teeId: cedar.tee("White"),
+    await changeRoundSettings(adminId, threeBall("christiaan"), {
+      teeId: pebble.tee("White"),
     }),
-    "Max's tee",
+    "Christiaan's tee",
   );
   for (const [key, skill, salt] of [
-    ["cara", 1, 61],
-    ["dev", -2, 62],
-    ["max", 0, 63],
+    ["rory", 1, 61],
+    ["scottie", -2, 62],
+    ["christiaan", 0, 63],
   ] as const) {
     await writeScores(
       adminId,
       threeBall(key),
-      firstHoles(scorecard(skill, salt), 9),
+      firstHoles(scorecard(pebble.pars, skill, salt), 9),
     );
   }
 
-  // Gwen sets it up but doesn't play. The overrides are close, so strokes
-  // fall only on the hardest holes and gross decides holes 4–6: 4 and 5 tie
-  // and carry, and Finn's birdie on 6 takes the carry-over.
+  // Annika sets it up but doesn't play. Tiger's birdie on 2 takes the skin
+  // carried from hole 1, holes 3–5 tie and carry, and Jordan's birdie on 6
+  // (net 3, with a stroke there) takes all 4.
   const fourBall = await seedMatch(adminId, ids, {
-    creator: "gwen",
+    creator: "annika",
     format: "four_ball_match_play",
-    date: day(0),
-    courseHandle: cedar.handle,
-    teeId: cedar.tee("Blue"),
-    players: ["ada", "eli", "ben", "finn"],
+    date: dateFromToday(0),
+    course: pebble,
+    tee: "Blue",
+    players: ["tiger", "daly", "phil", "jordan"],
     teams: [
-      ["ada", "eli"],
-      ["ben", "finn"],
+      ["tiger", "daly"],
+      ["phil", "jordan"],
     ],
-    overrides: { ada: 10, eli: 11.2, ben: 10.6, finn: 12.1 },
+    overrides: { tiger: 10, daly: 11.2, phil: 10.6, jordan: 12.1 },
   });
-  const fourBallCards: Record<"ada" | "eli" | "ben" | "finn", number[]> = {
-    ada: [4, 5, 3, 3, 4, 5],
-    eli: [4, 6, 5, 3, 4, 5],
-    ben: [4, 5, 5, 3, 4, 5],
-    finn: [4, 6, 5, 3, 4, 3],
+  const fourBallCards: Partial<Record<PlayerKey, number[]>> = {
+    tiger: [4, 4, 4, 4, 3, 5],
+    daly: [4, 5, 4, 4, 3, 6],
+    phil: [4, 5, 4, 4, 3, 5],
+    jordan: [4, 5, 4, 4, 3, 4],
   };
   for (const [key, strokes] of Object.entries(fourBallCards)) {
     await writeScores(
@@ -492,20 +517,19 @@ export async function seedWorld() {
       strokes.map((s) => ({ strokes: s, putts: Math.min(2, s - 1) })),
     );
   }
-  await writeGreenie(adminId, fourBall("ada"), 4, { feet: 6, inches: 2 });
+  await writeGreenie(adminId, fourBall("tiger"), pebble.parThrees[0], {
+    feet: 6,
+    inches: 2,
+  });
 
   const casual = ok(
-    await createRound(ids.eli, {
-      courseHandle: oaks.handle,
-      date: day(-5),
+    await createRound(ids.daly, {
+      courseHandle: riviera.handle,
+      date: dateFromToday(-5),
       tournamentId: null,
-      teeId: oaks.tee("Gold"),
+      teeId: riviera.tee("Gold"),
     }),
     "casual round",
   );
-  await writeScores(adminId, casual.roundId, scorecard(2, 71));
-
-  console.log(
-    `Seeded ${Object.keys(ids).length + 1} Players, 2 Courses, 1 Club, 4 Tournaments, 3 Matches and 1 casual Round.`,
-  );
+  await writeScores(adminId, casual.roundId, scorecard(riviera.pars, 2, 71));
 }

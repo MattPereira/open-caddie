@@ -178,13 +178,11 @@ jobs:
           npm install -g agent-browser@0.27.0
           agent-browser install
 
-      - name: Migrate and seed the database
+      - name: Migrate the database
         # The agent gets a real database, because half of this repo's checks
-        # need one. It is disposable: a fresh one, migrated and seeded, on
-        # every run. The seed gives the app fixed data to render.
-        run: |
-          pnpm db:migrate
-          pnpm db:seed
+        # need one. It is disposable: a fresh one, migrated, on every run.
+        # There is no seed.
+        run: pnpm db:migrate
 
       - name: Open the branch
         id: branch

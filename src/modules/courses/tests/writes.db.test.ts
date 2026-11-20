@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createFixtures } from "@/test/fixtures";
 import * as courses from "../server";
+import { importedCourse } from "./scorecard-import-fixtures";
 
 const { del } = vi.hoisted(() => ({ del: vi.fn() }));
 vi.mock("@vercel/blob", () => ({ del }));
@@ -434,7 +435,7 @@ describe("Course writes", () => {
     it("deletes the course and both images, and refreshes its pages", async () => {
       const img = `${BLOB}/img-${crypto.randomUUID()}.webp`;
       const scorecard = `${BLOB}/card-${crypto.randomUUID()}.webp`;
-      const course = await fixtures.importedCourse({ course: img, scorecard });
+      const course = await importedCourse(fixtures, { course: img, scorecard });
 
       const result = await courses.deleteCourse(admin.id, course.id);
 

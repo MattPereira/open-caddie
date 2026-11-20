@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { HOLE_COUNT } from "@/modules/courses";
 import { createFixtures } from "@/test/fixtures";
 import * as courses from "../server";
+import { importedCourse } from "./scorecard-import-fixtures";
 
 describe("Course reads", () => {
   const fixtures = createFixtures();
@@ -20,7 +22,7 @@ describe("Course reads", () => {
       rating: tee.rating ?? "70",
       slope: tee.slope ?? 120,
       yardages: Array.from(
-        { length: 18 },
+        { length: HOLE_COUNT },
         (_, index) => tee.yardages?.[index + 1] ?? ("" as const),
       ),
       sortOrder,
@@ -39,9 +41,13 @@ describe("Course reads", () => {
       name: `Course ${suffix}`,
       imgUrl,
       tees: tees.map(teeInput),
-      holes: Array.from({ length: 18 }, (_, index) => {
-        const hole = 18 - index;
-        return { hole, par: hole % 6 === 0 ? 5 : 4, handicap: 19 - hole };
+      holes: Array.from({ length: HOLE_COUNT }, (_, index) => {
+        const hole = HOLE_COUNT - index;
+        return {
+          hole,
+          par: hole % 6 === 0 ? 5 : 4,
+          handicap: HOLE_COUNT + 1 - hole,
+        };
       }),
     };
     const created = await courses.createCourse(await fixtures.admin(), values);
@@ -56,9 +62,13 @@ describe("Course reads", () => {
     };
   }
 
-  const expectedHoles = Array.from({ length: 18 }, (_, index) => {
+  const expectedHoles = Array.from({ length: HOLE_COUNT }, (_, index) => {
     const hole = index + 1;
-    return { hole, par: hole % 6 === 0 ? 5 : 4, handicap: 19 - hole };
+    return {
+      hole,
+      par: hole % 6 === 0 ? 5 : 4,
+      handicap: HOLE_COUNT + 1 - hole,
+    };
   });
 
   describe.each([
@@ -161,7 +171,7 @@ describe("Course reads", () => {
 
   describe("getCourseForEdit", () => {
     it("includes the course and scorecard images", async () => {
-      const course = await fixtures.importedCourse({
+      const course = await importedCourse(fixtures, {
         course: "https://example.com/course.webp",
         scorecard: "https://example.com/card.webp",
       });

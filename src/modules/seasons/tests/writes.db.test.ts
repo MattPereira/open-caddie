@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { withTransaction } from "@/test/db/seed";
+import { withTransaction } from "@/test/db/connections";
 import { createFixtures } from "@/test/fixtures";
 import {
   getClubSeasonNumbers,

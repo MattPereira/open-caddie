@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { startNextSeason } from "@/modules/seasons/server";
-import { withTransaction } from "@/test/db/seed";
+import { withTransaction } from "@/test/db/connections";
 import { createFixtures, PAR_THREE_HOLES } from "@/test/fixtures";
 import * as clubs from "../server";
 import type { PointRules } from "../index";
@@ -21,16 +21,7 @@ describe("Club reads", () => {
   const fixtures = createFixtures();
 
   async function club({ seasons = 0 } = {}) {
-    const suffix = crypto.randomUUID();
-    const handle = `club-${suffix}`;
-    const name = `Club ${suffix}`;
-    const created = await clubs.createClub(await fixtures.admin(), {
-      handle,
-      name,
-      logo: "",
-      pointRules: POINT_RULES,
-    });
-    if (!created.ok) throw new Error(created.error);
+    const created = await fixtures.club({ pointRules: POINT_RULES });
     const seasonIds: Record<number, number> = {};
     for (let i = 0; i < seasons; i += 1) {
       const season = await withTransaction((tx) =>
@@ -38,7 +29,7 @@ describe("Club reads", () => {
       );
       seasonIds[season.number] = season.id;
     }
-    return { club: { id: created.id, handle, name }, seasonIds };
+    return { club: created, seasonIds };
   }
 
   async function round(playerId: string, { greenies = 0 } = {}) {

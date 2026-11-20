@@ -1,7 +1,10 @@
 import { beforeEach } from "vitest";
 
+import { required } from "@/lib/required";
 import { HOLE_COUNT } from "@/modules/courses";
-import { createCourseScorecardImport } from "../server";
+import { clearCacheMocks } from "@/test/cache-mocks";
+import type { FixtureCourse, Fixtures } from "@/test/fixtures";
+import { createCourseScorecardImport, getCourseForEdit } from "../server";
 
 type ParseResult = Awaited<
   ReturnType<
@@ -60,6 +63,33 @@ export function importsParsing(
 export const imports = importsParsing({
   tees: [parsedTee("Blue", { color: "blue", rating: 71.2, slope: 128 })],
 });
+
+/** A course published by a Scorecard Import, the only write that sets a scorecard image. */
+export async function importedCourse(
+  fixtures: Pick<Fixtures, "admin">,
+  images: { scorecard: string; course?: string },
+): Promise<FixtureCourse> {
+  const outcome = await imports.start({
+    actorId: await fixtures.admin(),
+    target: { kind: "new", name: `Imported ${crypto.randomUUID()}` },
+    stagedScorecardImageHandle: images.scorecard,
+    stagedCourseImageHandle: images.course,
+  });
+  if (outcome.outcome !== "published") {
+    throw new Error(`importedCourse ${JSON.stringify(outcome)}`);
+  }
+  const stored = required(
+    await getCourseForEdit(outcome.handle),
+    "imported course",
+  );
+  clearCacheMocks();
+  return {
+    id: stored.id,
+    handle: stored.handle,
+    name: stored.name,
+    imgUrl: stored.imgUrl,
+  };
+}
 
 /** Two Platform Admins and a unique tag, fresh before each test. */
 export function importActors(fixtures: {

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { required } from "@/lib/required";
 import { deleteTournament } from "@/modules/tournaments/server";
-import { createFixtures, PAR_THREE_HOLES } from "@/test/fixtures";
-import { withTransaction } from "@/test/db/seed";
+import { createFixtures, fixturePar } from "@/test/fixtures";
+import { withTransaction } from "@/test/db/connections";
 import * as seasons from "../server";
 
 describe("Season Standings reads", () => {
@@ -29,10 +29,6 @@ describe("Season Standings reads", () => {
       ],
     },
   };
-
-  function par(hole: number) {
-    return PAR_THREE_HOLES.includes(hole) ? 3 : 4;
-  }
 
   async function club() {
     const owner = await fixtures.club({ pointRules });
@@ -76,7 +72,7 @@ describe("Season Standings reads", () => {
     const strokesFor = (hole: number) =>
       typeof strokes === "function"
         ? strokes(hole)
-        : (strokes[hole] ?? par(hole));
+        : (strokes[hole] ?? fixturePar(hole));
     await fixtures.scores(
       roundId,
       Array.from({ length: holes }, (_, index) => ({

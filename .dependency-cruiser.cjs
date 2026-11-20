@@ -76,9 +76,11 @@ module.exports = {
     {
       name: "test-support-only-from-tests",
       comment:
-        "Shared test support (src/test/, e.g. fixtures every module's tests use) is reachable only from test files and from src/test/ itself, so it never ships in app code.",
+        "Shared test support (src/test/, e.g. fixtures every module's tests use) is reachable only from test files, modules' tests/ folders and src/test/ itself, so it never ships in app code.",
       severity: "error",
-      from: { pathNot: ["\\.test\\.tsx?$", "^src/test/"] },
+      from: {
+        pathNot: ["\\.test\\.tsx?$", `^${R}/[^/]+/tests/`, "^src/test/"],
+      },
       to: { path: "^src/test/" },
     },
     {

@@ -5,7 +5,7 @@ import { getRoundById } from "@/modules/rounds/server";
 import * as tournaments from "@/modules/tournaments/server";
 import { PAIRING_MAX_MEMBERS } from "@/modules/tournaments";
 import { clearCacheMocks } from "@/test/cache-mocks";
-import { warmConnections } from "@/test/db/seed";
+import { warmConnections } from "@/test/db/connections";
 import { createFixtures } from "@/test/fixtures";
 
 describe("Pairing writes", () => {

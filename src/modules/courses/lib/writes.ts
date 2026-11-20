@@ -74,7 +74,7 @@ export async function createCourse(
     id = await db.transaction(async (tx) => {
       const [created] = await tx
         .insert(courses)
-        .values({ handle, name, imgUrl: imgUrl.length > 0 ? imgUrl : null })
+        .values({ handle, name, imgUrl: emptyToNull(imgUrl) })
         .returning({ id: courses.id });
       await writeTeesAndHoles(tx, created.id, tees, holes);
       return created.id;
@@ -121,7 +121,7 @@ export async function updateCourse(
   const refused = await refuseIfTeesInUse(teesToDelete);
   if (refused) return refused;
 
-  const newImgUrl = imgUrl.length > 0 ? imgUrl : null;
+  const newImgUrl = emptyToNull(imgUrl);
 
   try {
     await db.transaction(async (tx) => {

@@ -9,7 +9,6 @@ import {
 import { HOLE_COUNT } from "@/modules/courses";
 import {
   createCourse,
-  createCourseScorecardImport,
   getCourseForEdit,
   updateCourse,
   type CourseCreateInput,
@@ -91,34 +90,18 @@ function ok<T extends { ok: boolean }>(
   return result as Extract<T, { ok: true }>;
 }
 
+/** The par of `hole` on every fixture course. */
+export function fixturePar(hole: number) {
+  return PAR_THREE_HOLES.includes(hole) ? 3 : 4;
+}
+
 function standardHoles() {
   return Array.from({ length: HOLE_COUNT }, (_, index) => ({
     hole: index + 1,
-    par: PAR_THREE_HOLES.includes(index + 1) ? 3 : 4,
+    par: fixturePar(index + 1),
     handicap: index + 1,
   }));
 }
-
-// Publishes without pausing: the one tee has a rating and slope, and the
-// holes are complete.
-const scorecardImports = createCourseScorecardImport({
-  async parseScorecardImage() {
-    return {
-      scorecard: {
-        tees: [
-          {
-            name: "Blue",
-            rating: 72,
-            slope: 120,
-            yardages: Array.from({ length: HOLE_COUNT }, () => 400),
-          },
-        ],
-        holes: standardHoles(),
-      },
-      warnings: [],
-    };
-  },
-});
 
 function blankYardages() {
   return Array.from({ length: HOLE_COUNT }, () => "" as const);
@@ -238,32 +221,6 @@ export function createFixtures() {
     return current.id;
   }
 
-  /** A course published by a Scorecard Import, the only write that sets a scorecard image. */
-  async function importedCourse(images: {
-    scorecard: string;
-    course?: string;
-  }): Promise<FixtureCourse> {
-    const outcome = await scorecardImports.start({
-      actorId: await admin(),
-      target: { kind: "new", name: `Imported ${crypto.randomUUID()}` },
-      stagedScorecardImageHandle: images.scorecard,
-      stagedCourseImageHandle: images.course,
-    });
-    if (outcome.outcome !== "published") {
-      throw new Error(`importedCourse ${JSON.stringify(outcome)}`);
-    }
-    const stored = required(
-      await getCourseForEdit(outcome.handle),
-      "imported course",
-    );
-    return {
-      id: stored.id,
-      handle: stored.handle,
-      name: stored.name,
-      imgUrl: stored.imgUrl,
-    };
-  }
-
   /** Adds a tee to the course, keeping its existing tees and holes. */
   async function tee(
     courseHandle: string,
@@ -296,32 +253,22 @@ export function createFixtures() {
     };
   }
 
-  /** Sets a tee's 18 hole yardages. */
-  async function yardages(
-    courseHandle: string,
-    teeId: number,
-    yards: number[],
-  ) {
-    await editTees(courseHandle, (tees) =>
-      tees.map((t) => (t.id === teeId ? { ...t, yardages: yards } : t)),
-    );
-  }
-
   async function club({
     pointRules = ZERO_POINT_RULES,
   }: { pointRules?: ClubWriteInput["pointRules"] } = {}) {
     const suffix = crypto.randomUUID();
     const handle = `club-${suffix}`;
+    const name = `Club ${suffix}`;
     const created = ok(
       await createClub(await admin(), {
         handle,
-        name: `Club ${suffix}`,
+        name,
         logo: "",
         pointRules,
       }),
       "club",
     );
-    return { id: created.id, handle };
+    return { id: created.id, handle, name };
   }
 
   async function clubMember(clubId: number, playerId: string) {
@@ -513,7 +460,6 @@ export function createFixtures() {
     };
   }
 
-  /** Records strokes (and optional putts) per hole, 1-based, as an admin. */
   async function scores(
     roundId: number,
     holes: { hole: number; strokes: number | null; putts?: number | null }[],
@@ -541,49 +487,13 @@ export function createFixtures() {
     );
   }
 
-  /**
-   * Plays every hole in `totalStrokes`, two putts each. Fixture tees are rated
-   * 72, so with their slope the Round's Score Differential scales back to
-   * (totalStrokes - 72) as a Course Handicap.
-   */
-  async function completeCard(roundId: number, totalStrokes: number) {
-    const lastHole = HOLE_COUNT - 1;
-    await scores(
-      roundId,
-      Array.from({ length: HOLE_COUNT }, (_, index) => ({
-        hole: index + 1,
-        strokes: index === lastHole ? totalStrokes - 4 * lastHole : 4,
-        putts: 2,
-      })),
-    );
-  }
-
-  /** A complete Round for `entrant` in another Tournament of `t`'s Club and Season. */
-  async function priorRound(
-    t: Tournament,
-    entrant: FixturePlayer,
-    date: string,
-    totalStrokes: number,
-  ) {
-    const other = await tournament({
-      club: t.club,
-      seasonId: t.tournament.seasonId,
-      date,
-      on: t,
-    });
-    const { round } = await tournamentPlayer(other, entrant);
-    await completeCard(round.id, totalStrokes);
-    return round;
-  }
-
   return {
     admin,
     ...settled({
       player,
       course,
-      importedCourse,
+      editTees,
       tee,
-      yardages,
       club,
       clubMember,
       tournament,
@@ -593,8 +503,6 @@ export function createFixtures() {
       match,
       scores,
       greenie,
-      completeCard,
-      priorRound,
     }),
   };
 }

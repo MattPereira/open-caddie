@@ -6,9 +6,10 @@ import {
   getClosestGreenies,
   getLowestRounds,
 } from "../server";
+import { withRoundFixtures } from "./round-fixtures";
 
 describe("Round reads", () => {
-  const fixtures = createFixtures();
+  const fixtures = withRoundFixtures(createFixtures());
 
   describe("active Round", () => {
     it("is the player's most recently created incomplete Round, with its Tournament's Season", async () => {

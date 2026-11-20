@@ -1,10 +1,10 @@
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
-import { db, type Transaction } from "@/db";
+import { db } from "@/db";
 import { users } from "@/db/schema";
 
-// The one row tests insert directly: every entry-point write needs an acting
-// Platform Admin, and making a Player is one of them.
+// Every entry-point write needs an acting Platform Admin, and making a Player
+// is one of them, so this row can't come from an entry point.
 export async function seedPlatformAdmin() {
   const suffix = crypto.randomUUID();
   const [admin] = await db
@@ -17,18 +17,6 @@ export async function seedPlatformAdmin() {
     })
     .returning({ id: users.id });
   return admin;
-}
-
-/** For entry points that take the caller's transaction. */
-export function withTransaction<T>(fn: (tx: Transaction) => Promise<T>) {
-  return db.transaction(fn);
-}
-
-/** Opens `count` pool connections so connection setup can't serialize a race. */
-export async function warmConnections(count: number) {
-  await Promise.all(
-    Array.from({ length: count }, () => db.execute(sql`select 1`)),
-  );
 }
 
 // Auth.js sets emailVerified when a Player signs in by email link; no module

@@ -12,7 +12,7 @@ import {
   lockRowsWhere,
   waitForLockWaits,
 } from "@/test/db/locks";
-import { withTransaction } from "@/test/db/seed";
+import { withTransaction } from "@/test/db/connections";
 import { createFixtures } from "@/test/fixtures";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
 import * as eventRounds from "../server";

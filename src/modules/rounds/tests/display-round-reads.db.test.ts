@@ -7,9 +7,10 @@ import {
   getRoundById,
   getTournamentRounds,
 } from "../server";
+import { withRoundFixtures } from "./round-fixtures";
 
 describe("Display Round reads", () => {
-  const fixtures = createFixtures();
+  const fixtures = withRoundFixtures(createFixtures());
 
   type Tournament = Awaited<ReturnType<typeof fixtures.tournament>>;
 

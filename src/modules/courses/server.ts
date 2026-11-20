@@ -13,8 +13,11 @@ export {
 } from "./lib/reads";
 export { getCourseIdByHandle, isTeeForCourse } from "./lib/tees";
 export {
+  createCourse,
   deleteCourse,
   updateCourse,
+  type CourseCreateInput,
+  type CourseCreateResult,
   type CourseDeleteResult,
   type CourseUpdateInput,
   type CourseUpdateResult,

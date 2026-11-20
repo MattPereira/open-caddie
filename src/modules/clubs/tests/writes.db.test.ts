@@ -1,16 +1,9 @@
+import { revalidatePath, updateTag } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { createRoundFixtures } from "@/test/fixtures/rounds";
+import { createFixtures } from "@/test/fixtures";
 import * as clubs from "../server";
 import type { PointRules } from "../index";
-
-const { revalidatePath, updateTag } = vi.hoisted(() => ({
-  revalidatePath: vi.fn(),
-  updateTag: vi.fn(),
-}));
-vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
 
 const POINT_RULES: PointRules = {
   participation: 5,
@@ -31,7 +24,7 @@ const POINT_RULES: PointRules = {
 const LOGO = "https://example.com/logo.png";
 
 describe("Club writes", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
   let admin: Awaited<ReturnType<typeof fixtures.player>>;
   let player: Awaited<ReturnType<typeof fixtures.player>>;
 
@@ -51,14 +44,16 @@ describe("Club writes", () => {
   beforeEach(async () => {
     admin = await fixtures.player({ isAdmin: true });
     player = await fixtures.player();
-    revalidatePath.mockClear();
-    updateTag.mockClear();
+    vi.mocked(revalidatePath).mockClear();
   });
 
   describe("createClub", () => {
     it("creates a Club and refreshes the Clubs pages", async () => {
       const values = input();
-      expect(await clubs.createClub(admin.id, values)).toEqual({ ok: true });
+      expect(await clubs.createClub(admin.id, values)).toEqual({
+        ok: true,
+        id: expect.any(Number),
+      });
       expect(await clubs.getClubByHandle(values.handle)).toMatchObject({
         handle: values.handle,
         name: values.name,
@@ -89,7 +84,7 @@ describe("Club writes", () => {
     it("refuses a handle already in use", async () => {
       const values = input();
       await clubs.createClub(admin.id, values);
-      revalidatePath.mockClear();
+      vi.mocked(revalidatePath).mockClear();
       const result = await clubs.createClub(admin.id, {
         ...values,
         name: "Other",
@@ -109,7 +104,7 @@ describe("Club writes", () => {
     async function existing() {
       const values = input();
       await clubs.createClub(admin.id, values);
-      revalidatePath.mockClear();
+      vi.mocked(revalidatePath).mockClear();
       return values;
     }
 
@@ -154,6 +149,70 @@ describe("Club writes", () => {
       expect(result).toEqual({ ok: false, error: "Club not found." });
       expect(revalidatePath).not.toHaveBeenCalled();
       expect(updateTag).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("addClubMember", () => {
+    async function existing() {
+      const values = input();
+      const created = await clubs.createClub(admin.id, values);
+      if (!created.ok) throw new Error(created.error);
+      vi.mocked(revalidatePath).mockClear();
+      return { id: created.id, handle: values.handle };
+    }
+
+    const memberIds = async (handle: string) =>
+      (await clubs.getClubMembersByHandle(handle)).map((m) => m.id);
+
+    it("adds the Player to the Club and refreshes Clubs pages", async () => {
+      const club = await existing();
+      expect(
+        await clubs.addClubMember(admin.id, {
+          clubId: club.id,
+          playerId: player.id,
+        }),
+      ).toEqual({ ok: true });
+      expect(await memberIds(club.handle)).toEqual([player.id]);
+      expect(revalidatePath).toHaveBeenCalled();
+    });
+
+    it("is a no-op for a Player already in the Club", async () => {
+      const club = await existing();
+      const values = { clubId: club.id, playerId: player.id };
+      await clubs.addClubMember(admin.id, values);
+      expect(await clubs.addClubMember(admin.id, values)).toEqual({ ok: true });
+      expect(await memberIds(club.handle)).toEqual([player.id]);
+    });
+
+    it("refuses a Player who isn't a Platform Admin", async () => {
+      const club = await existing();
+      const result = await clubs.addClubMember(player.id, {
+        clubId: club.id,
+        playerId: player.id,
+      });
+      expect(result).toEqual({
+        ok: false,
+        error: expect.stringMatching(/Platform Admin/),
+      });
+      expect(await memberIds(club.handle)).toEqual([]);
+      expect(revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it("refuses an unknown Club or Player", async () => {
+      const club = await existing();
+      expect(
+        await clubs.addClubMember(admin.id, {
+          clubId: club.id,
+          playerId: crypto.randomUUID(),
+        }),
+      ).toEqual({ ok: false, error: "Club or Player not found." });
+      expect(
+        await clubs.addClubMember(admin.id, {
+          clubId: 2_000_000_000,
+          playerId: player.id,
+        }),
+      ).toEqual({ ok: false, error: "Club or Player not found." });
+      expect(revalidatePath).not.toHaveBeenCalled();
     });
   });
 });

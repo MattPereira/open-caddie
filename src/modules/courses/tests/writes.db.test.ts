@@ -1,23 +1,17 @@
+import { revalidatePath, updateTag } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { createRoundFixtures } from "@/test/fixtures/rounds";
+import { createFixtures } from "@/test/fixtures";
 import * as courses from "../server";
+import { importedCourse } from "./scorecard-import-fixtures";
 
-const { revalidatePath, updateTag, del } = vi.hoisted(() => ({
-  revalidatePath: vi.fn(),
-  updateTag: vi.fn(),
-  del: vi.fn(),
-}));
-vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
+const { del } = vi.hoisted(() => ({ del: vi.fn() }));
 vi.mock("@vercel/blob", () => ({ del }));
 
 const BLOB = "https://abc.public.blob.vercel-storage.com";
 
 describe("Course writes", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
   let admin: Awaited<ReturnType<typeof fixtures.player>>;
   let player: Awaited<ReturnType<typeof fixtures.player>>;
 
@@ -27,16 +21,6 @@ describe("Course writes", () => {
 
   async function storedTees(handle: string) {
     return (await stored(handle))?.tees ?? [];
-  }
-
-  async function casualRound(courseId: number, teeId: number) {
-    const roundPlayer = await fixtures.player();
-    await db.insert(schema.rounds).values({
-      playerId: roundPlayer.id,
-      courseId,
-      teeId,
-      date: new Date("2026-01-01T00:00:00.000Z"),
-    });
   }
 
   type Course = Awaited<ReturnType<typeof fixtures.course>>["course"];
@@ -71,7 +55,7 @@ describe("Course writes", () => {
   }
 
   function refreshed() {
-    const calls = revalidatePath.mock.calls as unknown as string[][];
+    const calls = vi.mocked(revalidatePath).mock.calls as unknown as string[][];
     return [...new Set(calls.map((call) => call.join(" ")))].sort();
   }
 
@@ -89,8 +73,6 @@ describe("Course writes", () => {
   beforeEach(async () => {
     admin = await fixtures.player({ isAdmin: true });
     player = await fixtures.player();
-    revalidatePath.mockClear();
-    updateTag.mockClear();
     del.mockReset();
   });
 
@@ -108,6 +90,123 @@ describe("Course writes", () => {
       const b = await fixtures.course();
       expect(await courses.isTeeForCourse(a.tee.id, a.course.id)).toBe(true);
       expect(await courses.isTeeForCourse(b.tee.id, a.course.id)).toBe(false);
+    });
+  });
+
+  describe("createCourse", () => {
+    function createInput(
+      overrides: Partial<courses.CourseCreateInput> = {},
+    ): courses.CourseCreateInput {
+      const suffix = crypto.randomUUID();
+      return {
+        handle: `course-${suffix}`,
+        name: `Course ${suffix}`,
+        imgUrl: "",
+        tees: [
+          {
+            name: "Blue",
+            color: " blue ",
+            rating: "71.2",
+            slope: 128,
+            yardages: Array.from({ length: 18 }, (_, i) =>
+              i === 0 ? 410 : "",
+            ),
+            sortOrder: 0,
+          },
+          {
+            name: "Red",
+            color: "",
+            rating: "68.5",
+            slope: 110,
+            yardages: Array.from({ length: 18 }, () => 300),
+            sortOrder: 1,
+          },
+        ],
+        holes: Array.from({ length: 18 }, (_, index) => ({
+          hole: index + 1,
+          par: index === 0 ? 5 : 4,
+          handicap: index + 1,
+        })),
+        ...overrides,
+      };
+    }
+
+    it("refuses a Player who isn't a Platform Admin", async () => {
+      const input = createInput();
+      const result = await courses.createCourse(player.id, input);
+      expect(result).toEqual({
+        ok: false,
+        error: expect.stringMatching(/Platform Admin/),
+      });
+      expect(await stored(input.handle)).toBeUndefined();
+      expect(revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it("saves the course, its tees in order, yardages and holes", async () => {
+      const input = createInput({ imgUrl: `${BLOB}/course.webp` });
+
+      const result = await courses.createCourse(admin.id, input);
+
+      if (!result.ok) throw new Error(result.error);
+      expect(result).toEqual({
+        ok: true,
+        id: expect.any(Number),
+        handle: input.handle,
+      });
+      const saved = await stored(input.handle);
+      expect(saved).toMatchObject({
+        id: result.id,
+        name: input.name,
+        imgUrl: `${BLOB}/course.webp`,
+        scorecardImgUrl: null,
+        holes: input.holes,
+      });
+      expect(
+        saved?.tees.map((t) => [
+          t.name,
+          t.color,
+          t.rating,
+          t.slope,
+          t.sortOrder,
+        ]),
+      ).toEqual([
+        ["Blue", "blue", "71.2", 128, 0],
+        ["Red", null, "68.5", 110, 1],
+      ]);
+      expect(saved?.tees[0].yardages).toEqual([410, ...Array(17).fill(null)]);
+      expect(saved?.tees[1].yardages).toEqual(Array(18).fill(300));
+      expect(refreshed()).toEqual(coursePaths(input.handle));
+    });
+
+    it("stores a blank image as none", async () => {
+      const input = createInput();
+      await courses.createCourse(admin.id, input);
+      expect((await stored(input.handle))?.imgUrl).toBeNull();
+    });
+
+    it("refuses a handle another course already has, saving nothing", async () => {
+      const { course } = await fixtures.course();
+      const result = await courses.createCourse(
+        admin.id,
+        createInput({ handle: course.handle }),
+      );
+      expect(result).toEqual({
+        ok: false,
+        error: "A course or tee with that name already exists.",
+      });
+      expect((await stored(course.handle))?.name).toBe(course.name);
+      expect(revalidatePath).not.toHaveBeenCalled();
+    });
+
+    it("refuses two tees with one name, saving nothing", async () => {
+      const input = createInput();
+      input.tees[1] = { ...input.tees[1], name: input.tees[0].name };
+      const result = await courses.createCourse(admin.id, input);
+      expect(result).toEqual({
+        ok: false,
+        error: "A course or tee with that name already exists.",
+      });
+      expect(await stored(input.handle)).toBeUndefined();
     });
   });
 
@@ -177,7 +276,7 @@ describe("Course writes", () => {
 
     it("removes a tee nobody has used", async () => {
       const { course, tee } = await fixtures.course();
-      await fixtures.tee(course.id);
+      await fixtures.tee(course.handle);
       const result = await courses.updateCourse(
         admin.id,
         editOf(course, [tee]),
@@ -191,10 +290,16 @@ describe("Course writes", () => {
     it("refuses removing tees used by Tournaments or Rounds, with counts per tee", async () => {
       const t = await fixtures.tournament();
       await fixtures.tournamentPlayer(t);
-      const keep = await fixtures.tee(t.course.id, "Keep");
-      const casualTee = await fixtures.tee(t.course.id, "Casual");
-      await casualRound(t.course.id, casualTee.id);
-      await casualRound(t.course.id, casualTee.id);
+      const keep = await fixtures.tee(t.course.handle, "Keep");
+      const casualTee = await fixtures.tee(t.course.handle, "Casual");
+      await fixtures.casualRound({
+        courseHandle: t.course.handle,
+        teeId: casualTee.id,
+      });
+      await fixtures.casualRound({
+        courseHandle: t.course.handle,
+        teeId: casualTee.id,
+      });
 
       const result = await courses.updateCourse(
         admin.id,
@@ -262,17 +367,13 @@ describe("Course writes", () => {
     });
 
     it("deletes a replaced image", async () => {
-      const { course, tee } = await fixtures.course();
       const oldImg = `${BLOB}/old-${crypto.randomUUID()}.webp`;
-      await db
-        .update(schema.courses)
-        .set({ imgUrl: oldImg })
-        .where(eq(schema.courses.id, course.id));
+      const { course, tee } = await fixtures.course({ imgUrl: oldImg });
       const newImg = `${BLOB}/new-${crypto.randomUUID()}.webp`;
 
       const result = await courses.updateCourse(
         admin.id,
-        editOf({ ...course, imgUrl: oldImg }, [tee], { imgUrl: newImg }),
+        editOf(course, [tee], { imgUrl: newImg }),
       );
 
       expect(result.ok).toBe(true);
@@ -281,15 +382,11 @@ describe("Course writes", () => {
     });
 
     it("keeps an unchanged image", async () => {
-      const { course, tee } = await fixtures.course();
       const img = `${BLOB}/same-${crypto.randomUUID()}.webp`;
-      await db
-        .update(schema.courses)
-        .set({ imgUrl: img })
-        .where(eq(schema.courses.id, course.id));
+      const { course, tee } = await fixtures.course({ imgUrl: img });
       const result = await courses.updateCourse(
         admin.id,
-        editOf({ ...course, imgUrl: img }, [tee]),
+        editOf(course, [tee]),
       );
       expect(result.ok).toBe(true);
       expect(del).not.toHaveBeenCalled();
@@ -319,8 +416,14 @@ describe("Course writes", () => {
 
     it("refuses a course with Rounds", async () => {
       const { course, tee } = await fixtures.course();
-      await casualRound(course.id, tee.id);
-      await casualRound(course.id, tee.id);
+      await fixtures.casualRound({
+        courseHandle: course.handle,
+        teeId: tee.id,
+      });
+      await fixtures.casualRound({
+        courseHandle: course.handle,
+        teeId: tee.id,
+      });
       const result = await courses.deleteCourse(admin.id, course.id);
       expect(result).toEqual({
         ok: false,
@@ -330,13 +433,9 @@ describe("Course writes", () => {
     });
 
     it("deletes the course and both images, and refreshes its pages", async () => {
-      const { course } = await fixtures.course();
       const img = `${BLOB}/img-${crypto.randomUUID()}.webp`;
       const scorecard = `${BLOB}/card-${crypto.randomUUID()}.webp`;
-      await db
-        .update(schema.courses)
-        .set({ imgUrl: img, scorecardImgUrl: scorecard })
-        .where(eq(schema.courses.id, course.id));
+      const course = await importedCourse(fixtures, { course: img, scorecard });
 
       const result = await courses.deleteCourse(admin.id, course.id);
 

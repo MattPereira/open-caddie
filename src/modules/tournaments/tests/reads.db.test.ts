@@ -1,50 +1,24 @@
 import { describe, expect, it } from "vitest";
 
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
 import * as tournaments from "@/modules/tournaments/server";
-import { createRoundFixtures } from "@/test/fixtures/rounds";
+import { createFixtures } from "@/test/fixtures";
 
 describe("Tournament reads", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
 
   type Tournament = Awaited<ReturnType<typeof fixtures.tournament>>;
 
   // Another Tournament in the same Season as `t`.
   async function sibling(t: Tournament, date: string) {
-    const [created] = await db
-      .insert(schema.tournaments)
-      .values({
-        seasonId: t.tournament.seasonId,
-        date: new Date(`${date}T00:00:00.000Z`),
-        courseId: t.course.id,
-        teeId: t.tee.id,
-      })
-      .returning();
-    return { ...t, tournament: created };
+    return fixtures.tournament({
+      club: t.club,
+      seasonId: t.tournament.seasonId,
+      date,
+    });
   }
 
-  async function clubOf(t: Tournament) {
-    const [club] = await db
-      .select({ id: schema.clubs.id, handle: schema.clubs.handle })
-      .from(schema.seasons)
-      .innerJoin(schema.clubs, eq(schema.clubs.id, schema.seasons.clubId))
-      .where(eq(schema.seasons.id, t.tournament.seasonId));
-    return club;
-  }
-
-  async function named(firstName: string, lastName: string) {
-    const [created] = await db
-      .insert(schema.users)
-      .values({
-        email: `${crypto.randomUUID()}@example.com`,
-        firstName,
-        lastName,
-      })
-      .returning();
-    return created;
-  }
+  const named = (firstName: string, lastName: string) =>
+    fixtures.player({ firstName, lastName });
 
   function isoDaysFromToday(days: number) {
     const date = new Date();
@@ -84,16 +58,14 @@ describe("Tournament reads", () => {
       const t = await fixtures.tournament();
       const a = await fixtures.tournamentPlayer(t);
       const b = await fixtures.tournamentPlayer(t);
-      await db.insert(schema.roundScores).values([
-        { roundId: a.round.id, hole: 3, strokes: 3 },
-        { roundId: a.round.id, hole: 7, strokes: 3 },
-        { roundId: b.round.id, hole: 3, strokes: 3 },
+      await fixtures.scores(a.round.id, [
+        { hole: 3, strokes: 3 },
+        { hole: 7, strokes: 3 },
       ]);
-      await db.insert(schema.greenies).values([
-        { roundId: a.round.id, hole: 7, feet: 3, inches: 0 },
-        { roundId: a.round.id, hole: 3, feet: 12, inches: 6 },
-        { roundId: b.round.id, hole: 3, feet: 4, inches: 2 },
-      ]);
+      await fixtures.scores(b.round.id, [{ hole: 3, strokes: 3 }]);
+      await fixtures.greenie(a.round.id, 7, { feet: 3, inches: 0 });
+      await fixtures.greenie(a.round.id, 3, { feet: 12, inches: 6 });
+      await fixtures.greenie(b.round.id, 3, { feet: 4, inches: 2 });
 
       const tournament = await tournaments.getTournamentById(t.tournament.id);
 
@@ -130,7 +102,7 @@ describe("Tournament reads", () => {
       await fixtures.tournament();
 
       const byClub = await tournaments.getTournamentsByClubHandle(
-        (await clubOf(t)).handle,
+        t.club.handle,
       );
 
       expect(byClub.map((row) => row.id)).toEqual([
@@ -144,9 +116,7 @@ describe("Tournament reads", () => {
     it("lists today's and later Tournaments of the player's Clubs, soonest first", async () => {
       const t = await fixtures.tournament();
       const player = await fixtures.player();
-      await db
-        .insert(schema.clubMembers)
-        .values({ clubId: (await clubOf(t)).id, playerId: player.id });
+      await fixtures.clubMember(t.club.id, player.id);
       await sibling(t, isoDaysFromToday(-1));
       const today = await sibling(t, isoDaysFromToday(0));
       const soon = await sibling(t, isoDaysFromToday(7));

@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { and, count, eq, inArray } from "drizzle-orm";
 
-import { db } from "@/db";
+import { db, type Transaction } from "@/db";
 import {
   courseHoles,
   courseTees,
@@ -38,11 +38,55 @@ export type CourseUpdateInput = {
   holes: { hole: number; par: number; handicap: number }[];
 };
 
+/** A new course's form values; every tee is new. */
+export type CourseCreateInput = Omit<CourseUpdateInput, "id" | "tees"> & {
+  tees: Omit<CourseUpdateInput["tees"][number], "id">[];
+};
+
+export type CourseCreateResult =
+  | { ok: true; id: number; handle: string }
+  | { ok: false; error: string };
+
 export type CourseUpdateResult =
   | { ok: true; handle: string; renamed: boolean }
   | { ok: false; error: string };
 
 export type CourseDeleteResult = { ok: true } | { ok: false; error: string };
+
+const NAME_TAKEN = {
+  ok: false,
+  error: "A course or tee with that name already exists.",
+} as const;
+
+export async function createCourse(
+  actingPlayerId: string,
+  values: CourseCreateInput,
+): Promise<CourseCreateResult> {
+  const admin = await requirePlatformAdmin(
+    actingPlayerId,
+    "Only Platform Admins can add courses.",
+  );
+  if (!admin.ok) return admin;
+
+  const { handle, name, imgUrl, tees, holes } = values;
+  let id: number;
+  try {
+    id = await db.transaction(async (tx) => {
+      const [created] = await tx
+        .insert(courses)
+        .values({ handle, name, imgUrl: emptyToNull(imgUrl) })
+        .returning({ id: courses.id });
+      await writeTeesAndHoles(tx, created.id, tees, holes);
+      return created.id;
+    });
+  } catch (e) {
+    if (pgCode(e) === "23505") return NAME_TAKEN;
+    throw e;
+  }
+
+  revalidateCoursePaths([handle]);
+  return { ok: true, id, handle };
+}
 
 export async function updateCourse(
   actingPlayerId: string,
@@ -77,7 +121,7 @@ export async function updateCourse(
   const refused = await refuseIfTeesInUse(teesToDelete);
   if (refused) return refused;
 
-  const newImgUrl = imgUrl.length > 0 ? imgUrl : null;
+  const newImgUrl = emptyToNull(imgUrl);
 
   try {
     await db.transaction(async (tx) => {
@@ -98,52 +142,10 @@ export async function updateCourse(
         );
       }
 
-      for (const [sortOrder, tee] of tees.entries()) {
-        const fields = {
-          name: tee.name,
-          color: emptyToNull(tee.color),
-          rating: tee.rating,
-          slope: tee.slope,
-          sortOrder,
-        };
-        let teeId = tee.id;
-        if (teeId) {
-          await tx
-            .update(courseTees)
-            .set(fields)
-            .where(and(eq(courseTees.id, teeId), eq(courseTees.courseId, id)));
-          await tx.delete(teeYardages).where(eq(teeYardages.teeId, teeId));
-        } else {
-          const [inserted] = await tx
-            .insert(courseTees)
-            .values({ courseId: id, ...fields })
-            .returning({ id: courseTees.id });
-          teeId = inserted.id;
-        }
-
-        const yardages = yardageRows(teeId, tee.yardages);
-        if (yardages.length > 0) {
-          await tx.insert(teeYardages).values(yardages);
-        }
-      }
-
-      await tx.delete(courseHoles).where(eq(courseHoles.courseId, id));
-      await tx.insert(courseHoles).values(
-        holes.map((hole) => ({
-          courseId: id,
-          hole: hole.hole,
-          par: hole.par,
-          handicap: hole.handicap,
-        })),
-      );
+      await writeTeesAndHoles(tx, id, tees, holes);
     });
   } catch (e) {
-    if (pgCode(e) === "23505") {
-      return {
-        ok: false,
-        error: "A course or tee with that name already exists.",
-      };
-    }
+    if (pgCode(e) === "23505") return NAME_TAKEN;
     throw e;
   }
 
@@ -241,6 +243,54 @@ async function refuseIfTeesInUse(
     ok: false,
     error: `Cannot remove tees in use — ${messages.join("; ")}`,
   };
+}
+
+async function writeTeesAndHoles(
+  tx: Transaction,
+  courseId: number,
+  tees: CourseUpdateInput["tees"],
+  holes: CourseUpdateInput["holes"],
+) {
+  for (const [sortOrder, tee] of tees.entries()) {
+    const fields = {
+      name: tee.name,
+      color: emptyToNull(tee.color),
+      rating: tee.rating,
+      slope: tee.slope,
+      sortOrder,
+    };
+    let teeId = tee.id;
+    if (teeId) {
+      await tx
+        .update(courseTees)
+        .set(fields)
+        .where(
+          and(eq(courseTees.id, teeId), eq(courseTees.courseId, courseId)),
+        );
+      await tx.delete(teeYardages).where(eq(teeYardages.teeId, teeId));
+    } else {
+      const [inserted] = await tx
+        .insert(courseTees)
+        .values({ courseId, ...fields })
+        .returning({ id: courseTees.id });
+      teeId = inserted.id;
+    }
+
+    const yardages = yardageRows(teeId, tee.yardages);
+    if (yardages.length > 0) {
+      await tx.insert(teeYardages).values(yardages);
+    }
+  }
+
+  await tx.delete(courseHoles).where(eq(courseHoles.courseId, courseId));
+  await tx.insert(courseHoles).values(
+    holes.map((hole) => ({
+      courseId,
+      hole: hole.hole,
+      par: hole.par,
+      handicap: hole.handicap,
+    })),
+  );
 }
 
 function revalidateCoursePaths(handles: string[]) {

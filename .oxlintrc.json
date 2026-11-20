@@ -133,8 +133,7 @@
       // split. Remove each entry when its file is split and its `!`s fixed.
       "files": [
         "src/modules/courses/lib/scorecard-import/workflow.ts",
-        "src/app/(app)/matches/_components/match-sheet.tsx",
-        "src/modules/courses/tests/scorecard-import.db.test.ts"
+        "src/app/(app)/matches/_components/match-sheet.tsx"
       ],
       "rules": { "typescript/no-non-null-assertion": "off" }
     },

@@ -47,7 +47,7 @@ tests/
 
 1. **`lib/reads.ts` and `lib/writes.ts`** hold the module's public reads and writes. Not `queries` or `mutations`. A big module may split by sub-area with a suffix: `pairing-writes.ts`, `display-round-reads.ts`.
 2. **Every other lib file is named after its domain idea** (`scoring`, `handicap`, `standings`), not its role (`compute`, `impl`, `utils`).
-3. **A test is named after the lib file, lib subfolder or entry point it covers** (`reads.db.test.ts`, `scorecard-import.db.test.ts`, `event-rounds.db.test.ts`). `.db.test.ts` if it hits the database, `.test.ts` if not; one base name may have both. Not every lib file needs a test.
+3. **A test is named after the lib file, lib subfolder or entry point it covers** (`reads.db.test.ts`, `scorecard-import.db.test.ts`, `event-rounds.db.test.ts`). `.db.test.ts` if it hits the database, `.test.ts` if not; one base name may have both. A base name that outgrows one file splits by facet: `scorecard-import.lifecycle.db.test.ts`. Not every lib file needs a test.
 4. **Public reads start with `get`, `is` or `has`.** Writes use a domain verb (`createRound`, `recordScorecardChanges`).
 
 ## Why this shape
@@ -71,9 +71,11 @@ All are `error`. Run them with `pnpm lint:boundaries`. They also run in `pnpm ch
 
 **`tests-through-entrypoints`.** Files in `<module>/tests/` may import any module's entry points and their own `tests/` fixtures, but never any module's internals, not even their own. Tests exercise behaviour, not implementation.
 
+**`tests-arrange-through-entrypoints`.** Module tests and `src/test/fixtures/` may not import anything under `src/db/`, `@/db` included. They arrange data and assert on it through entry points (`createFixtures()` wraps the common setups), so a storage change breaks only the module that owns it. The db test harness in `src/test/db/` is exempt; it seeds the first Platform Admin and holds the few things no entry point can do. An entry point may exist mainly to support tests.
+
 **`tests-folder-is-private`.** Only tests may import from a `tests/` folder, so test fixtures never ship in app code.
 
-**`test-support-only-from-tests`.** Fixtures shared across modules' tests (e.g. `createRoundFixtures`) live in `src/test/fixtures/`. Only `*.test.ts` files and `src/test/` itself may import `src/test/`.
+**`test-support-only-from-tests`.** Fixtures shared across modules' tests (e.g. `createFixtures`) live in `src/test/fixtures/`. Only `*.test.ts` files, modules' `tests/` folders and `src/test/` itself may import `src/test/`. A fixture only one module's tests use lives in that module's `tests/`.
 
 **`index-runs-anywhere`.** No runtime path from a module's `index.ts` may reach `src/db`, `server-only` or any `server.ts`. It's transitive, so it catches a pure-looking lib file that imports the db. It lives in `.dependency-cruiser.runtime.cjs`, a second pass with type-only imports erased (`reachable` rules can't skip them, and pure code legitimately type-imports server files).
 

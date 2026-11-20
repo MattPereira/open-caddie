@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { createRoundFixtures, PAR_THREE_HOLES } from "@/test/fixtures/rounds";
+import { startNextSeason } from "@/modules/seasons/server";
+import { withTransaction } from "@/test/db/connections";
+import { createFixtures, PAR_THREE_HOLES } from "@/test/fixtures";
 import * as clubs from "../server";
 import type { PointRules } from "../index";
 
@@ -18,79 +18,44 @@ const POINT_RULES: PointRules = {
 };
 
 describe("Club reads", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
 
-  async function club({ seasons = [] as number[] } = {}) {
-    const suffix = crypto.randomUUID();
-    const [created] = await db
-      .insert(schema.clubs)
-      .values({
-        handle: `club-${suffix}`,
-        name: `Club ${suffix}`,
-        pointRules: POINT_RULES,
-      })
-      .returning();
-    // Inserted out of order so the Current Season comes from the number, not insertion.
+  async function club({ seasons = 0 } = {}) {
+    const created = await fixtures.club({ pointRules: POINT_RULES });
     const seasonIds: Record<number, number> = {};
-    for (const number of [...seasons].reverse()) {
-      const [season] = await db
-        .insert(schema.seasons)
-        .values({ clubId: created.id, number })
-        .returning();
-      seasonIds[number] = season.id;
+    for (let i = 0; i < seasons; i += 1) {
+      const season = await withTransaction((tx) =>
+        startNextSeason(tx, created.id),
+      );
+      seasonIds[season.number] = season.id;
     }
     return { club: created, seasonIds };
   }
 
-  async function join(clubId: number, playerId: string) {
-    await db.insert(schema.clubMembers).values({ clubId, playerId });
-  }
-
   async function round(playerId: string, { greenies = 0 } = {}) {
-    const { course, tee } = await fixtures.course();
-    const [created] = await db
-      .insert(schema.rounds)
-      .values({
-        playerId,
-        courseId: course.id,
-        teeId: tee.id,
-        date: new Date("2026-01-01T00:00:00.000Z"),
-      })
-      .returning();
+    const { id: roundId } = await fixtures.casualRound({ playerId });
     const holes = PAR_THREE_HOLES.slice(0, greenies);
     if (holes.length > 0) {
-      await db.insert(schema.roundScores).values(
-        holes.map((hole) => ({
-          roundId: created.id,
-          hole,
-          strokes: 3,
-          putts: 1,
-        })),
+      await fixtures.scores(
+        roundId,
+        holes.map((hole) => ({ hole, strokes: 3, putts: 1 })),
       );
-      await db.insert(schema.greenies).values(
-        holes.map((hole) => ({
-          roundId: created.id,
-          hole,
-          feet: 5,
-          inches: 0,
-        })),
-      );
+      for (const hole of holes) {
+        await fixtures.greenie(roundId, hole, { feet: 5, inches: 0 });
+      }
     }
   }
 
-  async function tournament(seasonId: number) {
-    const { course, tee } = await fixtures.course();
-    await db.insert(schema.tournaments).values({
-      seasonId,
-      courseId: course.id,
-      teeId: tee.id,
-      date: new Date("2026-01-01T00:00:00.000Z"),
-    });
+  async function tournament(
+    owner: { id: number; handle: string },
+    seasonId: number,
+  ) {
+    await fixtures.tournament({ club: owner, seasonId });
   }
 
   describe("getAllClubsWithSeasons", () => {
     it("makes the highest-numbered Season the Current Season", async () => {
-      const { club: created, seasonIds } = await club({ seasons: [1, 2, 3] });
+      const { club: created, seasonIds } = await club({ seasons: 3 });
       const row = (await clubs.getAllClubsWithSeasons()).find(
         (c) => c.id === created.id,
       );
@@ -109,12 +74,12 @@ describe("Club reads", () => {
 
   describe("getAllClubsFull", () => {
     it("counts Club Members and Tournaments", async () => {
-      const { club: created, seasonIds } = await club({ seasons: [1, 2] });
-      await join(created.id, (await fixtures.player()).id);
-      await join(created.id, (await fixtures.player()).id);
-      await tournament(seasonIds[1]);
-      await tournament(seasonIds[2]);
-      await tournament(seasonIds[2]);
+      const { club: created, seasonIds } = await club({ seasons: 2 });
+      await fixtures.clubMember(created.id, (await fixtures.player()).id);
+      await fixtures.clubMember(created.id, (await fixtures.player()).id);
+      await tournament(created, seasonIds[1]);
+      await tournament(created, seasonIds[2]);
+      await tournament(created, seasonIds[2]);
       const row = (await clubs.getAllClubsFull()).find(
         (c) => c.id === created.id,
       );
@@ -164,9 +129,9 @@ describe("Club reads", () => {
       const regular = await fixtures.player();
       const newcomer = await fixtures.player();
       const outsider = await fixtures.player();
-      await join(created.id, regular.id);
-      await join(created.id, newcomer.id);
-      await join(other.id, outsider.id);
+      await fixtures.clubMember(created.id, regular.id);
+      await fixtures.clubMember(created.id, newcomer.id);
+      await fixtures.clubMember(other.id, outsider.id);
       await round(regular.id, { greenies: 2 });
       await round(regular.id);
 

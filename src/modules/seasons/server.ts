@@ -1,6 +1,7 @@
 import "server-only";
 
 export {
+  getClubSeasonNumbers,
   getClubSeasons,
   getSeasonStandings,
   type SeasonStandings,

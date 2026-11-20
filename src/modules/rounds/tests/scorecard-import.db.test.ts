@@ -1,17 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { createRoundFixtures } from "@/test/fixtures/rounds";
+import { createFixtures } from "@/test/fixtures";
 import { createRoundScorecardImport, getRoundById } from "../server";
 
-vi.mock("next/cache", () => ({
-  revalidatePath: vi.fn(),
-  updateTag: vi.fn(),
-}));
-
 describe("Round Scorecard Import", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
 
   // The AI parser stays out of the test: it reads back every selected Round
   // with a 4 on each hole, as if the card were filled in that way.

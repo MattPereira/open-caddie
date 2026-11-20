@@ -15,7 +15,7 @@ export type PlayerWriteResult = { ok: true } | { ok: false; error: string };
 
 /** `email` is the stored address, so the caller's sign-in email matches it. */
 export type PlayerCreateResult =
-  | { ok: true; email: string }
+  | { ok: true; id: string; email: string }
   | { ok: false; error: string };
 
 /** Form values; blank strings mean "none". */
@@ -46,15 +46,19 @@ export async function createPlayer(
   const refused = await refuseIfTaken(fields);
   if (refused) return refused;
 
+  let id: string;
   try {
-    await db.insert(users).values({ ...fields, isAdmin: values.isAdmin });
+    [{ id }] = await db
+      .insert(users)
+      .values({ ...fields, isAdmin: values.isAdmin })
+      .returning({ id: users.id });
   } catch (e) {
     if (pgCode(e) === "23505") return { ok: false, error: IN_USE };
     throw e;
   }
 
   revalidatePath("/players");
-  return { ok: true, email: fields.email };
+  return { ok: true, id, email: fields.email };
 }
 
 export async function updatePlayer(

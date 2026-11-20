@@ -1,78 +1,74 @@
 import { describe, expect, it } from "vitest";
 
-import { db } from "@/db";
-import * as schema from "@/db/schema";
+import { HOLE_COUNT } from "@/modules/courses";
+import { createFixtures } from "@/test/fixtures";
 import * as courses from "../server";
+import { importedCourse } from "./scorecard-import-fixtures";
 
 describe("Course reads", () => {
+  const fixtures = createFixtures();
+
   type TeeSetup = {
     name: string;
     rating?: string;
     slope?: number;
-    sortOrder?: number;
     yardages?: Record<number, number>;
   };
 
-  // Holes are inserted last-to-first so ordering comes from the read, not insertion.
-  async function courseWith({
-    tees = [],
-    imgUrl = null,
-    scorecardImgUrl = null,
-  }: {
-    tees?: TeeSetup[];
-    imgUrl?: string | null;
-    scorecardImgUrl?: string | null;
-  } = {}) {
-    const suffix = crypto.randomUUID();
-    const [course] = await db
-      .insert(schema.courses)
-      .values({
-        handle: `course-${suffix}`,
-        name: `Course ${suffix}`,
-        imgUrl,
-        scorecardImgUrl,
-      })
-      .returning();
-    await db.insert(schema.courseHoles).values(
-      Array.from({ length: 18 }, (_, index) => {
-        const hole = 18 - index;
-        return {
-          courseId: course.id,
-          hole,
-          par: hole % 6 === 0 ? 5 : 4,
-          handicap: 19 - hole,
-        };
-      }),
-    );
-    const teeIds: Record<string, number> = {};
-    for (const tee of tees) {
-      const [created] = await db
-        .insert(schema.courseTees)
-        .values({
-          courseId: course.id,
-          name: tee.name,
-          rating: tee.rating ?? "70",
-          slope: tee.slope ?? 120,
-          sortOrder: tee.sortOrder ?? 0,
-        })
-        .returning();
-      teeIds[tee.name] = created.id;
-      const yardages = Object.entries(tee.yardages ?? {}).map(
-        ([hole, yards]) => ({
-          teeId: created.id,
-          hole: Number(hole),
-          yards,
-        }),
-      );
-      if (yardages.length > 0)
-        await db.insert(schema.teeYardages).values(yardages);
-    }
-    return { course, teeIds };
+  function teeInput(tee: TeeSetup, sortOrder: number) {
+    return {
+      name: tee.name,
+      color: "",
+      rating: tee.rating ?? "70",
+      slope: tee.slope ?? 120,
+      yardages: Array.from(
+        { length: HOLE_COUNT },
+        (_, index) => tee.yardages?.[index + 1] ?? ("" as const),
+      ),
+      sortOrder,
+    };
   }
 
-  const expectedHoles = Array.from({ length: 18 }, (_, index) => {
+  // Tees are stored in the order given. Holes are given last-to-first so
+  // ordering comes from the read, not the write.
+  async function courseWith({
+    tees = [],
+    imgUrl = "",
+  }: { tees?: TeeSetup[]; imgUrl?: string } = {}) {
+    const suffix = crypto.randomUUID();
+    const values = {
+      handle: `course-${suffix}`,
+      name: `Course ${suffix}`,
+      imgUrl,
+      tees: tees.map(teeInput),
+      holes: Array.from({ length: HOLE_COUNT }, (_, index) => {
+        const hole = HOLE_COUNT - index;
+        return {
+          hole,
+          par: hole % 6 === 0 ? 5 : 4,
+          handicap: HOLE_COUNT + 1 - hole,
+        };
+      }),
+    };
+    const created = await courses.createCourse(await fixtures.admin(), values);
+    if (!created.ok) throw new Error(created.error);
+    const stored = await courses.getCourseForEdit(values.handle);
+    const teeIds = Object.fromEntries(
+      (stored?.tees ?? []).map((tee) => [tee.name, tee.id]),
+    );
+    return {
+      course: { id: created.id, handle: values.handle, name: values.name },
+      teeIds,
+    };
+  }
+
+  const expectedHoles = Array.from({ length: HOLE_COUNT }, (_, index) => {
     const hole = index + 1;
-    return { hole, par: hole % 6 === 0 ? 5 : 4, handicap: 19 - hole };
+    return {
+      hole,
+      par: hole % 6 === 0 ? 5 : 4,
+      handicap: HOLE_COUNT + 1 - hole,
+    };
   });
 
   describe.each([
@@ -106,27 +102,32 @@ describe("Course reads", () => {
       ]);
     });
 
-    it("orders tees by sort order, then by id", async () => {
-      const { course } = await courseWith({
-        tees: [
-          { name: "Red", sortOrder: 2 },
-          { name: "Black", sortOrder: 0 },
-          { name: "White", sortOrder: 1 },
-          { name: "Gold", sortOrder: 1 },
-        ],
+    it("orders tees by sort order, not by when they were added", async () => {
+      const { course, teeIds } = await courseWith({
+        tees: [{ name: "Red" }, { name: "White" }],
       });
+      const edit = await courses.getCourseForEdit(course.handle);
+      if (!edit) throw new Error("course missing");
+      const reordered = await courses.updateCourse(await fixtures.admin(), {
+        id: course.id,
+        handle: course.handle,
+        name: course.name,
+        imgUrl: "",
+        tees: [
+          teeInput({ name: "Black" }, 0),
+          { ...teeInput({ name: "White" }, 1), id: teeIds.White },
+          { ...teeInput({ name: "Red" }, 2), id: teeIds.Red },
+        ],
+        holes: edit.holes,
+      });
+      expect(reordered.ok).toBe(true);
       const tees = (await read(course.handle))?.tees ?? [];
-      expect(tees.map((tee) => tee.name)).toEqual([
-        "Black",
-        "White",
-        "Gold",
-        "Red",
-      ]);
+      expect(tees.map((tee) => tee.name)).toEqual(["Black", "White", "Red"]);
     });
 
     it("returns each tee's details", async () => {
       const { course, teeIds } = await courseWith({
-        tees: [{ name: "Blue", rating: "71.3", slope: 131, sortOrder: 0 }],
+        tees: [{ name: "Blue", rating: "71.3", slope: 131 }],
       });
       const [tee] = (await read(course.handle))?.tees ?? [];
       expect(tee).toEqual({
@@ -145,8 +146,8 @@ describe("Course reads", () => {
     it("takes rating and slope from the first tee", async () => {
       const { course } = await courseWith({
         tees: [
-          { name: "White", rating: "69.1", slope: 118, sortOrder: 1 },
-          { name: "Black", rating: "74.2", slope: 139, sortOrder: 0 },
+          { name: "Black", rating: "74.2", slope: 139 },
+          { name: "White", rating: "69.1", slope: 118 },
         ],
       });
       expect(await courses.getCourseByHandle(course.handle)).toMatchObject({
@@ -170,9 +171,9 @@ describe("Course reads", () => {
 
   describe("getCourseForEdit", () => {
     it("includes the course and scorecard images", async () => {
-      const { course } = await courseWith({
-        imgUrl: "https://example.com/course.webp",
-        scorecardImgUrl: "https://example.com/card.webp",
+      const course = await importedCourse(fixtures, {
+        course: "https://example.com/course.webp",
+        scorecard: "https://example.com/card.webp",
       });
       expect(await courses.getCourseForEdit(course.handle)).toMatchObject({
         id: course.id,
@@ -182,14 +183,21 @@ describe("Course reads", () => {
         scorecardImgUrl: "https://example.com/card.webp",
       });
     });
+
+    it("has no scorecard image for a course saved without an import", async () => {
+      const { course } = await courseWith();
+      expect(await courses.getCourseForEdit(course.handle)).toMatchObject({
+        scorecardImgUrl: null,
+      });
+    });
   });
 
   describe("getCoursesWithTees", () => {
     it("lists tees in order with total yards, or null when none are saved", async () => {
       const { course, teeIds } = await courseWith({
         tees: [
-          { name: "White", sortOrder: 1 },
-          { name: "Blue", sortOrder: 0, yardages: { 1: 400, 2: 350, 18: 500 } },
+          { name: "Blue", yardages: { 1: 400, 2: 350, 18: 500 } },
+          { name: "White" },
         ],
       });
       const listed = (await courses.getCoursesWithTees()).find(

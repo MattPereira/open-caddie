@@ -33,3 +33,27 @@ export async function waitForLockWaits(table: string, count: number) {
   }
   throw new Error(`Expected ${count} queries on ${table} waiting on a lock.`);
 }
+
+/** Takes `table`'s FOR UPDATE row lock on `id`, as an edit of that row does. */
+export async function lockRow(tx: Tx, table: string, id: number) {
+  await tx.execute(
+    sql`select id from ${sql.identifier(table)} where id = ${id} for update`,
+  );
+}
+
+/** Takes FOR UPDATE row locks on `table`'s rows matching every `key` column. */
+export async function lockRowsWhere(
+  tx: Tx,
+  table: string,
+  key: Record<string, number>,
+) {
+  const where = sql.join(
+    Object.entries(key).map(
+      ([column, value]) => sql`${sql.identifier(column)} = ${value}`,
+    ),
+    sql` and `,
+  );
+  await tx.execute(
+    sql`select 1 from ${sql.identifier(table)} where ${where} for update`,
+  );
+}

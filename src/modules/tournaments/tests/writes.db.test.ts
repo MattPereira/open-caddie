@@ -1,52 +1,30 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { revalidatePath, updateTag } from "next/cache";
+import { beforeEach, describe, expect, it } from "vitest";
 
-import { desc, eq } from "drizzle-orm";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
+import { required } from "@/lib/required";
 import * as clubs from "@/modules/clubs/server";
+import {
+  changeRoundSettings,
+  getTournamentRounds,
+} from "@/modules/rounds/server";
 import * as seasons from "@/modules/seasons/server";
-import { createRoundFixtures } from "@/test/fixtures/rounds";
 import * as tournaments from "@/modules/tournaments/server";
+import { clearCacheMocks } from "@/test/cache-mocks";
+import { createFixtures } from "@/test/fixtures";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
 
-const { revalidatePath, updateTag } = vi.hoisted(() => ({
-  revalidatePath: vi.fn(),
-  updateTag: vi.fn(),
-}));
-vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
-
 describe("Tournament Season mutations", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
   let admin: Awaited<ReturnType<typeof fixtures.player>>;
 
   async function fixture() {
-    const suffix = crypto.randomUUID();
-    const [club] = await db
-      .insert(schema.clubs)
-      .values({
-        handle: `club-${suffix}`,
-        name: `Club ${suffix}`,
-        pointRules: {
-          participation: 0,
-          pars: 0,
-          birdies: 0,
-          eagles: 0,
-          aces: 0,
-          strokes: { positions: [0] },
-          putts: { positions: [0] },
-          greenies: { tiers: [{ maxFt: null, pts: 0 }] },
-        },
-      })
-      .returning();
-    const [course] = await db
-      .insert(schema.courses)
-      .values({ handle: `course-${suffix}`, name: `Course ${suffix}` })
-      .returning();
-    const [tee] = await db
-      .insert(schema.courseTees)
-      .values({ courseId: course.id, name: "Blue", rating: "72", slope: 120 })
-      .returning();
+    const club = await fixtures.club();
+    const { course, tee } = await fixtures.course();
     return { club, course, tee };
+  }
+
+  async function stored(id: number) {
+    return required(await tournaments.getTournamentById(id), "tournament");
   }
 
   async function create(
@@ -63,33 +41,23 @@ describe("Tournament Season mutations", () => {
     });
     if (!result.ok || result.id == null)
       throw new Error(result.ok ? "Missing Tournament id" : result.error);
-    const [tournament] = await db
-      .select()
-      .from(schema.tournaments)
-      .where(eq(schema.tournaments.id, result.id));
-    return tournament;
+    return stored(result.id);
+  }
+
+  async function tournamentRounds(id: number) {
+    return (await getTournamentRounds(id)).rounds;
   }
 
   beforeEach(async () => {
     admin = await fixtures.player({ isAdmin: true });
-    revalidatePath.mockClear();
-    updateTag.mockClear();
   });
 
   it("creates Season 1 for a Club's first Tournament", async () => {
     const { club, course, tee } = await fixture();
     const f = { club, course, tee };
     const tournament = await create(f);
-    const [season] = await db
-      .select()
-      .from(schema.seasons)
-      .where(eq(schema.seasons.id, tournament.seasonId));
-    expect(season).toMatchObject({ clubId: club.id, number: 1 });
-    expect(await tournaments.getTournamentById(tournament.id)).toMatchObject({
-      clubId: club.id,
-      season: 1,
-      seasonId: season.id,
-    });
+    expect(await seasons.getClubSeasonNumbers(club.id)).toEqual([1]);
+    expect(tournament).toMatchObject({ clubId: club.id, season: 1 });
     expect(await tournaments.getAllTournaments()).toContainEqual(
       expect.objectContaining({
         id: tournament.id,
@@ -107,13 +75,8 @@ describe("Tournament Season mutations", () => {
       startNextSeason: true,
       date: "2025-01-01",
     });
-    const clubSeasons = await db
-      .select()
-      .from(schema.seasons)
-      .where(eq(schema.seasons.clubId, club.id))
-      .orderBy(schema.seasons.number);
-    expect(clubSeasons.map(({ number }) => number)).toEqual([1, 2]);
-    expect(tournament.seasonId).toBe(clubSeasons[1].id);
+    expect(await seasons.getClubSeasonNumbers(club.id)).toEqual([1, 2]);
+    expect(tournament.season).toBe(2);
   });
 
   it("reassigns a Tournament through its Season regardless of date", async () => {
@@ -124,11 +87,7 @@ describe("Tournament Season mutations", () => {
       startNextSeason: true,
       date: "2020-01-01",
     });
-    const [seasonOne] = await db
-      .select()
-      .from(schema.seasons)
-      .where(eq(schema.seasons.clubId, club.id))
-      .orderBy(schema.seasons.number);
+    const seasonOne = { id: first.seasonId };
     const update = await tournaments.updateTournament(admin.id, {
       id: second.id,
       clubHandle: club.handle,
@@ -138,33 +97,22 @@ describe("Tournament Season mutations", () => {
       teeId: tee.id,
     });
     expect(update.ok).toBe(true);
-    const [updated] = await db
-      .select()
-      .from(schema.tournaments)
-      .where(eq(schema.tournaments.id, second.id));
-    expect(updated).toMatchObject({ seasonId: seasonOne.id });
-    expect(await tournaments.getTournamentById(second.id)).toMatchObject({
+    expect(await stored(second.id)).toMatchObject({
+      seasonId: seasonOne.id,
       clubId: club.id,
       season: 1,
     });
-    expect(first.id).toBeTypeOf("number");
   });
 
   it("defaults a new Tournament to the Club's Current Season", async () => {
     const { club, course, tee } = await fixture();
     const f = { club, course, tee };
     await create(f);
-    await create(f, { startNextSeason: true });
-    const [highest] = await db
-      .select()
-      .from(schema.seasons)
-      .where(eq(schema.seasons.clubId, club.id))
-      .orderBy(desc(schema.seasons.number))
-      .limit(1);
-    expect(highest.number).toBe(2);
+    const highest = await create(f, { startNextSeason: true });
+    expect(highest.season).toBe(2);
 
     const tournament = await create(f);
-    expect(tournament.seasonId).toBe(highest.id);
+    expect(tournament.seasonId).toBe(highest.seasonId);
   });
 
   it("counts a Club's Tournaments through their Seasons", async () => {
@@ -183,9 +131,9 @@ describe("Tournament Season mutations", () => {
     const f = { club, course, tee };
     await create(f);
     const second = await create(f, { startNextSeason: true });
-    await db
-      .delete(schema.tournaments)
-      .where(eq(schema.tournaments.id, second.id));
+    expect(await tournaments.deleteTournament(admin.id, second.id)).toEqual({
+      ok: true,
+    });
     expect(await seasons.getClubSeasons(club.id)).toEqual([{ season: 1 }]);
     expect(
       (await seasons.getSeasonStandings({ clubId: club.id, season: 1 }))
@@ -227,8 +175,7 @@ describe("Tournament Season mutations", () => {
       ].sort(),
     );
 
-    revalidatePath.mockClear();
-    updateTag.mockClear();
+    clearCacheMocks();
     expect(
       await tournaments.updateTournament(admin.id, {
         id: tournament.id,
@@ -259,7 +206,7 @@ describe("Tournament Season mutations", () => {
       ok: false,
       error: "Only admins can manage Tournaments.",
     };
-    revalidatePath.mockClear();
+    clearCacheMocks();
 
     expect(
       await tournaments.createTournament(player.id, {
@@ -291,17 +238,8 @@ describe("Tournament Season mutations", () => {
       }),
     ).toEqual({ ok: false, error: "Only admins can add players." });
 
-    const [unchanged] = await db
-      .select()
-      .from(schema.tournaments)
-      .where(eq(schema.tournaments.id, tournament.id));
-    expect(unchanged).toEqual(tournament);
-    expect(
-      await db
-        .select()
-        .from(schema.rounds)
-        .where(eq(schema.rounds.tournamentId, tournament.id)),
-    ).toEqual([]);
+    expect(await stored(tournament.id)).toEqual(tournament);
+    expect(await tournamentRounds(tournament.id)).toEqual([]);
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 
@@ -312,26 +250,15 @@ describe("Tournament Season mutations", () => {
       t: TournamentFixture,
       next: { courseHandle?: string; teeId?: number; date?: string },
     ) {
-      const [club] = await db
-        .select({ handle: schema.clubs.handle })
-        .from(schema.clubs)
-        .innerJoin(schema.seasons, eq(schema.seasons.clubId, schema.clubs.id))
-        .where(eq(schema.seasons.id, t.tournament.seasonId));
+      clearCacheMocks();
       return tournaments.updateTournament(admin.id, {
         id: t.tournament.id,
-        clubHandle: club.handle,
-        seasonId: t.tournament.seasonId,
+        clubHandle: t.club.handle,
+        seasonId: required(t.tournament.seasonId, "season"),
         date: next.date ?? "2026-01-01",
         courseHandle: next.courseHandle ?? t.course.handle,
         teeId: next.teeId ?? t.tee.id,
       });
-    }
-
-    async function tournamentRounds(id: number) {
-      return db
-        .select()
-        .from(schema.rounds)
-        .where(eq(schema.rounds.tournamentId, id));
     }
 
     const tournamentChanged = (id: number) => [
@@ -374,9 +301,7 @@ describe("Tournament Season mutations", () => {
       const t = await fixtures.tournament();
       const scored = await fixtures.tournamentPlayer(t);
       await fixtures.tournamentPlayer(t);
-      await db
-        .insert(schema.roundScores)
-        .values({ roundId: scored.round.id, hole: 1, strokes: 5 });
+      await fixtures.scores(scored.round.id, [{ hole: 1, strokes: 5 }]);
       const next = await fixtures.course();
 
       expect(
@@ -390,11 +315,7 @@ describe("Tournament Season mutations", () => {
         error: `Can't change the course: Player ${scored.player.lastName} already has scores or Greenies.`,
       });
 
-      const [tournament] = await db
-        .select()
-        .from(schema.tournaments)
-        .where(eq(schema.tournaments.id, t.tournament.id));
-      expect(tournament).toEqual(t.tournament);
+      expect(await stored(t.tournament.id)).toMatchObject(t.tournament);
       for (const round of await tournamentRounds(t.tournament.id)) {
         expect(round).toMatchObject({
           courseId: t.course.id,
@@ -408,9 +329,7 @@ describe("Tournament Season mutations", () => {
     it("carries a date change to scored Rounds", async () => {
       const t = await fixtures.tournament();
       const scored = await fixtures.tournamentPlayer(t);
-      await db
-        .insert(schema.roundScores)
-        .values({ roundId: scored.round.id, hole: 1, strokes: 5 });
+      await fixtures.scores(scored.round.id, [{ hole: 1, strokes: 5 }]);
 
       expect(await update(t, { date: "2026-04-04" })).toEqual({ ok: true });
 
@@ -425,12 +344,13 @@ describe("Tournament Season mutations", () => {
       const t = await fixtures.tournament();
       const onEventTee = await fixtures.tournamentPlayer(t);
       const chosen = await fixtures.tournamentPlayer(t);
-      const red = await fixtures.tee(t.course.id, "Red");
-      await db
-        .update(schema.rounds)
-        .set({ teeId: red.id })
-        .where(eq(schema.rounds.id, chosen.round.id));
-      const white = await fixtures.tee(t.course.id);
+      const red = await fixtures.tee(t.course.handle, "Red");
+      expect(
+        await changeRoundSettings(chosen.player.id, chosen.round.id, {
+          teeId: red.id,
+        }),
+      ).toEqual({ ok: true });
+      const white = await fixtures.tee(t.course.handle);
 
       expect(await update(t, { teeId: white.id })).toEqual({ ok: true });
 
@@ -464,10 +384,7 @@ describe("Tournament Season mutations", () => {
         }),
       ).toEqual({ ok: true, added: 2 });
 
-      const added = await db
-        .select()
-        .from(schema.rounds)
-        .where(eq(schema.rounds.tournamentId, t.tournament.id));
+      const added = await tournamentRounds(t.tournament.id);
       expect(added.map((round) => round.playerId).sort()).toEqual(
         [a.id, b.id].sort(),
       );
@@ -514,12 +431,7 @@ describe("Tournament Season mutations", () => {
         ok: false,
         error: "One or more selected players no longer exist.",
       });
-      expect(
-        await db
-          .select()
-          .from(schema.rounds)
-          .where(eq(schema.rounds.tournamentId, t.tournament.id)),
-      ).toEqual([]);
+      expect(await tournamentRounds(t.tournament.id)).toEqual([]);
     });
   });
 
@@ -535,11 +447,8 @@ describe("Tournament Season mutations", () => {
         error: "Cannot delete: tournament has 1 round(s).",
       });
       expect(
-        await db
-          .select()
-          .from(schema.tournaments)
-          .where(eq(schema.tournaments.id, t.tournament.id)),
-      ).toHaveLength(1);
+        await tournaments.getTournamentById(t.tournament.id),
+      ).toBeDefined();
       expect(revalidatePath).not.toHaveBeenCalled();
     });
 
@@ -550,11 +459,8 @@ describe("Tournament Season mutations", () => {
         await tournaments.deleteTournament(admin.id, t.tournament.id),
       ).toEqual({ ok: true });
       expect(
-        await db
-          .select()
-          .from(schema.tournaments)
-          .where(eq(schema.tournaments.id, t.tournament.id)),
-      ).toEqual([]);
+        await tournaments.getTournamentById(t.tournament.id),
+      ).toBeUndefined();
       expect(updateTag).toHaveBeenCalledWith("home-events");
       expect(invalidatedPaths(revalidatePath)).toEqual(
         [

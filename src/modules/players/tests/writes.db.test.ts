@@ -379,3 +379,42 @@ describe("Player writes", () => {
     });
   });
 });
+
+describe("createFirstPlatformAdmin", () => {
+  const first = {
+    email: "First.Admin@Example.com",
+    firstName: "First",
+    lastName: "Admin",
+  };
+
+  it("creates a Platform Admin when there is none", async () => {
+    const result = await players.createFirstPlatformAdmin(first);
+    if (!result.ok) throw new Error(result.error);
+
+    expect(await players.isPlatformAdmin(result.id)).toBe(true);
+    expect(await players.getPlayerById(result.id)).toMatchObject({
+      email: "first.admin@example.com",
+      firstName: "First",
+      lastName: "Admin",
+    });
+  });
+
+  it("refuses once a Platform Admin exists", async () => {
+    await players.createFirstPlatformAdmin(first);
+    expect(
+      await players.createFirstPlatformAdmin({
+        ...first,
+        email: "second@example.com",
+      }),
+    ).toEqual({ ok: false, error: "A Platform Admin already exists." });
+    expect((await players.getAllPlayers()).length).toBe(1);
+  });
+
+  it("lets only one of two concurrent calls through", async () => {
+    const results = await Promise.all([
+      players.createFirstPlatformAdmin(first),
+      players.createFirstPlatformAdmin({ ...first, email: "b@example.com" }),
+    ]);
+    expect(results.filter((result) => result.ok)).toHaveLength(1);
+  });
+});

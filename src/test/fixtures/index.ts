@@ -15,7 +15,10 @@ import {
   type CourseUpdateInput,
 } from "@/modules/courses/server";
 import { createMatch, type MatchCreateInput } from "@/modules/matches/server";
-import { createPlayer } from "@/modules/players/server";
+import {
+  createFirstPlatformAdmin,
+  createPlayer,
+} from "@/modules/players/server";
 import {
   createRound,
   getMatchRounds,
@@ -28,7 +31,6 @@ import {
   getTournamentById,
 } from "@/modules/tournaments/server";
 import { clearCacheMocks } from "@/test/cache-mocks";
-import { seedPlatformAdmin } from "@/test/db/seed";
 
 export const PAR_THREE_HOLES = [3, 7, 12, 16];
 
@@ -108,8 +110,8 @@ function blankYardages() {
 }
 
 /**
- * Arranges data through module entry points only. Every write acts as a
- * Platform Admin seeded on first use in each test.
+ * Arranges data through module entry points only. Every write acts as the
+ * first Platform Admin, created on first use in each test.
  */
 export function createFixtures() {
   let seeded: Promise<{ id: string }> | undefined;
@@ -118,7 +120,11 @@ export function createFixtures() {
   });
 
   async function admin() {
-    seeded ??= seedPlatformAdmin();
+    seeded ??= createFirstPlatformAdmin({
+      email: "admin@example.com",
+      firstName: "Admin",
+      lastName: "Fixture",
+    }).then((result) => ok(result, "admin"));
     return (await seeded).id;
   }
 

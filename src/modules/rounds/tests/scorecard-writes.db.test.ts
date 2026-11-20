@@ -1,17 +1,11 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { revalidatePath, updateTag } from "next/cache";
+import { describe, expect, it } from "vitest";
 
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { createRoundFixtures, PAR_THREE_HOLES } from "@/test/fixtures";
+import { required } from "@/lib/required";
+import { clearCacheMocks } from "@/test/cache-mocks";
+import { createFixtures, PAR_THREE_HOLES } from "@/test/fixtures";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
 import * as rounds from "../server";
-
-const { revalidatePath, updateTag } = vi.hoisted(() => ({
-  revalidatePath: vi.fn(),
-  updateTag: vi.fn(),
-}));
-vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
 
 describe("Scorecard writes", () => {
   const fixtures = createFixtures();
@@ -37,22 +31,15 @@ describe("Scorecard writes", () => {
   }
 
   async function settingsOf(roundId: number) {
-    const [round] = await db
-      .select({
-        teeId: schema.rounds.teeId,
-        playerIndexOverride: schema.rounds.playerIndexOverride,
-      })
-      .from(schema.rounds)
-      .where(eq(schema.rounds.id, roundId));
-    return round;
+    const round = required(await rounds.getRoundById(roundId), "round");
+    return {
+      teeId: round.teeId,
+      playerIndexOverride:
+        round.kind === "match" ? round.playerIndexOverride : null,
+    };
   }
 
   const CANNOT_MANAGE = "You can't change this Round's settings.";
-
-  beforeEach(() => {
-    revalidatePath.mockClear();
-    updateTag.mockClear();
-  });
 
   describe("record scorecard changes", () => {
     it("keeps a field that's left out and clears one that's explicitly null", async () => {
@@ -111,6 +98,7 @@ describe("Scorecard writes", () => {
       const t = await fixtures.tournament();
       const player = await fixtures.tournamentPlayer(t);
       const roundId = player.round.id;
+      clearCacheMocks();
 
       expect(
         await rounds.recordScorecardChanges(player.player.id, {
@@ -205,6 +193,7 @@ describe("Scorecard writes", () => {
       const mate = await fixtures.tournamentPlayer(t);
       const outsider = await fixtures.tournamentPlayer(t);
       await fixtures.pairing(t.tournament.id, [marker.round.id, mate.round.id]);
+      clearCacheMocks();
 
       expect(
         await rounds.recordScorecardChanges(marker.player.id, {
@@ -227,6 +216,7 @@ describe("Scorecard writes", () => {
     it("invalidates the Round changed pages, including course records", async () => {
       const t = await fixtures.tournament();
       const player = await fixtures.tournamentPlayer(t);
+      clearCacheMocks();
 
       await rounds.recordScorecardChanges(player.player.id, {
         scores: [{ roundId: player.round.id, hole: PAR_FOUR, strokes: 4 }],
@@ -240,6 +230,7 @@ describe("Scorecard writes", () => {
     it("invalidates the union of every Round's pages in a multi-Round write", async () => {
       const { players } = await fixtures.match(2);
       const [a, b] = players;
+      clearCacheMocks();
 
       await rounds.recordScorecardChanges(a.player.id, {
         scores: [{ roundId: a.round.id, hole: PAR_FOUR, strokes: 4 }],
@@ -264,7 +255,7 @@ describe("Scorecard writes", () => {
       const player = await fixtures.tournamentPlayer(t);
       const mate = await fixtures.tournamentPlayer(t);
       await fixtures.pairing(t.tournament.id, [player.round.id, mate.round.id]);
-      const white = await fixtures.tee(t.course.id);
+      const white = await fixtures.tee(t.course.handle);
       await rounds.recordScorecardChanges(player.player.id, {
         scores: [{ roundId: player.round.id, hole: 1, strokes: 5, putts: 2 }],
       });
@@ -320,7 +311,7 @@ describe("Scorecard writes", () => {
     it("rejects a Player Index Override on a non-Match Round", async () => {
       const t = await fixtures.tournament();
       const player = await fixtures.tournamentPlayer(t);
-      const white = await fixtures.tee(t.course.id);
+      const white = await fixtures.tee(t.course.handle);
 
       expect(
         await rounds.changeRoundSettings(player.player.id, player.round.id, {
@@ -344,7 +335,7 @@ describe("Scorecard writes", () => {
       await rounds.changeRoundSettings(a.player.id, a.round.id, {
         playerIndexOverride: 12.3,
       });
-      expect((await settingsOf(a.round.id)).playerIndexOverride).toBe("12.3");
+      expect((await settingsOf(a.round.id)).playerIndexOverride).toBe(12.3);
 
       await rounds.changeRoundSettings(a.player.id, a.round.id, {
         playerIndexOverride: null,
@@ -355,7 +346,7 @@ describe("Scorecard writes", () => {
     it("gives a Scorer who can't manage the Round a distinct error", async () => {
       const { players, match } = await fixtures.match(2);
       const [a, b] = players;
-      const white = await fixtures.tee(match.courseId);
+      const white = await fixtures.tee(match.courseHandle);
 
       expect(
         await rounds.changeRoundSettings(b.player.id, a.round.id, {
@@ -380,7 +371,8 @@ describe("Scorecard writes", () => {
     it("invalidates the Round changed pages but not the home events cache", async () => {
       const t = await fixtures.tournament();
       const player = await fixtures.tournamentPlayer(t);
-      const white = await fixtures.tee(t.course.id);
+      const white = await fixtures.tee(t.course.handle);
+      clearCacheMocks();
 
       await rounds.changeRoundSettings(player.player.id, player.round.id, {
         teeId: white.id,

@@ -1,35 +1,45 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { revalidatePath, updateTag } from "next/cache";
+import { describe, expect, it, vi } from "vitest";
 
-import { and, eq } from "drizzle-orm";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { holdTransaction, waitForLockWaits } from "@/test/db/locks";
+import { required } from "@/lib/required";
+import { getMatchById, updateMatch } from "@/modules/matches/server";
+import {
+  getTournamentById,
+  updateTournament,
+} from "@/modules/tournaments/server";
+import { clearCacheMocks } from "@/test/cache-mocks";
+import {
+  holdTransaction,
+  lockRowsWhere,
+  waitForLockWaits,
+} from "@/test/db/locks";
+import { withTransaction } from "@/test/db/seed";
 import { createFixtures } from "@/test/fixtures";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
 import * as eventRounds from "../server";
-import { recordScorecardChanges } from "../server";
-
-const { revalidatePath, updateTag } = vi.hoisted(() => ({
-  revalidatePath: vi.fn(),
-  updateTag: vi.fn(),
-}));
-vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
+import { changeRoundSettings, recordScorecardChanges } from "../server";
 
 describe("Event Rounds", () => {
   const fixtures = createFixtures();
 
   async function roundRow(id: number) {
-    const [round] = await db
-      .select()
-      .from(schema.rounds)
-      .where(eq(schema.rounds.id, id));
-    return round ?? null;
+    return (await eventRounds.getRoundById(id)) ?? null;
   }
 
-  beforeEach(() => {
-    revalidatePath.mockClear();
-    updateTag.mockClear();
-  });
+  // Ids of the Rounds whose pages were refreshed, which are the Rounds a
+  // write changed.
+  function refreshedRoundIds() {
+    return vi
+      .mocked(revalidatePath)
+      .mock.calls.map(([path]) => /^\/rounds\/(\d+)$/.exec(path)?.[1])
+      .filter((id) => id !== undefined)
+      .map(Number)
+      .sort((a, b) => a - b);
+  }
+
+  function sortedIds(...ids: number[]) {
+    return ids.sort((a, b) => a - b);
+  }
 
   describe("event Round helpers", () => {
     it("inserts Tournament Rounds on the Tournament's course, tee and date", async () => {
@@ -37,7 +47,7 @@ describe("Event Rounds", () => {
       const a = await fixtures.player();
       const b = await fixtures.player();
 
-      const inserted = await db.transaction((tx) =>
+      const inserted = await withTransaction((tx) =>
         eventRounds.insertEventRounds(tx, { tournamentId: t.tournament.id }, [
           a.id,
           b.id,
@@ -47,8 +57,8 @@ describe("Event Rounds", () => {
       expect(inserted).toHaveLength(2);
       for (const round of inserted) {
         expect(await roundRow(round.id)).toMatchObject({
+          kind: "tournament",
           tournamentId: t.tournament.id,
-          matchId: null,
           courseId: t.course.id,
           teeId: t.tee.id,
           date: t.tournament.date,
@@ -64,7 +74,7 @@ describe("Event Rounds", () => {
       const existing = await fixtures.tournamentPlayer(t);
       const newcomer = await fixtures.player();
 
-      const inserted = await db.transaction((tx) =>
+      const inserted = await withTransaction((tx) =>
         eventRounds.insertEventRounds(tx, { tournamentId: t.tournament.id }, [
           existing.player.id,
           newcomer.id,
@@ -76,10 +86,10 @@ describe("Event Rounds", () => {
 
     it("inserts Match Rounds on the Match's course and date with the given tee", async () => {
       const { match } = await fixtures.match(1);
-      const white = await fixtures.tee(match.courseId);
+      const white = await fixtures.tee(match.courseHandle);
       const player = await fixtures.player();
 
-      const [inserted] = await db.transaction((tx) =>
+      const [inserted] = await withTransaction((tx) =>
         eventRounds.insertEventRounds(
           tx,
           { matchId: match.id, teeId: white.id },
@@ -88,8 +98,8 @@ describe("Event Rounds", () => {
       );
 
       expect(await roundRow(inserted.id)).toMatchObject({
+        kind: "match",
         matchId: match.id,
-        tournamentId: null,
         playerId: player.id,
         courseId: match.courseId,
         teeId: white.id,
@@ -100,7 +110,7 @@ describe("Event Rounds", () => {
     it("deletes a Match's Rounds and returns them", async () => {
       const { match, players } = await fixtures.match(2);
 
-      const deleted = await db.transaction((tx) =>
+      const deleted = await withTransaction((tx) =>
         eventRounds.deleteEventRounds(tx, { matchId: match.id }),
       );
 
@@ -114,6 +124,7 @@ describe("Event Rounds", () => {
       const { players } = await fixtures.match(1);
       const t = await fixtures.tournament();
       const entrant = await fixtures.tournamentPlayer(t);
+      clearCacheMocks();
 
       eventRounds.invalidateRoundChanged([players[0].round, entrant.round]);
 
@@ -127,41 +138,31 @@ describe("Event Rounds", () => {
   describe("event Round sync", () => {
     type TournamentFixture = Awaited<ReturnType<typeof fixtures.tournament>>;
 
-    // Edits the Tournament row the way an authorized caller would, then
-    // syncs its Rounds in the same transaction.
+    // Saves the Tournament as an admin would, with `next` replacing its
+    // course, tee or date, forgetting the arrange's cache invalidations.
     async function editTournament(
       t: TournamentFixture,
-      next: { courseId?: number; teeId?: number; date?: Date },
+      next: { courseHandle?: string; teeId?: number; date?: string },
     ) {
-      const previous = {
-        courseId: t.tournament.courseId,
-        teeId: t.tournament.teeId,
-        date: t.tournament.date,
-      };
-      return db.transaction(async (tx) => {
-        await tx
-          .update(schema.tournaments)
-          .set(next)
-          .where(eq(schema.tournaments.id, t.tournament.id));
-        return eventRounds.syncEventRounds(
-          tx,
-          { tournamentId: t.tournament.id },
-          previous,
-        );
+      const admin = await fixtures.admin();
+      clearCacheMocks();
+      return updateTournament(admin, {
+        id: t.tournament.id,
+        clubHandle: t.club.handle,
+        seasonId: required(t.tournament.seasonId, "season"),
+        courseHandle: t.course.handle,
+        teeId: t.tee.id,
+        date: t.tournament.date.toISOString().slice(0, 10),
+        ...next,
       });
     }
 
     async function score(roundId: number) {
-      await db
-        .insert(schema.roundScores)
-        .values({ roundId, hole: 1, strokes: 4, putts: 2 });
+      await fixtures.scores(roundId, [{ hole: 1, strokes: 4, putts: 2 }]);
     }
 
     async function greenie(roundId: number) {
-      await db.insert(schema.roundScores).values({ roundId, hole: 3 });
-      await db
-        .insert(schema.greenies)
-        .values({ roundId, hole: 3, feet: 6, inches: 0 });
+      await fixtures.greenie(roundId, 3, { feet: 6, inches: 0 });
     }
 
     it("moves every unscored Tournament Round to the new course and the Tournament's tee", async () => {
@@ -170,14 +171,14 @@ describe("Event Rounds", () => {
       const b = await fixtures.tournamentPlayer(t);
       const next = await fixtures.course();
 
-      const moved = await editTournament(t, {
-        courseId: next.course.id,
-        teeId: next.tee.id,
-      });
+      expect(
+        await editTournament(t, {
+          courseHandle: next.course.handle,
+          teeId: next.tee.id,
+        }),
+      ).toEqual({ ok: true });
 
-      expect(moved.map((r) => r.id).sort()).toEqual(
-        [a.round.id, b.round.id].sort(),
-      );
+      expect(refreshedRoundIds()).toEqual(sortedIds(a.round.id, b.round.id));
       for (const p of [a, b]) {
         expect(await roundRow(p.round.id)).toMatchObject({
           courseId: next.course.id,
@@ -196,21 +197,19 @@ describe("Event Rounds", () => {
       await greenie(greenieOnly.round.id);
       const next = await fixtures.course();
 
-      const error = await editTournament(t, {
-        courseId: next.course.id,
+      const result = await editTournament(t, {
+        courseHandle: next.course.handle,
         teeId: next.tee.id,
-      }).catch((e: unknown) => e);
+      });
 
-      expect(error).toBeInstanceOf(eventRounds.EventCourseLockedError);
-      const message = (error as Error).message;
+      if (result.ok) throw new Error("course change was allowed");
+      const message = result.error;
       expect(message).toContain(`Player ${scored.player.lastName}`);
       expect(message).toContain(`Player ${greenieOnly.player.lastName}`);
       expect(message).not.toContain(unscored.player.lastName);
-      const [tournament] = await db
-        .select()
-        .from(schema.tournaments)
-        .where(eq(schema.tournaments.id, t.tournament.id));
-      expect(tournament.courseId).toBe(t.course.id);
+      expect((await getTournamentById(t.tournament.id))?.courseId).toBe(
+        t.course.id,
+      );
       for (const p of [scored, greenieOnly, unscored]) {
         expect(await roundRow(p.round.id)).toMatchObject({
           courseId: t.course.id,
@@ -225,33 +224,28 @@ describe("Event Rounds", () => {
       await greenie(p.round.id);
       const next = await fixtures.course();
 
-      await expect(
-        editTournament(t, { courseId: next.course.id, teeId: next.tee.id }),
-      ).rejects.toThrow(
-        `Player ${p.player.lastName} already has scores or Greenies`,
-      );
+      expect(
+        await editTournament(t, {
+          courseHandle: next.course.handle,
+          teeId: next.tee.id,
+        }),
+      ).toEqual({
+        ok: false,
+        error: expect.stringContaining(
+          `Player ${p.player.lastName} already has scores or Greenies`,
+        ),
+      });
     });
 
     it("refuses a course change behind a scorecard write in flight, keeping its score on the old course", async () => {
       const t = await fixtures.tournament();
       const p = await fixtures.tournamentPlayer(t);
       // Filling in an existing hole row never touches the Round's foreign key.
-      await db
-        .insert(schema.roundScores)
-        .values({ roundId: p.round.id, hole: 1 });
+      await fixtures.scores(p.round.id, [{ hole: 1, strokes: null }]);
       const next = await fixtures.course();
       // Pins the hole row so the scorecard write stalls mid-transaction.
       const pin = await holdTransaction((tx) =>
-        tx
-          .select({ hole: schema.roundScores.hole })
-          .from(schema.roundScores)
-          .where(
-            and(
-              eq(schema.roundScores.roundId, p.round.id),
-              eq(schema.roundScores.hole, 1),
-            ),
-          )
-          .for("update"),
+        lockRowsWhere(tx, "round_scores", { round_id: p.round.id, hole: 1 }),
       );
 
       const writing = recordScorecardChanges(p.player.id, {
@@ -261,9 +255,9 @@ describe("Event Rounds", () => {
       try {
         await waitForLockWaits("round_scores", 1);
         editing = editTournament(t, {
-          courseId: next.course.id,
+          courseHandle: next.course.handle,
           teeId: next.tee.id,
-        }).catch((e: unknown) => e);
+        });
         await waitForLockWaits("rounds", 1);
       } finally {
         pin.release();
@@ -272,7 +266,10 @@ describe("Event Rounds", () => {
       const [write, edit] = await Promise.all([writing, editing]);
 
       expect(write).toEqual({ ok: true });
-      expect(edit).toBeInstanceOf(eventRounds.EventCourseLockedError);
+      expect(edit).toEqual({
+        ok: false,
+        error: expect.stringContaining("already has scores or Greenies"),
+      });
       expect(await roundRow(p.round.id)).toMatchObject({
         courseId: t.course.id,
         teeId: t.tee.id,
@@ -286,10 +283,12 @@ describe("Event Rounds", () => {
       await score(scored.round.id);
       const date = new Date("2026-02-14T00:00:00.000Z");
 
-      const changed = await editTournament(t, { date });
+      expect(await editTournament(t, { date: "2026-02-14" })).toEqual({
+        ok: true,
+      });
 
-      expect(changed.map((r) => r.id).sort()).toEqual(
-        [scored.round.id, unscored.round.id].sort(),
+      expect(refreshedRoundIds()).toEqual(
+        sortedIds(scored.round.id, unscored.round.id),
       );
       for (const p of [scored, unscored]) {
         expect(await roundRow(p.round.id)).toMatchObject({
@@ -305,16 +304,19 @@ describe("Event Rounds", () => {
       const chosen = await fixtures.tournamentPlayer(t);
       const scored = await fixtures.tournamentPlayer(t);
       await score(scored.round.id);
-      const red = await fixtures.tee(t.course.id, "Red");
-      await db
-        .update(schema.rounds)
-        .set({ teeId: red.id })
-        .where(eq(schema.rounds.id, chosen.round.id));
-      const white = await fixtures.tee(t.course.id);
+      const red = await fixtures.tee(t.course.handle, "Red");
+      expect(
+        await changeRoundSettings(chosen.player.id, chosen.round.id, {
+          teeId: red.id,
+        }),
+      ).toEqual({ ok: true });
+      const white = await fixtures.tee(t.course.handle);
 
-      const changed = await editTournament(t, { teeId: white.id });
+      expect(await editTournament(t, { teeId: white.id })).toEqual({
+        ok: true,
+      });
 
-      expect(changed.map((r) => r.id)).toEqual([onEventTee.round.id]);
+      expect(refreshedRoundIds()).toEqual([onEventTee.round.id]);
       expect((await roundRow(onEventTee.round.id))?.teeId).toBe(white.id);
       expect((await roundRow(chosen.round.id))?.teeId).toBe(red.id);
       expect((await roundRow(scored.round.id))?.teeId).toBe(t.tee.id);
@@ -323,29 +325,25 @@ describe("Event Rounds", () => {
     describe("Match", () => {
       type MatchFixture = Awaited<ReturnType<typeof fixtures.match>>;
 
+      // Saves the Match as its creator would, forgetting the arrange's cache
+      // invalidations.
       async function editMatch(
         m: MatchFixture,
-        next: { courseId?: number; date?: Date },
-        teeId: number,
-        repairPlayerIds: string[] = [],
+        next: Partial<Parameters<typeof updateMatch>[1]>,
       ) {
-        const previous = { courseId: m.match.courseId, date: m.match.date };
-        return db.transaction(async (tx) => {
-          await tx
-            .update(schema.matches)
-            .set(next)
-            .where(eq(schema.matches.id, m.match.id));
-          const synced = await eventRounds.syncEventRounds(
-            tx,
-            { matchId: m.match.id, teeId },
-            previous,
-          );
-          const repaired = await eventRounds.insertEventRounds(
-            tx,
-            { matchId: m.match.id, teeId },
-            repairPlayerIds,
-          );
-          return { synced, repaired };
+        clearCacheMocks();
+        return updateMatch(m.creator.id, {
+          id: m.match.id,
+          date: "2026-01-01",
+          courseHandle: m.match.courseHandle,
+          format: m.match.format,
+          teeId: m.tee.id,
+          playerIds: m.players.map((p) => p.player.id),
+          teamOnePlayerIds: [],
+          teamTwoPlayerIds: [],
+          teamOneRoundIds: [],
+          teamTwoRoundIds: [],
+          ...next,
         });
       }
 
@@ -353,21 +351,27 @@ describe("Event Rounds", () => {
         const m = await fixtures.match(3);
         const next = await fixtures.course();
         const fourth = await fixtures.player();
+        const [a, b, d] = m.players.map((p) => p.player.id);
 
-        const { synced, repaired } = await editMatch(
-          m,
-          { courseId: next.course.id },
-          next.tee.id,
-          [fourth.id],
-        );
+        expect(
+          await editMatch(m, {
+            courseHandle: next.course.handle,
+            teeId: next.tee.id,
+            format: "four_ball_match_play",
+            playerIds: [a, b, d, fourth.id],
+            teamOnePlayerIds: [a, fourth.id],
+            teamTwoPlayerIds: [b, d],
+          }),
+        ).toEqual({ ok: true });
 
-        expect(synced).toHaveLength(3);
-        expect(repaired).toHaveLength(1);
-        const matchRounds = await db
-          .select()
-          .from(schema.rounds)
-          .where(eq(schema.rounds.matchId, m.match.id));
+        const matchRounds = required(
+          await getMatchById(m.match.id),
+          "match",
+        ).rounds;
         expect(matchRounds).toHaveLength(4);
+        expect(refreshedRoundIds()).toEqual(
+          sortedIds(...matchRounds.map((round) => round.id)),
+        );
         for (const round of matchRounds) {
           expect(round).toMatchObject({
             courseId: next.course.id,
@@ -381,14 +385,18 @@ describe("Event Rounds", () => {
         await score(m.players[0].round.id);
         const next = await fixtures.course();
 
-        await expect(
-          editMatch(m, { courseId: next.course.id }, next.tee.id),
-        ).rejects.toThrow(eventRounds.EventCourseLockedError);
-        const [match] = await db
-          .select()
-          .from(schema.matches)
-          .where(eq(schema.matches.id, m.match.id));
-        expect(match.courseId).toBe(m.match.courseId);
+        expect(
+          await editMatch(m, {
+            courseHandle: next.course.handle,
+            teeId: next.tee.id,
+          }),
+        ).toEqual({
+          ok: false,
+          error: expect.stringContaining("already has scores or Greenies"),
+        });
+        expect((await getMatchById(m.match.id))?.courseId).toBe(
+          m.match.courseId,
+        );
         for (const p of m.players) {
           expect((await roundRow(p.round.id))?.courseId).toBe(m.match.courseId);
         }
@@ -397,12 +405,16 @@ describe("Event Rounds", () => {
       it("carries a date change to every Round, scored or not, keeping tees", async () => {
         const m = await fixtures.match(2);
         await score(m.players[0].round.id);
-        const other = await fixtures.tee(m.match.courseId);
+        const other = await fixtures.tee(m.match.courseHandle);
         const date = new Date("2026-03-01T00:00:00.000Z");
 
-        const { synced } = await editMatch(m, { date }, other.id);
+        expect(
+          await editMatch(m, { date: "2026-03-01", teeId: other.id }),
+        ).toEqual({ ok: true });
 
-        expect(synced).toHaveLength(2);
+        expect(refreshedRoundIds()).toEqual(
+          sortedIds(...m.players.map((p) => p.round.id)),
+        );
         for (const p of m.players) {
           expect(await roundRow(p.round.id)).toMatchObject({
             date,

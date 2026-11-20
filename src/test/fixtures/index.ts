@@ -1,7 +1,11 @@
 import { beforeEach } from "vitest";
 
 import { required } from "@/lib/required";
-import { addClubMember, createClub } from "@/modules/clubs/server";
+import {
+  addClubMember,
+  createClub,
+  type ClubWriteInput,
+} from "@/modules/clubs/server";
 import { HOLE_COUNT } from "@/modules/courses";
 import {
   createCourse,
@@ -249,7 +253,9 @@ export function createFixtures() {
     );
   }
 
-  async function club() {
+  async function club({
+    pointRules = ZERO_POINT_RULES,
+  }: { pointRules?: ClubWriteInput["pointRules"] } = {}) {
     const suffix = crypto.randomUUID();
     const handle = `club-${suffix}`;
     const created = ok(
@@ -257,7 +263,7 @@ export function createFixtures() {
         handle,
         name: `Club ${suffix}`,
         logo: "",
-        pointRules: ZERO_POINT_RULES,
+        pointRules,
       }),
       "club",
     );
@@ -433,6 +439,7 @@ export function createFixtures() {
         id: matchId,
         courseId: matchCourse.id,
         courseHandle: matchCourse.handle,
+        format,
         createdByPlayerId: creator.id,
         date,
       },

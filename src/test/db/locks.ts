@@ -40,3 +40,20 @@ export async function lockRow(tx: Tx, table: string, id: number) {
     sql`select id from ${sql.identifier(table)} where id = ${id} for update`,
   );
 }
+
+/** Takes FOR UPDATE row locks on `table`'s rows matching every `key` column. */
+export async function lockRowsWhere(
+  tx: Tx,
+  table: string,
+  key: Record<string, number>,
+) {
+  const where = sql.join(
+    Object.entries(key).map(
+      ([column, value]) => sql`${sql.identifier(column)} = ${value}`,
+    ),
+    sql` and `,
+  );
+  await tx.execute(
+    sql`select 1 from ${sql.identifier(table)} where ${where} for update`,
+  );
+}

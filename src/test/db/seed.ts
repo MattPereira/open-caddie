@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { db, type Transaction } from "@/db";
 import { users } from "@/db/schema";
@@ -29,4 +29,13 @@ export async function warmConnections(count: number) {
   await Promise.all(
     Array.from({ length: count }, () => db.execute(sql`select 1`)),
   );
+}
+
+// Auth.js sets emailVerified when a Player signs in by email link; no module
+// entry point writes it.
+export async function markEmailVerified(playerId: string, at: Date) {
+  await db
+    .update(users)
+    .set({ emailVerified: at })
+    .where(eq(users.id, playerId));
 }

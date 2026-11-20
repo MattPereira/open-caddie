@@ -1,4 +1,5 @@
-import type { Mock } from "vitest";
+import type { revalidatePath as RevalidatePath } from "next/cache";
+import { vi } from "vitest";
 
 type RoundRef = {
   id: number;
@@ -8,9 +9,10 @@ type RoundRef = {
 };
 
 // Each call a mocked revalidatePath received, as a sorted "path type" string.
-export function invalidatedPaths(revalidatePath: Mock) {
-  return (revalidatePath.mock.calls as string[][])
-    .map((call) => call.join(" "))
+export function invalidatedPaths(revalidatePath: typeof RevalidatePath) {
+  return vi
+    .mocked(revalidatePath)
+    .mock.calls.map((call) => call.join(" "))
     .sort();
 }
 

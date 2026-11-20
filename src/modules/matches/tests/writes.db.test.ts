@@ -1,29 +1,18 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { revalidatePath, updateTag } from "next/cache";
+import { describe, expect, it } from "vitest";
 
-import { asc, eq } from "drizzle-orm";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
+import { required } from "@/lib/required";
 import * as matches from "@/modules/matches/server";
+import { deleteRound, getMatchRounds } from "@/modules/rounds/server";
+import { clearCacheMocks } from "@/test/cache-mocks";
 import { createFixtures } from "@/test/fixtures";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
-import { required } from "@/lib/required";
-
-const { revalidatePath, updateTag } = vi.hoisted(() => ({
-  revalidatePath: vi.fn(),
-  updateTag: vi.fn(),
-}));
-vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
 
 describe("Match mutations", () => {
   const fixtures = createFixtures();
 
-  type MatchFormat = (typeof schema.matches.$inferSelect)["format"];
+  type MatchFormat = matches.MatchCreateInput["format"];
   type Course = Awaited<ReturnType<typeof fixtures.course>>;
-
-  beforeEach(() => {
-    revalidatePath.mockClear();
-    updateTag.mockClear();
-  });
 
   function matchChanged(matchId: number) {
     return ["/matches", `/matches/${matchId}`];
@@ -55,42 +44,23 @@ describe("Match mutations", () => {
   }
 
   async function matchRounds(matchId: number) {
-    return db
-      .select()
-      .from(schema.rounds)
-      .where(eq(schema.rounds.matchId, matchId))
-      .orderBy(asc(schema.rounds.id));
+    const { rounds } = await getMatchRounds(matchId);
+    return rounds.toSorted((a, b) => a.id - b.id);
   }
 
   async function matchRow(matchId: number) {
-    const [match] = await db
-      .select()
-      .from(schema.matches)
-      .where(eq(schema.matches.id, matchId));
-    return match ?? null;
+    return (await matches.getMatchById(matchId)) ?? null;
   }
 
   // Team name → sorted Player ids.
   async function teams(matchId: number) {
-    const rows = await db
-      .select({
-        name: schema.matchTeams.name,
-        playerId: schema.rounds.playerId,
-      })
-      .from(schema.matchTeams)
-      .innerJoin(
-        schema.matchTeamMembers,
-        eq(schema.matchTeamMembers.matchTeamId, schema.matchTeams.id),
-      )
-      .innerJoin(
-        schema.rounds,
-        eq(schema.rounds.id, schema.matchTeamMembers.roundId),
-      )
-      .where(eq(schema.matchTeams.matchId, matchId));
-    const byName: Record<string, string[]> = {};
-    for (const row of rows) (byName[row.name] ??= []).push(row.playerId);
-    for (const ids of Object.values(byName)) ids.sort();
-    return byName;
+    const match = required(await matches.getMatchById(matchId), "match");
+    return Object.fromEntries(
+      match.teams.map((team) => [
+        team.name,
+        team.rounds.map((round) => round.playerId).sort(),
+      ]),
+    );
   }
 
   function updateInput(
@@ -114,18 +84,11 @@ describe("Match mutations", () => {
     };
   }
 
-  async function courseOf(m: Awaited<ReturnType<typeof fixtures.match>>) {
-    const [course] = await db
-      .select()
-      .from(schema.courses)
-      .where(eq(schema.courses.id, m.match.courseId));
-    return course;
-  }
-
   describe("create Match", () => {
     it("creates the Match and its Rounds on the tee, refreshing Match and Round pages", async () => {
       const c = await fixtures.course();
       const [a, b] = await players(2);
+      clearCacheMocks();
 
       const result = await create(a.id, c, "singles_match_play", [a.id, b.id]);
 
@@ -186,9 +149,8 @@ describe("Match mutations", () => {
   describe("update Match", () => {
     it("lets only the creator or an admin edit", async () => {
       const m = await fixtures.match(2, { creatorPlays: false });
-      const course = await courseOf(m);
       const [round] = await matchRounds(m.match.id);
-      const input = updateInput(m, course.handle, round.teeId, {
+      const input = updateInput(m, m.match.courseHandle, round.teeId, {
         date: "2026-02-01",
       });
 
@@ -202,7 +164,7 @@ describe("Match mutations", () => {
         ok: true,
       });
       const admin = await fixtures.player({ isAdmin: true });
-      revalidatePath.mockClear();
+      clearCacheMocks();
       expect(
         await matches.updateMatch(admin.id, { ...input, date: "2026-03-01" }),
       ).toEqual({ ok: true });
@@ -220,13 +182,12 @@ describe("Match mutations", () => {
 
     it("refuses more Rounds than Singles or Three-Ball allows", async () => {
       const m = await fixtures.match(4);
-      const course = await courseOf(m);
       const [round] = await matchRounds(m.match.id);
 
       expect(
         await matches.updateMatch(
           m.creator.id,
-          updateInput(m, course.handle, round.teeId, {
+          updateInput(m, m.match.courseHandle, round.teeId, {
             format: "three_ball_match_play",
           }),
         ),
@@ -237,7 +198,7 @@ describe("Match mutations", () => {
       expect(
         await matches.updateMatch(
           m.creator.id,
-          updateInput(m, course.handle, round.teeId, {
+          updateInput(m, m.match.courseHandle, round.teeId, {
             format: "singles_match_play",
           }),
         ),
@@ -294,14 +255,14 @@ describe("Match mutations", () => {
 
     it("refills a short Four-Ball roster with Rounds for the missing players", async () => {
       const m = await fixtures.match(3);
-      const course = await courseOf(m);
       const [round] = await matchRounds(m.match.id);
       const fourth = await fixtures.player();
       const [a, b, d] = m.players.map((p) => p.player.id);
+      clearCacheMocks();
 
       const result = await matches.updateMatch(
         m.creator.id,
-        updateInput(m, course.handle, round.teeId, {
+        updateInput(m, m.match.courseHandle, round.teeId, {
           format: "four_ball_match_play",
           playerIds: [a, b, d, fourth.id],
           teamOnePlayerIds: [a, fourth.id],
@@ -327,7 +288,6 @@ describe("Match mutations", () => {
 
     it("refuses a refill that drops a current player", async () => {
       const m = await fixtures.match(3);
-      const course = await courseOf(m);
       const [round] = await matchRounds(m.match.id);
       const [x, y] = await players(2);
       const [a, b] = m.players.map((p) => p.player.id);
@@ -335,7 +295,7 @@ describe("Match mutations", () => {
       expect(
         await matches.updateMatch(
           m.creator.id,
-          updateInput(m, course.handle, round.teeId, {
+          updateInput(m, m.match.courseHandle, round.teeId, {
             format: "four_ball_match_play",
             playerIds: [a, b, x.id, y.id],
             teamOnePlayerIds: [a, x.id],
@@ -367,7 +327,7 @@ describe("Match mutations", () => {
         (await matchRounds(created.id)).find((r) => r.playerId === e.id),
         "e Round",
       );
-      await db.delete(schema.rounds).where(eq(schema.rounds.id, eRound.id));
+      expect(await deleteRound(e.id, eRound.id)).toEqual({ ok: true });
 
       const result = await matches.updateMatch(a.id, {
         id: created.id,
@@ -391,10 +351,9 @@ describe("Match mutations", () => {
 
     it("refuses a course change once a Round has scores, changing nothing", async () => {
       const m = await fixtures.match(2);
-      await db
-        .insert(schema.roundScores)
-        .values({ roundId: m.players[0].round.id, hole: 1, strokes: 4 });
+      await fixtures.scores(m.players[0].round.id, [{ hole: 1, strokes: 4 }]);
       const next = await fixtures.course();
+      clearCacheMocks();
 
       const result = await matches.updateMatch(
         m.creator.id,
@@ -423,6 +382,7 @@ describe("Match mutations", () => {
 
     it("deletes the Match and its Rounds, refreshing Match and Round pages", async () => {
       const m = await fixtures.match(2);
+      clearCacheMocks();
 
       expect(await matches.deleteMatch(m.creator.id, m.match.id)).toEqual({
         ok: true,

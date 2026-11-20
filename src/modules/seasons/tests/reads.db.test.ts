@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { createRoundFixtures, PAR_THREE_HOLES } from "@/test/fixtures";
-import * as seasons from "../server";
 import { required } from "@/lib/required";
+import { deleteTournament } from "@/modules/tournaments/server";
+import { createFixtures, PAR_THREE_HOLES } from "@/test/fixtures";
+import { withTransaction } from "@/test/db/seed";
+import * as seasons from "../server";
 
 describe("Season Standings reads", () => {
   const fixtures = createFixtures();
 
   type Course = Awaited<ReturnType<typeof fixtures.course>>;
   type Player = Awaited<ReturnType<typeof fixtures.player>>;
+  type Tournament = Awaited<ReturnType<typeof fixtures.tournament>>;
 
   const pointRules = {
     participation: 10,
@@ -35,50 +35,28 @@ describe("Season Standings reads", () => {
   }
 
   async function club() {
-    const t = await fixtures.tournament();
-    const [season] = await db
-      .select()
-      .from(schema.seasons)
-      .where(eq(schema.seasons.id, t.tournament.seasonId));
-    await db
-      .update(schema.clubs)
-      .set({ pointRules })
-      .where(eq(schema.clubs.id, season.clubId));
-    return { t, clubId: season.clubId };
+    const owner = await fixtures.club({ pointRules });
+    const t = await fixtures.tournament({ club: owner });
+    return { t, clubId: owner.id };
   }
 
   async function tournament(
-    seasonId: number,
-    { course, tee }: Course,
+    owner: Tournament,
+    on: Course,
     date: string,
+    { startNextSeason = false } = {},
   ) {
-    const [created] = await db
-      .insert(schema.tournaments)
-      .values({
-        seasonId,
-        date: new Date(`${date}T00:00:00.000Z`),
-        courseId: course.id,
-        teeId: tee.id,
-      })
-      .returning();
-    return created;
+    return fixtures.tournament({
+      club: owner.club,
+      on,
+      date,
+      seasonId: startNextSeason ? null : owner.tournament.seasonId,
+      startNextSeason,
+    });
   }
 
-  async function enter(
-    t: typeof schema.tournaments.$inferSelect,
-    player: Player,
-  ) {
-    const [round] = await db
-      .insert(schema.rounds)
-      .values({
-        tournamentId: t.id,
-        playerId: player.id,
-        courseId: t.courseId,
-        teeId: t.teeId,
-        date: t.date,
-      })
-      .returning();
-    return round;
+  async function enter(t: Tournament, player: Player) {
+    return (await fixtures.tournamentPlayer(t, player)).round;
   }
 
   // Strokes per hole default to par; holes not listed in `holes` are left
@@ -99,9 +77,9 @@ describe("Season Standings reads", () => {
       typeof strokes === "function"
         ? strokes(hole)
         : (strokes[hole] ?? par(hole));
-    await db.insert(schema.roundScores).values(
+    await fixtures.scores(
+      roundId,
       Array.from({ length: holes }, (_, index) => ({
-        roundId,
         hole: index + 1,
         strokes: strokesFor(index + 1),
         putts: putts(index + 1),
@@ -115,7 +93,7 @@ describe("Season Standings reads", () => {
     feet: number,
     inches: number,
   ) {
-    await db.insert(schema.greenies).values({ roundId, hole, feet, inches });
+    await fixtures.greenie(roundId, hole, { feet, inches });
   }
 
   function points(values: Partial<Record<string, number>> & { total: number }) {
@@ -136,12 +114,11 @@ describe("Season Standings reads", () => {
     const { t, clubId } = await club();
     const courseA = { course: t.course, tee: t.tee };
     const courseB = await fixtures.course();
-    const seasonId = t.tournament.seasonId;
-    const first = t.tournament;
-    const second = await tournament(seasonId, courseB, "2026-02-01");
+    const first = t;
+    const second = await tournament(t, courseB, "2026-02-01");
     const fillers = [];
     for (let day = 1; day <= 9; day += 1) {
-      fillers.push(await tournament(seasonId, courseA, `2025-12-0${day}`));
+      fillers.push(await tournament(t, courseA, `2025-12-0${day}`));
     }
     const x = await fixtures.player();
     const y = await fixtures.player();
@@ -178,9 +155,9 @@ describe("Season Standings reads", () => {
     const read = await seasons.getSeasonStandings({ clubId, season: 1 });
 
     expect(read?.tournaments.map((tt) => tt.id)).toEqual([
-      second.id,
-      first.id,
-      ...fillers.map((f) => f.id).reverse(),
+      second.tournament.id,
+      first.tournament.id,
+      ...fillers.map((f) => f.tournament.id).reverse(),
     ]);
 
     const [secondRead, firstRead] = required(
@@ -352,29 +329,25 @@ describe("Season Standings reads", () => {
     const course = { course: t.course, tee: t.tee };
     const player = await fixtures.player();
     const prior1 = await enter(
-      await tournament(t.tournament.seasonId, course, "2025-02-01"),
+      await tournament(t, course, "2025-02-01"),
       player,
     );
     await card(prior1.id, { strokes: (hole) => (hole === 18 ? 8 : 4) }); // 76
     const prior2 = await enter(
-      await tournament(t.tournament.seasonId, course, "2025-03-01"),
+      await tournament(t, course, "2025-03-01"),
       player,
     );
     await card(prior2.id, { strokes: (hole) => (hole === 18 ? 10 : 4) }); // 78
     // A better Round for another Club must not count.
     const elsewhere = await fixtures.tournament();
     const otherClubRound = await enter(
-      await tournament(elsewhere.tournament.seasonId, elsewhere, "2025-04-01"),
+      await tournament(elsewhere, elsewhere, "2025-04-01"),
       player,
     );
     await card(otherClubRound.id, { strokes: () => 4 }); // 72
 
-    const [season2] = await db
-      .insert(schema.seasons)
-      .values({ clubId, number: 2 })
-      .returning();
     const current = await enter(
-      await tournament(season2.id, course, "2026-03-01"),
+      await tournament(t, course, "2026-03-01", { startNextSeason: true }),
       player,
     );
     await card(current.id, { strokes: (hole) => (hole === 18 ? 12 : 4) }); // 80
@@ -399,7 +372,7 @@ describe("Season Standings reads", () => {
     for (const [index, gross] of grosses.entries()) {
       const prior = await enter(
         await tournament(
-          t.tournament.seasonId,
+          t,
           course,
           `2025-0${index + 2}-01`,
         ),
@@ -410,12 +383,8 @@ describe("Season Standings reads", () => {
       });
     }
 
-    const [season2] = await db
-      .insert(schema.seasons)
-      .values({ clubId, number: 2 })
-      .returning();
     const current = await enter(
-      await tournament(season2.id, course, "2026-03-01"),
+      await tournament(t, course, "2026-03-01", { startNextSeason: true }),
       player,
     );
     await card(current.id, { strokes: (hole) => (hole === 18 ? 12 : 4) }); // 80
@@ -433,20 +402,19 @@ describe("Season Standings reads", () => {
   it("feeds earlier Rounds of the same Season into a later Round's Player Index", async () => {
     const { t, clubId } = await club();
     const course = { course: t.course, tee: t.tee };
-    const seasonId = t.tournament.seasonId;
     const player = await fixtures.player();
     const first = await enter(
-      await tournament(seasonId, course, "2025-02-01"),
+      await tournament(t, course, "2025-02-01"),
       player,
     );
     await card(first.id, { strokes: (hole) => (hole === 18 ? 8 : 4) }); // 76
     const second = await enter(
-      await tournament(seasonId, course, "2025-03-01"),
+      await tournament(t, course, "2025-03-01"),
       player,
     );
     await card(second.id, { strokes: (hole) => (hole === 18 ? 10 : 4) }); // 78
     const third = await enter(
-      await tournament(seasonId, course, "2025-04-01"),
+      await tournament(t, course, "2025-04-01"),
       player,
     );
     await card(third.id, { strokes: (hole) => (hole === 18 ? 12 : 4) }); // 80
@@ -486,7 +454,7 @@ describe("Season Standings reads", () => {
   it("orders same-day Tournaments newest-created first", async () => {
     const { t, clubId } = await club();
     const sameDay = await tournament(
-      t.tournament.seasonId,
+      t,
       { course: t.course, tee: t.tee },
       "2026-01-01",
     );
@@ -494,16 +462,16 @@ describe("Season Standings reads", () => {
     const read = await seasons.getSeasonStandings({ clubId, season: 1 });
 
     expect(read?.tournaments.map((tt) => tt.id)).toEqual([
-      sameDay.id,
+      sameDay.tournament.id,
       t.tournament.id,
     ]);
   });
 
   it("returns empty Standings for a Season with no Tournaments", async () => {
     const { t, clubId } = await club();
-    await db
-      .delete(schema.tournaments)
-      .where(eq(schema.tournaments.id, t.tournament.id));
+    expect(
+      await deleteTournament(await fixtures.admin(), t.tournament.id),
+    ).toEqual({ ok: true });
 
     const read = await seasons.getSeasonStandings({ clubId, season: 1 });
 
@@ -521,43 +489,25 @@ describe("Club Season reads", () => {
   const fixtures = createFixtures();
 
   it("lists the Club's Seasons with Tournaments, newest first, once each", async () => {
-    const t = await fixtures.tournament();
-    const course = { course: t.course, tee: t.tee };
-    const [season1] = await db
-      .select()
-      .from(schema.seasons)
-      .where(eq(schema.seasons.id, t.tournament.seasonId));
-    const clubId = season1.clubId;
-    const [season2] = await db
-      .insert(schema.seasons)
-      .values([
-        { clubId, number: 2 },
-        // No Tournaments: not listed.
-        { clubId, number: 3 },
-      ])
-      .returning();
-    await db.insert(schema.tournaments).values([
-      {
-        seasonId: season1.id,
-        date: new Date("2026-02-01"),
-        courseId: course.course.id,
-        teeId: course.tee.id,
-      },
-      {
-        seasonId: season2.id,
-        date: new Date("2026-03-01"),
-        courseId: course.course.id,
-        teeId: course.tee.id,
-      },
-    ]);
-    // Another Club's Season must not leak in.
-    const other = await fixtures.tournament();
-    await db
-      .update(schema.seasons)
-      .set({ number: 5 })
-      .where(eq(schema.seasons.id, other.tournament.seasonId));
+    const owner = await fixtures.club();
+    const { course, tee } = await fixtures.course();
+    const on = { course, tee };
+    for (const [date, startNextSeason] of [
+      ["2026-01-01", false],
+      ["2026-02-01", false],
+      ["2026-03-01", true],
+    ] as const) {
+      await fixtures.tournament({ club: owner, on, date, startNextSeason });
+    }
+    // No Tournaments: not listed.
+    await withTransaction((tx) => seasons.startNextSeason(tx, owner.id));
+    // Another Club's Season 3 must not leak in.
+    const other = await fixtures.club();
+    for (const startNextSeason of [false, true, true]) {
+      await fixtures.tournament({ club: other, on, startNextSeason });
+    }
 
-    expect(await seasons.getClubSeasons(clubId)).toEqual([
+    expect(await seasons.getClubSeasons(owner.id)).toEqual([
       { season: 2 },
       { season: 1 },
     ]);

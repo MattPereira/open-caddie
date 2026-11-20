@@ -1,20 +1,26 @@
+import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
+import { required } from "@/lib/required";
+import { clearCacheMocks } from "@/test/cache-mocks";
+import { markEmailVerified } from "@/test/db/seed";
 import { createFixtures } from "@/test/fixtures";
 import * as players from "../server";
-import { required } from "@/lib/required";
 
-const { revalidatePath, del } = vi.hoisted(() => ({
-  revalidatePath: vi.fn(),
-  del: vi.fn(),
-}));
-vi.mock("next/cache", () => ({ revalidatePath }));
+const { del } = vi.hoisted(() => ({ del: vi.fn() }));
 vi.mock("@vercel/blob", () => ({ del }));
 
 const BLOB = "https://abc.public.blob.vercel-storage.com";
+
+type Editable = {
+  id: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  username?: string | null;
+  image?: string | null;
+  isAdmin: boolean;
+};
 
 describe("Player writes", () => {
   const fixtures = createFixtures();
@@ -34,7 +40,7 @@ describe("Player writes", () => {
   }
 
   function editOf(
-    target: typeof player,
+    target: Editable,
     overrides: Partial<players.PlayerUpdateInput> = {},
   ): players.PlayerUpdateInput {
     return {
@@ -50,30 +56,29 @@ describe("Player writes", () => {
   }
 
   async function stored(id: string) {
-    const [row] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.id, id));
-    return row;
+    return required(await players.getPlayerById(id), "stored player");
   }
 
-  async function storedByEmail(email: string) {
-    const [row] = await db
-      .select()
-      .from(schema.users)
-      .where(eq(schema.users.email, email));
-    return row;
+  async function created(result: players.PlayerCreateResult) {
+    if (!result.ok) throw new Error(result.error);
+    return stored(result.id);
+  }
+
+  async function setUsername(target: Editable, username: string) {
+    expect(
+      await players.updatePlayer(admin.id, editOf(target, { username })),
+    ).toEqual({ ok: true });
   }
 
   function refreshed() {
-    const calls = revalidatePath.mock.calls as unknown as string[][];
+    const calls = vi.mocked(revalidatePath).mock.calls;
     return [...new Set(calls.map((call) => call.join(" ")))].sort();
   }
 
   beforeEach(async () => {
     admin = await fixtures.player({ isAdmin: true });
     player = await fixtures.player();
-    revalidatePath.mockClear();
+    clearCacheMocks();
     del.mockReset();
   });
 
@@ -127,8 +132,13 @@ describe("Player writes", () => {
         }),
       );
 
-      expect(result).toEqual({ ok: true, email: email.toLowerCase() });
-      expect(await storedByEmail(email.toLowerCase())).toMatchObject({
+      expect(result).toEqual({
+        ok: true,
+        id: expect.any(String),
+        email: email.toLowerCase(),
+      });
+      expect(await created(result)).toMatchObject({
+        email: email.toLowerCase(),
         firstName: "Ann",
         lastName: null,
         username: null,
@@ -141,11 +151,13 @@ describe("Player writes", () => {
 
     it("stores the full name, username and image", async () => {
       const values = input({ username: "ann-lee", image: `${BLOB}/a.png` });
-      expect(await players.createPlayer(admin.id, values)).toEqual({
+      const result = await players.createPlayer(admin.id, values);
+      expect(result).toEqual({
         ok: true,
+        id: expect.any(String),
         email: values.email,
       });
-      expect(await storedByEmail(values.email)).toMatchObject({
+      expect(await created(result)).toMatchObject({
         name: "Ann Lee",
         username: "ann-lee",
         image: `${BLOB}/a.png`,
@@ -157,7 +169,7 @@ describe("Player writes", () => {
       const values = input();
       const result = await players.createPlayer(player.id, values);
       expect(result).toMatchObject({ ok: false });
-      expect(await storedByEmail(values.email)).toBeUndefined();
+      expect(await players.hasPlayerWithEmail(values.email)).toBe(false);
     });
 
     it("refuses an email already in use, ignoring case", async () => {
@@ -172,13 +184,11 @@ describe("Player writes", () => {
     });
 
     it("refuses a username already in use", async () => {
-      await db
-        .update(schema.users)
-        .set({ username: "taken" })
-        .where(eq(schema.users.id, player.id));
+      const taken = `taken-${crypto.randomUUID()}`;
+      await setUsername(player, taken);
       const result = await players.createPlayer(
         admin.id,
-        input({ username: "taken" }),
+        input({ username: taken }),
       );
       expect(result).toEqual({
         ok: false,
@@ -244,10 +254,7 @@ describe("Player writes", () => {
 
     it("clears email verification only when the email changes", async () => {
       const verified = new Date("2026-01-01T00:00:00.000Z");
-      await db
-        .update(schema.users)
-        .set({ emailVerified: verified })
-        .where(eq(schema.users.id, player.id));
+      await markEmailVerified(player.id, verified);
 
       await players.updatePlayer(
         player.id,
@@ -267,14 +274,9 @@ describe("Player writes", () => {
 
     it("refuses an email or username another Player uses, but keeps their own username", async () => {
       const other = await fixtures.player();
-      await db
-        .update(schema.users)
-        .set({ username: "other" })
-        .where(eq(schema.users.id, other.id));
-      await db
-        .update(schema.users)
-        .set({ username: "mine" })
-        .where(eq(schema.users.id, player.id));
+      const otherUsername = `other-${crypto.randomUUID()}`;
+      await setUsername(other, otherUsername);
+      await setUsername(player, `mine-${crypto.randomUUID()}`);
       const me = await stored(player.id);
 
       expect(
@@ -289,7 +291,7 @@ describe("Player writes", () => {
       expect(
         await players.updatePlayer(
           player.id,
-          editOf(me, { username: "other" }),
+          editOf(me, { username: otherUsername }),
         ),
       ).toEqual({
         ok: false,
@@ -309,10 +311,13 @@ describe("Player writes", () => {
     });
 
     it("deletes the old image when it's replaced or removed", async () => {
-      await db
-        .update(schema.users)
-        .set({ image: `${BLOB}/old.png` })
-        .where(eq(schema.users.id, player.id));
+      expect(
+        await players.updatePlayer(
+          player.id,
+          editOf(player, { image: `${BLOB}/old.png` }),
+        ),
+      ).toEqual({ ok: true });
+      del.mockReset();
       const me = await stored(player.id);
 
       await players.updatePlayer(player.id, editOf(me));
@@ -344,7 +349,7 @@ describe("Player writes", () => {
       expect(await players.deletePlayer(admin.id, player.id)).toEqual({
         ok: true,
       });
-      expect(await stored(player.id)).toBeUndefined();
+      expect(await players.getPlayerById(player.id)).toBeNull();
       expect(refreshed()).toEqual(["/players", `/players/${player.id}`]);
     });
 
@@ -353,7 +358,7 @@ describe("Player writes", () => {
       expect(await players.deletePlayer(player.id, other.id)).toMatchObject({
         ok: false,
       });
-      expect(await stored(other.id)).toBeDefined();
+      expect(await players.getPlayerById(other.id)).not.toBeNull();
     });
 
     it("refuses deleting yourself", async () => {
@@ -361,17 +366,18 @@ describe("Player writes", () => {
         ok: false,
         error: "You cannot delete your own account.",
       });
-      expect(await stored(admin.id)).toBeDefined();
+      expect(await players.getPlayerById(admin.id)).not.toBeNull();
     });
 
     it("refuses a Player with Rounds, giving the count", async () => {
       const t = await fixtures.tournament();
       const { player: entrant } = await fixtures.tournamentPlayer(t);
+      clearCacheMocks();
       expect(await players.deletePlayer(admin.id, entrant.id)).toEqual({
         ok: false,
         error: "Cannot delete: player has 1 round(s).",
       });
-      expect(await stored(entrant.id)).toBeDefined();
+      expect(await players.getPlayerById(entrant.id)).not.toBeNull();
       expect(refreshed()).toEqual([]);
     });
   });

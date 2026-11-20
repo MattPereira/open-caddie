@@ -1,88 +1,20 @@
+import { revalidatePath, updateTag } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { sql } from "drizzle-orm";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
 import { getRoundById } from "@/modules/rounds/server";
 import * as tournaments from "@/modules/tournaments/server";
 import { PAIRING_MAX_MEMBERS } from "@/modules/tournaments";
-
-const cache = vi.hoisted(() => ({
-  revalidatePath: vi.fn(),
-  updateTag: vi.fn(),
-}));
-vi.mock("next/cache", () => cache);
+import { clearCacheMocks } from "@/test/cache-mocks";
+import { warmConnections } from "@/test/db/seed";
+import { createFixtures } from "@/test/fixtures";
 
 describe("Pairing writes", () => {
-  async function tournamentFixture() {
-    const suffix = crypto.randomUUID();
-    const [club] = await db
-      .insert(schema.clubs)
-      .values({
-        handle: `club-${suffix}`,
-        name: `Club ${suffix}`,
-        pointRules: {
-          participation: 0,
-          pars: 0,
-          birdies: 0,
-          eagles: 0,
-          aces: 0,
-          strokes: { positions: [0] },
-          putts: { positions: [0] },
-          greenies: { tiers: [{ maxFt: null, pts: 0 }] },
-        },
-      })
-      .returning();
-    const [course] = await db
-      .insert(schema.courses)
-      .values({ handle: `course-${suffix}`, name: `Course ${suffix}` })
-      .returning();
-    const [tee] = await db
-      .insert(schema.courseTees)
-      .values({ courseId: course.id, name: "Blue", rating: "72", slope: 120 })
-      .returning();
-    const [season] = await db
-      .insert(schema.seasons)
-      .values({ clubId: club.id, number: 1 })
-      .returning();
-    const [tournament] = await db
-      .insert(schema.tournaments)
-      .values({
-        seasonId: season.id,
-        date: new Date("2026-01-01T00:00:00.000Z"),
-        courseId: course.id,
-        teeId: tee.id,
-      })
-      .returning();
-    return { tournament, course, tee };
-  }
-
+  const fixtures = createFixtures();
+  const tournamentFixture = () => fixtures.tournament();
   // A Tournament Player: a Player with a Round in that Tournament, which is
   // what a Pairing actually holds.
-  async function playerFixture(
-    f: Awaited<ReturnType<typeof tournamentFixture>>,
-  ) {
-    const suffix = crypto.randomUUID();
-    const [player] = await db
-      .insert(schema.users)
-      .values({
-        email: `player-${suffix}@example.com`,
-        firstName: "Player",
-        lastName: suffix,
-      })
-      .returning();
-    const [round] = await db
-      .insert(schema.rounds)
-      .values({
-        tournamentId: f.tournament.id,
-        playerId: player.id,
-        courseId: f.course.id,
-        teeId: f.tee.id,
-        date: f.tournament.date,
-      })
-      .returning();
-    return { player, round };
-  }
+  const playerFixture = (f: Awaited<ReturnType<typeof tournamentFixture>>) =>
+    fixtures.tournamentPlayer(f);
 
   let adminId: string;
 
@@ -94,20 +26,11 @@ describe("Pairing writes", () => {
   }
 
   async function newPlayerId(isAdmin = false) {
-    const [player] = await db
-      .insert(schema.users)
-      .values({
-        email: `player-${crypto.randomUUID()}@example.com`,
-        isAdmin,
-      })
-      .returning();
-    return player.id;
+    return (await fixtures.player({ isAdmin })).id;
   }
 
   beforeEach(async () => {
-    adminId = await newPlayerId(true);
-    cache.revalidatePath.mockClear();
-    cache.updateTag.mockClear();
+    adminId = await fixtures.admin();
   });
 
   it("creates a numbered Pairing for an admin", async () => {
@@ -374,8 +297,7 @@ describe("Pairing writes", () => {
       });
     }
 
-    // Warm both connections so connection setup cannot serialize the tournaments.
-    await Promise.all([db.execute(sql`select 1`), db.execute(sql`select 1`)]);
+    await warmConnections(2);
     const results = await Promise.all(
       field.slice(3).map((round) =>
         tournaments.assignRoundToPairing(adminId, {
@@ -462,9 +384,7 @@ describe("Pairing writes", () => {
       pairingId: first,
       roundId: round.id,
     });
-    await db
-      .insert(schema.roundScores)
-      .values({ roundId: round.id, hole: 1, strokes: 4, putts: 2 });
+    await fixtures.scores(round.id, [{ hole: 1, strokes: 4, putts: 2 }]);
 
     expect(
       await tournaments.assignRoundToPairing(adminId, {
@@ -500,10 +420,11 @@ describe("Pairing writes", () => {
   it("revalidates only the Tournament edit page after each Pairing write", async () => {
     const f = await tournamentFixture();
     const { round } = await playerFixture(f);
+    clearCacheMocks();
     const pairingId = await createPairing(f.tournament.id);
     const expectedPath = `/tournaments/${f.tournament.id}/edit`;
-    expect(cache.revalidatePath.mock.calls).toEqual([[expectedPath]]);
-    expect(cache.updateTag).not.toHaveBeenCalled();
+    expect(vi.mocked(revalidatePath).mock.calls).toEqual([[expectedPath]]);
+    expect(updateTag).not.toHaveBeenCalled();
 
     const operations = [
       () => tournaments.renamePairing(adminId, { pairingId, name: "Flight A" }),
@@ -516,10 +437,10 @@ describe("Pairing writes", () => {
       () => tournaments.deletePairing(adminId, { pairingId }),
     ];
     for (const write of operations) {
-      cache.revalidatePath.mockClear();
+      clearCacheMocks();
       expect(await write()).toMatchObject({ ok: true });
-      expect(cache.revalidatePath.mock.calls).toEqual([[expectedPath]]);
-      expect(cache.updateTag).not.toHaveBeenCalled();
+      expect(vi.mocked(revalidatePath).mock.calls).toEqual([[expectedPath]]);
+      expect(updateTag).not.toHaveBeenCalled();
     }
   });
 });

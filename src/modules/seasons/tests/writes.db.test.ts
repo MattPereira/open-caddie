@@ -17,7 +17,6 @@ describe("Season writes", () => {
     withTransaction((tx) => startNextSeason(tx, clubId));
   const current = (clubId: number) =>
     withTransaction((tx) => getOrCreateCurrentSeason(tx, clubId));
-  const seasonNumbers = getClubSeasonNumbers;
 
   describe("startNextSeason", () => {
     it("starts Season 1 when the Club has none", async () => {
@@ -34,7 +33,7 @@ describe("Season writes", () => {
     it("serializes concurrent starts", async () => {
       const c = await club();
       await Promise.all([startNext(c.id), startNext(c.id)]);
-      expect(await seasonNumbers(c.id)).toEqual([1, 2]);
+      expect(await getClubSeasonNumbers(c.id)).toEqual([1, 2]);
     });
   });
 
@@ -42,7 +41,7 @@ describe("Season writes", () => {
     it("creates Season 1 when the Club has none", async () => {
       const c = await club();
       expect(await current(c.id)).toMatchObject({ clubId: c.id, number: 1 });
-      expect(await seasonNumbers(c.id)).toEqual([1]);
+      expect(await getClubSeasonNumbers(c.id)).toEqual([1]);
     });
 
     it("returns the highest-numbered Season without creating one", async () => {
@@ -50,14 +49,14 @@ describe("Season writes", () => {
       await startNext(c.id);
       const second = await startNext(c.id);
       expect(await current(c.id)).toEqual(second);
-      expect(await seasonNumbers(c.id)).toEqual([1, 2]);
+      expect(await getClubSeasonNumbers(c.id)).toEqual([1, 2]);
     });
 
     it("serializes concurrent first calls", async () => {
       const c = await club();
       const [a, b] = await Promise.all([current(c.id), current(c.id)]);
       expect(a).toEqual(b);
-      expect(await seasonNumbers(c.id)).toEqual([1]);
+      expect(await getClubSeasonNumbers(c.id)).toEqual([1]);
     });
   });
 

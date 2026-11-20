@@ -22,11 +22,6 @@ describe("Course writes", () => {
     return (await stored(handle))?.tees ?? [];
   }
 
-  async function casualRound(courseHandle: string, teeId: number) {
-    const roundPlayer = await fixtures.player();
-    await fixtures.casualRound(roundPlayer.id, { courseHandle, teeId });
-  }
-
   type Course = Awaited<ReturnType<typeof fixtures.course>>["course"];
   type Tee = Awaited<ReturnType<typeof fixtures.course>>["tee"];
 
@@ -296,8 +291,14 @@ describe("Course writes", () => {
       await fixtures.tournamentPlayer(t);
       const keep = await fixtures.tee(t.course.handle, "Keep");
       const casualTee = await fixtures.tee(t.course.handle, "Casual");
-      await casualRound(t.course.handle, casualTee.id);
-      await casualRound(t.course.handle, casualTee.id);
+      await fixtures.casualRound({
+        courseHandle: t.course.handle,
+        teeId: casualTee.id,
+      });
+      await fixtures.casualRound({
+        courseHandle: t.course.handle,
+        teeId: casualTee.id,
+      });
 
       const result = await courses.updateCourse(
         admin.id,
@@ -414,8 +415,14 @@ describe("Course writes", () => {
 
     it("refuses a course with Rounds", async () => {
       const { course, tee } = await fixtures.course();
-      await casualRound(course.handle, tee.id);
-      await casualRound(course.handle, tee.id);
+      await fixtures.casualRound({
+        courseHandle: course.handle,
+        teeId: tee.id,
+      });
+      await fixtures.casualRound({
+        courseHandle: course.handle,
+        teeId: tee.id,
+      });
       const result = await courses.deleteCourse(admin.id, course.id);
       expect(result).toEqual({
         ok: false,
@@ -424,15 +431,18 @@ describe("Course writes", () => {
       expect(await stored(course.handle)).toBeDefined();
     });
 
-    it("deletes the course and its image, and refreshes its pages", async () => {
+    it("deletes the course and both images, and refreshes its pages", async () => {
       const img = `${BLOB}/img-${crypto.randomUUID()}.webp`;
-      const { course } = await fixtures.course({ imgUrl: img });
+      const scorecard = `${BLOB}/card-${crypto.randomUUID()}.webp`;
+      const course = await fixtures.importedCourse({ course: img, scorecard });
 
       const result = await courses.deleteCourse(admin.id, course.id);
 
       expect(result).toEqual({ ok: true });
       expect(await stored(course.handle)).toBeUndefined();
-      expect(del.mock.calls.map(([url]) => url)).toEqual([img]);
+      expect(del.mock.calls.map(([url]) => url).sort()).toEqual(
+        [scorecard, img].sort(),
+      );
       expect(refreshed()).toEqual(coursePaths(course.handle));
       expect(updateTag).not.toHaveBeenCalled();
     });

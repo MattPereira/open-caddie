@@ -47,7 +47,7 @@ tests/
 
 1. **`lib/reads.ts` and `lib/writes.ts`** hold the module's public reads and writes. Not `queries` or `mutations`. A big module may split by sub-area with a suffix: `pairing-writes.ts`, `display-round-reads.ts`.
 2. **Every other lib file is named after its domain idea** (`scoring`, `handicap`, `standings`), not its role (`compute`, `impl`, `utils`).
-3. **A test is named after the lib file, lib subfolder or entry point it covers** (`reads.db.test.ts`, `scorecard-import.db.test.ts`, `event-rounds.db.test.ts`). `.db.test.ts` if it hits the database, `.test.ts` if not; one base name may have both. Not every lib file needs a test.
+3. **A test is named after the lib file, lib subfolder or entry point it covers** (`reads.db.test.ts`, `scorecard-import.db.test.ts`, `event-rounds.db.test.ts`). `.db.test.ts` if it hits the database, `.test.ts` if not; one base name may have both. A base name that outgrows one file splits by facet: `scorecard-import.lifecycle.db.test.ts`. Not every lib file needs a test.
 4. **Public reads start with `get`, `is` or `has`.** Writes use a domain verb (`createRound`, `recordScorecardChanges`).
 
 ## Why this shape

@@ -160,15 +160,23 @@ describe("Course reads", () => {
   });
 
   describe("getCourseForEdit", () => {
-    it("includes the course image, and no scorecard image until one is imported", async () => {
-      const { course } = await courseWith({
-        imgUrl: "https://example.com/course.webp",
+    it("includes the course and scorecard images", async () => {
+      const course = await fixtures.importedCourse({
+        course: "https://example.com/course.webp",
+        scorecard: "https://example.com/card.webp",
       });
       expect(await courses.getCourseForEdit(course.handle)).toMatchObject({
         id: course.id,
         handle: course.handle,
         name: course.name,
         imgUrl: "https://example.com/course.webp",
+        scorecardImgUrl: "https://example.com/card.webp",
+      });
+    });
+
+    it("has no scorecard image for a course saved without an import", async () => {
+      const { course } = await courseWith();
+      expect(await courses.getCourseForEdit(course.handle)).toMatchObject({
         scorecardImgUrl: null,
       });
     });

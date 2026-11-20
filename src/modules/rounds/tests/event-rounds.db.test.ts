@@ -7,7 +7,6 @@ import {
   getTournamentById,
   updateTournament,
 } from "@/modules/tournaments/server";
-import { clearCacheMocks } from "@/test/cache-mocks";
 import {
   holdTransaction,
   lockRowsWhere,
@@ -137,14 +136,11 @@ describe("Event Rounds", () => {
   describe("event Round sync", () => {
     type TournamentFixture = Awaited<ReturnType<typeof fixtures.tournament>>;
 
-    // Saves the Tournament as an admin would, with `next` replacing its
-    // course, tee or date, forgetting the arrange's cache invalidations.
     async function editTournament(
       t: TournamentFixture,
       next: { courseHandle?: string; teeId?: number; date?: string },
     ) {
       const admin = await fixtures.admin();
-      clearCacheMocks();
       return updateTournament(admin, {
         id: t.tournament.id,
         clubHandle: t.club.handle,
@@ -324,13 +320,10 @@ describe("Event Rounds", () => {
     describe("Match", () => {
       type MatchFixture = Awaited<ReturnType<typeof fixtures.match>>;
 
-      // Saves the Match as its creator would, forgetting the arrange's cache
-      // invalidations.
       async function editMatch(
         m: MatchFixture,
         next: Partial<Parameters<typeof updateMatch>[1]>,
       ) {
-        clearCacheMocks();
         return updateMatch(m.creator.id, {
           id: m.match.id,
           date: "2026-01-01",

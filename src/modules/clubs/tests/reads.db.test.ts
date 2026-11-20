@@ -42,11 +42,7 @@ describe("Club reads", () => {
   }
 
   async function round(playerId: string, { greenies = 0 } = {}) {
-    const { course, tee } = await fixtures.course();
-    const roundId = await fixtures.casualRound(playerId, {
-      courseHandle: course.handle,
-      teeId: tee.id,
-    });
+    const { id: roundId } = await fixtures.casualRound({ playerId });
     const holes = PAR_THREE_HOLES.slice(0, greenies);
     if (holes.length > 0) {
       await fixtures.scores(

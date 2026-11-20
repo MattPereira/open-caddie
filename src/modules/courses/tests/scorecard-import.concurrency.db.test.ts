@@ -1,49 +1,28 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { createFixtures } from "@/test/fixtures";
-import { createCourseScorecardImport } from "../server";
-import { imports } from "./scorecard-import-fixtures";
+import {
+  imports,
+  importsParsing,
+  parsedTee,
+  importActors,
+} from "./scorecard-import-fixtures";
 
 describe("Course Scorecard Import concurrency and audit", () => {
   const fixtures = createFixtures();
-  let actorId: string;
-  let secondActorId: string;
-  let tag: string;
-  // Unique per test. Import cleanup scans every import in the database, so
-  // tests tell their own staged images apart by it.
-  beforeEach(async () => {
-    tag = crypto.randomUUID();
-    actorId = await fixtures.admin();
-    secondActorId = (await fixtures.player({ isAdmin: true })).id;
-  });
+  const run = importActors(fixtures);
 
   it("reserves active targets, rejects live handle conflicts, and makes an identical start idempotent", async () => {
-    const pausedImports = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              { name: "Blue", yardages: Array.from({ length: 18 }, () => 400) },
-            ],
-            holes: Array.from({ length: 18 }, (_, index) => ({
-              hole: index + 1,
-              par: 4,
-              handicap: index + 1,
-            })),
-          },
-          warnings: [],
-        };
-      },
-    });
-    const name = `Reserved Course ${tag}`;
+    const pausedImports = importsParsing({ tees: [parsedTee("Blue")] });
+    const name = `Reserved Course ${run.tag}`;
     const first = await pausedImports.start({
-      actorId,
+      actorId: run.actorId,
       target: { kind: "new", name },
       stagedScorecardImageHandle: "reserved-image",
     });
     expect(first.outcome).toBe("paused");
     const repeated = await pausedImports.start({
-      actorId: secondActorId,
+      actorId: run.secondActorId,
       target: { kind: "new", name },
       stagedScorecardImageHandle: "reserved-image",
     });
@@ -52,7 +31,7 @@ describe("Course Scorecard Import concurrency and audit", () => {
       import: { id: first.outcome === "paused" ? first.import.id : "" },
     });
     const conflicting = await pausedImports.start({
-      actorId: secondActorId,
+      actorId: run.secondActorId,
       target: { kind: "new", name },
       stagedScorecardImageHandle: "other-image",
     });
@@ -62,12 +41,12 @@ describe("Course Scorecard Import concurrency and audit", () => {
     });
 
     await fixtures.course({
-      name: `Live Handle ${tag}`,
-      handle: `live-handle-${tag}`,
+      name: `Live Handle ${run.tag}`,
+      handle: `live-handle-${run.tag}`,
     });
     const liveConflict = await pausedImports.start({
-      actorId,
-      target: { kind: "new", name: `Live Handle ${tag}` },
+      actorId: run.actorId,
+      target: { kind: "new", name: `Live Handle ${run.tag}` },
       stagedScorecardImageHandle: "live-image",
     });
     expect(liveConflict).toEqual({
@@ -78,32 +57,16 @@ describe("Course Scorecard Import concurrency and audit", () => {
 
   it("serializes concurrent starts and rejects non-administrators through the module interface", async () => {
     const outsiderId = (await fixtures.player()).id;
-    const guarded = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              { name: "Blue", yardages: Array.from({ length: 18 }, () => 400) },
-            ],
-            holes: Array.from({ length: 18 }, (_, index) => ({
-              hole: index + 1,
-              par: 4,
-              handicap: index + 1,
-            })),
-          },
-          warnings: [],
-        };
-      },
-    });
-    const target = { kind: "new" as const, name: `Concurrent ${tag}` };
+    const guarded = importsParsing({ tees: [parsedTee("Blue")] });
+    const target = { kind: "new" as const, name: `Concurrent ${run.tag}` };
     const [first, second] = await Promise.all([
       guarded.start({
-        actorId,
+        actorId: run.actorId,
         target,
         stagedScorecardImageHandle: "concurrent-one",
       }),
       guarded.start({
-        actorId: secondActorId,
+        actorId: run.secondActorId,
         target,
         stagedScorecardImageHandle: "concurrent-two",
       }),
@@ -115,38 +78,22 @@ describe("Course Scorecard Import concurrency and audit", () => {
     expect(
       await guarded.start({
         actorId: outsiderId,
-        target: { kind: "new", name: `Forbidden ${tag}` },
+        target: { kind: "new", name: `Forbidden ${run.tag}` },
         stagedScorecardImageHandle: "forbidden",
       }),
     ).toEqual({ outcome: "rejected", reason: "forbidden" });
   });
 
   it("returns the current view on a revision conflict without merging the intent", async () => {
-    const paused = await createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              { name: "Blue", yardages: Array.from({ length: 18 }, () => 400) },
-            ],
-            holes: Array.from({ length: 18 }, (_, index) => ({
-              hole: index + 1,
-              par: 4,
-              handicap: index + 1,
-            })),
-          },
-          warnings: [],
-        };
-      },
-    }).start({
-      actorId,
-      target: { kind: "new", name: `Revision ${tag}` },
+    const paused = await importsParsing({ tees: [parsedTee("Blue")] }).start({
+      actorId: run.actorId,
+      target: { kind: "new", name: `Revision ${run.tag}` },
       stagedScorecardImageHandle: "revision-image",
     });
     expect(paused.outcome).toBe("paused");
     if (paused.outcome !== "paused") return;
     const advanced = await imports.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: {
@@ -156,7 +103,7 @@ describe("Course Scorecard Import concurrency and audit", () => {
     });
     expect(advanced.outcome).toBe("published");
     const conflict = await imports.continue({
-      actorId: secondActorId,
+      actorId: run.secondActorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: { kind: "cancel" },
@@ -169,65 +116,47 @@ describe("Course Scorecard Import concurrency and audit", () => {
   });
 
   it("keeps a published import's parser, decisions, warnings, actors, and timestamps inspectable", async () => {
-    const audited = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              {
-                name: "Blue",
-                rating: 71,
-                slope: 125,
-                yardages: Array.from({ length: 18 }, () => 400),
-              },
-            ],
-            holes: Array.from({ length: 18 }, (_, index) => ({
-              hole: index + 1,
-              par: 4,
-              handicap: index + 1,
-            })),
-          },
-          warnings: [{ scope: "tee" as const, message: "parser warning" }],
-          parserModel: "test-model",
-        };
-      },
+    const audited = importsParsing({
+      tees: [parsedTee("Blue", { rating: 71, slope: 125 })],
+      warnings: [{ scope: "tee" as const, message: "parser warning" }],
+      parserModel: "test-model",
     });
     const paused = await audited.start({
-      actorId,
-      target: { kind: "new", name: `Audit ${tag}` },
+      actorId: run.actorId,
+      target: { kind: "new", name: `Audit ${run.tag}` },
       stagedScorecardImageHandle: "audit-image",
     });
     expect(paused.outcome).toBe("paused");
     if (paused.outcome !== "paused") return;
     const published = await audited.continue({
-      actorId: secondActorId,
+      actorId: run.secondActorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: { kind: "resolve", acknowledgeWarnings: ["warning:0"] },
     });
     expect(published.outcome).toBe("published");
     const inspected = await audited.inspect({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
     });
     expect(inspected).toMatchObject({
       outcome: "published",
       import: {
         audit: {
-          creatorId: actorId,
-          lastEditorId: secondActorId,
+          creatorId: run.actorId,
+          lastEditorId: run.secondActorId,
           parserModel: "test-model",
           warnings: ["parser warning"],
           decisions: [
             expect.objectContaining({
-              actorId: secondActorId,
+              actorId: run.secondActorId,
               decision: { kind: "resolve", acknowledgeWarnings: ["warning:0"] },
             }),
           ],
           events: expect.arrayContaining([
             expect.objectContaining({
               event: "started",
-              actorId,
+              actorId: run.actorId,
               at: expect.any(String),
             }),
             expect.objectContaining({

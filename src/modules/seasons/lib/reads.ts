@@ -25,14 +25,14 @@ export type SeasonStandings = ComputedSeasonStandings & {
 };
 
 /** Every Season the Club has, lowest number first, with or without Tournaments. */
-export const getClubSeasonNumbers = cache(async (clubId: number) => {
+export async function getClubSeasonNumbers(clubId: number) {
   const rows = await db
     .select({ number: seasons.number })
     .from(seasons)
     .where(eq(seasons.clubId, clubId))
     .orderBy(asc(seasons.number));
   return rows.map((row) => row.number);
-});
+}
 
 export const getClubSeasons = cache(async (clubId: number) => {
   return db

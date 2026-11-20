@@ -1,40 +1,23 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { required } from "@/lib/required";
 import { createFixtures } from "@/test/fixtures";
 import { createCourseScorecardImport } from "../server";
+import {
+  importsParsing,
+  parsedTee,
+  parsedScorecard,
+  importActors,
+} from "./scorecard-import-fixtures";
 
 describe("Course Scorecard Import lifecycle", () => {
   const fixtures = createFixtures();
-  let actorId: string;
-  let tag: string;
-  // Unique per test. Import cleanup scans every import in the database, so
-  // tests tell their own staged images apart by it.
-  beforeEach(async () => {
-    tag = crypto.randomUUID();
-    actorId = await fixtures.admin();
-  });
+  const run = importActors(fixtures);
 
   it("rejects stale revisions and permits cancellation", async () => {
-    const paused = await createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              { name: "Red", yardages: Array.from({ length: 18 }, () => 400) },
-            ],
-            holes: Array.from({ length: 18 }, (_, index) => ({
-              hole: index + 1,
-              par: 4,
-              handicap: index + 1,
-            })),
-          },
-          warnings: [],
-        };
-      },
-    }).start({
-      actorId,
-      target: { kind: "new", name: `Cancelled Course ${tag}` },
+    const paused = await importsParsing({ tees: [parsedTee("Red")] }).start({
+      actorId: run.actorId,
+      target: { kind: "new", name: `Cancelled Course ${run.tag}` },
       stagedScorecardImageHandle: "cancel-image",
     });
     expect(paused.outcome).toBe("paused");
@@ -46,7 +29,7 @@ describe("Course Scorecard Import lifecycle", () => {
       },
     });
     const conflict = await importsWithMissingMetadata.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision - 1,
       intent: { kind: "cancel" },
@@ -57,7 +40,7 @@ describe("Course Scorecard Import lifecycle", () => {
       import: { id: paused.import.id },
     });
     const cancelled = await importsWithMissingMetadata.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: { kind: "cancel" },
@@ -71,29 +54,14 @@ describe("Course Scorecard Import lifecycle", () => {
       async parseScorecardImage() {
         attempts += 1;
         if (attempts === 1) throw new Error("temporary parser failure");
-        return {
-          scorecard: {
-            tees: [
-              {
-                name: "Black",
-                rating: 72.1,
-                slope: 130,
-                yardages: Array.from({ length: 18 }, () => 400),
-              },
-            ],
-            holes: Array.from({ length: 18 }, (_, index) => ({
-              hole: index + 1,
-              par: 4,
-              handicap: index + 1,
-            })),
-          },
-          warnings: [],
-        };
+        return parsedScorecard({
+          tees: [parsedTee("Black", { rating: 72.1, slope: 130 })],
+        });
       },
     });
     const paused = await retryableImports.start({
-      actorId,
-      target: { kind: "new", name: `Retry Course ${tag}` },
+      actorId: run.actorId,
+      target: { kind: "new", name: `Retry Course ${run.tag}` },
       stagedScorecardImageHandle: "retry-image",
     });
     expect(paused.outcome).toBe("paused");
@@ -109,7 +77,7 @@ describe("Course Scorecard Import lifecycle", () => {
     });
 
     const published = await retryableImports.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: { kind: "retry_parsing" },
@@ -121,36 +89,21 @@ describe("Course Scorecard Import lifecycle", () => {
     const replacementImport = createCourseScorecardImport({
       async parseScorecardImage(handle) {
         if (handle === "bad-image") throw new Error("unreadable image");
-        return {
-          scorecard: {
-            tees: [
-              {
-                name: "Blue",
-                rating: 71,
-                slope: 125,
-                yardages: Array.from({ length: 18 }, () => 400),
-              },
-            ],
-            holes: Array.from({ length: 18 }, (_, index) => ({
-              hole: index + 1,
-              par: 4,
-              handicap: index + 1,
-            })),
-          },
-          warnings: [],
-        };
+        return parsedScorecard({
+          tees: [parsedTee("Blue", { rating: 71, slope: 125 })],
+        });
       },
     });
     const paused = await replacementImport.start({
-      actorId,
-      target: { kind: "new", name: `Replacement Course ${tag}` },
+      actorId: run.actorId,
+      target: { kind: "new", name: `Replacement Course ${run.tag}` },
       stagedScorecardImageHandle: "bad-image",
     });
     expect(paused.outcome).toBe("paused");
     if (paused.outcome !== "paused") return;
 
     const replaced = await replacementImport.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: {
@@ -177,20 +130,20 @@ describe("Course Scorecard Import lifecycle", () => {
       },
     });
     const paused = await replacementImport.start({
-      actorId,
-      target: { kind: "new", name: `Failed Replacement ${tag}` },
-      stagedScorecardImageHandle: `${tag}-first-image`,
+      actorId: run.actorId,
+      target: { kind: "new", name: `Failed Replacement ${run.tag}` },
+      stagedScorecardImageHandle: `${run.tag}-first-image`,
     });
     expect(paused.outcome).toBe("paused");
     if (paused.outcome !== "paused") return;
 
     const replaced = await replacementImport.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: {
         kind: "replace_scorecard_image",
-        stagedScorecardImageHandle: `${tag}-replacement-image`,
+        stagedScorecardImageHandle: `${run.tag}-replacement-image`,
       },
     });
     expect(replaced.outcome).toBe("paused");
@@ -202,14 +155,14 @@ describe("Course Scorecard Import lifecycle", () => {
     ]);
 
     await replacementImport.continue({
-      actorId,
+      actorId: run.actorId,
       importId: replaced.import.id,
       expectedRevision: replaced.import.revision,
       intent: { kind: "retry_parsing" },
     });
-    expect(parsed.at(-1)).toBe(`${tag}-replacement-image`);
-    expect(deleted.filter((handle) => handle.startsWith(tag))).toEqual([
-      `${tag}-first-image`,
+    expect(parsed.at(-1)).toBe(`${run.tag}-replacement-image`);
+    expect(deleted.filter((handle) => handle.startsWith(run.tag))).toEqual([
+      `${run.tag}-first-image`,
     ]);
   });
 
@@ -225,20 +178,20 @@ describe("Course Scorecard Import lifecycle", () => {
         return !failDeletion;
       },
     });
-    const older = `${tag}-older-staged-image`;
-    const scorecard = `${tag}-staged-scorecard`;
-    const courseImage = `${tag}-staged-course`;
-    const ours = () => deleted.filter((handle) => handle.startsWith(tag));
+    const older = `${run.tag}-older-staged-image`;
+    const scorecard = `${run.tag}-staged-scorecard`;
+    const courseImage = `${run.tag}-staged-course`;
+    const ours = () => deleted.filter((handle) => handle.startsWith(run.tag));
     const first = await cancellable.start({
-      actorId,
-      target: { kind: "new", name: `Cancel Cleanup ${tag}` },
+      actorId: run.actorId,
+      target: { kind: "new", name: `Cancel Cleanup ${run.tag}` },
       stagedScorecardImageHandle: older,
       stagedCourseImageHandle: courseImage,
     });
     expect(first.outcome).toBe("paused");
     if (first.outcome !== "paused") return;
     const paused = await cancellable.continue({
-      actorId,
+      actorId: run.actorId,
       importId: first.import.id,
       expectedRevision: first.import.revision,
       intent: {
@@ -250,7 +203,7 @@ describe("Course Scorecard Import lifecycle", () => {
     if (paused.outcome !== "paused") return;
 
     const cancelled = await cancellable.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: { kind: "cancel" },
@@ -262,13 +215,13 @@ describe("Course Scorecard Import lifecycle", () => {
 
     failDeletion = false;
     deleted.length = 0;
-    expect(await cancellable.cleanup({ actorId })).toEqual({
+    expect(await cancellable.cleanup({ actorId: run.actorId })).toEqual({
       outcome: "cleaned",
     });
     expect(ours()).toEqual([older, scorecard, courseImage]);
 
     deleted.length = 0;
-    await cancellable.cleanup({ actorId });
+    await cancellable.cleanup({ actorId: run.actorId });
     expect(ours()).toEqual([]);
   });
 
@@ -286,9 +239,9 @@ describe("Course Scorecard Import lifecycle", () => {
       },
     });
     const paused = await expiring.start({
-      actorId,
-      target: { kind: "new", name: `Expiry ${tag}` },
-      stagedScorecardImageHandle: `${tag}-expiry-image`,
+      actorId: run.actorId,
+      target: { kind: "new", name: `Expiry ${run.tag}` },
+      stagedScorecardImageHandle: `${run.tag}-expiry-image`,
     });
     expect(paused.outcome).toBe("paused");
     if (paused.outcome !== "paused") return;
@@ -296,7 +249,7 @@ describe("Course Scorecard Import lifecycle", () => {
 
     clock = new Date(clock.getTime() + 24 * 60 * 60 * 1000);
     const inspected = await expiring.inspect({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
     });
     expect(inspected.outcome).toBe("paused");
@@ -305,11 +258,14 @@ describe("Course Scorecard Import lifecycle", () => {
     expect(extendedExpiry.getTime()).toBeGreaterThan(originalExpiry.getTime());
 
     clock = new Date(extendedExpiry.getTime() + 1);
-    expect(deleted).not.toContain(`${tag}-expiry-image`);
-    await expiring.cleanup({ actorId });
-    expect(deleted).toContain(`${tag}-expiry-image`);
+    expect(deleted).not.toContain(`${run.tag}-expiry-image`);
+    await expiring.cleanup({ actorId: run.actorId });
+    expect(deleted).toContain(`${run.tag}-expiry-image`);
     expect(
-      await expiring.inspect({ actorId, importId: paused.import.id }),
+      await expiring.inspect({
+        actorId: run.actorId,
+        importId: paused.import.id,
+      }),
     ).toMatchObject({ outcome: "cancelled", import: { status: "cancelled" } });
   });
 
@@ -317,24 +273,9 @@ describe("Course Scorecard Import lifecycle", () => {
     const deleted: string[] = [];
     const publishable = createCourseScorecardImport({
       async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              {
-                name: "Blue",
-                rating: 71,
-                slope: 125,
-                yardages: Array.from({ length: 18 }, () => 400),
-              },
-            ],
-            holes: Array.from({ length: 18 }, (_, index) => ({
-              hole: index + 1,
-              par: 4,
-              handicap: index + 1,
-            })),
-          },
-          warnings: [],
-        };
+        return parsedScorecard({
+          tees: [parsedTee("Blue", { rating: 71, slope: 125 })],
+        });
       },
       async deleteStagedImage(handle) {
         deleted.push(handle);
@@ -342,13 +283,13 @@ describe("Course Scorecard Import lifecycle", () => {
       },
     });
     const published = await publishable.start({
-      actorId,
-      target: { kind: "new", name: `Published Images ${tag}` },
+      actorId: run.actorId,
+      target: { kind: "new", name: `Published Images ${run.tag}` },
       stagedScorecardImageHandle: "course-owned-scorecard",
       stagedCourseImageHandle: "course-owned-image",
     });
     expect(published.outcome).toBe("published");
-    await publishable.cleanup({ actorId });
+    await publishable.cleanup({ actorId: run.actorId });
     expect(deleted).toEqual([]);
   });
 });

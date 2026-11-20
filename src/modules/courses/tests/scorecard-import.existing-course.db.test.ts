@@ -1,22 +1,18 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { createFixtures } from "@/test/fixtures";
 import { required } from "@/lib/required";
+import { getCourseForEdit, updateCourse } from "../server";
 import {
-  createCourseScorecardImport,
-  getCourseForEdit,
-  updateCourse,
-} from "../server";
-import { imports } from "./scorecard-import-fixtures";
+  imports,
+  importsParsing,
+  parsedTee,
+  importActors,
+} from "./scorecard-import-fixtures";
 
 describe("Course Scorecard Import into an existing course", () => {
   const fixtures = createFixtures();
-  let actorId: string;
-  let secondActorId: string;
-  beforeEach(async () => {
-    actorId = await fixtures.admin();
-    secondActorId = (await fixtures.player({ isAdmin: true })).id;
-  });
+  const run = importActors(fixtures);
 
   async function storedTees(handle: string) {
     return required(await getCourseForEdit(handle), "course").tees;
@@ -53,7 +49,7 @@ describe("Course Scorecard Import into an existing course", () => {
     const blue = teeNamed(tees, "Blue");
     const placeholder = teeNamed(tees, "Unknown");
     const paused = await imports.start({
-      actorId,
+      actorId: run.actorId,
       target: { kind: "existing", courseId: course.id },
       stagedScorecardImageHandle: "existing-image",
     });
@@ -73,7 +69,7 @@ describe("Course Scorecard Import into an existing course", () => {
       }),
     );
     const published = await imports.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: {
@@ -93,35 +89,22 @@ describe("Course Scorecard Import into an existing course", () => {
     const { course } = await existingCourse("Existing Warnings", [
       { name: "Blue", rating: "69", slope: 115 },
     ]);
-    const existingWarningImports = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              {
-                name: "Blue",
-                rating: 71,
-                slope: 125,
-                yardages: Array.from({ length: 18 }, () => 400),
-              },
-            ],
-            holes: [],
-          },
-          warnings: [
-            {
-              scope: "hole" as const,
-              message: "par OUT: summed 34 vs printed 35",
-            },
-            {
-              scope: "tee" as const,
-              message: "Blue OUT yards: summed 3600 vs printed 3601",
-            },
-          ],
-        };
-      },
+    const existingWarningImports = importsParsing({
+      tees: [parsedTee("Blue", { rating: 71, slope: 125 })],
+      holes: [],
+      warnings: [
+        {
+          scope: "hole" as const,
+          message: "par OUT: summed 34 vs printed 35",
+        },
+        {
+          scope: "tee" as const,
+          message: "Blue OUT yards: summed 3600 vs printed 3601",
+        },
+      ],
     });
     const paused = await existingWarningImports.start({
-      actorId,
+      actorId: run.actorId,
       target: { kind: "existing", courseId: course.id },
       stagedScorecardImageHandle: "existing-warnings-image",
     });
@@ -134,7 +117,7 @@ describe("Course Scorecard Import into an existing course", () => {
       }),
     ]);
     const published = await existingWarningImports.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: { kind: "resolve", acknowledgeWarnings: ["warning:1"] },
@@ -146,26 +129,12 @@ describe("Course Scorecard Import into an existing course", () => {
     const { course } = await existingCourse("Auto New Course", [
       { name: "Championship", rating: "69", slope: 115 },
     ]);
-    const autoNewImports = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              {
-                name: "Tips",
-                rating: 71.2,
-                slope: 128,
-                yardages: Array.from({ length: 18 }, () => 400),
-              },
-            ],
-            holes: [],
-          },
-          warnings: [],
-        };
-      },
+    const autoNewImports = importsParsing({
+      tees: [parsedTee("Tips", { rating: 71.2, slope: 128 })],
+      holes: [],
     });
     const published = await autoNewImports.start({
-      actorId,
+      actorId: run.actorId,
       target: { kind: "existing", courseId: course.id },
       stagedScorecardImageHandle: "auto-new-image",
     });
@@ -184,26 +153,12 @@ describe("Course Scorecard Import into an existing course", () => {
     ]);
     const existing = teeNamed(before, "Championship");
     const placeholder = teeNamed(before, "Unknown");
-    const renameImports = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              {
-                name: "Tips",
-                rating: 71.2,
-                slope: 128,
-                yardages: Array.from({ length: 18 }, () => 400),
-              },
-            ],
-            holes: [],
-          },
-          warnings: [],
-        };
-      },
+    const renameImports = importsParsing({
+      tees: [parsedTee("Tips", { rating: 71.2, slope: 128 })],
+      holes: [],
     });
     const paused = await renameImports.start({
-      actorId,
+      actorId: run.actorId,
       target: { kind: "existing", courseId: course.id },
       stagedScorecardImageHandle: "rename-image",
     });
@@ -217,7 +172,7 @@ describe("Course Scorecard Import into an existing course", () => {
       }),
     );
     const published = await renameImports.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: {
@@ -236,21 +191,12 @@ describe("Course Scorecard Import into an existing course", () => {
       { name: "Blue", rating: "69.4", slope: 117 },
     ]);
     const blue = teeNamed(before, "Blue");
-    const metadataImports = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              { name: "blue", yardages: Array.from({ length: 18 }, () => 400) },
-            ],
-            holes: [],
-          },
-          warnings: [],
-        };
-      },
+    const metadataImports = importsParsing({
+      tees: [parsedTee("blue")],
+      holes: [],
     });
     const published = await metadataImports.start({
-      actorId,
+      actorId: run.actorId,
       target: { kind: "existing", courseId: course.id },
       stagedScorecardImageHandle: "metadata-image",
     });
@@ -267,26 +213,12 @@ describe("Course Scorecard Import into an existing course", () => {
       { name: "Blue", rating: "69", slope: 115 },
       { name: "blue", rating: "70", slope: 120 },
     ]);
-    const ambiguousImports = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              {
-                name: "BLUE",
-                rating: 71,
-                slope: 125,
-                yardages: Array.from({ length: 18 }, () => 400),
-              },
-            ],
-            holes: [],
-          },
-          warnings: [],
-        };
-      },
+    const ambiguousImports = importsParsing({
+      tees: [parsedTee("BLUE", { rating: 71, slope: 125 })],
+      holes: [],
     });
     const ambiguous = await ambiguousImports.start({
-      actorId,
+      actorId: run.actorId,
       target: { kind: "existing", courseId: course.id },
       stagedScorecardImageHandle: "ambiguous-image",
     });
@@ -296,7 +228,7 @@ describe("Course Scorecard Import into an existing course", () => {
       expect.objectContaining({ kind: "tee_match", teeName: "BLUE" }),
     );
     const excluded = await ambiguousImports.continue({
-      actorId,
+      actorId: run.actorId,
       importId: ambiguous.import.id,
       expectedRevision: ambiguous.import.revision,
       intent: { kind: "resolve", excludeTees: ["tee:0"] },
@@ -309,33 +241,19 @@ describe("Course Scorecard Import into an existing course", () => {
       { name: "Unknown", rating: "68", slope: 110 },
     ]);
     const placeholder = teeNamed(before, "Unknown");
-    const mapImports = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              {
-                name: "Gold",
-                rating: 71,
-                slope: 125,
-                yardages: Array.from({ length: 18 }, () => 400),
-              },
-            ],
-            holes: [],
-          },
-          warnings: [],
-        };
-      },
+    const mapImports = importsParsing({
+      tees: [parsedTee("Gold", { rating: 71, slope: 125 })],
+      holes: [],
     });
     const paused = await mapImports.start({
-      actorId,
+      actorId: run.actorId,
       target: { kind: "existing", courseId: course.id },
       stagedScorecardImageHandle: "map-image",
     });
     expect(paused.outcome).toBe("paused");
     if (paused.outcome !== "paused") return;
     const published = await mapImports.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: {
@@ -356,28 +274,19 @@ describe("Course Scorecard Import into an existing course", () => {
     const { course } = await existingCourse("Existing Cancel", [
       { name: "Unknown", rating: "69", slope: 115 },
     ]);
-    const existingCancelImports = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              { name: "Gold", yardages: Array.from({ length: 18 }, () => 400) },
-            ],
-            holes: [],
-          },
-          warnings: [],
-        };
-      },
+    const existingCancelImports = importsParsing({
+      tees: [parsedTee("Gold")],
+      holes: [],
     });
     const paused = await existingCancelImports.start({
-      actorId,
+      actorId: run.actorId,
       target: { kind: "existing", courseId: course.id },
       stagedScorecardImageHandle: "existing-cancel-image",
     });
     expect(paused.outcome).toBe("paused");
     if (paused.outcome !== "paused") return;
     const cancelled = await existingCancelImports.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: { kind: "cancel" },
@@ -389,7 +298,7 @@ describe("Course Scorecard Import into an existing course", () => {
       expect.objectContaining({ kind: "placeholder_tee" }),
     );
     const tombstone = await existingCancelImports.inspect({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
     });
     expect(tombstone).toMatchObject({
@@ -407,28 +316,19 @@ describe("Course Scorecard Import into an existing course", () => {
     const { course } = await existingCourse("Stale", [
       { name: "Red", rating: "69", slope: 115 },
     ]);
-    const staleImports = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              { name: "Blue", yardages: Array.from({ length: 18 }, () => 400) },
-            ],
-            holes: [],
-          },
-          warnings: [],
-        };
-      },
+    const staleImports = importsParsing({
+      tees: [parsedTee("Blue")],
+      holes: [],
     });
     const paused = await staleImports.start({
-      actorId,
+      actorId: run.actorId,
       target: { kind: "existing", courseId: course.id },
       stagedScorecardImageHandle: "stale-image",
     });
     expect(paused.outcome).toBe("paused");
     if (paused.outcome !== "paused") return;
     const current = required(await getCourseForEdit(course.handle), "course");
-    const edited = await updateCourse(secondActorId, {
+    const edited = await updateCourse(run.secondActorId, {
       id: current.id,
       handle: current.handle,
       name: `${current.name} (renamed by another admin)`,
@@ -446,7 +346,7 @@ describe("Course Scorecard Import into an existing course", () => {
     });
     expect(edited.ok).toBe(true);
     const continued = await staleImports.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: {
@@ -459,7 +359,7 @@ describe("Course Scorecard Import into an existing course", () => {
       import: { id: paused.import.id, status: "stale" },
     });
     const inspected = await staleImports.inspect({
-      actorId: secondActorId,
+      actorId: run.secondActorId,
       importId: paused.import.id,
     });
     expect(inspected).toMatchObject({

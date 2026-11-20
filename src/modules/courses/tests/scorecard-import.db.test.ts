@@ -1,22 +1,19 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
+import { HOLE_COUNT } from "@/modules/courses";
 import { createFixtures } from "@/test/fixtures";
 import { failCourseHoleInserts } from "@/test/db/faults";
-import { createCourseScorecardImport, getCourseForEdit } from "../server";
-import { imports } from "./scorecard-import-fixtures";
+import { getCourseForEdit } from "../server";
+import {
+  imports,
+  importsParsing,
+  parsedTee,
+  importActors,
+} from "./scorecard-import-fixtures";
 
 describe("Course Scorecard Import", () => {
   const fixtures = createFixtures();
-  let actorId: string;
-  let secondActorId: string;
-  let tag: string;
-  // Unique per test. Import cleanup scans every import in the database, so
-  // tests tell their own staged images apart by it.
-  beforeEach(async () => {
-    tag = crypto.randomUUID();
-    actorId = await fixtures.admin();
-    secondActorId = (await fixtures.player({ isAdmin: true })).id;
-  });
+  const run = importActors(fixtures);
   let removeFault: (() => Promise<void>) | undefined;
   afterEach(async () => {
     await removeFault?.();
@@ -25,8 +22,8 @@ describe("Course Scorecard Import", () => {
 
   it("publishes a clean new course", async () => {
     const outcome = await imports.start({
-      actorId,
-      target: { kind: "new", name: `Test Course ${tag}` },
+      actorId: run.actorId,
+      target: { kind: "new", name: `Test Course ${run.tag}` },
       stagedCourseImageHandle: "course-image",
       stagedScorecardImageHandle: "scorecard-image",
     });
@@ -35,33 +32,17 @@ describe("Course Scorecard Import", () => {
   });
 
   it("pauses missing tee metadata and publishes after resolution", async () => {
-    const missingMetadataImport = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              { name: "Gold", yardages: Array.from({ length: 18 }, () => 400) },
-            ],
-            holes: Array.from({ length: 18 }, (_, index) => ({
-              hole: index + 1,
-              par: 4,
-              handicap: index + 1,
-            })),
-          },
-          warnings: [],
-        };
-      },
-    });
+    const missingMetadataImport = importsParsing({ tees: [parsedTee("Gold")] });
     const paused = await missingMetadataImport.start({
-      actorId,
-      target: { kind: "new", name: `Paused Course ${tag}` },
+      actorId: run.actorId,
+      target: { kind: "new", name: `Paused Course ${run.tag}` },
       stagedScorecardImageHandle: "missing-meta-image",
     });
     expect(paused.outcome).toBe("paused");
     if (paused.outcome !== "paused") return;
 
     const published = await missingMetadataImport.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: {
@@ -73,43 +54,26 @@ describe("Course Scorecard Import", () => {
   });
 
   it("allows another administrator to inspect and resolve a paused import", async () => {
-    const importsWithMissingMetadata = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              {
-                name: "White",
-                yardages: Array.from({ length: 18 }, () => 400),
-              },
-            ],
-            holes: Array.from({ length: 18 }, (_, index) => ({
-              hole: index + 1,
-              par: 4,
-              handicap: index + 1,
-            })),
-          },
-          warnings: [],
-        };
-      },
+    const importsWithMissingMetadata = importsParsing({
+      tees: [parsedTee("White")],
     });
     const paused = await importsWithMissingMetadata.start({
-      actorId,
-      target: { kind: "new", name: `Shared Course ${tag}` },
+      actorId: run.actorId,
+      target: { kind: "new", name: `Shared Course ${run.tag}` },
       stagedScorecardImageHandle: "shared-image",
     });
     expect(paused.outcome).toBe("paused");
     if (paused.outcome !== "paused") return;
 
     const inspected = await importsWithMissingMetadata.inspect({
-      actorId: secondActorId,
+      actorId: run.secondActorId,
       importId: paused.import.id,
     });
     expect(inspected.outcome).toBe("paused");
     if (inspected.outcome !== "paused") return;
 
     const published = await importsWithMissingMetadata.continue({
-      actorId: secondActorId,
+      actorId: run.secondActorId,
       importId: inspected.import.id,
       expectedRevision: inspected.import.revision,
       intent: {
@@ -121,34 +85,19 @@ describe("Course Scorecard Import", () => {
   });
 
   it("persists partial answers and recomputes only the remaining prompts", async () => {
-    const twoMissingTees = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: ["Blue", "White"].map((name) => ({
-              name,
-              yardages: Array.from({ length: 18 }, () => 400),
-            })),
-            holes: Array.from({ length: 18 }, (_, index) => ({
-              hole: index + 1,
-              par: 4,
-              handicap: index + 1,
-            })),
-          },
-          warnings: [],
-        };
-      },
+    const twoMissingTees = importsParsing({
+      tees: [parsedTee("Blue"), parsedTee("White")],
     });
     const paused = await twoMissingTees.start({
-      actorId,
-      target: { kind: "new", name: `Partial Course ${tag}` },
+      actorId: run.actorId,
+      target: { kind: "new", name: `Partial Course ${run.tag}` },
       stagedScorecardImageHandle: "partial-image",
     });
     expect(paused.outcome).toBe("paused");
     if (paused.outcome !== "paused") return;
 
     const partial = await twoMissingTees.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: {
@@ -167,7 +116,7 @@ describe("Course Scorecard Import", () => {
     });
 
     const published = await twoMissingTees.continue({
-      actorId,
+      actorId: run.actorId,
       importId: partial.import.id,
       expectedRevision: partial.import.revision,
       intent: {
@@ -179,43 +128,22 @@ describe("Course Scorecard Import", () => {
   });
 
   it("invalidates warning acknowledgement after a correction", async () => {
-    const warningImport = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              {
-                name: "Blue",
-                rating: 71,
-                slope: 125,
-                yardages: Array.from({ length: 18 }, () => 400),
-              },
-            ],
-            holes: Array.from({ length: 18 }, (_, index) => ({
-              hole: index + 1,
-              par: 4,
-              handicap: index + 1,
-            })),
-          },
-          warnings: [
-            {
-              scope: "tee" as const,
-              message: "Blue total does not match the card",
-            },
-          ],
-        };
-      },
+    const warningImport = importsParsing({
+      tees: [parsedTee("Blue", { rating: 71, slope: 125 })],
+      warnings: [
+        { scope: "tee", message: "Blue total does not match the card" },
+      ],
     });
     const paused = await warningImport.start({
-      actorId,
-      target: { kind: "new", name: `Warning Course ${tag}` },
+      actorId: run.actorId,
+      target: { kind: "new", name: `Warning Course ${run.tag}` },
       stagedScorecardImageHandle: "warning-image",
     });
     expect(paused.outcome).toBe("paused");
     if (paused.outcome !== "paused") return;
 
     const corrected = await warningImport.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: {
@@ -233,7 +161,7 @@ describe("Course Scorecard Import", () => {
     });
 
     const published = await warningImport.continue({
-      actorId,
+      actorId: run.actorId,
       importId: corrected.import.id,
       expectedRevision: corrected.import.revision,
       intent: { kind: "resolve", acknowledgeWarnings: ["warning:0"] },
@@ -242,37 +170,19 @@ describe("Course Scorecard Import", () => {
   });
 
   it("allows an administrator to exclude an erroneous parsed tee", async () => {
-    const importWithBadTee = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              {
-                name: "Blue",
-                rating: 71,
-                slope: 125,
-                yardages: Array.from({ length: 18 }, () => 400),
-              },
-              {
-                name: "Parser Error",
-                rating: 71,
-                slope: 125,
-                yardages: Array.from({ length: 18 }, () => 0),
-              },
-            ],
-            holes: Array.from({ length: 18 }, (_, index) => ({
-              hole: index + 1,
-              par: 4,
-              handicap: index + 1,
-            })),
-          },
-          warnings: [],
-        };
-      },
+    const importWithBadTee = importsParsing({
+      tees: [
+        parsedTee("Blue", { rating: 71, slope: 125 }),
+        parsedTee("Parser Error", {
+          rating: 71,
+          slope: 125,
+          yardages: Array(HOLE_COUNT).fill(0),
+        }),
+      ],
     });
     const paused = await importWithBadTee.start({
-      actorId,
-      target: { kind: "new", name: `Excluded Course ${tag}` },
+      actorId: run.actorId,
+      target: { kind: "new", name: `Excluded Course ${run.tag}` },
       stagedScorecardImageHandle: "excluded-image",
     });
     expect(paused.outcome).toBe("paused");
@@ -283,7 +193,7 @@ describe("Course Scorecard Import", () => {
     });
 
     const published = await importWithBadTee.continue({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
       expectedRevision: paused.import.revision,
       intent: { kind: "resolve", excludeTees: ["tee:1"] },
@@ -292,26 +202,12 @@ describe("Course Scorecard Import", () => {
   });
 
   it("rolls back every live-course write when publication fails", async () => {
-    const importWithMissingMetadata = createCourseScorecardImport({
-      async parseScorecardImage() {
-        return {
-          scorecard: {
-            tees: [
-              { name: "Blue", yardages: Array.from({ length: 18 }, () => 400) },
-            ],
-            holes: Array.from({ length: 18 }, (_, index) => ({
-              hole: index + 1,
-              par: 4,
-              handicap: index + 1,
-            })),
-          },
-          warnings: [],
-        };
-      },
+    const importWithMissingMetadata = importsParsing({
+      tees: [parsedTee("Blue")],
     });
-    const name = `Rollback Course ${tag}`;
+    const name = `Rollback Course ${run.tag}`;
     const paused = await importWithMissingMetadata.start({
-      actorId,
+      actorId: run.actorId,
       target: { kind: "new", name },
       stagedScorecardImageHandle: "rollback-image",
     });
@@ -321,7 +217,7 @@ describe("Course Scorecard Import", () => {
     removeFault = await failCourseHoleInserts(name);
     await expect(
       importWithMissingMetadata.continue({
-        actorId,
+        actorId: run.actorId,
         importId: paused.import.id,
         expectedRevision: paused.import.revision,
         intent: {
@@ -333,7 +229,7 @@ describe("Course Scorecard Import", () => {
 
     expect(await getCourseForEdit(paused.import.target.handle)).toBeUndefined();
     const inspected = await importWithMissingMetadata.inspect({
-      actorId,
+      actorId: run.actorId,
       importId: paused.import.id,
     });
     expect(inspected.outcome).toBe("paused");

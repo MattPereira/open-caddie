@@ -13,49 +13,6 @@ describe("Display Round reads", () => {
 
   type Tournament = Awaited<ReturnType<typeof fixtures.tournament>>;
 
-  type Player = Awaited<ReturnType<typeof fixtures.player>>;
-
-  // Fixture tees are rated 72, so with their slope a Round's Score
-  // Differential scales back to (strokes - 72) as a Course Handicap.
-  async function card(roundId: number, totalStrokes: number) {
-    await fixtures.scores(
-      roundId,
-      Array.from({ length: 18 }, (_, index) => ({
-        hole: index + 1,
-        strokes: index === 17 ? totalStrokes - 68 : 4,
-        putts: 2,
-      })),
-    );
-  }
-
-  async function casualRound() {
-    const { course, tee } = await fixtures.course();
-    const player = await fixtures.player();
-    const id = await fixtures.casualRound(player.id, {
-      courseHandle: course.handle,
-      teeId: tee.id,
-    });
-    return { id };
-  }
-
-  // A complete Round for `player` in another Tournament of the same Club.
-  async function priorRound(
-    t: Tournament,
-    player: Player,
-    date: string,
-    totalStrokes: number,
-  ) {
-    const other = await fixtures.tournament({
-      club: t.club,
-      seasonId: t.tournament.seasonId,
-      date,
-      on: t,
-    });
-    const { round } = await fixtures.tournamentPlayer(other, player);
-    await card(round.id, totalStrokes);
-    return round;
-  }
-
   async function settings(
     roundId: number,
     change: Parameters<typeof changeRoundSettings>[2],
@@ -99,7 +56,7 @@ describe("Display Round reads", () => {
       const t = await fixtures.tournament();
       const { round: tournamentRound } = await fixtures.tournamentPlayer(t);
       const { players } = await fixtures.match(1);
-      const casual = await casualRound();
+      const casual = await fixtures.casualRound();
 
       const [tournament, match, single] = await Promise.all([
         getRoundById(tournamentRound.id),
@@ -122,8 +79,8 @@ describe("Display Round reads", () => {
     it("plays scratch with fewer than 2 prior Rounds", async () => {
       const t = await fixtures.tournament();
       const { player, round } = await fixtures.tournamentPlayer(t);
-      await priorRound(t, player, "2025-06-01", 90);
-      await card(round.id, 80);
+      await fixtures.priorRound(t, player, "2025-06-01", 90);
+      await fixtures.completeCard(round.id, 80);
 
       const { rounds } = await getTournamentRounds(t.tournament.id);
 
@@ -134,12 +91,12 @@ describe("Display Round reads", () => {
       const t = await fixtures.tournament();
       const { player, round } = await fixtures.tournamentPlayer(t);
       // The oldest, and best, Round falls outside the last 4.
-      await priorRound(t, player, "2025-01-01", 70);
-      await priorRound(t, player, "2025-02-01", 82);
-      await priorRound(t, player, "2025-03-01", 78);
-      await priorRound(t, player, "2025-04-01", 90);
-      await priorRound(t, player, "2025-05-01", 76);
-      await card(round.id, 80);
+      await fixtures.priorRound(t, player, "2025-01-01", 70);
+      await fixtures.priorRound(t, player, "2025-02-01", 82);
+      await fixtures.priorRound(t, player, "2025-03-01", 78);
+      await fixtures.priorRound(t, player, "2025-04-01", 90);
+      await fixtures.priorRound(t, player, "2025-05-01", 76);
+      await fixtures.completeCard(round.id, 80);
 
       const [only] = (await getTournamentRounds(t.tournament.id)).rounds;
 
@@ -151,10 +108,10 @@ describe("Display Round reads", () => {
     it("counts prior Rounds only from the same Club and earlier dates", async () => {
       const t = await fixtures.tournament();
       const { player } = await fixtures.tournamentPlayer(t);
-      await priorRound(t, player, "2025-02-01", 80);
-      await priorRound(t, player, "2025-03-01", 84);
+      await fixtures.priorRound(t, player, "2025-02-01", 80);
+      await fixtures.priorRound(t, player, "2025-03-01", 84);
       // Neither of these may count: one is after the event, one elsewhere.
-      await priorRound(t, player, "2026-02-01", 72);
+      await fixtures.priorRound(t, player, "2026-02-01", 72);
       const elsewhere = await fixtures.tournament({
         date: "2025-04-01",
         on: t,
@@ -163,7 +120,7 @@ describe("Display Round reads", () => {
         elsewhere,
         player,
       );
-      await card(otherClubRound.id, 72);
+      await fixtures.completeCard(otherClubRound.id, 72);
 
       const [only] = (await getTournamentRounds(t.tournament.id)).rounds;
 
@@ -175,13 +132,13 @@ describe("Display Round reads", () => {
       const a = await fixtures.tournamentPlayer(t);
       const b = await fixtures.tournamentPlayer(t);
       const c = await fixtures.tournamentPlayer(t);
-      await priorRound(t, a.player, "2025-02-01", 76);
-      await priorRound(t, a.player, "2025-03-01", 78);
-      await priorRound(t, b.player, "2025-02-01", 90);
-      await priorRound(t, b.player, "2025-03-01", 86);
-      await priorRound(t, b.player, "2025-04-01", 94);
-      await card(a.round.id, 80);
-      await card(b.round.id, 95);
+      await fixtures.priorRound(t, a.player, "2025-02-01", 76);
+      await fixtures.priorRound(t, a.player, "2025-03-01", 78);
+      await fixtures.priorRound(t, b.player, "2025-02-01", 90);
+      await fixtures.priorRound(t, b.player, "2025-03-01", 86);
+      await fixtures.priorRound(t, b.player, "2025-04-01", 94);
+      await fixtures.completeCard(a.round.id, 80);
+      await fixtures.completeCard(b.round.id, 95);
 
       const { rounds } = await getTournamentRounds(t.tournament.id);
       const handicaps = Object.fromEntries(
@@ -203,8 +160,8 @@ describe("Display Round reads", () => {
       const { match, players } = await fixtures.match(2);
       const [withOverride, without] = players;
       await settings(withOverride.round.id, { playerIndexOverride: 11.3 });
-      await card(withOverride.round.id, 90);
-      await card(without.round.id, 90);
+      await fixtures.completeCard(withOverride.round.id, 90);
+      await fixtures.completeCard(without.round.id, 90);
 
       const { rounds } = await getMatchRounds(match.id);
       const byId = new Map(rounds.map((round) => [round.id, round]));
@@ -220,8 +177,8 @@ describe("Display Round reads", () => {
   });
 
   it("applies no Playing Handicap to a casual Round", async () => {
-    const round = await casualRound();
-    await card(round.id, 85);
+    const round = await fixtures.casualRound();
+    await fixtures.completeCard(round.id, 85);
 
     const read = await getRoundById(round.id);
 
@@ -249,13 +206,13 @@ describe("Display Round reads", () => {
     }
     const [incomplete, bravo, alpha, handicap, low] = players;
     await fixtures.scores(incomplete.round.id, [{ hole: 1, strokes: 3 }]);
-    await card(bravo.round.id, 77);
-    await card(alpha.round.id, 77);
+    await fixtures.completeCard(bravo.round.id, 77);
+    await fixtures.completeCard(alpha.round.id, 77);
     // Net 75 off gross 80 ranks behind a scratch 75.
-    await priorRound(t, handicap.player, "2025-02-01", 76);
-    await priorRound(t, handicap.player, "2025-03-01", 78);
-    await card(handicap.round.id, 80);
-    await card(low.round.id, 75);
+    await fixtures.priorRound(t, handicap.player, "2025-02-01", 76);
+    await fixtures.priorRound(t, handicap.player, "2025-03-01", 78);
+    await fixtures.completeCard(handicap.round.id, 80);
+    await fixtures.completeCard(low.round.id, 75);
 
     const { rounds } = await getTournamentRounds(t.tournament.id);
 
@@ -358,9 +315,9 @@ describe("Display Round reads", () => {
     it("marks which prior Rounds were used for the Player Index", async () => {
       const t = await fixtures.tournament();
       const { player, round } = await fixtures.tournamentPlayer(t);
-      const used76 = await priorRound(t, player, "2025-02-01", 76);
-      const unused90 = await priorRound(t, player, "2025-03-01", 90);
-      const used78 = await priorRound(t, player, "2025-04-01", 78);
+      const used76 = await fixtures.priorRound(t, player, "2025-02-01", 76);
+      const unused90 = await fixtures.priorRound(t, player, "2025-03-01", 90);
+      const used78 = await fixtures.priorRound(t, player, "2025-04-01", 78);
 
       const read = await getRoundById(round.id, true);
       const details = read?.handicapDetails;
@@ -388,7 +345,7 @@ describe("Display Round reads", () => {
       const t = await fixtures.tournament();
       const { round } = await fixtures.tournamentPlayer(t);
       const { players } = await fixtures.match(1);
-      const casual = await casualRound();
+      const casual = await fixtures.casualRound();
 
       const [match, single, unasked] = await Promise.all([
         getRoundById(players[0].round.id, true),

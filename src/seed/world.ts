@@ -74,7 +74,7 @@ const PLAYERS = {
   },
 };
 type PlayerKey = keyof typeof PLAYERS;
-type Ids = Record<PlayerKey, string>;
+type PlayerIds = Record<PlayerKey, string>;
 
 function ok<T extends { ok: boolean }>(
   result: T,
@@ -84,6 +84,23 @@ function ok<T extends { ok: boolean }>(
     throw new Error(`Seeding ${what} failed: ${JSON.stringify(result)}`);
   }
   return result as Extract<T, { ok: true }>;
+}
+
+/** Looks up each Player's Round among an Event's Rounds. */
+function roundsByPlayer(
+  rounds: { id: number; playerId: string }[],
+  ids: PlayerIds,
+) {
+  return (key: PlayerKey) =>
+    required(
+      rounds.find((round) => round.playerId === ids[key]),
+      `${key}'s round`,
+    ).id;
+}
+
+/** The card with only its first `holes` holes scored. */
+function firstHoles(card: HoleScore[], holes: number) {
+  return card.map((hole, i) => (i < holes ? hole : null));
 }
 
 function day(offset: number) {
@@ -113,24 +130,24 @@ function scorecard(skill: number, salt: number): HoleScore[] {
 }
 
 async function writeScores(
-  admin: string,
+  adminId: string,
   roundId: number,
   card: (HoleScore | null)[],
 ) {
   const scores = card.flatMap((hole, i) =>
     hole ? [{ roundId, hole: i + 1, ...hole }] : [],
   );
-  ok(await recordScorecardChanges(admin, { scores }), "scores");
+  ok(await recordScorecardChanges(adminId, { scores }), "scores");
 }
 
 async function writeGreenie(
-  admin: string,
+  adminId: string,
   roundId: number,
   hole: number,
   distance: Distance,
 ) {
   ok(
-    await recordScorecardChanges(admin, {
+    await recordScorecardChanges(adminId, {
       greenies: [{ roundId, hole, distance }],
     }),
     "greenie",
@@ -160,8 +177,8 @@ function course(
   };
 }
 
-async function createSeedCourse(admin: string, values: CourseCreateInput) {
-  ok(await createCourse(admin, values), `course ${values.handle}`);
+async function createSeedCourse(adminId: string, values: CourseCreateInput) {
+  ok(await createCourse(adminId, values), `course ${values.handle}`);
   const stored = required(
     await getCourseForEdit(values.handle),
     `course ${values.handle}`,
@@ -174,11 +191,11 @@ async function createSeedCourse(admin: string, values: CourseCreateInput) {
   return { handle: stored.handle, tee };
 }
 
-async function seedPlayers(admin: string): Promise<Ids> {
-  const ids = {} as Ids;
+async function seedPlayers(adminId: string): Promise<PlayerIds> {
+  const ids = {} as PlayerIds;
   for (const [key, player] of Object.entries(PLAYERS)) {
     const created = ok(
-      await createPlayer(admin, {
+      await createPlayer(adminId, {
         email: `${key}@example.com`,
         firstName: player.firstName,
         lastName: player.lastName,
@@ -198,21 +215,21 @@ type TournamentPlan = {
   courseHandle: string;
   teeId: number;
   pairings: PlayerKey[][];
-  /** Holes scored per Round; 0 leaves the cards empty. */
-  holes: number;
+  /** 0 leaves the cards empty. */
+  holesScored: number;
   salt: number;
   greenies?: { player: PlayerKey; hole: number; distance: Distance }[];
   aces?: { player: PlayerKey; hole: number }[];
 };
 
 async function seedTournament(
-  admin: string,
-  ids: Ids,
+  adminId: string,
+  ids: PlayerIds,
   clubHandle: string,
   plan: TournamentPlan,
 ) {
   const created = ok(
-    await createTournament(admin, {
+    await createTournament(adminId, {
       clubHandle,
       date: plan.date,
       courseHandle: plan.courseHandle,
@@ -225,24 +242,23 @@ async function seedTournament(
   const tournamentId = required(created.id, "tournament id");
   const entrants = plan.pairings.flat();
   ok(
-    await addPlayersToTournament(admin, {
+    await addPlayersToTournament(adminId, {
       tournamentId,
       playerIds: entrants.map((key) => ids[key]),
     }),
     "tournament players",
   );
   const { rounds } = await getTournamentRounds(tournamentId);
-  const roundOf = (key: PlayerKey) =>
-    required(
-      rounds.find((round) => round.playerId === ids[key]),
-      `${key}'s tournament round`,
-    ).id;
+  const roundOf = roundsByPlayer(rounds, ids);
 
   for (const group of plan.pairings) {
-    const pairing = ok(await createPairing(admin, { tournamentId }), "pairing");
+    const pairing = ok(
+      await createPairing(adminId, { tournamentId }),
+      "pairing",
+    );
     for (const key of group) {
       ok(
-        await assignRoundToPairing(admin, {
+        await assignRoundToPairing(adminId, {
           pairingId: required(pairing.id, "pairing id"),
           roundId: roundOf(key),
         }),
@@ -251,20 +267,20 @@ async function seedTournament(
     }
   }
 
-  if (plan.holes === 0) return;
+  if (plan.holesScored === 0) return;
   for (const [index, key] of entrants.entries()) {
-    const card: (HoleScore | null)[] = scorecard(
-      PLAYERS[key].skill,
-      plan.salt * 10 + index,
-    ).map((hole, i) => (i < plan.holes ? hole : null));
+    const card = firstHoles(
+      scorecard(PLAYERS[key].skill, plan.salt * 10 + index),
+      plan.holesScored,
+    );
     for (const ace of plan.aces ?? []) {
       if (ace.player === key) card[ace.hole - 1] = { strokes: 1, putts: 0 };
     }
-    await writeScores(admin, roundOf(key), card);
+    await writeScores(adminId, roundOf(key), card);
   }
   for (const greenie of plan.greenies ?? []) {
     await writeGreenie(
-      admin,
+      adminId,
       roundOf(greenie.player),
       greenie.hole,
       greenie.distance,
@@ -284,7 +300,7 @@ type MatchPlan = {
   overrides: Partial<Record<PlayerKey, number>>;
 };
 
-async function seedMatch(admin: string, ids: Ids, plan: MatchPlan) {
+async function seedMatch(adminId: string, ids: PlayerIds, plan: MatchPlan) {
   const [teamOne, teamTwo] = plan.teams ?? [[], []];
   const created = ok(
     await createMatch(ids[plan.creator], {
@@ -299,14 +315,10 @@ async function seedMatch(admin: string, ids: Ids, plan: MatchPlan) {
     `${plan.format} match`,
   );
   const { rounds } = await getMatchRounds(required(created.id, "match id"));
-  const roundOf = (key: PlayerKey) =>
-    required(
-      rounds.find((round) => round.playerId === ids[key]),
-      `${key}'s match round`,
-    ).id;
+  const roundOf = roundsByPlayer(rounds, ids);
   for (const [key, playerIndexOverride] of Object.entries(plan.overrides)) {
     ok(
-      await changeRoundSettings(admin, roundOf(key as PlayerKey), {
+      await changeRoundSettings(adminId, roundOf(key as PlayerKey), {
         playerIndexOverride,
       }),
       `${key}'s override`,
@@ -322,7 +334,7 @@ export async function seedWorld() {
     );
   }
 
-  const admin = ok(
+  const adminId = ok(
     await createFirstPlatformAdmin({
       email: "admin@example.com",
       firstName: "Pat",
@@ -330,24 +342,24 @@ export async function seedWorld() {
     }),
     "Platform Admin",
   ).id;
-  const ids = await seedPlayers(admin);
+  const ids = await seedPlayers(adminId);
 
   const cedar = await createSeedCourse(
-    admin,
+    adminId,
     course("Cedar Ridge Golf Club", "cedar-ridge", [
       { name: "Blue", color: "#1d4ed8", rating: "72.1", slope: 131 },
       { name: "White", color: "#e5e7eb", rating: "69.8", slope: 124 },
     ]),
   );
   const oaks = await createSeedCourse(
-    admin,
+    adminId,
     course("Oaks", "oaks", [
       { name: "Gold", color: "#ca8a04", rating: "70.4", slope: 122 },
     ]),
   );
 
   const club = ok(
-    await createClub(admin, {
+    await createClub(adminId, {
       handle: "saturday-club",
       name: "Saturday Club",
       logo: "",
@@ -356,13 +368,13 @@ export async function seedWorld() {
     "club",
   );
   for (const playerId of Object.values(ids)) {
-    ok(await addClubMember(admin, { clubId: club.id, playerId }), "member");
+    ok(await addClubMember(adminId, { clubId: club.id, playerId }), "member");
   }
 
   // Two finished Tournaments feed Standings, Counted Rounds, Tournament
   // Ranking and Tournament Skins. Gwen plays only the second, so in the third
   // she has one prior Complete Round and plays off scratch.
-  await seedTournament(admin, ids, "saturday-club", {
+  await seedTournament(adminId, ids, "saturday-club", {
     date: day(-28),
     courseHandle: cedar.handle,
     teeId: cedar.tee("Blue"),
@@ -370,7 +382,7 @@ export async function seedWorld() {
       ["ada", "ben", "cara"],
       ["dev", "eli", "max"],
     ],
-    holes: 18,
+    holesScored: 18,
     salt: 1,
     greenies: [
       { player: "ada", hole: PAR_THREES[0], distance: { feet: 4, inches: 2 } },
@@ -378,7 +390,7 @@ export async function seedWorld() {
       { player: "max", hole: PAR_THREES[3], distance: { feet: 2, inches: 7 } },
     ],
   });
-  await seedTournament(admin, ids, "saturday-club", {
+  await seedTournament(adminId, ids, "saturday-club", {
     date: day(-14),
     courseHandle: oaks.handle,
     teeId: oaks.tee("Gold"),
@@ -386,7 +398,7 @@ export async function seedWorld() {
       ["ada", "ben", "cara"],
       ["dev", "gwen", "max"],
     ],
-    holes: 18,
+    holesScored: 18,
     salt: 2,
     aces: [{ player: "dev", hole: PAR_THREES[2] }],
     greenies: [
@@ -394,24 +406,24 @@ export async function seedWorld() {
       { player: "dev", hole: PAR_THREES[2], distance: { feet: 0, inches: 0 } },
     ],
   });
-  await seedTournament(admin, ids, "saturday-club", {
+  await seedTournament(adminId, ids, "saturday-club", {
     date: day(0),
     courseHandle: cedar.handle,
     teeId: cedar.tee("Blue"),
     pairings: [["ada", "ben", "cara", "gwen"], ["finn"]],
-    holes: 9,
+    holesScored: 9,
     salt: 3,
   });
-  await seedTournament(admin, ids, "saturday-club", {
+  await seedTournament(adminId, ids, "saturday-club", {
     date: day(7),
     courseHandle: oaks.handle,
     teeId: oaks.tee("Gold"),
     pairings: [["ada", "dev", "eli"]],
-    holes: 0,
+    holesScored: 0,
     salt: 4,
   });
 
-  const singles = await seedMatch(admin, ids, {
+  const singles = await seedMatch(adminId, ids, {
     creator: "ben",
     format: "singles_match_play",
     date: day(-7),
@@ -420,11 +432,11 @@ export async function seedWorld() {
     players: ["ben", "finn"],
     overrides: { ben: 8.4, finn: 14 },
   });
-  await writeScores(admin, singles("ben"), scorecard(0, 51));
-  await writeScores(admin, singles("finn"), scorecard(1, 52));
+  await writeScores(adminId, singles("ben"), scorecard(0, 51));
+  await writeScores(adminId, singles("finn"), scorecard(1, 52));
 
   // Max has no override; Dev's is a plus index.
-  const threeBall = await seedMatch(admin, ids, {
+  const threeBall = await seedMatch(adminId, ids, {
     creator: "cara",
     format: "three_ball_match_play",
     date: day(-2),
@@ -434,7 +446,7 @@ export async function seedWorld() {
     overrides: { cara: 12.3, dev: -1.2 },
   });
   ok(
-    await changeRoundSettings(admin, threeBall("max"), {
+    await changeRoundSettings(adminId, threeBall("max"), {
       teeId: cedar.tee("White"),
     }),
     "Max's tee",
@@ -444,14 +456,17 @@ export async function seedWorld() {
     ["dev", -2, 62],
     ["max", 0, 63],
   ] as const) {
-    const card = scorecard(skill, salt).map((hole, i) => (i < 9 ? hole : null));
-    await writeScores(admin, threeBall(key), card);
+    await writeScores(
+      adminId,
+      threeBall(key),
+      firstHoles(scorecard(skill, salt), 9),
+    );
   }
 
   // Gwen sets it up but doesn't play. The overrides are close, so strokes
   // fall only on the hardest holes and gross decides holes 4–6: 4 and 5 tie
   // and carry, and Finn's birdie on 6 takes the carry-over.
-  const fourBall = await seedMatch(admin, ids, {
+  const fourBall = await seedMatch(adminId, ids, {
     creator: "gwen",
     format: "four_ball_match_play",
     date: day(0),
@@ -472,12 +487,12 @@ export async function seedWorld() {
   };
   for (const [key, strokes] of Object.entries(fourBallCards)) {
     await writeScores(
-      admin,
+      adminId,
       fourBall(key as PlayerKey),
       strokes.map((s) => ({ strokes: s, putts: Math.min(2, s - 1) })),
     );
   }
-  await writeGreenie(admin, fourBall("ada"), 4, { feet: 6, inches: 2 });
+  await writeGreenie(adminId, fourBall("ada"), 4, { feet: 6, inches: 2 });
 
   const casual = ok(
     await createRound(ids.eli, {
@@ -488,7 +503,7 @@ export async function seedWorld() {
     }),
     "casual round",
   );
-  await writeScores(admin, casual.roundId, scorecard(2, 71));
+  await writeScores(adminId, casual.roundId, scorecard(2, 71));
 
   console.log(
     `Seeded ${Object.keys(ids).length + 1} Players, 2 Courses, 1 Club, 4 Tournaments, 3 Matches and 1 casual Round.`,

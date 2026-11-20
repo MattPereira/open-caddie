@@ -80,6 +80,8 @@ export async function createFirstPlatformAdmin(
     image: "",
     isAdmin: true,
   });
+  const refused = await refuseIfTaken(fields);
+  if (refused) return refused;
   const created = await db.transaction(async (tx) => {
     // Serializes concurrent calls so the existence check can't race.
     await tx.execute(

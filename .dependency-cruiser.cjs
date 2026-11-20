@@ -80,7 +80,7 @@ module.exports = {
       severity: "error",
       from: { path: "^src/seed/" },
       to: {
-        path: ["^src/db/", MODULE_INTERNALS],
+        path: "^src/db/",
         pathNot: "^src/db/connection\\.ts$",
       },
     },

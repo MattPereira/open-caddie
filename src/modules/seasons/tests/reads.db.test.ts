@@ -3,12 +3,12 @@ import { describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { createRoundFixtures, PAR_THREE_HOLES } from "@/test/fixtures/rounds";
+import { createRoundFixtures, PAR_THREE_HOLES } from "@/test/fixtures";
 import * as seasons from "../server";
 import { required } from "@/lib/required";
 
 describe("Season Standings reads", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
 
   type Course = Awaited<ReturnType<typeof fixtures.course>>;
   type Player = Awaited<ReturnType<typeof fixtures.player>>;
@@ -518,7 +518,7 @@ describe("Season Standings reads", () => {
 });
 
 describe("Club Season reads", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
 
   it("lists the Club's Seasons with Tournaments, newest first, once each", async () => {
     const t = await fixtures.tournament();

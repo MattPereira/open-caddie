@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { holdTransaction, waitForLockWaits } from "@/test/db/locks";
-import { createRoundFixtures } from "@/test/fixtures/rounds";
+import { createFixtures } from "@/test/fixtures";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
 import * as eventRounds from "../server";
 import { recordScorecardChanges } from "../server";
@@ -16,7 +16,7 @@ const { revalidatePath, updateTag } = vi.hoisted(() => ({
 vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
 
 describe("Event Rounds", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
 
   async function roundRow(id: number) {
     const [round] = await db

@@ -1,28 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { createRoundFixtures } from "@/test/fixtures/rounds";
+import { createFixtures } from "@/test/fixtures";
 import * as players from "../server";
 
 describe("Player reads", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
 
   type Player = Awaited<ReturnType<typeof fixtures.player>>;
 
   async function round(player: Player) {
     const t = await fixtures.tournament();
-    const [created] = await db
-      .insert(schema.rounds)
-      .values({
-        tournamentId: t.tournament.id,
-        playerId: player.id,
-        courseId: t.course.id,
-        teeId: t.tee.id,
-        date: t.tournament.date,
-      })
-      .returning();
-    return created;
+    return (await fixtures.tournamentPlayer(t, player)).round;
   }
 
   async function card(
@@ -33,9 +21,9 @@ describe("Player reads", () => {
       holes = 18,
     }: { strokes: number; putts: number | null; holes?: number },
   ) {
-    await db.insert(schema.roundScores).values(
+    await fixtures.scores(
+      roundId,
       Array.from({ length: holes }, (_, index) => ({
-        roundId,
         hole: index + 1,
         strokes,
         putts: index === 17 ? putts : (putts ?? 2),
@@ -84,12 +72,8 @@ describe("Player reads", () => {
       const idle = await fixtures.player();
       const first = await round(active);
       await round(active);
-      await db
-        .insert(schema.roundScores)
-        .values({ roundId: first.id, hole: 3, strokes: 3, putts: 1 });
-      await db
-        .insert(schema.greenies)
-        .values({ roundId: first.id, hole: 3, feet: 4, inches: 0 });
+      await fixtures.scores(first.id, [{ hole: 3, strokes: 3, putts: 1 }]);
+      await fixtures.greenie(first.id, 3, { feet: 4, inches: 0 });
 
       const all = await players.getAllPlayers();
 
@@ -113,9 +97,7 @@ describe("Player reads", () => {
       await card(missingPutt.id, { strokes: 5, putts: null }); // 90 strokes, 17 putts recorded
       const partial = await round(player);
       await card(partial.id, { strokes: 3, putts: 1, holes: 9 });
-      await db
-        .insert(schema.greenies)
-        .values({ roundId: complete.id, hole: 3, feet: 4, inches: 0 });
+      await fixtures.greenie(complete.id, 3, { feet: 4, inches: 0 });
 
       expect(await players.getPlayerStatsById(player.id)).toEqual({
         roundsCount: 3,

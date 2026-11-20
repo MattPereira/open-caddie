@@ -5,7 +5,7 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import * as clubs from "@/modules/clubs/server";
 import * as seasons from "@/modules/seasons/server";
-import { createRoundFixtures } from "@/test/fixtures/rounds";
+import { createFixtures } from "@/test/fixtures";
 import * as tournaments from "@/modules/tournaments/server";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
 
@@ -16,7 +16,7 @@ const { revalidatePath, updateTag } = vi.hoisted(() => ({
 vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
 
 describe("Tournament Season mutations", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
   let admin: Awaited<ReturnType<typeof fixtures.player>>;
 
   async function fixture() {

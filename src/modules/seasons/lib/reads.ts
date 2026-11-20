@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 
 import { clubs, courses, seasons, tournaments } from "@/db/schema";
@@ -23,6 +23,16 @@ export type SeasonStandings = ComputedSeasonStandings & {
   countedRoundLimit: number;
   pointRules: PointRules;
 };
+
+/** Every Season the Club has, lowest number first, with or without Tournaments. */
+export const getClubSeasonNumbers = cache(async (clubId: number) => {
+  const rows = await db
+    .select({ number: seasons.number })
+    .from(seasons)
+    .where(eq(seasons.clubId, clubId))
+    .orderBy(asc(seasons.number));
+  return rows.map((row) => row.number);
+});
 
 export const getClubSeasons = cache(async (clubId: number) => {
   return db

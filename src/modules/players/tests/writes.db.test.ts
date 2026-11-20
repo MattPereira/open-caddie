@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { createRoundFixtures } from "@/test/fixtures/rounds";
+import { createFixtures } from "@/test/fixtures";
 import * as players from "../server";
 import { required } from "@/lib/required";
 
@@ -17,7 +17,7 @@ vi.mock("@vercel/blob", () => ({ del }));
 const BLOB = "https://abc.public.blob.vercel-storage.com";
 
 describe("Player writes", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
   let admin: Awaited<ReturnType<typeof fixtures.player>>;
   let player: Awaited<ReturnType<typeof fixtures.player>>;
 

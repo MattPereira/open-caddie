@@ -4,7 +4,7 @@ import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import * as matches from "@/modules/matches/server";
-import { createRoundFixtures } from "@/test/fixtures/rounds";
+import { createFixtures } from "@/test/fixtures";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
 import { required } from "@/lib/required";
 
@@ -15,7 +15,7 @@ const { revalidatePath, updateTag } = vi.hoisted(() => ({
 vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
 
 describe("Match mutations", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
 
   type MatchFormat = (typeof schema.matches.$inferSelect)["format"];
   type Course = Awaited<ReturnType<typeof fixtures.course>>;

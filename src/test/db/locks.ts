@@ -33,3 +33,10 @@ export async function waitForLockWaits(table: string, count: number) {
   }
   throw new Error(`Expected ${count} queries on ${table} waiting on a lock.`);
 }
+
+/** Takes `table`'s FOR UPDATE row lock on `id`, as an edit of that row does. */
+export async function lockRow(tx: Tx, table: string, id: number) {
+  await tx.execute(
+    sql`select id from ${sql.identifier(table)} where id = ${id} for update`,
+  );
+}

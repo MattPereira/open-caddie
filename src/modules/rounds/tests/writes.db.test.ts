@@ -1,39 +1,25 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { revalidatePath, updateTag } from "next/cache";
+import { describe, expect, it } from "vitest";
 
-import { eq } from "drizzle-orm";
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { holdTransaction, waitForLockWaits } from "@/test/db/locks";
-import { createRoundFixtures } from "@/test/fixtures/rounds";
+import { updateTournament } from "@/modules/tournaments/server";
+import { clearCacheMocks } from "@/test/cache-mocks";
+import { holdTransaction, lockRow, waitForLockWaits } from "@/test/db/locks";
+import { createFixtures } from "@/test/fixtures";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
 import * as rounds from "../server";
 
-const { revalidatePath, updateTag } = vi.hoisted(() => ({
-  revalidatePath: vi.fn(),
-  updateTag: vi.fn(),
-}));
-vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
-
 describe("Round writes", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
 
   async function roundRow(id: number) {
-    const [round] = await db
-      .select()
-      .from(schema.rounds)
-      .where(eq(schema.rounds.id, id));
-    return round ?? null;
+    return (await rounds.getRoundById(id)) ?? null;
   }
-
-  beforeEach(() => {
-    revalidatePath.mockClear();
-    updateTag.mockClear();
-  });
 
   describe("create Round", () => {
     it("creates a casual Round on the chosen tee without touching home events", async () => {
       const { course, tee } = await fixtures.course();
       const player = await fixtures.player();
+      clearCacheMocks();
 
       const result = await rounds.createRound(player.id, {
         courseHandle: course.handle,
@@ -47,8 +33,7 @@ describe("Round writes", () => {
         playerId: player.id,
         courseId: course.id,
         teeId: tee.id,
-        tournamentId: null,
-        matchId: null,
+        kind: "casual",
         date: new Date("2026-03-04T00:00:00.000Z"),
       });
       expect(invalidatedPaths(revalidatePath)).toEqual(
@@ -61,6 +46,7 @@ describe("Round writes", () => {
       const { course } = await fixtures.course();
       const other = await fixtures.course();
       const player = await fixtures.player();
+      clearCacheMocks();
 
       expect(
         await rounds.createRound(player.id, {
@@ -93,6 +79,7 @@ describe("Round writes", () => {
     it("joins a Tournament on its tee and refreshes home events", async () => {
       const t = await fixtures.tournament();
       const player = await fixtures.player();
+      clearCacheMocks();
 
       const result = await rounds.createRound(player.id, {
         courseHandle: t.course.handle,
@@ -142,33 +129,38 @@ describe("Round writes", () => {
       const t = await fixtures.tournament();
       const next = await fixtures.course();
       const player = await fixtures.player();
-      const edit = await holdTransaction(async (tx) => {
-        await tx
-          .select({ id: schema.tournaments.id })
-          .from(schema.tournaments)
-          .where(eq(schema.tournaments.id, t.tournament.id))
-          .for("update");
-        await tx
-          .update(schema.tournaments)
-          .set({ courseId: next.course.id, teeId: next.tee.id })
-          .where(eq(schema.tournaments.id, t.tournament.id));
-      });
-
-      const join = rounds.createRound(player.id, {
-        courseHandle: t.course.handle,
-        date: "2026-01-01",
-        tournamentId: t.tournament.id,
-        teeId: null,
-      });
+      // A real edit of the Tournament, queued behind a lock, then the join
+      // queued behind the edit.
+      const lock = await holdTransaction((tx) =>
+        lockRow(tx, "tournaments", t.tournament.id),
+      );
+      let edit: ReturnType<typeof updateTournament> | undefined;
+      let join: ReturnType<typeof rounds.createRound> | undefined;
       try {
+        edit = updateTournament(await fixtures.admin(), {
+          id: t.tournament.id,
+          clubHandle: t.club.handle,
+          seasonId: t.tournament.seasonId,
+          date: "2026-01-01",
+          courseHandle: next.course.handle,
+          teeId: next.tee.id,
+        });
         await waitForLockWaits("tournaments", 1);
+        join = rounds.createRound(player.id, {
+          courseHandle: t.course.handle,
+          date: "2026-01-01",
+          tournamentId: t.tournament.id,
+          teeId: null,
+        });
+        await waitForLockWaits("tournaments", 2);
       } finally {
-        edit.release();
-        await edit.done;
+        lock.release();
+        await lock.done;
       }
+      expect(await edit).toEqual({ ok: true });
       const result = await join;
 
-      if (!result.ok) throw new Error(result.error);
+      if (!result?.ok) throw new Error("join failed");
       expect(await roundRow(result.roundId)).toMatchObject({
         courseId: next.course.id,
         teeId: next.tee.id,
@@ -197,6 +189,7 @@ describe("Round writes", () => {
     it("lets the Round's player delete it, refreshing the home events cache", async () => {
       const { players } = await fixtures.match(2);
       const [a] = players;
+      clearCacheMocks();
 
       expect(await rounds.deleteRound(a.player.id, a.round.id)).toEqual({
         ok: true,
@@ -223,6 +216,7 @@ describe("Round writes", () => {
     it("gives a Scorer who can't manage the Round a distinct error and keeps it", async () => {
       const { players } = await fixtures.match(2);
       const [a, b] = players;
+      clearCacheMocks();
 
       expect(await rounds.deleteRound(b.player.id, a.round.id)).toMatchObject({
         ok: false,
@@ -236,11 +230,7 @@ describe("Round writes", () => {
       const { match, players } = await fixtures.match(2);
       const [a] = players;
       const edit = await holdTransaction((tx) =>
-        tx
-          .select({ id: schema.matches.id })
-          .from(schema.matches)
-          .where(eq(schema.matches.id, match.id))
-          .for("update"),
+        lockRow(tx, "matches", match.id),
       );
 
       const deletion = rounds.deleteRound(a.player.id, a.round.id);

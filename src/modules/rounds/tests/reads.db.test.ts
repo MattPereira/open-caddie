@@ -1,8 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { db } from "@/db";
-import * as schema from "@/db/schema";
-import { createRoundFixtures } from "@/test/fixtures/rounds";
+import { createFixtures } from "@/test/fixtures";
 import {
   getActiveRoundForPlayer,
   getClosestGreenies,
@@ -10,16 +8,17 @@ import {
 } from "../server";
 
 describe("Round reads", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
 
   type Tournament = Awaited<ReturnType<typeof fixtures.tournament>>;
+  type Player = Awaited<ReturnType<typeof fixtures.player>>;
 
   // Fixture tees are rated 72, so with their slope a Round's Score
   // Differential scales back to (strokes - 72) as a Course Handicap.
   async function card(roundId: number, totalStrokes: number) {
-    await db.insert(schema.roundScores).values(
+    await fixtures.scores(
+      roundId,
       Array.from({ length: 18 }, (_, index) => ({
-        roundId,
         hole: index + 1,
         strokes: index === 17 ? totalStrokes - 68 : 4,
         putts: 2,
@@ -30,44 +29,27 @@ describe("Round reads", () => {
   async function casualRound() {
     const { course, tee } = await fixtures.course();
     const player = await fixtures.player();
-    const [round] = await db
-      .insert(schema.rounds)
-      .values({
-        playerId: player.id,
-        courseId: course.id,
-        teeId: tee.id,
-        date: new Date("2026-01-01T00:00:00.000Z"),
-      })
-      .returning();
-    return round;
+    const id = await fixtures.casualRound(player.id, {
+      courseHandle: course.handle,
+      teeId: tee.id,
+    });
+    return { id, playerId: player.id };
   }
 
-  // A complete Round for `playerId` in another Tournament of the same Club.
+  // A complete Round for `player` in another Tournament of the same Club.
   async function priorRound(
     t: Tournament,
-    playerId: string,
+    player: Player,
     date: string,
     totalStrokes: number,
   ) {
-    const [other] = await db
-      .insert(schema.tournaments)
-      .values({
-        seasonId: t.tournament.seasonId,
-        date: new Date(`${date}T00:00:00.000Z`),
-        courseId: t.course.id,
-        teeId: t.tee.id,
-      })
-      .returning();
-    const [round] = await db
-      .insert(schema.rounds)
-      .values({
-        tournamentId: other.id,
-        playerId: playerId,
-        courseId: t.course.id,
-        teeId: t.tee.id,
-        date: other.date,
-      })
-      .returning();
+    const other = await fixtures.tournament({
+      club: t.club,
+      seasonId: t.tournament.seasonId,
+      date,
+      on: t,
+    });
+    const { round } = await fixtures.tournamentPlayer(other, player);
     await card(round.id, totalStrokes);
     return round;
   }
@@ -77,30 +59,19 @@ describe("Round reads", () => {
       const { course, tee } = await fixtures.course();
       const player = await fixtures.player();
       const casual = (date: string) =>
-        db
-          .insert(schema.rounds)
-          .values({
-            playerId: player.id,
-            courseId: course.id,
-            teeId: tee.id,
-            date: new Date(`${date}T00:00:00.000Z`),
-          })
-          .returning()
-          .then(([round]) => round);
+        fixtures.casualRound(player.id, {
+          courseHandle: course.handle,
+          teeId: tee.id,
+          date,
+        });
       // Created first but dated after the Tournament: creation order wins.
       await casual("2026-03-01");
       const t = await fixtures.tournament();
-      const [tournamentRound] = await db
-        .insert(schema.rounds)
-        .values({
-          tournamentId: t.tournament.id,
-          playerId: player.id,
-          courseId: t.course.id,
-          teeId: t.tee.id,
-          date: t.tournament.date,
-        })
-        .returning();
-      await card((await casual("2026-02-01")).id, 80);
+      const { round: tournamentRound } = await fixtures.tournamentPlayer(
+        t,
+        player,
+      );
+      await card(await casual("2026-02-01"), 80);
       await fixtures.tournamentPlayer(t);
 
       expect(await getActiveRoundForPlayer(player.id)).toMatchObject({
@@ -135,10 +106,10 @@ describe("Round reads", () => {
     it("lists complete Rounds lowest first, the later of a tie first, up to the limit", async () => {
       const t = await fixtures.tournament();
       const { player } = await fixtures.tournamentPlayer(t);
-      const low = await priorRound(t, player.id, "2025-01-01", 70);
-      const tieEarlier = await priorRound(t, player.id, "2025-02-01", 75);
-      const tieLater = await priorRound(t, player.id, "2025-03-01", 75);
-      await priorRound(t, player.id, "2025-04-01", 90);
+      const low = await priorRound(t, player, "2025-01-01", 70);
+      const tieEarlier = await priorRound(t, player, "2025-02-01", 75);
+      const tieLater = await priorRound(t, player, "2025-03-01", 75);
+      await priorRound(t, player, "2025-04-01", 90);
       // The player's Round in `t` itself has no scores, so it isn't complete.
 
       const lowest = await getLowestRounds(3);
@@ -164,11 +135,9 @@ describe("Round reads", () => {
       const casual = await casualRound();
       await card(tournamentRound.id, 72);
       await card(casual.id, 72);
-      await db.insert(schema.greenies).values([
-        { roundId: tournamentRound.id, hole: 3, feet: 4, inches: 6 },
-        { roundId: tournamentRound.id, hole: 7, feet: 12, inches: 0 },
-        { roundId: casual.id, hole: 3, feet: 4, inches: 2 },
-      ]);
+      await fixtures.greenie(tournamentRound.id, 3, { feet: 4, inches: 6 });
+      await fixtures.greenie(tournamentRound.id, 7, { feet: 12, inches: 0 });
+      await fixtures.greenie(casual.id, 3, { feet: 4, inches: 2 });
 
       const closest = await getClosestGreenies(2);
 

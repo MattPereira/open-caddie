@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
-import { createRoundFixtures, PAR_THREE_HOLES } from "@/test/fixtures/rounds";
+import { createRoundFixtures, PAR_THREE_HOLES } from "@/test/fixtures";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
 import * as rounds from "../server";
 
@@ -14,7 +14,7 @@ const { revalidatePath, updateTag } = vi.hoisted(() => ({
 vi.mock("next/cache", () => ({ revalidatePath, updateTag }));
 
 describe("Scorecard writes", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
 
   const PAR_THREE = PAR_THREE_HOLES[0];
   const PAR_FOUR = 1;

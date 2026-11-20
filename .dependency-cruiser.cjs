@@ -66,6 +66,14 @@ module.exports = {
       to: { path: `^${R}/[^/]+/tests/` },
     },
     {
+      name: "tests-arrange-through-entrypoints",
+      comment:
+        "Module tests and shared fixtures arrange and assert through entry points, never the db or schema, so a storage change breaks only the module that owns it. The db test harness (src/test/db/) is the one exception.",
+      severity: "error",
+      from: { path: [`^${R}/[^/]+/tests/`, "^src/test/fixtures/"] },
+      to: { path: "^src/db/" },
+    },
+    {
       name: "test-support-only-from-tests",
       comment:
         "Shared test support (src/test/, e.g. fixtures every module's tests use) is reachable only from test files and from src/test/ itself, so it never ships in app code.",

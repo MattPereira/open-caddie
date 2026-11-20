@@ -1,12 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { db } from "@/db";
-import * as schema from "@/db/schema";
 import { getEventRoundAccess, getRoundAccess } from "../server";
-import { createRoundFixtures } from "@/test/fixtures/rounds";
+import { createFixtures } from "@/test/fixtures";
 
 describe("Round access", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
 
   const NO_ACCESS = { canScore: false, canManage: false, others: [] };
 
@@ -162,7 +160,7 @@ describe("Round access", () => {
 });
 
 describe("Event Round access", () => {
-  const fixtures = createRoundFixtures(db, schema);
+  const fixtures = createFixtures();
 
   function sorted(ids: number[]) {
     return [...ids].sort((a, b) => a - b);

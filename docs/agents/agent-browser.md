@@ -18,6 +18,13 @@ Start the app with `pnpm dev` first. The examples below use
 `http://localhost:3000`, the Next.js dev server's default address — if
 `pnpm dev` printed a different one, use that.
 
+The agent workflows seed the database with `pnpm db:seed`: Players, a Club
+with finished, in-progress and upcoming Tournaments, one Match per format,
+and a casual Round (`src/seed/world.ts`). Use that data rather than writing
+your own with SQL. Locally, run `pnpm db:migrate && pnpm db:seed` against an
+empty local database; the seed refuses a remote one or one that already has
+Players.
+
 A screenshot is pixels. To verify a fix you need a yes or a no, so read the
 DOM:
 

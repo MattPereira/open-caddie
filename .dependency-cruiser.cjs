@@ -74,6 +74,17 @@ module.exports = {
       to: { path: "^src/db/" },
     },
     {
+      name: "seed-through-entrypoints",
+      comment:
+        "The seed (src/seed/) builds its data through module entry points, like tests, so a storage change breaks only the module that owns it. It may read src/db/connection.ts, which holds the local-only database guard, not storage.",
+      severity: "error",
+      from: { path: "^src/seed/" },
+      to: {
+        path: ["^src/db/", MODULE_INTERNALS],
+        pathNot: "^src/db/connection\\.ts$",
+      },
+    },
+    {
       name: "test-support-only-from-tests",
       comment:
         "Shared test support (src/test/, e.g. fixtures every module's tests use) is reachable only from test files, modules' tests/ folders and src/test/ itself, so it never ships in app code.",

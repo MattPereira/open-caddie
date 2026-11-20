@@ -61,6 +61,50 @@ export async function createPlayer(
   return { ok: true, id, email: fields.email };
 }
 
+export type FirstPlatformAdminInput = {
+  email: string;
+  firstName: string;
+  lastName: string;
+};
+
+/**
+ * Every other Player write needs an acting Platform Admin, so a new database
+ * gets its first one here. Refuses once any Platform Admin exists.
+ */
+export async function createFirstPlatformAdmin(
+  values: FirstPlatformAdminInput,
+): Promise<PlayerCreateResult> {
+  const fields = normalize({
+    ...values,
+    username: "",
+    image: "",
+    isAdmin: true,
+  });
+  const created = await db.transaction(async (tx) => {
+    // Serializes concurrent calls so the existence check can't race.
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext('first-platform-admin'))`,
+    );
+    const [existing] = await tx
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.isAdmin, true))
+      .limit(1);
+    if (existing) return null;
+    const [{ id }] = await tx
+      .insert(users)
+      .values({ ...fields, isAdmin: true })
+      .returning({ id: users.id });
+    return id;
+  });
+  if (!created) {
+    return { ok: false, error: "A Platform Admin already exists." };
+  }
+
+  revalidatePath("/players");
+  return { ok: true, id: created, email: fields.email };
+}
+
 export async function updatePlayer(
   actingPlayerId: string,
   values: PlayerUpdateInput,

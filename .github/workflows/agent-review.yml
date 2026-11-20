@@ -204,10 +204,13 @@ jobs:
           npm install -g agent-browser@0.27.0
           agent-browser install
 
-      - name: Migrate the database
+      - name: Migrate and seed the database
         # The pre-commit hook runs on every commit the agent makes, and the
-        # repo's checks need a database. There is no seed.
-        run: pnpm db:migrate
+        # repo's checks need a database. The seed gives the app fixed data to
+        # render.
+        run: |
+          pnpm db:migrate
+          pnpm db:seed
 
       - name: Open the branch
         run: |

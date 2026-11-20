@@ -28,9 +28,7 @@ export function assertLocalConnection(
   const isLocal =
     host.startsWith("/") || ["localhost", "127.0.0.1", "::1"].includes(host);
   if (!isLocal) {
-    throw new Error(
-      `Refusing to connect to non-local database host "${host}" under vitest`,
-    );
+    throw new Error(`Refusing to connect to non-local database host "${host}"`);
   }
 }
 

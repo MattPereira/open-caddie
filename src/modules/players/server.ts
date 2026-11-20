@@ -12,9 +12,11 @@ export {
 export { isPlatformAdmin, requirePlatformAdmin } from "./lib/platform-admin";
 export {
   completeOnboarding,
+  createFirstPlatformAdmin,
   createPlayer,
   deletePlayer,
   updatePlayer,
+  type FirstPlatformAdminInput,
   type OnboardingResult,
   type PlayerCreateInput,
   type PlayerCreateResult,

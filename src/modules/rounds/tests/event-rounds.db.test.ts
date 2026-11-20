@@ -124,7 +124,6 @@ describe("Event Rounds", () => {
       const { players } = await fixtures.match(1);
       const t = await fixtures.tournament();
       const entrant = await fixtures.tournamentPlayer(t);
-      clearCacheMocks();
 
       eventRounds.invalidateRoundChanged([players[0].round, entrant.round]);
 

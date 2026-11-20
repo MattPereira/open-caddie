@@ -27,6 +27,7 @@ import {
   createTournament,
   getTournamentById,
 } from "@/modules/tournaments/server";
+import { clearCacheMocks } from "@/test/cache-mocks";
 import { seedPlatformAdmin } from "@/test/db/seed";
 
 export const PAR_THREE_HOLES = [3, 7, 12, 16];
@@ -480,20 +481,39 @@ export function createFixtures() {
 
   return {
     admin,
-    player,
-    course,
-    tee,
-    yardages,
-    club,
-    clubMember,
-    tournament,
-    tournamentPlayer,
-    casualRound,
-    pairing,
-    match,
-    scores,
-    greenie,
+    ...settled({
+      player,
+      course,
+      tee,
+      yardages,
+      club,
+      clubMember,
+      tournament,
+      tournamentPlayer,
+      casualRound,
+      pairing,
+      match,
+      scores,
+      greenie,
+    }),
   };
+}
+
+// Clears cache mocks once each fixture resolves, so a test's cache assertions
+// see only its act. A fixture called after the act wipes the act's calls too.
+function settled<T extends Record<string, (...args: never[]) => Promise<unknown>>>(
+  fns: T,
+): T {
+  return Object.fromEntries(
+    Object.entries(fns).map(([name, fn]) => [
+      name,
+      async (...args: never[]) => {
+        const result = await fn(...args);
+        clearCacheMocks();
+        return result;
+      },
+    ]),
+  ) as T;
 }
 
 export type Fixtures = ReturnType<typeof createFixtures>;

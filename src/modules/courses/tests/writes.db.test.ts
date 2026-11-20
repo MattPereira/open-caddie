@@ -1,7 +1,6 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { clearCacheMocks } from "@/test/cache-mocks";
 import { createFixtures } from "@/test/fixtures";
 import * as courses from "../server";
 
@@ -79,7 +78,6 @@ describe("Course writes", () => {
     admin = await fixtures.player({ isAdmin: true });
     player = await fixtures.player();
     del.mockReset();
-    clearCacheMocks();
   });
 
   describe("tee helpers", () => {
@@ -184,7 +182,6 @@ describe("Course writes", () => {
 
     it("refuses a handle another course already has, saving nothing", async () => {
       const { course } = await fixtures.course();
-      clearCacheMocks();
       const result = await courses.createCourse(
         admin.id,
         createInput({ handle: course.handle }),
@@ -212,7 +209,6 @@ describe("Course writes", () => {
   describe("updateCourse", () => {
     it("refuses a Player who isn't a Platform Admin", async () => {
       const { course, tee } = await fixtures.course();
-      clearCacheMocks();
       const result = await courses.updateCourse(
         player.id,
         editOf(course, [tee], { name: "Renamed" }),
@@ -227,7 +223,6 @@ describe("Course writes", () => {
 
     it("saves the course, its tees, yardages and holes", async () => {
       const { course, tee } = await fixtures.course();
-      clearCacheMocks();
       const input = editOf(course, [tee], { name: "New Name" });
       input.tees[0] = {
         ...input.tees[0],
@@ -295,7 +290,6 @@ describe("Course writes", () => {
       const casualTee = await fixtures.tee(t.course.handle, "Casual");
       await casualRound(t.course.handle, casualTee.id);
       await casualRound(t.course.handle, casualTee.id);
-      clearCacheMocks();
 
       const result = await courses.updateCourse(
         admin.id,
@@ -351,7 +345,6 @@ describe("Course writes", () => {
 
     it("on rename, reports it and refreshes both handles' pages", async () => {
       const { course, tee } = await fixtures.course();
-      clearCacheMocks();
       const handle = `renamed-${crypto.randomUUID()}`;
       const result = await courses.updateCourse(
         admin.id,
@@ -423,7 +416,6 @@ describe("Course writes", () => {
     it("deletes the course and its image, and refreshes its pages", async () => {
       const img = `${BLOB}/img-${crypto.randomUUID()}.webp`;
       const { course } = await fixtures.course({ imgUrl: img });
-      clearCacheMocks();
 
       const result = await courses.deleteCourse(admin.id, course.id);
 

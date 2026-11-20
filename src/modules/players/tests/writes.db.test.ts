@@ -2,7 +2,6 @@ import { revalidatePath } from "next/cache";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { required } from "@/lib/required";
-import { clearCacheMocks } from "@/test/cache-mocks";
 import { markEmailVerified } from "@/test/db/seed";
 import { createFixtures } from "@/test/fixtures";
 import * as players from "../server";
@@ -78,7 +77,6 @@ describe("Player writes", () => {
   beforeEach(async () => {
     admin = await fixtures.player({ isAdmin: true });
     player = await fixtures.player();
-    clearCacheMocks();
     del.mockReset();
   });
 
@@ -372,7 +370,6 @@ describe("Player writes", () => {
     it("refuses a Player with Rounds, giving the count", async () => {
       const t = await fixtures.tournament();
       const { player: entrant } = await fixtures.tournamentPlayer(t);
-      clearCacheMocks();
       expect(await players.deletePlayer(admin.id, entrant.id)).toEqual({
         ok: false,
         error: "Cannot delete: player has 1 round(s).",

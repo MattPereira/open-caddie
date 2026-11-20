@@ -2,7 +2,6 @@ import { revalidatePath, updateTag } from "next/cache";
 import { describe, expect, it } from "vitest";
 
 import { required } from "@/lib/required";
-import { clearCacheMocks } from "@/test/cache-mocks";
 import { createFixtures, PAR_THREE_HOLES } from "@/test/fixtures";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
 import * as rounds from "../server";
@@ -98,7 +97,6 @@ describe("Scorecard writes", () => {
       const t = await fixtures.tournament();
       const player = await fixtures.tournamentPlayer(t);
       const roundId = player.round.id;
-      clearCacheMocks();
 
       expect(
         await rounds.recordScorecardChanges(player.player.id, {
@@ -193,7 +191,6 @@ describe("Scorecard writes", () => {
       const mate = await fixtures.tournamentPlayer(t);
       const outsider = await fixtures.tournamentPlayer(t);
       await fixtures.pairing(t.tournament.id, [marker.round.id, mate.round.id]);
-      clearCacheMocks();
 
       expect(
         await rounds.recordScorecardChanges(marker.player.id, {
@@ -216,7 +213,6 @@ describe("Scorecard writes", () => {
     it("invalidates the Round changed pages, including course records", async () => {
       const t = await fixtures.tournament();
       const player = await fixtures.tournamentPlayer(t);
-      clearCacheMocks();
 
       await rounds.recordScorecardChanges(player.player.id, {
         scores: [{ roundId: player.round.id, hole: PAR_FOUR, strokes: 4 }],
@@ -230,7 +226,6 @@ describe("Scorecard writes", () => {
     it("invalidates the union of every Round's pages in a multi-Round write", async () => {
       const { players } = await fixtures.match(2);
       const [a, b] = players;
-      clearCacheMocks();
 
       await rounds.recordScorecardChanges(a.player.id, {
         scores: [{ roundId: a.round.id, hole: PAR_FOUR, strokes: 4 }],
@@ -372,7 +367,6 @@ describe("Scorecard writes", () => {
       const t = await fixtures.tournament();
       const player = await fixtures.tournamentPlayer(t);
       const white = await fixtures.tee(t.course.handle);
-      clearCacheMocks();
 
       await rounds.changeRoundSettings(player.player.id, player.round.id, {
         teeId: white.id,

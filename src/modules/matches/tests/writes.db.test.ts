@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import { required } from "@/lib/required";
 import * as matches from "@/modules/matches/server";
 import { deleteRound, getMatchRounds } from "@/modules/rounds/server";
-import { clearCacheMocks } from "@/test/cache-mocks";
 import { createFixtures } from "@/test/fixtures";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
 
@@ -88,7 +87,6 @@ describe("Match mutations", () => {
     it("creates the Match and its Rounds on the tee, refreshing Match and Round pages", async () => {
       const c = await fixtures.course();
       const [a, b] = await players(2);
-      clearCacheMocks();
 
       const result = await create(a.id, c, "singles_match_play", [a.id, b.id]);
 
@@ -164,7 +162,6 @@ describe("Match mutations", () => {
         ok: true,
       });
       const admin = await fixtures.player({ isAdmin: true });
-      clearCacheMocks();
       expect(
         await matches.updateMatch(admin.id, { ...input, date: "2026-03-01" }),
       ).toEqual({ ok: true });
@@ -258,7 +255,6 @@ describe("Match mutations", () => {
       const [round] = await matchRounds(m.match.id);
       const fourth = await fixtures.player();
       const [a, b, d] = m.players.map((p) => p.player.id);
-      clearCacheMocks();
 
       const result = await matches.updateMatch(
         m.creator.id,
@@ -353,7 +349,6 @@ describe("Match mutations", () => {
       const m = await fixtures.match(2);
       await fixtures.scores(m.players[0].round.id, [{ hole: 1, strokes: 4 }]);
       const next = await fixtures.course();
-      clearCacheMocks();
 
       const result = await matches.updateMatch(
         m.creator.id,
@@ -382,7 +377,6 @@ describe("Match mutations", () => {
 
     it("deletes the Match and its Rounds, refreshing Match and Round pages", async () => {
       const m = await fixtures.match(2);
-      clearCacheMocks();
 
       expect(await matches.deleteMatch(m.creator.id, m.match.id)).toEqual({
         ok: true,

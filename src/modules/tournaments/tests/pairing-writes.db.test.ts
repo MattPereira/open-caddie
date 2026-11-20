@@ -420,7 +420,6 @@ describe("Pairing writes", () => {
   it("revalidates only the Tournament edit page after each Pairing write", async () => {
     const f = await tournamentFixture();
     const { round } = await playerFixture(f);
-    clearCacheMocks();
     const pairingId = await createPairing(f.tournament.id);
     const expectedPath = `/tournaments/${f.tournament.id}/edit`;
     expect(vi.mocked(revalidatePath).mock.calls).toEqual([[expectedPath]]);

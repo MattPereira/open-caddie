@@ -50,7 +50,6 @@ describe("Tournament Season mutations", () => {
 
   beforeEach(async () => {
     admin = await fixtures.player({ isAdmin: true });
-    clearCacheMocks();
   });
 
   it("creates Season 1 for a Club's first Tournament", async () => {
@@ -164,7 +163,6 @@ describe("Tournament Season mutations", () => {
 
   it("refreshes the Tournament pages and home events on create and update", async () => {
     const f = await fixture();
-    clearCacheMocks();
     const tournament = await create(f);
     expect(updateTag).toHaveBeenCalledWith("home-events");
     expect(invalidatedPaths(revalidatePath)).toEqual(
@@ -378,7 +376,6 @@ describe("Tournament Season mutations", () => {
       const t = await fixtures.tournament();
       const a = await fixtures.player();
       const b = await fixtures.player();
-      clearCacheMocks();
 
       expect(
         await tournaments.addPlayersToTournament(admin.id, {
@@ -442,7 +439,6 @@ describe("Tournament Season mutations", () => {
     it("refuses while the Tournament has Rounds", async () => {
       const t = await fixtures.tournament();
       await fixtures.tournamentPlayer(t);
-      clearCacheMocks();
 
       expect(
         await tournaments.deleteTournament(admin.id, t.tournament.id),
@@ -456,7 +452,6 @@ describe("Tournament Season mutations", () => {
 
     it("deletes a Tournament without Rounds", async () => {
       const t = await fixtures.tournament();
-      clearCacheMocks();
 
       expect(
         await tournaments.deleteTournament(admin.id, t.tournament.id),

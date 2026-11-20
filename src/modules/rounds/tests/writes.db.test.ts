@@ -2,7 +2,6 @@ import { revalidatePath, updateTag } from "next/cache";
 import { describe, expect, it } from "vitest";
 
 import { updateTournament } from "@/modules/tournaments/server";
-import { clearCacheMocks } from "@/test/cache-mocks";
 import { holdTransaction, lockRow, waitForLockWaits } from "@/test/db/locks";
 import { createFixtures } from "@/test/fixtures";
 import { invalidatedPaths, roundChangedPaths } from "@/test/round-changed";
@@ -19,7 +18,6 @@ describe("Round writes", () => {
     it("creates a casual Round on the chosen tee without touching home events", async () => {
       const { course, tee } = await fixtures.course();
       const player = await fixtures.player();
-      clearCacheMocks();
 
       const result = await rounds.createRound(player.id, {
         courseHandle: course.handle,
@@ -46,7 +44,6 @@ describe("Round writes", () => {
       const { course } = await fixtures.course();
       const other = await fixtures.course();
       const player = await fixtures.player();
-      clearCacheMocks();
 
       expect(
         await rounds.createRound(player.id, {
@@ -79,7 +76,6 @@ describe("Round writes", () => {
     it("joins a Tournament on its tee and refreshes home events", async () => {
       const t = await fixtures.tournament();
       const player = await fixtures.player();
-      clearCacheMocks();
 
       const result = await rounds.createRound(player.id, {
         courseHandle: t.course.handle,
@@ -189,7 +185,6 @@ describe("Round writes", () => {
     it("lets the Round's player delete it, refreshing the home events cache", async () => {
       const { players } = await fixtures.match(2);
       const [a] = players;
-      clearCacheMocks();
 
       expect(await rounds.deleteRound(a.player.id, a.round.id)).toEqual({
         ok: true,
@@ -216,7 +211,6 @@ describe("Round writes", () => {
     it("gives a Scorer who can't manage the Round a distinct error and keeps it", async () => {
       const { players } = await fixtures.match(2);
       const [a, b] = players;
-      clearCacheMocks();
 
       expect(await rounds.deleteRound(b.player.id, a.round.id)).toMatchObject({
         ok: false,

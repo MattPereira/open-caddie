@@ -46,8 +46,10 @@ output. They appear there once, not in your text.
 
 ## Evidence
 
-When your fixes change the UI, save an after screenshot of each as a PNG in
-/tmp/evidence/. Check the PR's own after state in the browser too; its before
-is already in the PR body. Reference each screenshot in the verdict by its
-absolute path, e.g. `![after](/tmp/evidence/after.png)`. The workflow uploads
-them.
+When the PR changes the UI, check its after state in the browser and shoot
+it. A reviewer has no before: the PR body holds it. Put the shots under an
+`## Evidence` heading at the end of the verdict: the PR's after state in one
+dropdown, `PR's after state`, and each UI fix in its own,
+`After <sha>: <what it fixed>`.
+
+{{SCREENSHOTS}}

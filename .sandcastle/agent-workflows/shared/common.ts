@@ -21,6 +21,11 @@ export const writeJson = (filename: string, value: unknown): void => {
   );
 };
 
+// Injected into each prompt as {{SCREENSHOTS}}, so the agent never has to
+// follow a pointer to find the rules.
+export const screenshotRules = (): string =>
+  fs.readFileSync(path.join(import.meta.dirname, "screenshots.md"), "utf8");
+
 // The one agent every factory workflow runs. It authenticates with a Claude
 // subscription. To bill the API instead, pass ANTHROPIC_API_KEY here and in
 // the workflow's env in place of CLAUDE_CODE_OAUTH_TOKEN.

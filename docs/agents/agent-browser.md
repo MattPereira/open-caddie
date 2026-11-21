@@ -39,8 +39,11 @@ agent-browser console
 The commands worth knowing: `open`, `click`, `fill`,
 `find <role|text|label|placeholder> …`, `wait`, `get text|html|attr|count|url`,
 `is visible|enabled|checked`, `eval`, `snapshot` (the accessibility tree, with
-refs), `screenshot`, `console`, `errors`, `close`. `agent-browser --help` has
-the rest.
+refs), `screenshot`, `set viewport <w> <h>`, `set media dark|light`,
+`console`, `errors`, `close`. `agent-browser --help` has the rest.
+
+`screenshot` needs an absolute path: a relative one resolves against the
+agent-browser daemon's directory, not yours.
 
 **Ask the page, do not ask the person.** A change you have not looked at is a
 change you are reporting on trust.
@@ -80,33 +83,6 @@ Each link works once. The session lasts until you `close` the browser.
 `AUTH_SECRET` must be set, and the same in `pnpm db:sign-in` and the app.
 `AUTH_URL` sets the link's origin (default `http://localhost:3000`). Match it
 to the address `pnpm dev` printed.
-
-## Screenshots for a PR
-
-Screenshots are PR evidence: a before and an after for a change that shows in
-the UI. Name them `<slug>-before.png` and `<slug>-after.png`, save them in
-`screenshots/`, then upload them:
-
-```bash
-# The path must be absolute: a relative one resolves against the
-# agent-browser daemon's directory, not yours.
-agent-browser screenshot "$PWD/screenshots/players-after.png"
-
-# Prints one markdown image line per file. Paste them into the PR body.
-scripts/pr-screenshots.sh screenshots/players-before.png screenshots/players-after.png
-```
-
-`screenshots/` is gitignored, so the files only exist on your machine. The script pushes them to
-the `pr-screenshots` branch, an orphan branch that holds only images and is
-never merged, under a folder named after your current branch. Each URL is
-pinned to the upload's commit, so a later re-upload cannot change what a
-reviewer already saw.
-
-You may run `scripts/pr-screenshots.sh` without asking first. That standing
-permission covers the `pr-screenshots` branch and nothing else.
-
-To shoot both themes, set the color scheme rather than clicking the toggle:
-`agent-browser set media dark` (or `light`), then reload.
 
 ## Two things that will bite you
 

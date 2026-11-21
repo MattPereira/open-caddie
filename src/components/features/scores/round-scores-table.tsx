@@ -12,6 +12,7 @@ import {
   PlayerLabel,
   RoundScoresCard,
   ScoreMetricSwitch,
+  viewerRoundTint,
   type RoundScoreRow,
   type RoundScoresTableRound,
   type ScoreMetric,
@@ -61,6 +62,8 @@ type RoundScoresTableProps = {
   rounds: EditableTableRound[];
   course: EditableCourse;
   showMobileTotals?: boolean;
+  /** The viewer's own Round, tinted so they can find it at a glance. */
+  viewerRoundId?: number;
 };
 
 export function RoundScoresTable({
@@ -68,25 +71,35 @@ export function RoundScoresTable({
   rounds,
   course,
   showMobileTotals = true,
+  viewerRoundId,
 }: RoundScoresTableProps) {
   const rows = rounds.map((round) => ({ ...toRoundScoreRow(round), round }));
 
   return (
     <ResponsiveTable
-      desktop={<DesktopRoundScoresTable rows={rows} />}
+      desktop={
+        <DesktopRoundScoresTable rows={rows} viewerRoundId={viewerRoundId} />
+      }
       mobile={
         <MobileRoundScoresCards
           editAccess={editAccess}
           course={course}
           rows={rows}
           showMobileTotals={showMobileTotals}
+          viewerRoundId={viewerRoundId}
         />
       }
     />
   );
 }
 
-function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
+function DesktopRoundScoresTable({
+  rows,
+  viewerRoundId,
+}: {
+  rows: RoundScoreRow[];
+  viewerRoundId?: number;
+}) {
   const [metric, setMetric] = useState<ScoreMetric>("strokes");
   const sortedRows =
     metric === "strokes" ? rows : [...rows].sort(compareRoundScoreRowsByPutts);
@@ -152,10 +165,19 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
           <TableBody>
             {sortedRows.map((row) => {
               const values = row.metrics[metric];
+              const isViewerRow = row.round.id === viewerRoundId;
 
               return (
-                <TableRow key={row.round.id}>
-                  <TableCell className="sticky left-0 z-10 bg-card font-medium">
+                <TableRow
+                  key={row.round.id}
+                  className={cn(isViewerRow && viewerRoundTint)}
+                >
+                  <TableCell
+                    className={cn(
+                      "sticky left-0 z-10 bg-card font-medium",
+                      isViewerRow && viewerRoundTint,
+                    )}
+                  >
                     <PlayerLabel row={row} />
                   </TableCell>
                   {values.scores.slice(0, 9).map((score, index) => (
@@ -217,11 +239,13 @@ function MobileRoundScoresCards({
   course,
   rows,
   showMobileTotals,
+  viewerRoundId,
 }: {
   editAccess?: RoundScoresTableProps["editAccess"];
   course: EditableCourse;
   rows: (RoundScoreRow & { round: EditableTableRound })[];
   showMobileTotals: boolean;
+  viewerRoundId?: number;
 }) {
   return (
     <div className="flex min-w-0 flex-col gap-4">
@@ -243,6 +267,7 @@ function MobileRoundScoresCards({
                 />
               ) : null
             }
+            className={cn(row.round.id === viewerRoundId && viewerRoundTint)}
             row={row}
             showMobileTotals={showMobileTotals}
           />

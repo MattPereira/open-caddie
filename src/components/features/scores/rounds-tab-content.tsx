@@ -16,6 +16,7 @@ export function RoundsTabContent({
   course,
   actions,
   children,
+  viewerRoundId,
 }: {
   editAccess: RoundsEditAccess | null;
   emptyMessage: string;
@@ -23,6 +24,7 @@ export function RoundsTabContent({
   course: EditableCourse;
   actions?: ReactNode;
   children?: ReactNode;
+  viewerRoundId?: number;
 }) {
   return (
     <TabsContent value="rounds" className="flex flex-col gap-5">
@@ -38,6 +40,7 @@ export function RoundsTabContent({
           editAccess={editAccess}
           rounds={rounds}
           course={course}
+          viewerRoundId={viewerRoundId}
         />
       )}
       {children}

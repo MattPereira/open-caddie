@@ -31,13 +31,22 @@ type ScoreSymbol =
   | "square"
   | "double-square";
 
+/**
+ * Layered over the card color rather than a translucent fill, so the sticky
+ * Player cell stays opaque while scores scroll beneath it.
+ */
+export const viewerRoundTint =
+  "bg-card bg-linear-to-r from-primary/10 to-primary/10 dark:from-primary/25 dark:to-primary/25";
+
 export function RoundScoresCard({
   action,
+  className,
   row,
   showMobileTotals,
   visibleNine = "both",
 }: {
   action?: ReactNode;
+  className?: string;
   row: RoundScoreRow;
   showMobileTotals: boolean;
   visibleNine?: "front" | "back" | "both";
@@ -49,7 +58,10 @@ export function RoundScoresCard({
   );
 
   return (
-    <Card size="sm" className="max-w-lg min-w-0 gap-1.5! py-2!">
+    <Card
+      size="sm"
+      className={cn("max-w-lg min-w-0 gap-1.5! py-2!", className)}
+    >
       <CardHeader className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <CardTitle className="min-w-0">

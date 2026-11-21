@@ -275,8 +275,7 @@ jobs:
             echo ""
             echo "---"
             echo ""
-            echo "Reviewed by the review workflow — [logs](${RUN_URL}). This run"
-            echo "saw the diff, the standards and the ticket, and nothing else."
+            echo "Reviewed by the review workflow — [logs](${RUN_URL})."
           } >> /tmp/review-verdict.md
           # The agent holds no GitHub token, so it can't upload screenshots
           # itself (scripts/pr-screenshots.sh); it leaves them in /tmp/evidence.

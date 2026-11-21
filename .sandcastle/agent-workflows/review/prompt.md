@@ -6,6 +6,8 @@ Review it with the code-review skill, .agents/skills/code-review/SKILL.md:
 - fixed point: `origin/{{BASE_REF}}`
 - spec: /tmp/review-spec.md
 - standards: CODING_STANDARDS.md
+- PR body: /tmp/pr-body.md, for the criteria the diff cannot show, like the
+  evidence the ticket asks for
 
 A split that `scripts/check-file-tokens.mjs` forced is in scope for any
 ticket: tell both axes so. Check moved code with

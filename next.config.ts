@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // The agents' screenshots run in CI, where the badge covers the page.
+  devIndicators: process.env.CI ? false : undefined,
   // `pg` is only used by the integration test suite (DATABASE_DRIVER=node-postgres
   // against a local Postgres). Dev/prod use neon-serverless, so keep pg out of the
   // Next bundle graph — otherwise Turbopack tries to bundle its Node built-ins

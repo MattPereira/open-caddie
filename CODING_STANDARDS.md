@@ -12,3 +12,10 @@ first time the code changes.
 A route's `actions.ts` reads the session, parses input with zod, does
 request-only work (headers, sign-in email), calls one module write, then
 `redirect`s.
+
+## Style with the theme you have
+
+Color comes from the shadcn tokens in `src/app/globals.css`, with an opacity
+modifier when it needs to be lighter: `bg-primary/10`. Each token is tuned for
+light and dark, so one class covers both. Any other color is a decision for a
+person: leave it as a finding that names the closest token.

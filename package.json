@@ -22,6 +22,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx --import ./src/seed/register.mjs src/seed/index.ts",
+    "db:reset": "tsx src/seed/reset.ts && pnpm db:seed",
+    "db:sign-in": "tsx --import ./src/seed/register.mjs src/seed/sign-in.ts",
     "spike:scorecard": "tsx evals/scorecard-import/spike.ts",
     "neon": "neon --config-dir .neon-local --no-analytics",
     "prepare": "husky"

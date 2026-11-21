@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users, verificationTokens } from "@/db/schema";
+import { hasPlayerWithEmail } from "@/modules/players/server";
 
 const LINK_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -33,11 +34,6 @@ export async function createSignInLink({
   playerId: string;
   origin: string;
 }): Promise<SignInLinkResult> {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) {
-    return { ok: false, error: "AUTH_SECRET is not set." };
-  }
-
   const [player] = await db
     .select({ email: users.email })
     .from(users)
@@ -51,6 +47,34 @@ export async function createSignInLink({
   const email = player.email?.trim().toLowerCase();
   if (!email) {
     return { ok: false, error: "That player needs an email address first." };
+  }
+
+  return mintLink(email, origin);
+}
+
+/** For local and CI sign-in (`pnpm db:sign-in`), where there is no inbox. */
+export async function createSignInLinkForEmail({
+  email,
+  origin,
+}: {
+  email: string;
+  origin: string;
+}): Promise<SignInLinkResult> {
+  const normalized = email.trim().toLowerCase();
+  if (!(await hasPlayerWithEmail(normalized))) {
+    return { ok: false, error: `No Player has the email ${normalized}.` };
+  }
+
+  return mintLink(normalized, origin);
+}
+
+async function mintLink(
+  email: string,
+  origin: string,
+): Promise<SignInLinkResult> {
+  const secret = process.env.AUTH_SECRET;
+  if (!secret) {
+    return { ok: false, error: "AUTH_SECRET is not set." };
   }
 
   const token = crypto.randomUUID().replace(/-/g, "");

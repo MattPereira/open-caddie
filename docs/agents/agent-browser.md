@@ -83,17 +83,88 @@ to the address `pnpm dev` printed.
 
 ## Screenshots for a PR
 
-Screenshots are PR evidence: a before and an after for a change that shows in
-the UI. Name them `<slug>-before.png` and `<slug>-after.png`, save them in
-`screenshots/`, then upload them:
+Screenshots are PR evidence for a change that shows in the UI: a before and an
+after, each at a phone and a desktop viewport.
+
+### What to shoot
+
+| Shot                                                                | When                                |
+| ------------------------------------------------------------------- | ----------------------------------- |
+| Before and after, light, phone **390×844** and desktop **1280×800** | Every UI change                     |
+| After, dark, both viewports                                         | The change touches color            |
+| Both sides of a breakpoint, e.g. 1023 and 1024 wide                 | The change is about that breakpoint |
+| Extra states (sorted, scrolled, signed out…)                        | The ticket names them               |
+
+Many components render a different layout below `lg`. The phone shot is how a
+reviewer sees what the change did there, even when the ticket only names the
+desktop element.
+
+Set the viewport and color scheme with commands, rather than resizing or
+clicking the theme toggle:
+
+```bash
+agent-browser set viewport 390 844     # phone; 1280 800 for desktop
+agent-browser set media dark           # or light; then reload
+```
+
+Frame each shot on the viewport, scrolled to the change. Use `--full` only
+when the change spans the whole page: a full-page phone shot is very tall.
+
+Name them `<slug>-<before|after>[-<variant>]-<phone|desktop|width>.png`, e.g.
+`rounds-after-dark-phone.png` or `rounds-after-1023.png`.
+
+### Laying them out
+
+In a PR body, these dropdowns are the Evidence section's before and after.
+Each state gets a collapsed `<details>` holding a table: one row per variant,
+a column per viewport. The blank line after `</summary>` is required, or
+GitHub renders the markdown inside as plain text.
+
+```markdown
+<details>
+<summary>Before</summary>
+
+|       | Phone (390)                                             | Desktop (1280)                                              |
+| ----- | ------------------------------------------------------- | ----------------------------------------------------------- |
+| Light | ![before, phone](/tmp/evidence/rounds-before-phone.png) | ![before, desktop](/tmp/evidence/rounds-before-desktop.png) |
+
+</details>
+
+<details>
+<summary>After</summary>
+
+|       | Phone (390)                                                     | Desktop (1280)                                                      |
+| ----- | --------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Light | ![after, phone](/tmp/evidence/rounds-after-phone.png)           | ![after, desktop](/tmp/evidence/rounds-after-desktop.png)           |
+| Dark  | ![after dark, phone](/tmp/evidence/rounds-after-dark-phone.png) | ![after dark, desktop](/tmp/evidence/rounds-after-dark-desktop.png) |
+
+</details>
+```
+
+Each image is the `/tmp/evidence/` path in an agent workflow run, or the
+uploaded URL on your machine (see below). Breakpoint shots get their own table
+in the same dropdown, with a column per width.
+
+A reviewer has no before: the PR body holds it. Shoot the PR's own after state
+into one dropdown, `PR's after state`, and each UI fix into its own,
+`After <sha>: <what it fixed>`. Each uses the same table.
+
+### Uploading them
+
+**In an agent workflow run**, you hold no GitHub token, so
+`scripts/pr-screenshots.sh` cannot upload. Save each PNG in `/tmp/evidence/`
+and reference it by that absolute path. The workflow uploads every PNG there
+and swaps each path for its URL.
+
+**On your machine**, save them in `screenshots/`, then upload them:
 
 ```bash
 # The path must be absolute: a relative one resolves against the
 # agent-browser daemon's directory, not yours.
-agent-browser screenshot "$PWD/screenshots/players-after.png"
+agent-browser screenshot "$PWD/screenshots/rounds-after-phone.png"
 
-# Prints one markdown image line per file. Paste them into the PR body.
-scripts/pr-screenshots.sh screenshots/players-before.png screenshots/players-after.png
+# Prints one markdown image line per file. Put the URLs in the tables.
+scripts/pr-screenshots.sh screenshots/rounds-*.png
 ```
 
 `screenshots/` is gitignored, so the files only exist on your machine. The script pushes them to
@@ -104,9 +175,6 @@ reviewer already saw.
 
 You may run `scripts/pr-screenshots.sh` without asking first. That standing
 permission covers the `pr-screenshots` branch and nothing else.
-
-To shoot both themes, set the color scheme rather than clicking the toggle:
-`agent-browser set media dark` (or `light`), then reload.
 
 ## Two things that will bite you
 

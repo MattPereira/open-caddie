@@ -46,8 +46,8 @@ output. They appear there once, not in your text.
 
 ## Evidence
 
-When your fixes change the UI, save an after screenshot of each as a PNG in
-/tmp/evidence/. Check the PR's own after state in the browser too; its before
-is already in the PR body. Reference each screenshot in the verdict by its
-absolute path, e.g. `![after](/tmp/evidence/after.png)`. The workflow uploads
-them.
+When the PR changes the UI, check its after state in the browser. Read
+_Screenshots for a PR_ in docs/agents/agent-browser.md and follow it for a
+reviewer in an agent workflow run: phone and desktop shots of the PR's after
+state and of each UI fix, in /tmp/evidence/, laid out in dropdowns. Put them
+under an `## Evidence` heading at the end of the verdict.

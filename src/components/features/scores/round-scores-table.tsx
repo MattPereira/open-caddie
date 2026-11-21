@@ -60,6 +60,8 @@ type RoundScoresTableProps = {
   editAccess?: RoundsEditAccess | null;
   rounds: EditableTableRound[];
   course: EditableCourse;
+  /** The viewer's own Round, highlighted so they find their row at a glance. */
+  highlightedRoundId?: number;
   showMobileTotals?: boolean;
 };
 
@@ -67,13 +69,19 @@ export function RoundScoresTable({
   editAccess,
   rounds,
   course,
+  highlightedRoundId,
   showMobileTotals = true,
 }: RoundScoresTableProps) {
   const rows = rounds.map((round) => ({ ...toRoundScoreRow(round), round }));
 
   return (
     <ResponsiveTable
-      desktop={<DesktopRoundScoresTable rows={rows} />}
+      desktop={
+        <DesktopRoundScoresTable
+          rows={rows}
+          highlightedRoundId={highlightedRoundId}
+        />
+      }
       mobile={
         <MobileRoundScoresCards
           editAccess={editAccess}
@@ -86,7 +94,13 @@ export function RoundScoresTable({
   );
 }
 
-function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
+function DesktopRoundScoresTable({
+  rows,
+  highlightedRoundId,
+}: {
+  rows: RoundScoreRow[];
+  highlightedRoundId?: number;
+}) {
   const [metric, setMetric] = useState<ScoreMetric>("strokes");
   const sortedRows =
     metric === "strokes" ? rows : [...rows].sort(compareRoundScoreRowsByPutts);
@@ -152,10 +166,25 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
           <TableBody>
             {sortedRows.map((row) => {
               const values = row.metrics[metric];
+              const highlighted = row.round.id === highlightedRoundId;
 
               return (
-                <TableRow key={row.round.id}>
-                  <TableCell className="sticky left-0 z-10 bg-card font-medium">
+                <TableRow
+                  key={row.round.id}
+                  aria-current={highlighted ? "true" : undefined}
+                  className={cn(
+                    highlighted && "bg-primary/8 dark:bg-primary/25",
+                  )}
+                >
+                  <TableCell
+                    className={cn(
+                      "sticky left-0 z-10 bg-card font-medium",
+                      // The sticky cell must stay opaque so scrolled scores
+                      // don't show through, so it mixes the tint into the card.
+                      highlighted &&
+                        "bg-[color-mix(in_oklab,var(--color-primary)_8%,var(--color-card))] shadow-[inset_3px_0_0_var(--color-primary)] dark:bg-[color-mix(in_oklab,var(--color-primary)_25%,var(--color-card))]",
+                    )}
+                  >
                     <PlayerLabel row={row} />
                   </TableCell>
                   {values.scores.slice(0, 9).map((score, index) => (

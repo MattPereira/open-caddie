@@ -14,6 +14,7 @@ export function RoundsTabContent({
   emptyMessage,
   rounds,
   course,
+  highlightedRoundId,
   actions,
   children,
 }: {
@@ -21,6 +22,7 @@ export function RoundsTabContent({
   emptyMessage: string;
   rounds: EditableTableRound[];
   course: EditableCourse;
+  highlightedRoundId?: number;
   actions?: ReactNode;
   children?: ReactNode;
 }) {
@@ -38,6 +40,7 @@ export function RoundsTabContent({
           editAccess={editAccess}
           rounds={rounds}
           course={course}
+          highlightedRoundId={highlightedRoundId}
         />
       )}
       {children}

@@ -63,6 +63,6 @@ Entry points import the db directly (no DB injection); DB-backed tests use per-w
 
 ## Rules
 
-`pnpm lint:boundaries` enforces the module rules. It also runs in `pnpm check` and CI. Each rule is defined, with a comment explaining it, in `.dependency-cruiser.cjs`, `.dependency-cruiser.runtime.cjs` (`index.ts` runs anywhere) and `scripts/check-module-tests.mjs` (every module has tests).
+`pnpm lint:boundaries` and `pnpm lint` enforce the module rules. Both run in `pnpm check`, CI and the pre-commit hook. Each rule is defined, with a comment explaining it, in `.dependency-cruiser.cjs`, `.dependency-cruiser.runtime.cjs` (`index.ts` runs anywhere), `scripts/check-module-tests.mjs` (every module has tests) and `lint-rules/server-entry-guard.mjs` (`server.ts` starts with `import "server-only"`).
 
 Modules may import non-module code (`src/lib`, `src/db`, …). Layering (which modules may depend on which) isn't enforced yet; the config has a commented stub.

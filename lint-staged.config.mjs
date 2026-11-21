@@ -15,6 +15,7 @@ const config = {
     "oxfmt --no-error-on-unmatched-pattern",
   ],
   [`!(${EDITABLE_CODE})`]: "oxfmt --no-error-on-unmatched-pattern",
+  "*.css": "node scripts/check-theme-tokens.mjs",
 
   // JSON included for tsconfig.json, package.json and imported JSON.
   "*.{ts,tsx,mts,cts,js,mjs,cjs,json}": () => [

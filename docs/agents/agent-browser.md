@@ -45,6 +45,42 @@ the rest.
 **Ask the page, do not ask the person.** A change you have not looked at is a
 change you are reporting on trust.
 
+## Data to look at
+
+The pages need data, and it comes from the seed: a fixed world of Players,
+two Courses, a Club with Tournaments, and Matches. `src/seed/world.ts` says
+exactly what is in it. The agent workflows seed their database before you
+start. Locally, against a local Postgres:
+
+```bash
+pnpm db:migrate && pnpm db:seed   # an empty database
+pnpm db:reset                     # start over: empty, migrate, seed
+```
+
+**Never write rows with SQL.** When a page needs data the seed lacks, add it
+to `src/seed/world.ts` through module entry points, in the same change, then
+`pnpm db:reset`. That keeps every screenshot reproducible.
+
+Both commands refuse any database that isn't local.
+
+## Signing in
+
+Sign-in normally goes through an email link or Google. You have neither, so
+mint the email link yourself and open it:
+
+```bash
+agent-browser open "$(pnpm -s db:sign-in admin@example.com)"
+```
+
+- `admin@example.com` is the Platform Admin.
+- `tiger@example.com` (Tiger Woods) is an ordinary Player. Every seeded Player
+  has `<key>@example.com`, keyed as in `PLAYERS` in `src/seed/world.ts`.
+
+Each link works once. The session lasts until you `close` the browser.
+`AUTH_SECRET` must be set, and the same in `pnpm db:sign-in` and the app.
+`AUTH_URL` sets the link's origin (default `http://localhost:3000`). Match it
+to the address `pnpm dev` printed.
+
 ## Screenshots for a PR
 
 Screenshots are PR evidence: a before and an after for a change that shows in

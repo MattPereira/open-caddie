@@ -124,6 +124,9 @@ jobs:
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/open_caddie_test
       # The app's default Neon driver can't reach a plain local Postgres.
       DATABASE_DRIVER: node-postgres
+      # Where the agent runs the app. Auth.js trusts this host even under
+      # `next start`, and `pnpm db:sign-in` builds its links on it.
+      AUTH_URL: http://localhost:3000
 
     steps:
       - name: Transition labels
@@ -181,8 +184,17 @@ jobs:
       - name: Migrate the database
         # The agent gets a real database, because half of this repo's checks
         # need one. It is disposable: a fresh one, migrated, on every run.
-        # There is no seed.
         run: pnpm db:migrate
+
+      - name: Seed the database
+        # A fixed world (src/seed/world.ts) for the agent to render and
+        # screenshot, so it never writes its own rows. `pnpm db:sign-in`
+        # mints sign-in links against this run's throwaway AUTH_SECRET. See
+        # docs/agents/agent-browser.md.
+        run: |
+          set -euo pipefail
+          pnpm db:seed
+          echo "AUTH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
 
       - name: Open the branch
         id: branch

@@ -1,7 +1,7 @@
 import * as path from "node:path";
 import * as sandcastle from "@ai-hero/sandcastle";
 import { noSandbox } from "@ai-hero/sandcastle/sandboxes/no-sandbox";
-import { claudeAgent } from "../shared/common";
+import { claudeAgent, screenshotRules } from "../shared/common";
 
 // The agent edits files and commits them itself, so the repo's pre-commit
 // hook runs on its work and it has to fix whatever the hook rejects. It does
@@ -13,4 +13,5 @@ await sandcastle.run({
   sandbox: noSandbox(),
   logging: { type: "stdout" },
   promptFile: path.join(import.meta.dirname, "prompt.md"),
+  promptArgs: { SCREENSHOTS: screenshotRules() },
 });

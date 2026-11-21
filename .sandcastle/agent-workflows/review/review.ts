@@ -4,7 +4,12 @@ import * as path from "node:path";
 import * as sandcastle from "@ai-hero/sandcastle";
 import { noSandbox } from "@ai-hero/sandcastle/sandboxes/no-sandbox";
 import type { z } from "zod/v4";
-import { claudeAgent, required, writeJson } from "../shared/common";
+import {
+  claudeAgent,
+  required,
+  screenshotRules,
+  writeJson,
+} from "../shared/common";
 import { extractionPrompt } from "../shared/extraction-prompt";
 import { runWithExtraction } from "../shared/run-with-extraction";
 import { diffLines } from "./diff-lines";
@@ -28,6 +33,7 @@ const result = await runWithExtraction({
     PR_NUMBER: required("PR_NUMBER"),
     BRANCH: required("BRANCH"),
     BASE_REF,
+    SCREENSHOTS: screenshotRules(),
   },
   output: sandcastle.Output.object({ tag: "comments", schema: reviewSchema }),
   extractionPrompt: extractionPrompt("comments", reviewSchema),

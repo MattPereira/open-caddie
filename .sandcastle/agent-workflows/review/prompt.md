@@ -46,8 +46,10 @@ output. They appear there once, not in your text.
 
 ## Evidence
 
-When the PR changes the UI, check its after state in the browser. Read
-_Screenshots for a PR_ in docs/agents/agent-browser.md and follow it for a
-reviewer in an agent workflow run: phone and desktop shots of the PR's after
-state and of each UI fix, in /tmp/evidence/, laid out in dropdowns. Put them
-under an `## Evidence` heading at the end of the verdict.
+When the PR changes the UI, check its after state in the browser and shoot
+it. A reviewer has no before: the PR body holds it. Put the shots under an
+`## Evidence` heading at the end of the verdict: the PR's after state in one
+dropdown, `PR's after state`, and each UI fix in its own,
+`After <sha>: <what it fixed>`.
+
+{{SCREENSHOTS}}

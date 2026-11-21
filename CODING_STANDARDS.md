@@ -15,9 +15,7 @@ request-only work (headers, sign-in email), calls one module write, then
 
 ## Style with the theme you have
 
-Color comes from the shadcn tokens in `src/app/globals.css`, lightened with a
-Tailwind opacity modifier when needed: `bg-primary/10`, `bg-muted`,
-`text-muted-foreground`. Each token is already tuned per theme, so one class
-reads right in light and dark. A new token, an arbitrary color
-(`bg-[oklch(…)]`) or a `dark:` override is a decision for a person: leave it
-as a finding that names the closest built-in class and why it fell short.
+Color comes from the shadcn tokens in `src/app/globals.css`, with an opacity
+modifier when it needs to be lighter: `bg-primary/10`. Each token is tuned for
+light and dark, so one class covers both. Any other color is a decision for a
+person: leave it as a finding that names the closest token.

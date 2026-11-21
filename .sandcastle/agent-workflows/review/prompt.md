@@ -46,7 +46,8 @@ output. They appear there once, not in your text.
 
 ## Evidence
 
-When the PR changes the UI, check its after state in the browser, and shoot
-it and each of your UI fixes as _Screenshots for a PR_ in
-docs/agents/agent-browser.md says, for a reviewer in an agent workflow run.
-The screenshots go in the verdict.
+When the PR changes the UI, check its after state in the browser. Read
+_Screenshots for a PR_ in docs/agents/agent-browser.md and follow it for a
+reviewer in an agent workflow run: phone and desktop shots of the PR's after
+state and of each UI fix, in /tmp/evidence/, laid out in dropdowns. Put them
+under an `## Evidence` heading at the end of the verdict.

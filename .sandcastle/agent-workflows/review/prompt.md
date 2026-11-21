@@ -46,10 +46,11 @@ output. They appear there once, not in your text.
 
 ## Evidence
 
-When the PR changes the UI, check its after state in the browser and shoot
-it. A reviewer has no before: the PR body holds it. Put the shots under an
-`## Evidence` heading at the end of the verdict: the PR's after state in one
-dropdown, `PR's after state`, and each UI fix in its own,
-`After <sha>: <what it fixed>`.
+When the PR changes the UI, check its after state in the browser as part of
+the review. The PR body already shows that state, so your shots cover only
+your own fixes: shoot each fix that changes what a user sees, in its own
+dropdown, `After <sha>: <what it fixed>`, under an `## Evidence` heading at
+the end of the verdict. When none of your fixes changes the UI, the verdict
+ends at the rules list.
 
 {{SCREENSHOTS}}

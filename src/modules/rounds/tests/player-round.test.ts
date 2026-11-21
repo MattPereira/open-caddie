@@ -7,7 +7,7 @@ const rounds = [
   { id: 3, playerId: "phil" },
 ];
 
-describe("A Player's Round in an event", () => {
+describe("A Player's Round in an Event", () => {
   it("is the Round that Player played", () => {
     expect(findPlayerRound(rounds, "tiger")).toEqual({
       id: 2,
@@ -24,7 +24,7 @@ describe("A Player's Round in an event", () => {
     expect(findPlayerRound(rounds, undefined)).toBeNull();
   });
 
-  it("is missing when the event has no Rounds", () => {
+  it("is missing when the Event has no Rounds", () => {
     expect(findPlayerRound([], "tiger")).toBeNull();
   });
 });

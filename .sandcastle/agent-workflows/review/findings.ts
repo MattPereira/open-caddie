@@ -24,15 +24,15 @@ const leftEntry = (comment: ReviewComment, inline: boolean): string => {
   return inline ? head : `${head}\n\n${indent(comment.body)}`;
 };
 
-const list = (label: string, entries: string[]): string =>
-  [`**${label}**`, "", ...(entries.length ? entries : ["None."])].join("\n");
+const list = (label: string, entries: string[]): string[] =>
+  entries.length ? [[`**${label}**`, "", ...entries].join("\n")] : [];
 
-// Each axis's section of the verdict ends with a Fixed list and a Left list,
-// "None." when empty, so every verdict has the same shape. A finding left
-// inline gets a single line, since its comment carries the reasoning; one
-// GitHub would not take inline appears in full, because the verdict is its
-// only home. With no section for an axis, the lists go at the end, but only
-// when there is something to list.
+// Each axis's section of the verdict ends with a Fixed list, then a Left
+// list; an empty list is left out, so an axis with neither is its reasoning
+// alone. A finding left inline gets a single line, since its comment carries
+// the reasoning; one GitHub would not take inline appears in full, because
+// the verdict is its only home. With no section for an axis, the lists go at
+// the end.
 export const addFindings = (
   verdict: string,
   { fixed, posted, dropped }: Findings,
@@ -46,16 +46,20 @@ export const addFindings = (
       ...posted.filter(ofAxis).map((comment) => leftEntry(comment, true)),
       ...dropped.filter(ofAxis).map((comment) => leftEntry(comment, false)),
     ];
-    const lists = `${list("Fixed", fixes.map(fixedEntry))}\n\n${list("Left", left)}`;
+    const lists = [
+      ...list("Fixed", fixes.map(fixedEntry)),
+      ...list("Left", left),
+    ].join("\n\n");
+    if (!lists) continue;
 
     const index = sections.findIndex((section) =>
       section.startsWith(HEADINGS[axis]),
     );
-    if (index !== -1) {
-      sections[index] = `${sections[index].trimEnd()}\n\n${lists}\n\n`;
-    } else if (fixes.length || left.length) {
+    if (index === -1) {
       sections.push(`\n${HEADINGS[axis]}\n\n${lists}\n`);
+      continue;
     }
+    sections[index] = `${sections[index].trimEnd()}\n\n${lists}\n\n`;
   }
 
   return sections.join("").trimEnd() + "\n";

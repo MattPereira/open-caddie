@@ -42,8 +42,8 @@ Write your verdict on the branch, after your fixes, to /tmp/review-verdict.md:
     The retro reads this list.
 
 The workflow ends each axis's section with a **Fixed** and a **Left** list,
-built from your structured output, so each finding appears there once and
-your text stays the reasoning.
+built from your structured output and left out when empty, so each finding
+appears there once and your text stays the reasoning.
 
 ## Evidence
 

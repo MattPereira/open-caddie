@@ -39,22 +39,15 @@ const verdict = [
 ].join("\n");
 
 describe("addFindings", () => {
-  it("gives both axes an empty Fixed and Left list when there are no findings", () => {
-    const result = addFindings(verdict, findings({}));
-
-    expect(result).toContain(
-      "One line.\n\n**Fixed**\n\nNone.\n\n**Left**\n\nNone.\n\n## Spec: PASS",
-    );
-    expect(result).toContain(
-      "Met.\n\n**Fixed**\n\nNone.\n\n**Left**\n\nNone.\n\n## Rules",
-    );
+  it("leaves a verdict with no findings unchanged", () => {
+    expect(addFindings(verdict, findings({}))).toBe(verdict);
   });
 
   it("lists a fix by title, commit and rule", () => {
     const result = addFindings(verdict, findings({ fixed: [fix({})] }));
 
     expect(result).toContain(
-      "One line.\n\n**Fixed**\n\n- **Duplicated lookup**, in 430ae60: Duplicated Code\n\n**Left**\n\nNone.\n\n## Spec",
+      "One line.\n\n**Fixed**\n\n- **Duplicated lookup**, in 430ae60: Duplicated Code\n\n## Spec",
     );
   });
 
@@ -62,7 +55,7 @@ describe("addFindings", () => {
     const result = addFindings(verdict, findings({ posted: [finding({})] }));
 
     expect(result).toContain(
-      "**Left**\n\n- **Server module imports a UI component**, at `app/modules/a/lib/b.server.ts:4`\n\n## Spec: PASS",
+      "One line.\n\n**Left**\n\n- **Server module imports a UI component**, at `app/modules/a/lib/b.server.ts:4`\n\n## Spec: PASS",
     );
     expect(result).not.toContain("Move the type.");
   });
@@ -84,9 +77,7 @@ describe("addFindings", () => {
       }),
     );
 
-    expect(result).toContain(
-      "One line.\n\n**Fixed**\n\nNone.\n\n**Left**\n\nNone.\n\n## Spec",
-    );
+    expect(result).toContain("One line.\n\n## Spec");
     expect(result).toContain(
       "Met.\n\n**Fixed**\n\n- **Missed criterion**, in 430ae60: Duplicated Code\n\n**Left**\n\n- **Scope creep**, at `app/modules/a/lib/b.server.ts:4`\n\n## Rules",
     );
@@ -98,22 +89,29 @@ describe("addFindings", () => {
       findings({ dropped: [finding({ axis: "spec", title: "Out of diff" })] }),
     );
 
-    expect(result).toContain(
-      "One line.\n\n**Fixed**\n\nNone.\n\n**Left**\n\nNone.\n\n## Spec",
-    );
-    expect(result).toContain(
-      "Met.\n\n**Fixed**\n\nNone.\n\n**Left**\n\n- **Out of diff**",
-    );
+    expect(result).toContain("One line.\n\n## Spec");
+    expect(result).toContain("Met.\n\n**Left**\n\n- **Out of diff**");
   });
 
   it("starts a section only at a heading on its own line", () => {
     const result = addFindings(
       "## Standards: PASS\nSee the ## Spec notes.\n",
-      findings({}),
+      findings({ fixed: [fix({ axis: "spec" })] }),
     );
 
     expect(result).toBe(
-      "## Standards: PASS\nSee the ## Spec notes.\n\n**Fixed**\n\nNone.\n\n**Left**\n\nNone.\n",
+      "## Standards: PASS\nSee the ## Spec notes.\n\n## Spec\n\n**Fixed**\n\n- **Duplicated lookup**, in 430ae60: Duplicated Code\n",
+    );
+  });
+
+  it("lists fixes before findings left", () => {
+    const result = addFindings(
+      verdict,
+      findings({ fixed: [fix({})], posted: [finding({})] }),
+    );
+
+    expect(result.indexOf("**Fixed**")).toBeLessThan(
+      result.indexOf("**Left**"),
     );
   });
 
@@ -138,7 +136,7 @@ describe("addFindings", () => {
     );
 
     expect(result).toBe(
-      "No verdict.\n\n## Standards\n\n**Fixed**\n\nNone.\n\n**Left**\n\n- **Server module imports a UI component**, at `app/modules/a/lib/b.server.ts:4`\n",
+      "No verdict.\n\n## Standards\n\n**Left**\n\n- **Server module imports a UI component**, at `app/modules/a/lib/b.server.ts:4`\n",
     );
   });
 

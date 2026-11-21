@@ -60,6 +60,8 @@ type RoundScoresTableProps = {
   editAccess?: RoundsEditAccess | null;
   rounds: EditableTableRound[];
   course: EditableCourse;
+  /** The viewer's own Round, highlighted so they find their row at a glance. */
+  highlightedRoundId?: number;
   showMobileTotals?: boolean;
 };
 
@@ -67,13 +69,19 @@ export function RoundScoresTable({
   editAccess,
   rounds,
   course,
+  highlightedRoundId,
   showMobileTotals = true,
 }: RoundScoresTableProps) {
   const rows = rounds.map((round) => ({ ...toRoundScoreRow(round), round }));
 
   return (
     <ResponsiveTable
-      desktop={<DesktopRoundScoresTable rows={rows} />}
+      desktop={
+        <DesktopRoundScoresTable
+          rows={rows}
+          highlightedRoundId={highlightedRoundId}
+        />
+      }
       mobile={
         <MobileRoundScoresCards
           editAccess={editAccess}
@@ -86,7 +94,13 @@ export function RoundScoresTable({
   );
 }
 
-function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
+function DesktopRoundScoresTable({
+  rows,
+  highlightedRoundId,
+}: {
+  rows: RoundScoreRow[];
+  highlightedRoundId?: number;
+}) {
   const [metric, setMetric] = useState<ScoreMetric>("strokes");
   const sortedRows =
     metric === "strokes" ? rows : [...rows].sort(compareRoundScoreRowsByPutts);
@@ -107,7 +121,7 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
         <Table className="table-fixed">
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead className="sticky left-0 z-10 w-36 bg-muted/60">
+              <TableHead className="sticky left-0 z-10 w-36 bg-muted">
                 Player
               </TableHead>
               {HOLE_NUMBERS.slice(0, 9).map((hole) => (
@@ -152,10 +166,21 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
           <TableBody>
             {sortedRows.map((row) => {
               const values = row.metrics[metric];
+              const highlighted = row.round.id === highlightedRoundId;
 
               return (
-                <TableRow key={row.round.id}>
-                  <TableCell className="sticky left-0 z-10 bg-card font-medium">
+                <TableRow
+                  key={row.round.id}
+                  aria-current={highlighted ? "true" : undefined}
+                  className={cn(highlighted && "bg-row-highlight")}
+                >
+                  <TableCell
+                    className={cn(
+                      "sticky left-0 z-10 bg-card font-medium",
+                      highlighted &&
+                        "bg-row-highlight shadow-[inset_3px_0_0_var(--color-primary)]",
+                    )}
+                  >
                     <PlayerLabel row={row} />
                   </TableCell>
                   {values.scores.slice(0, 9).map((score, index) => (

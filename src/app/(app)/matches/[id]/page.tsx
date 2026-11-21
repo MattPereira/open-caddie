@@ -11,6 +11,7 @@ import { getEventRoundAccess } from "@/modules/rounds/server";
 import { getAllPlayers, getCurrentPlayer } from "@/modules/players/server";
 import { createPageMetadata } from "@/app/metadata";
 import { matchFormatLabel } from "@/modules/matches";
+import { findPlayerRound } from "@/modules/rounds";
 import { formatDate } from "@/lib/dates";
 import { PageContent } from "@/components/layout/page-content";
 import { UploadScorecardButton } from "@/components/features/scorecard-import/upload-scorecard-button";
@@ -60,9 +61,7 @@ export default async function MatchPage({
   const canManage =
     currentPlayer != null &&
     (currentPlayer.isAdmin || currentPlayer.id === match.createdByPlayerId);
-  const currentPlayerRound = currentPlayer
-    ? match.rounds.find((round) => round.playerId === currentPlayer.id)
-    : null;
+  const currentPlayerRound = findPlayerRound(match.rounds, currentPlayer?.id);
   const defaultTab = getMatchDefaultTab(resolvedSearchParams?.tab);
 
   const [courses, players, eventAccess] = await Promise.all([

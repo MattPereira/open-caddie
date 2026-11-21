@@ -14,6 +14,7 @@ import { extractionPrompt } from "../shared/extraction-prompt";
 import { runWithExtraction } from "../shared/run-with-extraction";
 import { diffLines } from "./diff-lines";
 import { addFindings } from "./findings";
+import { pinFixCommits } from "./fix-commits";
 import { reviewSchema } from "./review-schema";
 
 const BASE_REF = required("BASE_REF");
@@ -56,15 +57,17 @@ for (const { path: file, line } of dropped) {
   );
 }
 
-// Each fix's commit, as the short SHA of a commit this run made. One the
-// agent got wrong stays as it wrote it, and the log says so.
-const made = git("rev-list", `${HEAD_SHA}..HEAD`).split("\n").filter(Boolean);
-const fixed = fixes.map((fix) => {
-  const sha = made.find((full) => full.startsWith(fix.commit));
-  if (sha) return { ...fix, commit: git("rev-parse", "--short", sha).trim() };
-  console.error(`${fix.commit} is not a commit this review made.`);
-  return fix;
-});
+const made = git("log", "--format=%H %h", `${HEAD_SHA}..HEAD`)
+  .split("\n")
+  .filter(Boolean)
+  .map((line) => {
+    const [full, short] = line.split(" ");
+    return { full, short };
+  });
+const { fixed, unknown } = pinFixCommits(fixes, made);
+for (const sha of unknown) {
+  console.error(`${sha} is not a commit this review made.`);
+}
 
 // With no verdict, the findings still need a home. No `## Standards:`
 // heading, so the workflow leaves the PR a draft.

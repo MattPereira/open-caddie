@@ -1,22 +1,44 @@
 import { z } from "zod/v4";
 
-// The findings the review left unfixed. The workflow posts each one as an
-// inline comment on the pull request, on its file and line, and lists it by
-// title in the verdict.
+const axis = z
+  .enum(["standards", "spec"])
+  .describe("The verdict section the finding belongs to.");
+
+const title = z
+  .string()
+  .min(1)
+  .describe(
+    "The finding in a few words, plain text, e.g. 'Server module imports a UI component'.",
+  );
+
+// What the review fixed and what it left. The verdict lists both under each
+// axis; the workflow posts each finding left as an inline comment on the pull
+// request, on its file and line.
 export const reviewSchema = z
   .strictObject({
-    comments: z
+    fixes: z
       .array(
         z.strictObject({
-          axis: z
-            .enum(["standards", "spec"])
-            .describe("The verdict section the finding belongs to."),
-          title: z
+          axis,
+          title,
+          commit: z
+            .string()
+            .regex(/^[0-9a-f]{7,40}$/)
+            .describe("The SHA of the commit that fixed it."),
+          rule: z
             .string()
             .min(1)
             .describe(
-              "The finding in a few words, plain text, e.g. 'Server module imports a UI component'.",
+              "The standard it broke, by heading, or the spec line it missed.",
             ),
+        }),
+      )
+      .describe("One entry per finding you fixed, worst first. Empty is fine."),
+    comments: z
+      .array(
+        z.strictObject({
+          axis,
+          title,
           path: z
             .string()
             .min(1)
@@ -40,6 +62,7 @@ export const reviewSchema = z
         "One entry per finding you left unfixed, on the first line it concerns. Empty is fine.",
       ),
   })
-  .describe("The review's inline comments.");
+  .describe("The findings the review fixed and the ones it left.");
 
+export type ReviewFix = z.infer<typeof reviewSchema>["fixes"][number];
 export type ReviewComment = z.infer<typeof reviewSchema>["comments"][number];

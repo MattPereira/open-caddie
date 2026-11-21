@@ -23,26 +23,27 @@ splitting a function off a lint exemption list. A fix is done when
 its own. The workflow pushes your commits. Leave `.github/` untouched.
 
 Every finding you leave becomes an inline comment on the first line it
-concerns, one comment per finding. You will be asked for them as structured
-output. Its body says what decision it needs.
+concerns, one comment per finding. Its body says what decision it needs.
+You will be asked for each finding you fixed and each you left as structured
+output.
 
 ## The verdict
 
 Write your verdict on the branch, after your fixes, to /tmp/review-verdict.md:
 
     ## Standards: PASS | CHANGES REQUESTED
-    One line of reasoning, then each finding you fixed, worst first: its
-    commit, citing the rule by heading.
+    One line of reasoning.
 
     ## Spec: PASS | CHANGES REQUESTED
-    One line of reasoning, then each finding you fixed.
+    One line of reasoning.
 
     ## Rules this review wanted and could not find
     Anything you wanted to fail the change for that no standard covers.
     The retro reads this list.
 
-The workflow adds the findings you left to each section, from your structured
-output. They appear there once, not in your text.
+The workflow ends each axis's section with a **Fixed** and a **Left** list,
+built from your structured output, so each finding appears there once and
+your text stays the reasoning.
 
 ## Evidence
 

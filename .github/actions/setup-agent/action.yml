@@ -1,0 +1,61 @@
+name: Set up an agent run
+description: >-
+  Installs the toolchain, Claude Code and agent-browser, then migrates and
+  seeds the job's Postgres service. Run it after checkout. The job must set
+  DATABASE_URL and DATABASE_DRIVER=node-postgres.
+
+runs:
+  using: composite
+  steps:
+    # Reads the pnpm version from package.json "packageManager".
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v6
+
+    - name: Setup Node.js 24
+      uses: actions/setup-node@v7
+      with:
+        node-version: 24
+        cache: pnpm
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile
+
+    - name: Install Claude Code
+      shell: bash
+      run: npm install -g @anthropic-ai/claude-code
+
+    - name: Cache agent-browser's Chrome
+      uses: actions/cache@v6
+      with:
+        path: ~/.agent-browser/browsers
+        key: agent-browser-0.27.0-${{ runner.os }}
+
+    - name: Install agent-browser
+      # The agent drives the app with it for screenshots and checks. Without
+      # it here, each run installs it mid-session.
+      shell: bash
+      run: |
+        npm install -g agent-browser@0.27.0
+        agent-browser install
+
+    - name: Prepare the database
+      # The repo's checks and pre-commit hook need a real database. It is
+      # disposable: a fresh one on every run. The seed is a fixed world
+      # (src/seed/world.ts) for the agent to render and screenshot, so it
+      # never writes its own rows. See docs/agents/agent-browser.md.
+      shell: bash
+      run: |
+        set -euo pipefail
+        pnpm db:migrate
+        pnpm db:seed
+
+    - name: Configure auth
+      # Where the agent runs the app: Auth.js trusts this host even under
+      # `next start`, and `pnpm db:sign-in` builds its links on it. The secret
+      # is throwaway, shared by the app and `pnpm db:sign-in` for this run.
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "AUTH_URL=http://localhost:3000" >> "$GITHUB_ENV"
+        echo "AUTH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"

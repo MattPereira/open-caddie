@@ -120,9 +120,6 @@ jobs:
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/open_caddie_test
       # The app's default Neon driver can't reach a plain local Postgres.
       DATABASE_DRIVER: node-postgres
-      # Where the agent runs the app. Auth.js trusts this host even under
-      # `next start`, and `pnpm db:sign-in` builds its links on it.
-      AUTH_URL: http://localhost:3000
 
     steps:
       - name: Transition labels
@@ -176,51 +173,8 @@ jobs:
           fi
           cat /tmp/review-spec.md
 
-      # Reads the pnpm version from package.json "packageManager".
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js 24
-        uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
-
-      - name: Cache agent-browser's Chrome
-        uses: actions/cache@v6
-        with:
-          path: ~/.agent-browser/browsers
-          key: agent-browser-0.27.0-${{ runner.os }}
-
-      - name: Install agent-browser
-        # The agent drives the app with it for screenshots and checks. Without
-        # it here, each run installs it mid-session. Its screenshots go to
-        # /tmp/evidence/ for `gh pr comment --attach`: scripts/pr-screenshots.sh
-        # needs a GitHub token, and the agent holds none.
-        run: |
-          npm install -g agent-browser@0.27.0
-          agent-browser install
-
-      - name: Migrate the database
-        # The pre-commit hook runs on every commit the agent makes, and the
-        # repo's checks need a database.
-        run: pnpm db:migrate
-
-      - name: Seed the database
-        # A fixed world (src/seed/world.ts) for the agent to render and
-        # screenshot, so it never writes its own rows. `pnpm db:sign-in`
-        # mints sign-in links against this run's throwaway AUTH_SECRET. See
-        # docs/agents/agent-browser.md.
-        run: |
-          set -euo pipefail
-          pnpm db:seed
-          echo "AUTH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+      - name: Set up the agent run
+        uses: ./.github/actions/setup-agent
 
       - name: Open the branch
         run: |
@@ -324,6 +278,8 @@ jobs:
             echo "Reviewed by the review workflow — [logs](${RUN_URL}). This run"
             echo "saw the diff, the standards and the ticket, and nothing else."
           } >> /tmp/review-verdict.md
+          # The agent holds no GitHub token, so it can't upload screenshots
+          # itself (scripts/pr-screenshots.sh); it leaves them in /tmp/evidence.
           # Uploads the agent's screenshots and swaps each /tmp/evidence path
           # in the body for its URL. nullglob: none means no --attach.
           shopt -s nullglob

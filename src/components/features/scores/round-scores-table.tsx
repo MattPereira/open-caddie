@@ -172,17 +172,13 @@ function DesktopRoundScoresTable({
                 <TableRow
                   key={row.round.id}
                   aria-current={highlighted ? "true" : undefined}
-                  className={cn(
-                    highlighted && "bg-primary/8 dark:bg-primary/25",
-                  )}
+                  className={cn(highlighted && "bg-row-highlight")}
                 >
                   <TableCell
                     className={cn(
                       "sticky left-0 z-10 bg-card font-medium",
-                      // The sticky cell must stay opaque so scrolled scores
-                      // don't show through, so it mixes the tint into the card.
                       highlighted &&
-                        "bg-[color-mix(in_oklab,var(--color-primary)_8%,var(--color-card))] shadow-[inset_3px_0_0_var(--color-primary)] dark:bg-[color-mix(in_oklab,var(--color-primary)_25%,var(--color-card))]",
+                        "bg-row-highlight shadow-[inset_3px_0_0_var(--color-primary)]",
                     )}
                   >
                     <PlayerLabel row={row} />

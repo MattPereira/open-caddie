@@ -13,14 +13,16 @@ import {
 import { extractionPrompt } from "../shared/extraction-prompt";
 import { runWithExtraction } from "../shared/run-with-extraction";
 import { diffLines } from "./diff-lines";
-import { addLeftFindings } from "./left-findings";
+import { addFindings } from "./findings";
+import { pinFixCommits } from "./fix-commits";
 import { reviewSchema } from "./review-schema";
 
 const BASE_REF = required("BASE_REF");
+const HEAD_SHA = required("HEAD_SHA");
 const VERDICT = "/tmp/review-verdict.md";
 
 // The agent fixes and commits, writes the verdict file, and hands back the
-// findings it left. This script lists those findings in the verdict. The
+// findings it fixed and left. This script lists those in the verdict. The
 // workflow pushes the commits, posts the verdict and the inline comments,
 // and marks the PR ready.
 const result = await runWithExtraction({
@@ -35,8 +37,8 @@ const result = await runWithExtraction({
     BASE_REF,
     SCREENSHOTS: screenshotRules(),
   },
-  output: sandcastle.Output.object({ tag: "comments", schema: reviewSchema }),
-  extractionPrompt: extractionPrompt("comments", reviewSchema),
+  output: sandcastle.Output.object({ tag: "findings", schema: reviewSchema }),
+  extractionPrompt: extractionPrompt("findings", reviewSchema),
 });
 
 const git = (...args: string[]): string =>
@@ -44,7 +46,7 @@ const git = (...args: string[]): string =>
 
 // The diff after the agent's commits: the comments land on that.
 const hunks = diffLines(git("diff", `origin/${BASE_REF}...HEAD`));
-const { comments: found }: z.infer<typeof reviewSchema> = result.output;
+const { fixes, comments: found }: z.infer<typeof reviewSchema> = result.output;
 const inDiff = ({ path: file, line }: { path: string; line: number }) =>
   hunks.get(file)?.has(line) ?? false;
 const posted = found.filter(inDiff);
@@ -55,12 +57,24 @@ for (const { path: file, line } of dropped) {
   );
 }
 
+const made = git("log", "--format=%H %h", `${HEAD_SHA}..HEAD`)
+  .split("\n")
+  .filter(Boolean)
+  .map((line) => {
+    const [full, short] = line.split(" ");
+    return { full, short };
+  });
+const { fixed, unknown } = pinFixCommits(fixes, made);
+for (const sha of unknown) {
+  console.error(`${sha} is not a commit this review made.`);
+}
+
 // With no verdict, the findings still need a home. No `## Standards:`
 // heading, so the workflow leaves the PR a draft.
 const verdict = fs.existsSync(VERDICT)
   ? fs.readFileSync(VERDICT, "utf8")
   : "The review run produced no verdict. See the logs. Re-add `agent:review` to retry.\n";
-fs.writeFileSync(VERDICT, addLeftFindings(verdict, posted, dropped));
+fs.writeFileSync(VERDICT, addFindings(verdict, { fixed, posted, dropped }));
 
 // The request body for POST /repos/{owner}/{repo}/pulls/{n}/reviews.
 writeJson("review-comments.json", {

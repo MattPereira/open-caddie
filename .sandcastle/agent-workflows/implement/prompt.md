@@ -19,11 +19,10 @@ Read CODING_STANDARDS.md.
 - Finish with at least one commit and a clean working tree. The workflow
   pushes and opens the pull request.
 - Leave `.github/` untouched.
-- When the change shows in the UI, save a before and an after screenshot as
-  PNGs in /tmp/evidence/. Not `screenshots/` or `scripts/pr-screenshots.sh`:
-  you hold no GitHub token to upload them.
+- When the change shows in the UI, shoot and lay out its screenshots as
+  _Screenshots for a PR_ in docs/agents/agent-browser.md says, for an agent
+  workflow run.
 
 Write /tmp/pr-body.md in the voice of the `pr` skill: what the ticket asked
-for, what you built, what you deliberately left out. In its Evidence section,
-reference each screenshot by its absolute path, e.g.
-`![after](/tmp/evidence/after.png)`. The workflow uploads them.
+for, what you built, what you deliberately left out. Its Evidence section
+holds the screenshots.

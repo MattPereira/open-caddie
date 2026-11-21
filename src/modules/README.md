@@ -63,26 +63,6 @@ Entry points import the db directly (no DB injection); DB-backed tests use per-w
 
 ## Rules
 
-All are `error`. Run them with `pnpm lint:boundaries`. They also run in `pnpm check` and as their own CI step.
+`pnpm lint:boundaries` enforces the module rules. It also runs in `pnpm check` and CI. Each rule is defined, with a comment explaining it, in `.dependency-cruiser.cjs`, `.dependency-cruiser.runtime.cjs` (`index.ts` runs anywhere) and `scripts/check-module-tests.mjs` (every module has tests).
 
-**`entrypoint-boundary-from-app`.** Code outside `src/modules` (routes, components, `lib/`) may import a module's root files, but nothing in its subfolders.
-
-**`entrypoint-boundary-across-modules`.** A module's own files import each other freely. They reach another module only through its entry points, never its internals.
-
-**`tests-through-entrypoints`.** Files in `<module>/tests/` may import any module's entry points and their own `tests/` fixtures, but never any module's internals, not even their own. Tests exercise behaviour, not implementation.
-
-**`tests-arrange-through-entrypoints`.** Module tests and `src/test/fixtures/` may not import anything under `src/db/`, `@/db` included. They arrange data and assert on it through entry points (`createFixtures()` wraps the common setups), so a storage change breaks only the module that owns it. The db test harness in `src/test/db/` is exempt; it holds the few things no entry point can do. An entry point may exist mainly to support tests.
-
-**`seed-through-entrypoints`.** `src/seed/` (`pnpm db:seed`) builds its data through module entry points, never `src/db/` or a module's internals, for the same reason as tests. It may read `src/db/connection.ts`, the local-only database guard.
-
-**`tests-folder-is-private`.** Only tests may import from a `tests/` folder, so test fixtures never ship in app code.
-
-**`test-support-only-from-tests`.** Fixtures shared across modules' tests (e.g. `createFixtures`) live in `src/test/fixtures/`. Only `*.test.ts` files, modules' `tests/` folders and `src/test/` itself may import `src/test/`. A fixture only one module's tests use lives in that module's `tests/`.
-
-**`index-runs-anywhere`.** No runtime path from a module's `index.ts` may reach `src/db`, `server-only` or any `server.ts`. It's transitive, so it catches a pure-looking lib file that imports the db. It lives in `.dependency-cruiser.runtime.cjs`, a second pass with type-only imports erased (`reachable` rules can't skip them, and pure code legitimately type-imports server files).
-
-**`module-has-tests`.** Every module has at least one `tests/*.test.ts`. dependency-cruiser can't check that a file exists, so `scripts/check-module-tests.mjs` does, as the last step of `pnpm lint:boundaries`.
-
-**`no-circular`.** No runtime dependency cycles anywhere in `src`. Cycles that close only through `import type` edges are allowed, since types are erased at runtime.
-
-Modules may import non-module code in `src/lib`, `src/db` and so on. Which modules may depend on which (layering) isn't enforced yet; the config has a commented stub.
+Modules may import non-module code (`src/lib`, `src/db`, …). Layering (which modules may depend on which) isn't enforced yet; the config has a commented stub.

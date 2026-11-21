@@ -92,6 +92,31 @@ describe("addFindings", () => {
     );
   });
 
+  it("puts a dropped finding under its own axis", () => {
+    const result = addFindings(
+      verdict,
+      findings({ dropped: [finding({ axis: "spec", title: "Out of diff" })] }),
+    );
+
+    expect(result).toContain(
+      "One line.\n\n**Fixed**\n\nNone.\n\n**Left**\n\nNone.\n\n## Spec",
+    );
+    expect(result).toContain(
+      "Met.\n\n**Fixed**\n\nNone.\n\n**Left**\n\n- **Out of diff**",
+    );
+  });
+
+  it("starts a section only at a heading on its own line", () => {
+    const result = addFindings(
+      "## Standards: PASS\nSee the ## Spec notes.\n",
+      findings({}),
+    );
+
+    expect(result).toBe(
+      "## Standards: PASS\nSee the ## Spec notes.\n\n**Fixed**\n\nNone.\n\n**Left**\n\nNone.\n",
+    );
+  });
+
   it("lists inline findings before dropped ones", () => {
     const result = addFindings(
       verdict,

@@ -25,6 +25,8 @@ const config = {
     "depcruise --cache --cache-strategy content src",
   "{src/**,.dependency-cruiser*.cjs,tsconfig.json}": () =>
     "depcruise --config .dependency-cruiser.runtime.cjs src/modules/*/index.ts",
+  "{src/modules/**,scripts/check-module-tests.mjs}": () =>
+    "node scripts/check-module-tests.mjs",
 
   // DB tests need Postgres, so only the unit project runs here.
   "*.{ts,tsx}": (files) =>

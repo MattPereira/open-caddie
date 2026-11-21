@@ -7,6 +7,7 @@ import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/shared/url-tabs";
 import { getCoursesWithTees } from "@/modules/courses/server";
 import { getMatchById } from "@/modules/matches/server";
+import { findPlayerRound } from "@/modules/rounds";
 import { getEventRoundAccess } from "@/modules/rounds/server";
 import { getAllPlayers, getCurrentPlayer } from "@/modules/players/server";
 import { createPageMetadata } from "@/app/metadata";
@@ -60,9 +61,7 @@ export default async function MatchPage({
   const canManage =
     currentPlayer != null &&
     (currentPlayer.isAdmin || currentPlayer.id === match.createdByPlayerId);
-  const currentPlayerRound = currentPlayer
-    ? match.rounds.find((round) => round.playerId === currentPlayer.id)
-    : null;
+  const currentPlayerRound = findPlayerRound(match.rounds, currentPlayer?.id);
   const defaultTab = getMatchDefaultTab(resolvedSearchParams?.tab);
 
   const [courses, players, eventAccess] = await Promise.all([

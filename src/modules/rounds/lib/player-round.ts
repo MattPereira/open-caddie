@@ -1,4 +1,3 @@
-/** The Round a Player played among an event's Rounds, or null when they didn't play. */
 export function findPlayerRound<TRound extends { playerId: string }>(
   rounds: readonly TRound[],
   playerId: string | null | undefined,

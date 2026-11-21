@@ -121,7 +121,7 @@ function DesktopRoundScoresTable({
         <Table className="table-fixed">
           <TableHeader className="bg-muted/50">
             <TableRow>
-              <TableHead className="sticky left-0 z-10 w-36 bg-muted/60">
+              <TableHead className="sticky left-0 z-10 w-36 bg-muted">
                 Player
               </TableHead>
               {HOLE_NUMBERS.slice(0, 9).map((hole) => (

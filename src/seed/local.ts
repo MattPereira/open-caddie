@@ -2,11 +2,8 @@ import { config } from "dotenv";
 
 import { assertLocalConnection, nodePostgresConfig } from "@/db/connection";
 
-/**
- * Loads env like `pnpm db:migrate` and refuses anything but a local Postgres.
- * Every `src/seed` command runs this before it loads `@/db`, which connects
- * on import.
- */
+// Every `src/seed` command runs this before it loads `@/db`, which connects
+// on import.
 export function requireLocalDatabase() {
   // Variables already set win over .env.local.
   config({ path: ".env.local", quiet: true });

@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users, verificationTokens } from "@/db/schema";
+import { hasPlayerWithEmail } from "@/modules/players/server";
 
 const LINK_TTL_MS = 24 * 60 * 60 * 1000;
 
@@ -60,13 +61,7 @@ export async function createSignInLinkForEmail({
   origin: string;
 }): Promise<SignInLinkResult> {
   const normalized = email.trim().toLowerCase();
-  const [player] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.email, normalized))
-    .limit(1);
-
-  if (!player) {
+  if (!(await hasPlayerWithEmail(normalized))) {
     return { ok: false, error: `No Player has the email ${normalized}.` };
   }
 

@@ -61,7 +61,7 @@ pnpm db:reset                     # start over: empty, migrate, seed
 to `src/seed/world.ts` through module entry points, in the same change, then
 `pnpm db:reset`. That keeps every screenshot reproducible.
 
-Both commands refuse any database that isn't local.
+`db:seed`, `db:reset` and `db:sign-in` refuse any database that isn't local.
 
 ## Signing in
 

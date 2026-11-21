@@ -11,6 +11,7 @@ import { CourseRecordsDialog } from "@/components/features/course-records/course
 import { RoundsTabContent } from "@/components/features/scores/rounds-tab-content";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UrlTabs } from "@/components/shared/url-tabs";
+import { findPlayerRound } from "@/modules/rounds";
 import { getEventRoundAccess } from "@/modules/rounds/server";
 import { getTournamentById } from "@/modules/tournaments/server";
 import { getCurrentPlayer } from "@/modules/players/server";
@@ -61,9 +62,10 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
   ]);
 
   if (!tournament) notFound();
-  const currentPlayerRound = currentPlayer
-    ? tournament.rounds.find((round) => round.playerId === currentPlayer.id)
-    : null;
+  const currentPlayerRound = findPlayerRound(
+    tournament.rounds,
+    currentPlayer?.id,
+  );
 
   return (
     <PageContent className="max-w-5xl">
@@ -136,6 +138,7 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
         <RoundsTabContent
           editAccess={eventAccess}
           emptyMessage="No rounds have been recorded for this tournament."
+          highlightedRoundId={currentPlayerRound?.id}
           rounds={tournament.rounds}
           course={tournament.course}
         >

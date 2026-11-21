@@ -40,6 +40,7 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-row-highlight: var(--row-highlight);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -54,6 +55,9 @@
   --foreground: oklch(0.147 0.004 49.3);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.147 0.004 49.3);
+  /* --primary over --card, mixed by hand: opaque so a sticky cell hides the
+     scores scrolling under it. Lightning CSS drops color-mix() over var(). */
+  --row-highlight: oklch(0.951 0.012 165.6);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.147 0.004 49.3);
   --primary: oklch(0.508 0.118 165.612);
@@ -89,6 +93,7 @@
   --foreground: oklch(0.986 0.002 67.8);
   --card: oklch(0.214 0.009 43.1);
   --card-foreground: oklch(0.986 0.002 67.8);
+  --row-highlight: oklch(0.262 0.018 148);
   --popover: oklch(0.214 0.009 43.1);
   --popover-foreground: oklch(0.986 0.002 67.8);
   --primary: oklch(0.432 0.095 166.913);

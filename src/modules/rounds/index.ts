@@ -12,3 +12,4 @@ export {
   type HandicapSource,
 } from "./lib/handicap";
 export { eventGreenies } from "./lib/greenies";
+export { findPlayerRound } from "./lib/player-round";

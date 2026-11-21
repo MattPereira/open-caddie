@@ -58,6 +58,8 @@ export type EditableTableRound = RoundScoresTableRound & EditableRound;
 
 type RoundScoresTableProps = {
   editAccess?: RoundsEditAccess | null;
+  /** The viewer's own Round, tinted so they find it at a glance. */
+  highlightedRoundId?: number | null;
   rounds: EditableTableRound[];
   course: EditableCourse;
   showMobileTotals?: boolean;
@@ -65,6 +67,7 @@ type RoundScoresTableProps = {
 
 export function RoundScoresTable({
   editAccess,
+  highlightedRoundId = null,
   rounds,
   course,
   showMobileTotals = true,
@@ -73,11 +76,17 @@ export function RoundScoresTable({
 
   return (
     <ResponsiveTable
-      desktop={<DesktopRoundScoresTable rows={rows} />}
+      desktop={
+        <DesktopRoundScoresTable
+          highlightedRoundId={highlightedRoundId}
+          rows={rows}
+        />
+      }
       mobile={
         <MobileRoundScoresCards
           editAccess={editAccess}
           course={course}
+          highlightedRoundId={highlightedRoundId}
           rows={rows}
           showMobileTotals={showMobileTotals}
         />
@@ -86,7 +95,13 @@ export function RoundScoresTable({
   );
 }
 
-function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
+function DesktopRoundScoresTable({
+  highlightedRoundId,
+  rows,
+}: {
+  highlightedRoundId: number | null;
+  rows: RoundScoreRow[];
+}) {
   const [metric, setMetric] = useState<ScoreMetric>("strokes");
   const sortedRows =
     metric === "strokes" ? rows : [...rows].sort(compareRoundScoreRowsByPutts);
@@ -152,10 +167,21 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
           <TableBody>
             {sortedRows.map((row) => {
               const values = row.metrics[metric];
+              const highlighted = row.round.id === highlightedRoundId;
 
               return (
-                <TableRow key={row.round.id}>
-                  <TableCell className="sticky left-0 z-10 bg-card font-medium">
+                <TableRow
+                  key={row.round.id}
+                  className={cn(
+                    highlighted && "bg-row-highlight hover:bg-row-highlight",
+                  )}
+                >
+                  <TableCell
+                    className={cn(
+                      "sticky left-0 z-10 bg-card font-medium",
+                      highlighted && "bg-row-highlight",
+                    )}
+                  >
                     <PlayerLabel row={row} />
                   </TableCell>
                   {values.scores.slice(0, 9).map((score, index) => (
@@ -215,11 +241,13 @@ function DesktopRoundScoresTable({ rows }: { rows: RoundScoreRow[] }) {
 function MobileRoundScoresCards({
   editAccess,
   course,
+  highlightedRoundId,
   rows,
   showMobileTotals,
 }: {
   editAccess?: RoundScoresTableProps["editAccess"];
   course: EditableCourse;
+  highlightedRoundId: number | null;
   rows: (RoundScoreRow & { round: EditableTableRound })[];
   showMobileTotals: boolean;
 }) {
@@ -243,6 +271,7 @@ function MobileRoundScoresCards({
                 />
               ) : null
             }
+            highlighted={row.round.id === highlightedRoundId}
             row={row}
             showMobileTotals={showMobileTotals}
           />

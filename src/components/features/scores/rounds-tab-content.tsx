@@ -12,6 +12,7 @@ import type { EditableCourse } from "@/components/features/scores/round-scores-s
 export function RoundsTabContent({
   editAccess,
   emptyMessage,
+  highlightedRoundId,
   rounds,
   course,
   actions,
@@ -19,6 +20,7 @@ export function RoundsTabContent({
 }: {
   editAccess: RoundsEditAccess | null;
   emptyMessage: string;
+  highlightedRoundId?: number | null;
   rounds: EditableTableRound[];
   course: EditableCourse;
   actions?: ReactNode;
@@ -36,6 +38,7 @@ export function RoundsTabContent({
       ) : (
         <RoundScoresTable
           editAccess={editAccess}
+          highlightedRoundId={highlightedRoundId}
           rounds={rounds}
           course={course}
         />

@@ -81,6 +81,8 @@ All are `error`. Run them with `pnpm lint:boundaries`. They also run in `pnpm ch
 
 **`index-runs-anywhere`.** No runtime path from a module's `index.ts` may reach `src/db`, `server-only` or any `server.ts`. It's transitive, so it catches a pure-looking lib file that imports the db. It lives in `.dependency-cruiser.runtime.cjs`, a second pass with type-only imports erased (`reachable` rules can't skip them, and pure code legitimately type-imports server files).
 
+**`module-has-tests`.** Every module has at least one `tests/*.test.ts`. dependency-cruiser can't check that a file exists, so `scripts/check-module-tests.mjs` does, as the last step of `pnpm lint:boundaries`.
+
 **`no-circular`.** No runtime dependency cycles anywhere in `src`. Cycles that close only through `import type` edges are allowed, since types are erased at runtime.
 
 Modules may import non-module code in `src/lib`, `src/db` and so on. Which modules may depend on which (layering) isn't enforced yet; the config has a commented stub.

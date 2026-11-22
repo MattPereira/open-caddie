@@ -1,4 +1,9 @@
 import { githubToken, isProblemReportingConfigured } from "./gate";
+import {
+  describePageContext,
+  shortCommitSha,
+  type PageContextInput,
+} from "./page-context";
 import { ProblemReportSchema, type ProblemReportInput } from "./report-schema";
 
 const ISSUES_URL =
@@ -16,6 +21,8 @@ export type ProblemReportsDeps = {
   /** Reads the stored Player row, never the session or form input. */
   findReporter(playerId: string): Promise<Reporter | null>;
 };
+
+export type ProblemReportSubmission = ProblemReportInput & PageContextInput;
 
 export type ProblemReportResult =
   | { ok: true; url: string }
@@ -40,7 +47,7 @@ export function createProblemReports(deps: ProblemReportsDeps) {
 
   async function file(
     playerId: string | null,
-    input: ProblemReportInput,
+    input: ProblemReportSubmission,
   ): Promise<ProblemReportResult> {
     const reporter = await allowedReporter(playerId);
     if (!reporter) return REFUSED;
@@ -51,7 +58,7 @@ export function createProblemReports(deps: ProblemReportsDeps) {
     const { title, description } = parsed.data;
     return createIssue({
       title,
-      body: issueBody(reporter, description),
+      body: issueBody(reporter, description, describePageContext(input)),
       labels: LABELS,
     });
   }
@@ -89,6 +96,17 @@ export function createProblemReports(deps: ProblemReportsDeps) {
   return { canFile, file };
 }
 
-function issueBody(reporter: Reporter, description: string) {
-  return `_Problem reported by **${reporter.name}** (Player \`${reporter.id}\`)_\n\n---\n\n${description}`;
+function issueBody(
+  reporter: Reporter,
+  description: string,
+  page: { path: string; viewport: string },
+) {
+  return [
+    `_Problem reported by **${reporter.name}** (Player \`${reporter.id}\`) on \`${page.path}\`_`,
+    `_\`${shortCommitSha()}\` · viewport ${page.viewport}_`,
+    "",
+    "---",
+    "",
+    description,
+  ].join("\n");
 }

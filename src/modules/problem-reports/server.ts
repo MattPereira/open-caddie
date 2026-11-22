@@ -4,6 +4,7 @@ export {
   createProblemReports,
   type ProblemReportResult,
   type ProblemReportsDeps,
+  type ProblemReportSubmission,
   type Reporter,
 } from "./lib/filing";
 export { isProblemReportingConfigured } from "./lib/gate";

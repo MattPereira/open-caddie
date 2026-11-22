@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
+  Bug01Icon,
   ExpandIcon,
   UserCircleIcon,
   Logout01Icon,
@@ -39,6 +41,7 @@ import {
 } from "@/components/ui/sidebar";
 import { signOutAction } from "@/app/(app)/login/actions";
 import { appNavItems } from "@/components/layout/app-nav-items";
+import { ReportProblemDialog } from "@/components/layout/report-problem-dialog";
 
 type SidebarPlayer = {
   name: string;
@@ -48,8 +51,15 @@ type SidebarPlayer = {
   id: string;
 };
 
-export function AppSidebar({ player }: { player: SidebarPlayer | null }) {
+export function AppSidebar({
+  player,
+  canReportProblems,
+}: {
+  player: SidebarPlayer | null;
+  canReportProblems: boolean;
+}) {
   const pathname = usePathname();
+  const [reportingProblem, setReportingProblem] = useState(false);
   const { setTheme } = useTheme();
   const { isMobile, setOpenMobile } = useSidebar();
   const initials = player ? getInitials(player.name) : null;
@@ -60,124 +70,144 @@ export function AppSidebar({ player }: { player: SidebarPlayer | null }) {
   };
 
   return (
-    <Sidebar>
-      <SidebarHeader>
-        <Link
-          href="/"
-          onNavigate={closeMobileSidebar}
-          className="flex items-center gap-2 rounded-md px-2 py-1.5 font-brand text-[1.625rem] font-normal outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
-        >
-          Open Caddie
-        </Link>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
+    <>
+      <Sidebar>
+        <SidebarHeader>
+          <Link
+            href="/"
+            onNavigate={closeMobileSidebar}
+            className="flex items-center gap-2 rounded-md px-2 py-1.5 font-brand text-[1.625rem] font-normal outline-hidden transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+          >
+            Open Caddie
+          </Link>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {appNavItems.map((item) => {
+                  const isActive =
+                    pathname === item.href ||
+                    pathname?.startsWith(`${item.href}/`);
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton asChild isActive={isActive} size="lg">
+                        <Link href={item.href} onNavigate={closeMobileSidebar}>
+                          <HugeiconsIcon icon={item.icon} />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+        {player ? (
+          <SidebarFooter>
             <SidebarMenu>
-              {appNavItems.map((item) => {
-                const isActive =
-                  pathname === item.href ||
-                  pathname?.startsWith(`${item.href}/`);
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={isActive} size="lg">
-                      <Link href={item.href} onNavigate={closeMobileSidebar}>
-                        <HugeiconsIcon icon={item.icon} />
-                        <span>{item.title}</span>
-                      </Link>
+              <SidebarMenuItem>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton
+                      size="lg"
+                      className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                    >
+                      <Avatar className="size-10">
+                        {player.image ? (
+                          <AvatarImage src={player.image} alt={player.name} />
+                        ) : null}
+                        <AvatarFallback>{initials}</AvatarFallback>
+                      </Avatar>
+                      <div className="grid flex-1 text-left text-sm leading-tight">
+                        <span className="truncate text-base font-medium">
+                          {player.name}
+                        </span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {player.email}
+                        </span>
+                      </div>
+                      <HugeiconsIcon icon={ExpandIcon} className="ml-auto" />
                     </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      {player ? (
-        <SidebarFooter>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton
-                    size="lg"
-                    className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+                    side={isMobile ? "top" : "right"}
+                    align="end"
+                    sideOffset={4}
                   >
-                    <Avatar className="size-10">
-                      {player.image ? (
-                        <AvatarImage src={player.image} alt={player.name} />
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem asChild className="py-3 text-lg">
+                        <Link
+                          href={`/players/${player.id}`}
+                          onNavigate={closeMobileSidebar}
+                        >
+                          <HugeiconsIcon
+                            icon={UserCircleIcon}
+                            className="size-5"
+                          />
+                          Profile
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger className="py-3 text-lg">
+                          <HugeiconsIcon icon={Sun01Icon} className="size-5" />
+                          Theme
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent>
+                          <DropdownMenuItem onSelect={() => setTheme("light")}>
+                            <HugeiconsIcon icon={Sun01Icon} />
+                            Light
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => setTheme("dark")}>
+                            <HugeiconsIcon icon={Moon02Icon} />
+                            Dark
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => setTheme("system")}>
+                            <HugeiconsIcon icon={ComputerIcon} />
+                            System
+                          </DropdownMenuItem>
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
+                      {canReportProblems ? (
+                        <DropdownMenuItem
+                          className="py-3 text-lg"
+                          onSelect={() => {
+                            closeMobileSidebar();
+                            setReportingProblem(true);
+                          }}
+                        >
+                          <HugeiconsIcon icon={Bug01Icon} className="size-5" />
+                          Report bug
+                        </DropdownMenuItem>
                       ) : null}
-                      <AvatarFallback>{initials}</AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate text-base font-medium">
-                        {player.name}
-                      </span>
-                      <span className="truncate text-xs text-muted-foreground">
-                        {player.email}
-                      </span>
-                    </div>
-                    <HugeiconsIcon icon={ExpandIcon} className="ml-auto" />
-                  </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-                  side={isMobile ? "top" : "right"}
-                  align="end"
-                  sideOffset={4}
-                >
-                  <DropdownMenuGroup>
-                    <DropdownMenuItem asChild className="py-3 text-lg">
-                      <Link
-                        href={`/players/${player.id}`}
-                        onNavigate={closeMobileSidebar}
-                      >
-                        <HugeiconsIcon
-                          icon={UserCircleIcon}
-                          className="size-5"
-                        />
-                        Profile
-                      </Link>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="py-3 text-lg"
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        void signOutAction();
+                      }}
+                    >
+                      <HugeiconsIcon icon={Logout01Icon} className="size-5" />
+                      Log out
                     </DropdownMenuItem>
-                    <DropdownMenuSub>
-                      <DropdownMenuSubTrigger className="py-3 text-lg">
-                        <HugeiconsIcon icon={Sun01Icon} className="size-5" />
-                        Theme
-                      </DropdownMenuSubTrigger>
-                      <DropdownMenuSubContent>
-                        <DropdownMenuItem onSelect={() => setTheme("light")}>
-                          <HugeiconsIcon icon={Sun01Icon} />
-                          Light
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setTheme("dark")}>
-                          <HugeiconsIcon icon={Moon02Icon} />
-                          Dark
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setTheme("system")}>
-                          <HugeiconsIcon icon={ComputerIcon} />
-                          System
-                        </DropdownMenuItem>
-                      </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-                  </DropdownMenuGroup>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="py-3 text-lg"
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      void signOutAction();
-                    }}
-                  >
-                    <HugeiconsIcon icon={Logout01Icon} className="size-5" />
-                    Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarFooter>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarFooter>
+        ) : null}
+      </Sidebar>
+      {canReportProblems ? (
+        <ReportProblemDialog
+          open={reportingProblem}
+          onOpenChange={setReportingProblem}
+        />
       ) : null}
-    </Sidebar>
+    </>
   );
 }
 

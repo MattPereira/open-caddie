@@ -10,6 +10,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { getCurrentPlayer, getSignedInPlayer } from "@/modules/players/server";
+import { isProblemReporter } from "@/modules/problem-reports/server";
 
 export const dynamic = "force-dynamic";
 
@@ -23,10 +24,14 @@ export default async function AppLayout({
     ? ((await getCurrentPlayer()) ?? signedInPlayer)
     : null;
   const sidebarPlayer = player ? getSidebarPlayer(player) : null;
+  const canReportProblems = await isProblemReporter(signedInPlayer?.id ?? null);
 
   return (
     <SidebarProvider>
-      <AppSidebar player={sidebarPlayer} />
+      <AppSidebar
+        player={sidebarPlayer}
+        canReportProblems={canReportProblems}
+      />
       <SidebarInset>
         <header className="grid h-14 grid-cols-[1fr_auto_1fr] items-center gap-2 border-b px-3">
           <SidebarTrigger className="size-8 justify-self-start" />

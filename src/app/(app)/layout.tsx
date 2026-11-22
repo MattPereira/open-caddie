@@ -10,7 +10,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { getCurrentPlayer, getSignedInPlayer } from "@/modules/players/server";
-import { canFileProblemReport } from "@/modules/problem-reports/server";
+import { isProblemReporter } from "@/modules/problem-reports/server";
 
 export const dynamic = "force-dynamic";
 
@@ -24,9 +24,7 @@ export default async function AppLayout({
     ? ((await getCurrentPlayer()) ?? signedInPlayer)
     : null;
   const sidebarPlayer = player ? getSidebarPlayer(player) : null;
-  const canReportProblems = await canFileProblemReport(
-    signedInPlayer?.id ?? null,
-  );
+  const canReportProblems = await isProblemReporter(signedInPlayer?.id ?? null);
 
   return (
     <SidebarProvider>

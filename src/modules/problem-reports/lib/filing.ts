@@ -1,109 +1,59 @@
-import { githubToken, isProblemReportingConfigured } from "./gate";
+import { createGitHubIssue, type IssueResult } from "./github";
 import {
   describePageContext,
   shortCommitSha,
   type PageContextInput,
 } from "./page-context";
 import { ProblemReportSchema, type ProblemReportInput } from "./report-schema";
+import { getProblemReporter, type Reporter } from "./reporter";
 
-const ISSUES_URL =
-  "https://api.github.com/repos/MattPereira/open-caddie/issues";
 const LABELS = ["agent:explore"];
 const REFUSED = {
   ok: false,
   error: "You can't report problems here.",
 } as const;
-
-export type Reporter = { id: string; name: string; isPlatformAdmin: boolean };
-
-export type ProblemReportsDeps = {
-  fetch: typeof fetch;
-  /** Reads the stored Player row, never the session or form input. */
-  findReporter(playerId: string): Promise<Reporter | null>;
-};
+const LOOKUP_FAILED = {
+  ok: false,
+  error: "Couldn't file the report. Try again later.",
+} as const;
 
 export type ProblemReportSubmission = ProblemReportInput & PageContextInput;
 
-export type ProblemReportResult =
-  | { ok: true; url: string }
-  | { ok: false; error: string };
+export type ProblemReportResult = IssueResult;
 
-export function createProblemReports(deps: ProblemReportsDeps) {
-  // Reports land labelled `agent:explore` and reach the explore agent without
-  // the repo owner reviewing them, so Platform Admins are trusted like
-  // collaborators here. Do not widen sending beyond them without revisiting
-  // that trust (see #218).
-  async function allowedReporter(
-    playerId: string | null,
-  ): Promise<Reporter | null> {
-    if (!isProblemReportingConfigured() || !playerId) return null;
-    const reporter = await deps.findReporter(playerId);
-    return reporter?.isPlatformAdmin ? reporter : null;
+export async function fileProblemReport(
+  playerId: string | null,
+  input: ProblemReportSubmission,
+  fetch: typeof globalThis.fetch = globalThis.fetch,
+): Promise<ProblemReportResult> {
+  let reporter: Reporter | null;
+  try {
+    reporter = await getProblemReporter(playerId);
+  } catch {
+    return LOOKUP_FAILED;
   }
-
-  async function canFile(playerId: string | null): Promise<boolean> {
-    return (await allowedReporter(playerId)) !== null;
+  if (!reporter) return REFUSED;
+  const parsed = ProblemReportSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0].message };
   }
-
-  async function file(
-    playerId: string | null,
-    input: ProblemReportSubmission,
-  ): Promise<ProblemReportResult> {
-    const reporter = await allowedReporter(playerId);
-    if (!reporter) return REFUSED;
-    const parsed = ProblemReportSchema.safeParse(input);
-    if (!parsed.success) {
-      return { ok: false, error: parsed.error.issues[0].message };
-    }
-    const { title, description } = parsed.data;
-    return createIssue({
-      title,
-      body: issueBody(reporter, description, describePageContext(input)),
-      labels: LABELS,
-    });
-  }
-
-  async function createIssue(issue: {
-    title: string;
-    body: string;
-    labels: string[];
-  }): Promise<ProblemReportResult> {
-    let response: Response;
-    try {
-      response = await deps.fetch(ISSUES_URL, {
-        method: "POST",
-        headers: {
-          Accept: "application/vnd.github+json",
-          Authorization: `Bearer ${githubToken()}`,
-          "Content-Type": "application/json",
-          "X-GitHub-Api-Version": "2022-11-28",
-        },
-        body: JSON.stringify(issue),
-      });
-    } catch {
-      return { ok: false, error: "Couldn't reach GitHub. Try again later." };
-    }
-    if (!response.ok) {
-      return {
-        ok: false,
-        error: `GitHub refused the report (${response.status}). Try again later.`,
-      };
-    }
-    const created = (await response.json()) as { html_url: string };
-    return { ok: true, url: created.html_url };
-  }
-
-  return { canFile, file };
+  const { title, description } = parsed.data;
+  return createGitHubIssue(fetch, {
+    title,
+    body: issueBody(reporter, description, describePageContext(input)),
+    labels: LABELS,
+  });
 }
 
 function issueBody(
   reporter: Reporter,
   description: string,
-  page: { path: string; viewport: string },
+  page: { path: string; viewport: number | null },
 ) {
+  const viewport = page.viewport === null ? "unknown" : `${page.viewport}px`;
   return [
     `_Problem reported by **${reporter.name}** (Player \`${reporter.id}\`) on \`${page.path}\`_`,
-    `_\`${shortCommitSha()}\` · viewport ${page.viewport}_`,
+    `_\`${shortCommitSha()}\` · viewport ${viewport}_`,
     "",
     "---",
     "",

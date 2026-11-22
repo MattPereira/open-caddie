@@ -1,7 +1,7 @@
 import { z } from "zod";
 
-export const PROBLEM_REPORT_TITLE_MAX = 200;
-export const PROBLEM_REPORT_DESCRIPTION_MAX = 10_000;
+const PROBLEM_REPORT_TITLE_MAX = 200;
+const PROBLEM_REPORT_DESCRIPTION_MAX = 10_000;
 
 export const ProblemReportSchema = z.object({
   title: z
@@ -18,7 +18,7 @@ export const ProblemReportSchema = z.object({
     .min(1, "Describe what went wrong.")
     .max(
       PROBLEM_REPORT_DESCRIPTION_MAX,
-      "Description must be at most 10,000 characters.",
+      `Description must be at most ${PROBLEM_REPORT_DESCRIPTION_MAX.toLocaleString("en-US")} characters.`,
     ),
 });
 

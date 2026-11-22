@@ -6,6 +6,7 @@ import { ChampionIcon, GolfBallIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
 
 import { EventCard } from "@/components/domain/event-card";
+import { InstallAppBanner } from "@/components/features/install-app/install-app-banner";
 import { PageContent } from "@/components/layout/page-content";
 import { PlayRoundButton } from "@/components/domain/play-round-button";
 import { matchFormatLabel } from "@/modules/matches";
@@ -49,6 +50,7 @@ export default async function Home() {
 
   return (
     <PageContent className="max-w-4xl gap-10">
+      <InstallAppBanner />
       <section className="flex flex-col items-center text-center">
         <div className="relative aspect-21/9 w-full overflow-hidden rounded-xl bg-zinc-900 sm:aspect-3/1">
           <Image

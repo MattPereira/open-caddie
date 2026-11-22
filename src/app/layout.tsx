@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { brandFont } from "@/app/fonts";
 import { siteDescription, siteName } from "@/app/metadata";
+import { darkBackground, lightBackground } from "@/app/theme-colors";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -22,6 +23,11 @@ export const metadata: Metadata = {
   },
   description: siteDescription,
   applicationName: siteName,
+  appleWebApp: {
+    capable: true,
+    title: siteName,
+    statusBarStyle: "default",
+  },
   openGraph: {
     type: "website",
     siteName,
@@ -34,6 +40,13 @@ export const metadata: Metadata = {
     title: siteName,
     description: siteDescription,
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: lightBackground },
+    { media: "(prefers-color-scheme: dark)", color: darkBackground },
+  ],
 };
 
 export default function RootLayout({

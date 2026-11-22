@@ -15,7 +15,7 @@ Read CODING_STANDARDS.md.
   test can call, never inline in a page, layout, route handler or server
   action.
 - Tests ship in this ticket. End with more passing tests than you started
-  with.
+  with, and none failing.
 - The review workflow checks you against the ticket's "Done when". Reread it
   before you stop.
 - `pnpm build` and `pnpm check` must pass too.
@@ -28,10 +28,10 @@ Read CODING_STANDARDS.md.
   request.
 - Leave `.github/` untouched.
 
-Write your summary to /tmp/pr-body.md: what the ticket asked for, what you
-built, what you deliberately left out. When the change shows in the UI, its
-Evidence section holds two dropdowns, `Before` and `After`, each laid out as
-below.
+Write /tmp/pr-body.md in the voice of the `pr` skill: what the ticket asked
+for, what you built, what you deliberately left out. When the change shows in
+the UI, its Evidence section holds two dropdowns, `Before` and `After`, each
+laid out as below.
 
 ## Screenshots
 

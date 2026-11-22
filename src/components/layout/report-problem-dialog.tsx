@@ -59,7 +59,11 @@ export function ReportProblemDialog({
   const onSubmit = (values: ProblemReportInput) => {
     form.clearErrors("root.server");
     startTransition(async () => {
-      const result = await reportProblem(values);
+      const result = await reportProblem({
+        ...values,
+        path: window.location.pathname + window.location.search,
+        viewport: window.innerWidth,
+      });
       if (!result.ok) {
         form.setError("root.server", { type: "server", message: result.error });
         return;

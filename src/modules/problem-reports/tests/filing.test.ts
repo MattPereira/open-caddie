@@ -13,6 +13,8 @@ const ISSUE_URL = "https://github.com/MattPereira/open-caddie/issues/42";
 const REPORT = {
   title: "Scores vanish",
   description: "I entered a score and it disappeared.",
+  path: "/rounds/7?tab=scores",
+  viewport: 390,
 };
 
 function setup({ reporters = [ADMIN] }: { reporters?: Reporter[] } = {}) {
@@ -35,6 +37,10 @@ describe("filing a problem report", () => {
   beforeEach(() => {
     vi.stubEnv("PROBLEM_REPORT_GITHUB_TOKEN", "test-token");
     vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv(
+      "VERCEL_GIT_COMMIT_SHA",
+      "9092a35c1f0e4b7d8a6e2f3b4c5d6e7f8a9b0c1d",
+    );
   });
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -60,7 +66,73 @@ describe("filing a problem report", () => {
     expect(JSON.parse(String(request.init.body))).toEqual({
       title: "Scores vanish",
       labels: ["agent:explore"],
-      body: "_Problem reported by **Ada Lovelace** (Player `admin-1`)_\n\n---\n\nI entered a score and it disappeared.",
+      body: [
+        "_Problem reported by **Ada Lovelace** (Player `admin-1`) on `/rounds/7?tab=scores`_",
+        "_`9092a35` · viewport 390px_",
+        "",
+        "---",
+        "",
+        "I entered a score and it disappeared.",
+      ].join("\n"),
+    });
+  });
+
+  describe("page context", () => {
+    async function sentHeader(context: { path?: unknown; viewport?: unknown }) {
+      const { problemReports, requests } = setup();
+      const result = await problemReports.file(ADMIN.id, {
+        ...REPORT,
+        ...context,
+      } as typeof REPORT);
+      expect(result.ok).toBe(true);
+      const body: string = JSON.parse(String(requests[0].init.body)).body;
+      return body.split("\n").slice(0, 2).join("\n");
+    }
+
+    it.each([
+      { when: "missing", path: undefined },
+      { when: "relative", path: "rounds/7" },
+      { when: "not a string", path: 42 },
+      { when: "over 2,000 characters", path: `/${"x".repeat(2000)}` },
+    ])("shows an invalid path ($when) as unknown", async ({ path }) => {
+      expect(await sentHeader({ path })).toBe(
+        "_Problem reported by **Ada Lovelace** (Player `admin-1`) on `unknown`_\n_`9092a35` · viewport 390px_",
+      );
+    });
+
+    it("keeps a path of exactly 2,000 characters", async () => {
+      const path = `/${"x".repeat(1999)}`;
+      expect(await sentHeader({ path })).toContain(`on \`${path}\`_`);
+    });
+
+    it("strips backticks from the path", async () => {
+      expect(await sentHeader({ path: "/rounds/`7`?q=``a" })).toContain(
+        "on `/rounds/7?q=a`_",
+      );
+    });
+
+    it.each([
+      { when: "missing", viewport: undefined },
+      { when: "zero", viewport: 0 },
+      { when: "negative", viewport: -390 },
+      { when: "fractional", viewport: 390.5 },
+      { when: "over 10,000", viewport: 10_001 },
+      { when: "a string", viewport: "390" },
+    ])("shows an invalid viewport ($when) as unknown", async ({ viewport }) => {
+      expect(await sentHeader({ viewport })).toBe(
+        "_Problem reported by **Ada Lovelace** (Player `admin-1`) on `/rounds/7?tab=scores`_\n_`9092a35` · viewport unknown_",
+      );
+    });
+
+    it.each([1, 10_000])("keeps a viewport of %ipx", async (viewport) => {
+      expect(await sentHeader({ viewport })).toContain(
+        `viewport ${viewport}px_`,
+      );
+    });
+
+    it("shows a missing commit as unknown", async () => {
+      vi.stubEnv("VERCEL_GIT_COMMIT_SHA", undefined);
+      expect(await sentHeader({})).toContain("_`unknown` · viewport 390px_");
     });
   });
 

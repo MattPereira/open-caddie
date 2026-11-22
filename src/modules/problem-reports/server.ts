@@ -1,11 +1,8 @@
 import "server-only";
 
 export {
-  createProblemReports,
+  fileProblemReport,
   type ProblemReportResult,
-  type ProblemReportsDeps,
   type ProblemReportSubmission,
-  type Reporter,
 } from "./lib/filing";
-export { isProblemReportingConfigured } from "./lib/gate";
-export { canFileProblemReport, fileProblemReport } from "./lib/production";
+export { isProblemReporter } from "./lib/reporter";

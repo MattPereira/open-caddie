@@ -25,8 +25,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  PROBLEM_REPORT_DESCRIPTION_MAX,
-  PROBLEM_REPORT_TITLE_MAX,
   ProblemReportSchema,
   type ProblemReportInput,
 } from "@/modules/problem-reports";
@@ -74,14 +72,18 @@ export function ReportProblemDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent
+        className="sm:max-w-lg"
+        {...(issueUrl ? { "aria-describedby": undefined } : {})}
+      >
         <DialogHeader>
           <DialogTitle>Report a problem</DialogTitle>
-          <DialogDescription>
-            {issueUrl
-              ? "Thanks. The report is on GitHub."
-              : "Reports are filed publicly on GitHub, so don't include personal details."}
-          </DialogDescription>
+          {issueUrl ? null : (
+            <DialogDescription>
+              Reports are filed publicly on GitHub, so don&apos;t include
+              personal details.
+            </DialogDescription>
+          )}
         </DialogHeader>
 
         {issueUrl ? (
@@ -124,7 +126,7 @@ export function ReportProblemDialog({
                   <FormItem>
                     <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input maxLength={PROBLEM_REPORT_TITLE_MAX} {...field} />
+                      <Input {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -139,7 +141,6 @@ export function ReportProblemDialog({
                     <FormControl>
                       <Textarea
                         rows={5}
-                        maxLength={PROBLEM_REPORT_DESCRIPTION_MAX}
                         className="max-h-64 overflow-y-auto"
                         {...field}
                       />

@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -72,18 +71,9 @@ export function ReportProblemDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent
-        className="sm:max-w-lg"
-        {...(issueUrl ? { "aria-describedby": undefined } : {})}
-      >
+      <DialogContent className="sm:max-w-lg" aria-describedby={undefined}>
         <DialogHeader>
-          <DialogTitle>Report a problem</DialogTitle>
-          {issueUrl ? null : (
-            <DialogDescription>
-              Reports are filed publicly on GitHub, so don&apos;t include
-              personal details.
-            </DialogDescription>
-          )}
+          <DialogTitle>Report bug</DialogTitle>
         </DialogHeader>
 
         {issueUrl ? (

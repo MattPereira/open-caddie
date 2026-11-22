@@ -107,20 +107,6 @@ export function AppSidebar({
         {player ? (
           <SidebarFooter>
             <SidebarMenu>
-              {canReportProblems ? (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    size="lg"
-                    onClick={() => {
-                      closeMobileSidebar();
-                      setReportingProblem(true);
-                    }}
-                  >
-                    <HugeiconsIcon icon={Bug01Icon} />
-                    <span>Report a problem</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ) : null}
               <SidebarMenuItem>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -184,6 +170,18 @@ export function AppSidebar({
                           </DropdownMenuItem>
                         </DropdownMenuSubContent>
                       </DropdownMenuSub>
+                      {canReportProblems ? (
+                        <DropdownMenuItem
+                          className="py-3 text-lg"
+                          onSelect={() => {
+                            closeMobileSidebar();
+                            setReportingProblem(true);
+                          }}
+                        >
+                          <HugeiconsIcon icon={Bug01Icon} className="size-5" />
+                          Report bug
+                        </DropdownMenuItem>
+                      ) : null}
                     </DropdownMenuGroup>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem

@@ -78,9 +78,9 @@ describe("filing a problem report", () => {
     expect(headers.get("x-github-api-version")).toBe("2022-11-28");
     expect(JSON.parse(String(request.init.body))).toEqual({
       title: "Scores vanish",
-      labels: ["agent:explore"],
+      labels: ["live-bug-report"],
       body: [
-        `_Problem reported by **Ada Lovelace** (Player \`${adminId}\`) on \`/rounds/7?tab=scores\`_`,
+        `_Bug reported by **Ada Lovelace** (Player \`${adminId}\`) on \`/rounds/7?tab=scores\`_`,
         "_`9092a35` · viewport 390px_",
         "",
         "---",
@@ -121,7 +121,7 @@ describe("filing a problem report", () => {
       { when: "over 2,000 characters", path: `/${"x".repeat(2000)}` },
     ])("shows an invalid path ($when) as unknown", async ({ path }) => {
       expect(await sentHeader({ path })).toBe(
-        `_Problem reported by **Ada Lovelace** (Player \`${adminId}\`) on \`unknown\`_\n_\`9092a35\` · viewport 390px_`,
+        `_Bug reported by **Ada Lovelace** (Player \`${adminId}\`) on \`unknown\`_\n_\`9092a35\` · viewport 390px_`,
       );
     });
 
@@ -145,7 +145,7 @@ describe("filing a problem report", () => {
       { when: "a string", viewport: "390" },
     ])("shows an invalid viewport ($when) as unknown", async ({ viewport }) => {
       expect(await sentHeader({ viewport })).toBe(
-        `_Problem reported by **Ada Lovelace** (Player \`${adminId}\`) on \`/rounds/7?tab=scores\`_\n_\`9092a35\` · viewport unknown_`,
+        `_Bug reported by **Ada Lovelace** (Player \`${adminId}\`) on \`/rounds/7?tab=scores\`_\n_\`9092a35\` · viewport unknown_`,
       );
     });
 

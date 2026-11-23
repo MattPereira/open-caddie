@@ -146,3 +146,9 @@ A Player Index scaled to one course's slope — the strokes received on that cou
 **Playing Handicap**:
 The Course Handicap applied to a Round's net strokes, set by its Event: a Tournament Round's comes from its computed Player Index (scratch until it has 2 prior Rounds); a Match Round's from its Player Index Override (scratch if none); a casual Round has none.
 _Avoid_: tournament handicap
+
+## Feedback
+
+**Bug Report**:
+A problem a signed-in Player files from inside Open Caddie, describing what went wrong on the page they were on.
+_Avoid_: problem report, issue (for the report itself)

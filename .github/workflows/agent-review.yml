@@ -147,6 +147,7 @@ jobs:
           persist-credentials: false
 
       - name: Collect the three primary sources
+        id: sources
         env:
           GH_TOKEN: ${{ secrets.FACTORY_PAT }}
         run: |
@@ -163,6 +164,7 @@ jobs:
           gh pr view "$PR_NUMBER" --json body --jq .body > /tmp/pr-body.md
           issue=$(grep -oiE '(closes|fixes|resolves) #[0-9]+' /tmp/pr-body.md \
             | head -n1 | grep -oE '[0-9]+' || true)
+          echo "issue=$issue" >> "$GITHUB_OUTPUT"
           if [ -n "$issue" ]; then
             gh issue view "$issue" --json number,title,body \
               --jq '"# Ticket #" + (.number|tostring) + ": " + .title + "\n\n" + .body' \
@@ -173,14 +175,21 @@ jobs:
           fi
           cat /tmp/review-spec.md
 
-      - name: Copy prod into the database
+      - name: Copy Bug Reports' prod data
+        id: copy-prod
         # From main, never the checkout: see the action.
         uses: MattPereira/open-caddie/.github/actions/copy-prod@main
         with:
+          issues: ${{ steps.sources.outputs.issue && format('[{0}]', steps.sources.outputs.issue) || '[]' }}
+          github-token: ${{ secrets.FACTORY_PAT }}
+          neon-api-key: ${{ secrets.NEON_API_KEY }}
+          neon-project-id: ${{ secrets.NEON_PROJECT_ID }}
           prod-database-url: ${{ secrets.PROD_READONLY_DATABASE_URL }}
 
       - name: Set up the agent run
         uses: ./.github/actions/setup-agent
+        with:
+          bug-reports: ${{ steps.copy-prod.outputs.bug-reports }}
 
       - name: Open the branch
         run: |

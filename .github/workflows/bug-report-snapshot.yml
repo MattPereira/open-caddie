@@ -1,0 +1,123 @@
+name: Bug Report — Snapshot Prod
+
+# WHAT IT DOES
+#   When an issue gets `live-bug-report` (the app files every Bug Report with
+#   it), it creates Neon branch `bug-report/<n>` from prod: a copy-on-write
+#   snapshot of prod as the reporter saw it. Then it adds `agent:explore`, so
+#   explore never starts before the snapshot exists. copy-prod restores the
+#   snapshot for every agent run on the issue.
+#
+#   When the issue closes, it deletes the snapshots the issue used, unless an
+#   open issue still uses one (a survivor whose duplicate it was).
+#
+#   Why only Bug Reports see prod at all: see .github/actions/copy-prod.
+#
+# WHAT IT NEEDS
+#   secrets.NEON_API_KEY — creates and deletes branches on prod's project.
+#   secrets.NEON_PROJECT_ID — prod's Neon project. Prod is its default branch.
+#   secrets.FACTORY_PAT — adds `agent:explore`. The built-in GITHUB_TOKEN
+#     can't: a label it adds does not start agent-explore.yml.
+
+on:
+  issues:
+    types: [labeled, closed]
+
+permissions: {}
+
+concurrency:
+  # Other labels get their own group: a pending run in a shared one would be
+  # replaced by theirs.
+  group: ${{ (github.event.action == 'closed' || github.event.label.name == 'live-bug-report') && format('bug-report-snapshot-{0}', github.event.issue.number) || format('ignore-{0}', github.run_id) }}
+  cancel-in-progress: false
+
+env:
+  GH_TOKEN: ${{ secrets.FACTORY_PAT }}
+  GH_REPO: ${{ github.repository }}
+  ISSUE_NUMBER: ${{ github.event.issue.number }}
+  NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+  NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+
+jobs:
+  snapshot:
+    if: github.event.action == 'labeled' && github.event.label.name == 'live-bug-report'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Snapshot prod and hand the issue to explore
+        run: |
+          set -euo pipefail
+          branch="bug-report/$ISSUE_NUMBER"
+          neon() {
+            curl -fsS -H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json" \
+              -H "Content-Type: application/json" "$@"
+          }
+          api="https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID"
+
+          # A survivor given the label by explore's apply job already uses a
+          # duplicate's snapshot, and is past explore.
+          comments=$(gh api --paginate "repos/$GH_REPO/issues/$ISSUE_NUMBER/comments" --jq '.[].body')
+          if grep -qF '<!-- factory:snapshot bug-report/' <<< "$comments"; then
+            echo "#$ISSUE_NUMBER uses another issue's snapshot. Nothing to do."
+            exit 0
+          fi
+
+          existing=$(neon "$api/branches?search=$(jq -rn --arg s "$branch" '$s|@uri')" \
+            | jq -r --arg name "$branch" '[.branches[] | select(.name == $name)][0].id // empty')
+          if [ -n "$existing" ]; then
+            echo "$branch already exists. Nothing to do."
+            exit 0
+          fi
+
+          # No parent_id: the project's default branch, prod. The compute
+          # suspends when idle; copy-prod's pg_dump wakes it.
+          neon -X POST "$api/branches" \
+            -d "$(jq -n --arg name "$branch" \
+              '{branch: {name: $name}, endpoints: [{type: "read_write"}]}')" > /dev/null
+          echo "Created $branch."
+
+          gh label create "agent:explore" --color 5319E7 \
+            --description "The factory explores this ticket" || true
+          gh issue edit "$ISSUE_NUMBER" --add-label "agent:explore"
+
+  cleanup:
+    if: github.event.action == 'closed' && contains(github.event.issue.labels.*.name, 'live-bug-report')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Delete the snapshots nobody open uses
+        run: |
+          set -euo pipefail
+          neon() {
+            curl -fsS -H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json" "$@"
+          }
+          api="https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID"
+          markers() {
+            gh api --paginate "repos/$GH_REPO/issues/$1/comments" --jq '.[].body' \
+              | grep -oE '<!-- factory:snapshot bug-report/[0-9]+ -->' \
+              | grep -oE 'bug-report/[0-9]+' || true
+          }
+
+          candidates=$( { echo "bug-report/$ISSUE_NUMBER"; markers "$ISSUE_NUMBER"; } | sort -u)
+
+          in_use=$(
+            for m in $(gh issue list --state open --label live-bug-report --limit 200 \
+                --json number --jq '.[].number'); do
+              echo "bug-report/$m"
+              markers "$m"
+            done | sort -u
+          )
+
+          for branch in $candidates; do
+            if grep -qxF "$branch" <<< "$in_use"; then
+              echo "$branch is still used by an open issue. Keeping it."
+              continue
+            fi
+            id=$(neon "$api/branches?search=$(jq -rn --arg s "$branch" '$s|@uri')" \
+              | jq -r --arg name "$branch" '[.branches[] | select(.name == $name)][0].id // empty')
+            if [ -z "$id" ]; then
+              echo "$branch does not exist."
+              continue
+            fi
+            neon -X DELETE "$api/branches/$id" > /dev/null
+            echo "Deleted $branch."
+          done

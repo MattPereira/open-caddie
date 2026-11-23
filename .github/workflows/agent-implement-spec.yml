@@ -259,7 +259,7 @@ jobs:
     timeout-minutes: 30
 
     services:
-      # Decompose writes no code, but the setup action copies prod into
+      # Decompose writes no code, but the setup action migrates and seeds
       # this DB, and the agent runs the app on it to screenshot a ticket.
       postgres:
         image: postgres:18
@@ -296,12 +296,6 @@ jobs:
           gh issue view "$SPEC" --json number,title,body \
             --jq '"# " + .title + "\n\n" + .body' > /tmp/spec.md
           cat /tmp/spec.md
-
-      - name: Copy prod into the database
-        # From main, never the checkout: see the action.
-        uses: MattPereira/open-caddie/.github/actions/copy-prod@main
-        with:
-          prod-database-url: ${{ secrets.PROD_READONLY_DATABASE_URL }}
 
       - name: Set up the agent run
         uses: ./.github/actions/setup-agent
@@ -418,12 +412,6 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-
-      - name: Copy prod into the database
-        # From main, never the checkout: see the action.
-        uses: MattPereira/open-caddie/.github/actions/copy-prod@main
-        with:
-          prod-database-url: ${{ secrets.PROD_READONLY_DATABASE_URL }}
 
       - name: Set up the agent run
         uses: ./.github/actions/setup-agent

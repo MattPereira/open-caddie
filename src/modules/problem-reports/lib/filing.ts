@@ -9,7 +9,8 @@ import {
 import { ProblemReportSchema, type ProblemReportInput } from "./report-schema";
 import { getProblemReporter, type Reporter } from "./reporter";
 
-const LABELS = ["agent:explore"];
+// Not agent:explore: bug-report-snapshot.yml adds that once prod is snapshotted.
+const LABELS = ["live-bug-report"];
 const REFUSED = {
   ok: false,
   error: "You can't report problems here.",
@@ -50,7 +51,7 @@ export async function fileProblemReport(
 function issueBody(reporter: Reporter, description: string, page: PageContext) {
   const viewport = page.viewport === null ? "unknown" : `${page.viewport}px`;
   return [
-    `_Problem reported by **${reporter.name}** (Player \`${reporter.id}\`) on \`${page.path}\`_`,
+    `_Bug reported by **${reporter.name}** (Player \`${reporter.id}\`) on \`${page.path}\`_`,
     `_\`${shortCommitSha()}\` · viewport ${viewport}_`,
     "",
     "---",

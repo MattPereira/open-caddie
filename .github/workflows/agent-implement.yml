@@ -147,14 +147,21 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Copy prod into the database
+      - name: Copy Bug Reports' prod data
+        id: copy-prod
         # From main, never the checkout: see the action.
         uses: MattPereira/open-caddie/.github/actions/copy-prod@main
         with:
+          issues: "[${{ github.event.issue.number }}]"
+          github-token: ${{ secrets.FACTORY_PAT }}
+          neon-api-key: ${{ secrets.NEON_API_KEY }}
+          neon-project-id: ${{ secrets.NEON_PROJECT_ID }}
           prod-database-url: ${{ secrets.PROD_READONLY_DATABASE_URL }}
 
       - name: Set up the agent run
         uses: ./.github/actions/setup-agent
+        with:
+          bug-reports: ${{ steps.copy-prod.outputs.bug-reports }}
 
       - name: Open the branch
         id: branch

@@ -36,7 +36,7 @@ name: Agent — Implement A Ticket
 #     hops need it anyway — by default the built-in GITHUB_TOKEN cannot open a
 #     pull request at all, and a label it applies starts no workflow. That
 #     second hop is `agent:review`, the label that starts the reviewer.
-#   secrets.NEON_API_KEY, secrets.NEON_PROJECT_ID and
+#   secrets.NEON_API_KEY, vars.NEON_PROJECT_ID and
 #     secrets.PROD_READONLY_DATABASE_URL — restore-bug-report-snapshots restores each Bug
 #     Report's prod snapshot with them. See .github/actions/restore-bug-report-snapshots.
 #   secrets.GITHUB_TOKEN — supplied by Actions, and now used for one thing:
@@ -158,7 +158,7 @@ jobs:
           issues: "[${{ github.event.issue.number }}]"
           github-token: ${{ secrets.FACTORY_PAT }}
           neon-api-key: ${{ secrets.NEON_API_KEY }}
-          neon-project-id: ${{ secrets.NEON_PROJECT_ID }}
+          neon-project-id: ${{ vars.NEON_PROJECT_ID }}
           prod-database-url: ${{ secrets.PROD_READONLY_DATABASE_URL }}
 
       - name: Set up the agent run

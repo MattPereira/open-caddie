@@ -34,7 +34,7 @@ inputs:
     description: secrets.NEON_API_KEY, to find the snapshot branches.
     required: true
   neon-project-id:
-    description: secrets.NEON_PROJECT_ID, prod's Neon project.
+    description: vars.NEON_PROJECT_ID, prod's Neon project.
     required: true
   prod-database-url:
     description: secrets.PROD_READONLY_DATABASE_URL, a read-only login on prod.

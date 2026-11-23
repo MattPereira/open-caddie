@@ -55,7 +55,7 @@ name: Agent — Review A Pull Request
 #     environment is tidiness, not a wall: the agent shares the machine with
 #     the steps that push and post. The real defence is who can reach the
 #     agent — same-repo PRs only, and a label only a collaborator can apply.
-#   secrets.NEON_API_KEY, secrets.NEON_PROJECT_ID and
+#   secrets.NEON_API_KEY, vars.NEON_PROJECT_ID and
 #     secrets.PROD_READONLY_DATABASE_URL — restore-bug-report-snapshots restores each Bug
 #     Report's prod snapshot with them. See .github/actions/restore-bug-report-snapshots.
 #   secrets.GITHUB_TOKEN — supplied by Actions, used only for the checkout.
@@ -186,7 +186,7 @@ jobs:
           issues: ${{ steps.sources.outputs.issue && format('[{0}]', steps.sources.outputs.issue) || '[]' }}
           github-token: ${{ secrets.FACTORY_PAT }}
           neon-api-key: ${{ secrets.NEON_API_KEY }}
-          neon-project-id: ${{ secrets.NEON_PROJECT_ID }}
+          neon-project-id: ${{ vars.NEON_PROJECT_ID }}
           prod-database-url: ${{ secrets.PROD_READONLY_DATABASE_URL }}
 
       - name: Set up the agent run

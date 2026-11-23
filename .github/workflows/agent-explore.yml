@@ -75,7 +75,7 @@ name: Agent — Explore The Tickets
 #     explore to implement is exactly the loop we do want, so `agent:implement`
 #     has to go on with a token that is not the built-in one — and once that
 #     token is in the room, the factory uses it for everything.
-#   secrets.NEON_API_KEY, secrets.NEON_PROJECT_ID and
+#   secrets.NEON_API_KEY, vars.NEON_PROJECT_ID and
 #     secrets.PROD_READONLY_DATABASE_URL — restore-bug-report-snapshots restores each Bug
 #     Report's prod snapshot with them. See .github/actions/restore-bug-report-snapshots.
 #   secrets.GITHUB_TOKEN — supplied by Actions, and used only to check the
@@ -195,7 +195,7 @@ jobs:
           issues: ${{ steps.batch.outputs.numbers }}
           github-token: ${{ secrets.FACTORY_PAT }}
           neon-api-key: ${{ secrets.NEON_API_KEY }}
-          neon-project-id: ${{ secrets.NEON_PROJECT_ID }}
+          neon-project-id: ${{ vars.NEON_PROJECT_ID }}
           prod-database-url: ${{ secrets.PROD_READONLY_DATABASE_URL }}
 
       - name: Set up the agent run

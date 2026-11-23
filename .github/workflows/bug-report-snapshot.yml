@@ -18,7 +18,7 @@ name: Bug Report — Snapshot Prod
 #       gh label create "live-bug-report" --color 0E8A16 \
 #         --description "Filed from the app. Agents see prod as it was when reported"
 #   secrets.NEON_API_KEY — creates and deletes branches on prod's project.
-#   secrets.NEON_PROJECT_ID — prod's Neon project. Prod is its default branch.
+#   vars.NEON_PROJECT_ID — prod's Neon project. Prod is its default branch.
 #   secrets.FACTORY_PAT — adds `agent:explore`. The built-in GITHUB_TOKEN
 #     can't: a label it adds does not start agent-explore.yml.
 
@@ -39,7 +39,7 @@ env:
   GH_REPO: ${{ github.repository }}
   ISSUE_NUMBER: ${{ github.event.issue.number }}
   NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-  NEON_PROJECT_ID: ${{ secrets.NEON_PROJECT_ID }}
+  NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
 
 jobs:
   snapshot:

@@ -52,7 +52,7 @@ runs:
       # (src/seed/world.ts) for the agent to render and screenshot, so it
       # never writes its own rows. Each Bug Report's database gets the
       # branch's migrations on top of prod's, as a deploy would apply them.
-      # See docs/agents/agent-browser.md.
+      # See docs/agents/agent-browser.md and docs/agents/live-bug-report.md.
       shell: bash
       env:
         BUG_REPORTS: ${{ inputs.bug-reports }}

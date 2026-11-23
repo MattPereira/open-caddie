@@ -1,21 +1,23 @@
 "use client";
 
-import { SmartPhone01Icon } from "@hugeicons/core-free-icons";
+import {
+  Cancel01Icon,
+  PlusSignIcon,
+  SquareArrowUp02Icon,
+  Tick02Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 
-import { Button } from "@/components/ui/button";
 import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemMedia,
-  ItemTitle,
-} from "@/components/ui/item";
+  Alert,
+  AlertAction,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
-  PopoverDescription,
   PopoverHeader,
   PopoverTitle,
   PopoverTrigger,
@@ -23,52 +25,75 @@ import {
 
 import { useInstallBanner } from "./use-install-banner";
 
+const IOS_STEPS = [
+  { icon: SquareArrowUp02Icon, text: "Tap Share in the browser toolbar" },
+  { icon: PlusSignIcon, text: "Choose Add to Home Screen" },
+  { icon: Tick02Icon, text: "Tap Add, top right" },
+];
+
 export function InstallAppBanner() {
-  const { mode, install, markInstalledOnIos } = useInstallBanner();
+  const { mode, install, dismiss } = useInstallBanner();
 
   if (mode === "hidden") return null;
 
   return (
-    <Item variant="outline">
-      <ItemMedia variant="icon">
-        <HugeiconsIcon icon={SmartPhone01Icon} className="size-5" />
-      </ItemMedia>
-      <ItemContent>
-        <ItemTitle>Install Open Caddie</ItemTitle>
-        <ItemDescription>
-          Add it to your home screen for one-tap scoring on the course.
-        </ItemDescription>
-      </ItemContent>
-      <ItemActions className="w-full justify-end">
+    <Alert
+      variant="default"
+      icon={null}
+      // Alert reserves right padding for its action on every row; only the
+      // title row needs it, so the Install button can span the full width.
+      className="has-data-[slot=alert-action]:pr-2.5"
+    >
+      <AlertTitle className="pr-8">Install mobile app</AlertTitle>
+      <AlertDescription>
+        For full screen experience with push notifications and offline mode
+      </AlertDescription>
+      <AlertAction className="top-1">
+        <Button
+          size="icon-sm"
+          variant="ghost"
+          onClick={dismiss}
+          aria-label="Dismiss"
+        >
+          <HugeiconsIcon icon={Cancel01Icon} />
+        </Button>
+      </AlertAction>
+      <div className="col-span-full mt-2">
         {mode === "prompt" ? (
-          <Button size="sm" onClick={install}>
+          <Button size="lg" className="w-full" onClick={install}>
             Install
           </Button>
         ) : (
-          <>
-            <Button size="sm" variant="ghost" onClick={markInstalledOnIos}>
-              Already installed
-            </Button>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button size="sm">Install</Button>
-              </PopoverTrigger>
-              <PopoverContent align="end">
-                <PopoverHeader>
-                  <PopoverTitle>Add to Home Screen</PopoverTitle>
-                  <PopoverDescription>
-                    1. Tap the Share button in the browser toolbar.
-                    <br />
-                    2. Scroll down and tap Add to Home Screen.
-                    <br />
-                    3. Tap Add.
-                  </PopoverDescription>
-                </PopoverHeader>
-              </PopoverContent>
-            </Popover>
-          </>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="lg" className="w-full">
+                Install
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="flex flex-col gap-3">
+              <PopoverHeader>
+                <PopoverTitle>Add to Home Screen</PopoverTitle>
+              </PopoverHeader>
+              <ol className="flex flex-col gap-3">
+                {IOS_STEPS.map((step, index) => (
+                  <li key={step.text} className="flex items-center gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+                      <HugeiconsIcon icon={step.icon} className="size-5" />
+                    </span>
+                    <span className="text-sm">
+                      <span className="mr-1 font-semibold">{index + 1}.</span>
+                      {step.text}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+              <Button variant="ghost" size="sm" onClick={dismiss}>
+                Already installed
+              </Button>
+            </PopoverContent>
+          </Popover>
         )}
-      </ItemActions>
-    </Item>
+      </div>
+    </Alert>
   );
 }

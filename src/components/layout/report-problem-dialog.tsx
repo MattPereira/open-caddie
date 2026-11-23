@@ -78,8 +78,8 @@ export function ReportProblemDialog({
 
         {issueUrl ? (
           <>
-            <p className="text-sm">
-              Issue filed:{" "}
+            <div className="flex flex-col gap-2 text-sm">
+              <p>Thank you for helping to improve Open Caddie!</p>
               <a
                 href={issueUrl}
                 target="_blank"
@@ -88,7 +88,7 @@ export function ReportProblemDialog({
               >
                 {issueUrl}
               </a>
-            </p>
+            </div>
             <DialogFooter>
               <Button type="button" onClick={() => handleOpenChange(false)}>
                 Close

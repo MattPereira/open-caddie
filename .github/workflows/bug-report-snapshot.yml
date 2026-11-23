@@ -3,7 +3,8 @@ name: Bug Report — Snapshot Prod
 # WHAT IT DOES
 #   When an issue gets `live-bug-report` (the app files every Bug Report with
 #   it), it creates Neon branch `bug-report/<n>` from prod: a copy-on-write
-#   snapshot of prod as the reporter saw it. Then it adds `agent:explore`, so
+#   snapshot of prod as the reporter saw it, and comments a Neon console link
+#   to it. Then it adds `agent:explore`, so
 #   explore never starts before the snapshot exists. restore-bug-report-snapshots restores the
 #   snapshot for every agent run on the issue.
 #
@@ -75,15 +76,25 @@ jobs:
           else
             # No parent_id: the project's default branch, prod. The compute
             # suspends when idle; restore-bug-report-snapshots's pg_dump wakes it.
-            neon -X POST "$api/branches" \
+            created=$(neon -X POST "$api/branches" \
               -d "$(jq -n --arg name "$branch" \
-                '{branch: {name: $name}, endpoints: [{type: "read_write"}]}')" > /dev/null
+                '{branch: {name: $name}, endpoints: [{type: "read_write"}]}')" \
+              | jq -r '.branch.id')
             echo "Created $branch."
           fi
 
           gh label create "agent:explore" --color 5319E7 \
             --description "The factory explores this ticket" || true
           gh issue edit "$ISSUE_NUMBER" --add-label "agent:explore"
+
+          # Only on creation, so a retry doesn't repeat it. A failed comment
+          # mustn't block the issue: explore is already on its way.
+          if [ -n "${created:-}" ]; then
+            gh issue comment "$ISSUE_NUMBER" --body "Snapshotted prod for this Bug Report: [\`$branch\`](https://console.neon.tech/app/projects/$NEON_PROJECT_ID/branches/$created). Explore runs on it next.
+
+          <!-- factory:status -->" \
+              || echo "::warning::Couldn't comment on #$ISSUE_NUMBER."
+          fi
 
       - name: Say the snapshot failed
         if: failure()

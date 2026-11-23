@@ -36,6 +36,9 @@ name: Agent — Implement A Ticket
 #     hops need it anyway — by default the built-in GITHUB_TOKEN cannot open a
 #     pull request at all, and a label it applies starts no workflow. That
 #     second hop is `agent:review`, the label that starts the reviewer.
+#   secrets.NEON_API_KEY, secrets.NEON_PROJECT_ID and
+#     secrets.PROD_READONLY_DATABASE_URL — copy-prod restores each Bug
+#     Report's prod snapshot with them. See .github/actions/copy-prod.
 #   secrets.GITHUB_TOKEN — supplied by Actions, and now used for one thing:
 #     the checkout. The `permissions:` block below shrinks it to match.
 #   The `agent:implement` label. A fresh clone of this repository does not

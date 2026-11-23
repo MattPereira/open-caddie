@@ -13,6 +13,10 @@ name: Bug Report — Snapshot Prod
 #   Why only Bug Reports see prod at all: see .github/actions/copy-prod.
 #
 # WHAT IT NEEDS
+#   The `live-bug-report` label. Explore's apply job creates it; on a fresh
+#     clone, file one Bug Report or create it once:
+#       gh label create "live-bug-report" --color 0E8A16 \
+#         --description "Filed from the app. Agents see prod as it was when reported"
 #   secrets.NEON_API_KEY — creates and deletes branches on prod's project.
 #   secrets.NEON_PROJECT_ID — prod's Neon project. Prod is its default branch.
 #   secrets.FACTORY_PAT — adds `agent:explore`. The built-in GITHUB_TOKEN
@@ -63,21 +67,35 @@ jobs:
 
           existing=$(neon "$api/branches?search=$(jq -rn --arg s "$branch" '$s|@uri')" \
             | jq -r --arg name "$branch" '[.branches[] | select(.name == $name)][0].id // empty')
+          # Existing: keep the report-time snapshot. Still hand the issue to
+          # explore, so re-adding the label retries a run that failed after
+          # the branch was made.
           if [ -n "$existing" ]; then
-            echo "$branch already exists. Nothing to do."
-            exit 0
+            echo "$branch already exists. Keeping it."
+          else
+            # No parent_id: the project's default branch, prod. The compute
+            # suspends when idle; copy-prod's pg_dump wakes it.
+            neon -X POST "$api/branches" \
+              -d "$(jq -n --arg name "$branch" \
+                '{branch: {name: $name}, endpoints: [{type: "read_write"}]}')" > /dev/null
+            echo "Created $branch."
           fi
-
-          # No parent_id: the project's default branch, prod. The compute
-          # suspends when idle; copy-prod's pg_dump wakes it.
-          neon -X POST "$api/branches" \
-            -d "$(jq -n --arg name "$branch" \
-              '{branch: {name: $name}, endpoints: [{type: "read_write"}]}')" > /dev/null
-          echo "Created $branch."
 
           gh label create "agent:explore" --color 5319E7 \
             --description "The factory explores this ticket" || true
           gh issue edit "$ISSUE_NUMBER" --add-label "agent:explore"
+
+      - name: Say the snapshot failed
+        if: failure()
+        env:
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create "agent:blocked" --color B60205 \
+            --description "An agent run failed here. Its comment says how to retry" || true
+          gh issue edit "$ISSUE_NUMBER" --add-label "agent:blocked"
+          gh issue comment "$ISSUE_NUMBER" --body "Couldn't snapshot prod for this Bug Report, so explore hasn't started. Remove and re-add \`live-bug-report\` to retry. [Logs]($RUN_URL)
+
+          <!-- factory:status -->"
 
   cleanup:
     if: github.event.action == 'closed' && contains(github.event.issue.labels.*.name, 'live-bug-report')

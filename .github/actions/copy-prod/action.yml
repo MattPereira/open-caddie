@@ -21,7 +21,7 @@ description: >-
 # Why from main, and why first: this step holds prod and Neon credentials.
 # Taken from the checkout, a pull request could rewrite it to print them. Run
 # after the branch's code, that code could have planted BASH_ENV or a shim on
-# PATH that runs here. It runs only gh, curl, jq and docker.
+# PATH that runs here. It runs only the runner's own tools and docker.
 
 inputs:
   issues:
@@ -74,9 +74,9 @@ runs:
 
           # A survivor of a duplicate carries the duplicate's snapshot as a
           # marker (agent-explore.yml's apply job). The newest marker wins.
-          branch=$(gh api --paginate "repos/$GH_REPO/issues/$n/comments" --jq '.[].body' \
-            | grep -oE '<!-- factory:snapshot bug-report/[0-9]+ -->' | tail -n1 \
-            | grep -oE 'bug-report/[0-9]+' || echo "bug-report/$n")
+          comments=$(gh api --paginate "repos/$GH_REPO/issues/$n/comments" --jq '.[].body')
+          branch=$(grep -oE '<!-- factory:snapshot bug-report/[0-9]+ -->' <<< "$comments" \
+            | tail -n1 | grep -oE 'bug-report/[0-9]+' || echo "bug-report/$n")
 
           branch_id=$(neon "/branches?search=$(jq -rn --arg s "$branch" '$s|@uri')" \
             | jq -r --arg name "$branch" '[.branches[] | select(.name == $name)][0].id // empty')
@@ -87,20 +87,22 @@ runs:
           if [ -n "$host" ]; then
             # A branch inherits prod's roles and passwords, so prod's login
             # works on the snapshot's host.
-            source_url=$(sed -E "s#@[^/?]+#@$host#" <<< "$PROD_DATABASE_URL")
+            SOURCE_URL=$(sed -E "s#@[^/?]+#@$host#" <<< "$PROD_DATABASE_URL")
             echo "#$n: restoring snapshot $branch"
           else
-            source_url="$PROD_DATABASE_URL"
+            SOURCE_URL="$PROD_DATABASE_URL"
             echo "::warning::#$n: no snapshot $branch, so restoring prod as it is now."
           fi
 
-          target_url="${DATABASE_URL%/*}/open_caddie_bug_$n"
+          # Exported and passed to docker by name, so the credential stays off
+          # its command line.
+          export SOURCE_URL
+          export TARGET_URL="${DATABASE_URL%/*}/open_caddie_bug_$n" DB="open_caddie_bug_$n"
           # pg_dump runs in the Postgres 18 image because the runner's client
           # is older than prod. Auth tables come over empty: they hold live
           # Google tokens and sessions.
           docker run --rm --network host \
-            -e SOURCE_URL="$source_url" -e DATABASE_URL -e TARGET_URL="$target_url" \
-            -e DB="open_caddie_bug_$n" postgres:18 sh -c '
+            -e SOURCE_URL -e DATABASE_URL -e TARGET_URL -e DB postgres:18 sh -c '
               set -e
               psql -q -v ON_ERROR_STOP=1 "$DATABASE_URL" -c "create database $DB"
               psql -q -v ON_ERROR_STOP=1 "$TARGET_URL" -c "drop schema public cascade"

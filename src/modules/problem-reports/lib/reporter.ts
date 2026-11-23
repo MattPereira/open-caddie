@@ -14,7 +14,8 @@ export async function getProblemReporter(
 ): Promise<Reporter | null> {
   if (!isProblemReportingConfigured() || !playerId) return null;
   const player = await getPlayerById(playerId);
-  // Reports land labelled `agent:explore` and reach the explore agent without
+  // Reports are labelled `live-bug-report`, then `agent:explore` once prod is
+  // snapshotted, and reach the explore agent without
   // the repo owner reviewing them, so Platform Admins are trusted like
   // collaborators here. Do not widen sending beyond them without revisiting
   // that trust (see #218).

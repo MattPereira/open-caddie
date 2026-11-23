@@ -75,6 +75,9 @@ name: Agent — Explore The Tickets
 #     explore to implement is exactly the loop we do want, so `agent:implement`
 #     has to go on with a token that is not the built-in one — and once that
 #     token is in the room, the factory uses it for everything.
+#   secrets.NEON_API_KEY, secrets.NEON_PROJECT_ID and
+#     secrets.PROD_READONLY_DATABASE_URL — copy-prod restores each Bug
+#     Report's prod snapshot with them. See .github/actions/copy-prod.
 #   secrets.GITHUB_TOKEN — supplied by Actions, and used only to check the
 #     code out. Scoped per job below.
 #   The `agent:explore` label. A fresh clone of this repository does not have

@@ -55,6 +55,9 @@ name: Agent — Review A Pull Request
 #     environment is tidiness, not a wall: the agent shares the machine with
 #     the steps that push and post. The real defence is who can reach the
 #     agent — same-repo PRs only, and a label only a collaborator can apply.
+#   secrets.NEON_API_KEY, secrets.NEON_PROJECT_ID and
+#     secrets.PROD_READONLY_DATABASE_URL — copy-prod restores each Bug
+#     Report's prod snapshot with them. See .github/actions/copy-prod.
 #   secrets.GITHUB_TOKEN — supplied by Actions, used only for the checkout.
 #   The `agent:review` label. A fresh clone of this repository does not have
 #     it, and no workflow can create the label that starts it. Create it once:

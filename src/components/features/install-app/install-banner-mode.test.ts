@@ -10,7 +10,7 @@ const androidChromeReadyToInstall: InstallEnvironment = {
   isTouchDevice: true,
   isIos: false,
   canPrompt: true,
-  iosMarkedInstalled: false,
+  dismissed: false,
 };
 
 describe("getInstallBannerMode", () => {
@@ -36,6 +36,12 @@ describe("getInstallBannerMode", () => {
     ).toBe("hidden");
   });
 
+  it("hides the banner once the user dismisses it", () => {
+    expect(
+      getInstallBannerMode({ ...androidChromeReadyToInstall, dismissed: true }),
+    ).toBe("hidden");
+  });
+
   it("hides the banner off iOS when the browser never offers an install prompt", () => {
     expect(
       getInstallBannerMode({
@@ -51,17 +57,17 @@ describe("getInstallBannerMode", () => {
       isTouchDevice: true,
       isIos: true,
       canPrompt: false,
-      iosMarkedInstalled: false,
+      dismissed: false,
     };
 
     it("shows Add to Home Screen instructions", () => {
       expect(getInstallBannerMode(iosSafari)).toBe("ios-instructions");
     });
 
-    it("hides the banner once the user says it is already installed", () => {
-      expect(
-        getInstallBannerMode({ ...iosSafari, iosMarkedInstalled: true }),
-      ).toBe("hidden");
+    it("hides the banner once the user dismisses it or says it is installed", () => {
+      expect(getInstallBannerMode({ ...iosSafari, dismissed: true })).toBe(
+        "hidden",
+      );
     });
 
     it("hides the banner when opened from the Home Screen", () => {

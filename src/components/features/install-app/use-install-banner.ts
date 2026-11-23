@@ -13,7 +13,7 @@ import {
   type InstallBannerMode,
 } from "./install-banner-mode";
 
-const IOS_MARKED_INSTALLED_KEY = "opencaddie:iosMarkedInstalled";
+const DISMISSED_KEY = "opencaddie:installBannerDismissed";
 
 const neverChanges = () => () => {};
 
@@ -44,8 +44,8 @@ function isIos() {
   );
 }
 
-function iosMarkedInstalled() {
-  return window.localStorage.getItem(IOS_MARKED_INSTALLED_KEY) === "true";
+function isDismissed() {
+  return window.localStorage.getItem(DISMISSED_KEY) === "true";
 }
 
 // `null` on the server and during hydration, so the banner renders only once
@@ -60,23 +60,20 @@ function useBrowserFlag(
 export function useInstallBanner(): {
   mode: InstallBannerMode;
   install: () => Promise<void>;
-  markInstalledOnIos: () => void;
+  dismiss: () => void;
 } {
   const standalone = useBrowserFlag(isStandalone);
   const touchDevice = useBrowserFlag(isTouchDevice);
   const ios = useBrowserFlag(isIos);
-  const markedInstalled = useBrowserFlag(
-    iosMarkedInstalled,
-    subscribeToStorage,
-  );
+  const dismissed = useBrowserFlag(isDismissed, subscribeToStorage);
   const canPrompt = useSyncExternalStore(
     subscribeToInstallPrompt,
     hasInstallPrompt,
     () => false,
   );
 
-  const markInstalledOnIos = useCallback(() => {
-    window.localStorage.setItem(IOS_MARKED_INSTALLED_KEY, "true");
+  const dismiss = useCallback(() => {
+    window.localStorage.setItem(DISMISSED_KEY, "true");
     window.dispatchEvent(new StorageEvent("storage"));
   }, []);
 
@@ -84,15 +81,15 @@ export function useInstallBanner(): {
     standalone === null ||
     touchDevice === null ||
     ios === null ||
-    markedInstalled === null
+    dismissed === null
       ? "hidden"
       : getInstallBannerMode({
           isStandalone: standalone,
           isTouchDevice: touchDevice,
           isIos: ios,
           canPrompt,
-          iosMarkedInstalled: markedInstalled,
+          dismissed,
         });
 
-  return { mode, install: showInstallPrompt, markInstalledOnIos };
+  return { mode, install: showInstallPrompt, dismiss };
 }

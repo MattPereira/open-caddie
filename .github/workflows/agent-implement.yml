@@ -147,10 +147,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Set up the agent run
-        uses: ./.github/actions/setup-agent
+      - name: Copy prod into the database
+        # From main, never the checkout: see the action.
+        uses: MattPereira/open-caddie/.github/actions/copy-prod@main
         with:
           prod-database-url: ${{ secrets.PROD_READONLY_DATABASE_URL }}
+
+      - name: Set up the agent run
+        uses: ./.github/actions/setup-agent
 
       - name: Open the branch
         id: branch

@@ -66,15 +66,7 @@ function clientErrorsSection(errors: ClientError[]) {
     ({ at, kind, digest, message }) =>
       `${at} ${kind}${digest ? ` digest ${digest}` : ""}: ${message}`,
   );
-  // Longer than any backtick run inside, so an error can't close the block.
-  const longestRun = Math.max(
-    0,
-    ...(lines
-      .join("\n")
-      .match(/`+/g)
-      ?.map((run) => run.length) ?? []),
-  );
-  const fence = "`".repeat(Math.max(3, longestRun + 1));
+  const fence = fenceFor(lines);
   return [
     "",
     "---",
@@ -85,4 +77,11 @@ function clientErrorsSection(errors: ClientError[]) {
     ...lines,
     fence,
   ];
+}
+
+/** Longer than any backtick run inside, so an error can't close the block. */
+function fenceFor(lines: string[]) {
+  const runs = lines.join("\n").match(/`+/g) ?? [];
+  const longest = Math.max(0, ...runs.map((run) => run.length));
+  return "`".repeat(Math.max(3, longest + 1));
 }

@@ -182,11 +182,16 @@ jobs:
             gh issue edit "$n" --add-label "agent:in-progress"
           done
 
+      - name: Copy prod into the database
+        if: steps.batch.outputs.numbers != '[]'
+        # From main, never the checkout: see the action.
+        uses: MattPereira/open-caddie/.github/actions/copy-prod@main
+        with:
+          prod-database-url: ${{ secrets.PROD_READONLY_DATABASE_URL }}
+
       - name: Set up the agent run
         if: steps.batch.outputs.numbers != '[]'
         uses: ./.github/actions/setup-agent
-        with:
-          prod-database-url: ${{ secrets.PROD_READONLY_DATABASE_URL }}
 
       - name: Explore
         if: steps.batch.outputs.numbers != '[]'

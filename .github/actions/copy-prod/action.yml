@@ -1,0 +1,43 @@
+name: Copy prod into the database
+description: >-
+  Replaces the job's Postgres service's data with a copy of prod's, so the
+  agent sees what broke, not a stand-in. Run it from main
+  (MattPereira/open-caddie/.github/actions/copy-prod@main), before any step
+  runs the branch's code, then migrate. The job must set DATABASE_URL.
+
+# Why from main, and why first: this step holds a prod credential. Taken from
+# the checkout, a pull request could rewrite it to print the secret. Run after
+# the branch's code, that code could have planted BASH_ENV or a `docker` on
+# PATH that runs here. It runs only `docker`, and the migrate after it gets no
+# secret.
+
+inputs:
+  prod-database-url:
+    description: secrets.PROD_READONLY_DATABASE_URL, a read-only login on prod.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Dump prod and restore it here
+      # pg_dump runs in the Postgres 18 image because the runner's client is
+      # older than prod. Auth tables come over empty: they hold live Google
+      # tokens and sessions.
+      shell: bash
+      env:
+        PROD_DATABASE_URL: ${{ inputs.prod-database-url }}
+      run: |
+        set -euo pipefail
+        : "${PROD_DATABASE_URL:?PROD_READONLY_DATABASE_URL is not set}"
+        docker run --rm --network host \
+          -e PROD_DATABASE_URL -e DATABASE_URL postgres:18 sh -c '
+            set -e
+            psql -q -v ON_ERROR_STOP=1 "$DATABASE_URL" \
+              -c "drop schema if exists public cascade" \
+              -c "drop schema if exists drizzle cascade"
+            pg_dump "$PROD_DATABASE_URL" --no-owner --no-acl \
+              --schema=public --schema=drizzle \
+              --exclude-table-data=public.account \
+              --exclude-table-data=public.session \
+              --exclude-table-data="public.\"verificationToken\"" \
+              | psql -q -o /dev/null -v ON_ERROR_STOP=1 "$DATABASE_URL"'

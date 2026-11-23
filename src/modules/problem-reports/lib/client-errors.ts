@@ -4,8 +4,8 @@ import {
   type ClientError,
 } from "./client-error-schema";
 
-// The last few errors this tab saw, oldest first, so a bug report can carry
-// the failure along with the reporter's description of it.
+// Kept so a bug report can carry the failure, not just the reporter's
+// description of it.
 const recent: ClientError[] = [];
 let capturing = false;
 
@@ -17,7 +17,7 @@ export function recordClientError(
   recent.push({
     at: new Date().toISOString(),
     kind,
-    message: describe(value).slice(0, CLIENT_ERROR_MESSAGE_MAX),
+    message: messageOf(value).slice(0, CLIENT_ERROR_MESSAGE_MAX),
     ...(digest ? { digest } : {}),
   });
   if (recent.length > CLIENT_ERROR_LIMIT) recent.shift();
@@ -43,14 +43,14 @@ export function startCapturingClientErrors() {
   };
 }
 
-function describe(value: unknown): string {
+function messageOf(value: unknown): string {
   if (value instanceof Error) {
     // Safari's stack is only the frames; V8's starts with this heading.
     const heading = `${value.name}: ${value.message}`;
     if (value.stack?.startsWith(heading)) return value.stack;
     return value.stack ? `${heading}\n${value.stack}` : heading;
   }
-  if (Array.isArray(value)) return value.map(describe).join(" ");
+  if (Array.isArray(value)) return value.map(messageOf).join(" ");
   if (typeof value === "string") return value;
   try {
     return JSON.stringify(value) ?? String(value);

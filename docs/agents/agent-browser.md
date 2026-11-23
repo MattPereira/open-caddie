@@ -50,24 +50,11 @@ change you are reporting on trust.
 
 ## Data to look at
 
-The data comes from the seed: a fixed world of Players, two Courses, a Club
-with Tournaments, and Matches. `src/seed/world.ts` says exactly what is in
-it. The agent workflows migrate and seed `DATABASE_URL` before you start.
-
-**A Bug Report** (an issue labelled `live-bug-report`) is about rows a Player
-saw in prod, so in the agent workflows it also gets a database of its own:
-prod as it was when the Bug Report was filed, with the branch's migrations on
-top. For issue #12 it is `open_caddie_bug_12`, beside the seeded one. Point
-the app and `db:sign-in` at it:
-
-```bash
-export DATABASE_URL="${DATABASE_URL%/*}/open_caddie_bug_12"
-pnpm dev
-```
-
-A URL from the report then opens the rows the reporter saw. If its row is
-missing, it was gone when the report was filed. Sign-in sessions and linked
-accounts are not copied. Your checks (`pnpm check`) still run on the seed.
+The pages need data, and it comes from the seed: a fixed world of Players,
+two Courses, a Club with Tournaments, and Matches. `src/seed/world.ts` says
+exactly what is in it. The agent workflows seed their database before you
+start. A Bug Report also has a prod snapshot: see
+`docs/agents/live-bug-report.md`.
 
 Locally, against a local Postgres:
 
@@ -88,16 +75,11 @@ Sign-in normally goes through an email link or Google. You have neither, so
 mint the email link yourself and open it:
 
 ```bash
-agent-browser open "$(pnpm -s db:sign-in admin)"           # a Platform Admin
-agent-browser open "$(pnpm -s db:sign-in someone@example.com)"
+agent-browser open "$(pnpm -s db:sign-in admin)"   # a Platform Admin
 ```
 
-- `admin` signs in as a Platform Admin, in the seed or in a Bug Report's
-  database.
-- In the seed, `tiger@example.com` (Tiger Woods) is an ordinary Player. Every
-  seeded Player has `<key>@example.com`, keyed as in `PLAYERS` in
-  `src/seed/world.ts`. In a Bug Report's database, read a Player's email from
-  the `user` table.
+`tiger@example.com` (Tiger Woods) is an ordinary Player. Every seeded Player
+has `<key>@example.com`, keyed as in `PLAYERS` in `src/seed/world.ts`.
 
 Each link works once. The session lasts until you `close` the browser.
 `AUTH_SECRET` must be set, and the same in `pnpm db:sign-in` and the app.

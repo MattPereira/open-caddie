@@ -1,9 +1,8 @@
 Screenshots are evidence for a change that shows in the UI. Drive the app with
 agent-browser (docs/agents/agent-browser.md).
 
-If your ticket is a Bug Report (labelled `live-bug-report`), it has its own
-database, `open_caddie_bug_<n>`, holding prod as it was when it was filed. Run
-the app on it to see the reporter's rows: see "Data to look at" in that doc.
+A Bug Report has a prod snapshot holding the reporter's rows: see
+docs/agents/live-bug-report.md.
 
 ### What to shoot
 

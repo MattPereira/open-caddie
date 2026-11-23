@@ -37,8 +37,8 @@ name: Agent — Implement A Ticket
 #     pull request at all, and a label it applies starts no workflow. That
 #     second hop is `agent:review`, the label that starts the reviewer.
 #   secrets.NEON_API_KEY, secrets.NEON_PROJECT_ID and
-#     secrets.PROD_READONLY_DATABASE_URL — copy-prod restores each Bug
-#     Report's prod snapshot with them. See .github/actions/copy-prod.
+#     secrets.PROD_READONLY_DATABASE_URL — restore-bug-report-snapshots restores each Bug
+#     Report's prod snapshot with them. See .github/actions/restore-bug-report-snapshots.
 #   secrets.GITHUB_TOKEN — supplied by Actions, and now used for one thing:
 #     the checkout. The `permissions:` block below shrinks it to match.
 #   The `agent:implement` label. A fresh clone of this repository does not
@@ -150,10 +150,10 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Copy Bug Reports' prod data
-        id: copy-prod
+      - name: Restore Bug Reports' snapshots
+        id: restore-bug-report-snapshots
         # From main, never the checkout: see the action.
-        uses: MattPereira/open-caddie/.github/actions/copy-prod@main
+        uses: MattPereira/open-caddie/.github/actions/restore-bug-report-snapshots@main
         with:
           issues: "[${{ github.event.issue.number }}]"
           github-token: ${{ secrets.FACTORY_PAT }}
@@ -164,7 +164,7 @@ jobs:
       - name: Set up the agent run
         uses: ./.github/actions/setup-agent
         with:
-          bug-reports: ${{ steps.copy-prod.outputs.bug-reports }}
+          bug-reports: ${{ steps.restore-bug-report-snapshots.outputs.bug-reports }}
 
       - name: Open the branch
         id: branch

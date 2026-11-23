@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getPlayerById } from "@/modules/players/server";
 import { createFixtures } from "@/test/fixtures";
-import { fileProblemReport } from "../server";
+import { fileBugReport } from "../server";
 
 vi.mock("@/modules/players/server", async (importOriginal) => {
   const actual =
@@ -11,7 +11,7 @@ vi.mock("@/modules/players/server", async (importOriginal) => {
 });
 
 const ISSUE_URL = "https://github.com/MattPereira/open-caddie/issues/42";
-const REFUSED = { ok: false, error: "You can't report problems here." };
+const REFUSED = { ok: false, error: "You can't report bugs here." };
 const REPORT = {
   title: "Scores vanish",
   description: "I entered a score and it disappeared.",
@@ -35,7 +35,7 @@ const github = () =>
     Response.json({ html_url: ISSUE_URL }, { status: 201 }),
   );
 
-describe("filing a problem report", () => {
+describe("filing a Bug Report", () => {
   const fixtures = createFixtures();
   let adminId: string;
 
@@ -62,7 +62,7 @@ describe("filing a problem report", () => {
   it("files one labelled issue on the repo and returns its link", async () => {
     const { fetch, requests } = github();
 
-    const result = await fileProblemReport(adminId, REPORT, fetch);
+    const result = await fileBugReport(adminId, REPORT, fetch);
 
     expect(result).toEqual({ ok: true, url: ISSUE_URL });
     expect(requests).toHaveLength(1);
@@ -94,7 +94,7 @@ describe("filing a problem report", () => {
     const { fetch, requests } = github();
     vi.stubGlobal("fetch", fetch);
 
-    expect(await fileProblemReport(adminId, REPORT)).toEqual({
+    expect(await fileBugReport(adminId, REPORT)).toEqual({
       ok: true,
       url: ISSUE_URL,
     });
@@ -104,7 +104,7 @@ describe("filing a problem report", () => {
   describe("page context", () => {
     async function sentHeader(context: { path?: unknown; viewport?: unknown }) {
       const { fetch, requests } = github();
-      const result = await fileProblemReport(
+      const result = await fileBugReport(
         adminId,
         { ...REPORT, ...context } as typeof REPORT,
         fetch,
@@ -171,7 +171,7 @@ describe("filing a problem report", () => {
 
     async function sentBody(clientErrors: unknown) {
       const { fetch, requests } = github();
-      const result = await fileProblemReport(
+      const result = await fileBugReport(
         adminId,
         { ...REPORT, clientErrors },
         fetch,
@@ -240,7 +240,7 @@ describe("filing a problem report", () => {
       for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
       const { fetch, requests } = github();
 
-      expect(await fileProblemReport(adminId, REPORT, fetch)).toEqual(REFUSED);
+      expect(await fileBugReport(adminId, REPORT, fetch)).toEqual(REFUSED);
       expect(requests).toHaveLength(0);
     });
 
@@ -248,25 +248,23 @@ describe("filing a problem report", () => {
       const player = await fixtures.player();
       const { fetch, requests } = github();
 
-      expect(await fileProblemReport(player.id, REPORT, fetch)).toEqual(
-        REFUSED,
-      );
+      expect(await fileBugReport(player.id, REPORT, fetch)).toEqual(REFUSED);
       expect(requests).toHaveLength(0);
     });
 
     it("when the Player does not exist", async () => {
       const { fetch, requests } = github();
 
-      expect(
-        await fileProblemReport(crypto.randomUUID(), REPORT, fetch),
-      ).toEqual(REFUSED);
+      expect(await fileBugReport(crypto.randomUUID(), REPORT, fetch)).toEqual(
+        REFUSED,
+      );
       expect(requests).toHaveLength(0);
     });
 
     it("when signed out", async () => {
       const { fetch, requests } = github();
 
-      expect(await fileProblemReport(null, REPORT, fetch)).toEqual(REFUSED);
+      expect(await fileBugReport(null, REPORT, fetch)).toEqual(REFUSED);
       expect(requests).toHaveLength(0);
     });
   });
@@ -294,7 +292,7 @@ describe("filing a problem report", () => {
       async ({ field, value, error }) => {
         const { fetch, requests } = github();
 
-        const result = await fileProblemReport(
+        const result = await fileBugReport(
           adminId,
           { ...REPORT, [field]: value },
           fetch,
@@ -310,7 +308,7 @@ describe("filing a problem report", () => {
       const title = "t".repeat(200);
       const description = "d".repeat(10_000);
 
-      const result = await fileProblemReport(
+      const result = await fileBugReport(
         adminId,
         { title: `  ${title}  `, description: `\n${description}\n` },
         fetch,
@@ -326,7 +324,7 @@ describe("filing a problem report", () => {
   it("names the stored Player even when the form claims to be someone else", async () => {
     const { fetch, requests } = github();
 
-    await fileProblemReport(
+    await fileBugReport(
       adminId,
       { ...REPORT, name: "Mallory", playerId: "someone-else" } as typeof REPORT,
       fetch,
@@ -343,7 +341,7 @@ describe("filing a problem report", () => {
       vi.mocked(getPlayerById).mockRejectedValueOnce(new Error("db down"));
       const { fetch, requests } = github();
 
-      expect(await fileProblemReport(adminId, REPORT, fetch)).toEqual({
+      expect(await fileBugReport(adminId, REPORT, fetch)).toEqual({
         ok: false,
         error: "Couldn't file the report. Try again later.",
       });
@@ -355,7 +353,7 @@ describe("filing a problem report", () => {
         Response.json({ message: "Bad credentials" }, { status: 401 }),
       );
 
-      expect(await fileProblemReport(adminId, REPORT, fetch)).toEqual({
+      expect(await fileBugReport(adminId, REPORT, fetch)).toEqual({
         ok: false,
         error: "GitHub refused the report (401). Try again later.",
       });
@@ -366,7 +364,7 @@ describe("filing a problem report", () => {
         throw new TypeError("fetch failed");
       });
 
-      expect(await fileProblemReport(adminId, REPORT, fetch)).toEqual({
+      expect(await fileBugReport(adminId, REPORT, fetch)).toEqual({
         ok: false,
         error: "Couldn't reach GitHub. Try again later.",
       });
@@ -396,7 +394,7 @@ describe("filing a problem report", () => {
     ])("when $when", async ({ response }) => {
       const { fetch } = githubReturning(response);
 
-      expect(await fileProblemReport(adminId, REPORT, fetch)).toEqual({
+      expect(await fileBugReport(adminId, REPORT, fetch)).toEqual({
         ok: false,
         error:
           "GitHub didn't return a link to the report. Check GitHub before trying again.",

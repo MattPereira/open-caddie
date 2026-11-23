@@ -56,8 +56,8 @@ name: Agent — Review A Pull Request
 #     the steps that push and post. The real defence is who can reach the
 #     agent — same-repo PRs only, and a label only a collaborator can apply.
 #   secrets.NEON_API_KEY, secrets.NEON_PROJECT_ID and
-#     secrets.PROD_READONLY_DATABASE_URL — copy-prod restores each Bug
-#     Report's prod snapshot with them. See .github/actions/copy-prod.
+#     secrets.PROD_READONLY_DATABASE_URL — restore-bug-report-snapshots restores each Bug
+#     Report's prod snapshot with them. See .github/actions/restore-bug-report-snapshots.
 #   secrets.GITHUB_TOKEN — supplied by Actions, used only for the checkout.
 #   The `agent:review` label. A fresh clone of this repository does not have
 #     it, and no workflow can create the label that starts it. Create it once:
@@ -178,10 +178,10 @@ jobs:
           fi
           cat /tmp/review-spec.md
 
-      - name: Copy Bug Reports' prod data
-        id: copy-prod
+      - name: Restore Bug Reports' snapshots
+        id: restore-bug-report-snapshots
         # From main, never the checkout: see the action.
-        uses: MattPereira/open-caddie/.github/actions/copy-prod@main
+        uses: MattPereira/open-caddie/.github/actions/restore-bug-report-snapshots@main
         with:
           issues: ${{ steps.sources.outputs.issue && format('[{0}]', steps.sources.outputs.issue) || '[]' }}
           github-token: ${{ secrets.FACTORY_PAT }}
@@ -192,7 +192,7 @@ jobs:
       - name: Set up the agent run
         uses: ./.github/actions/setup-agent
         with:
-          bug-reports: ${{ steps.copy-prod.outputs.bug-reports }}
+          bug-reports: ${{ steps.restore-bug-report-snapshots.outputs.bug-reports }}
 
       - name: Open the branch
         run: |

@@ -41,7 +41,7 @@ import {
 } from "@/components/ui/sidebar";
 import { signOutAction } from "@/app/(app)/login/actions";
 import { appNavItems } from "@/components/layout/app-nav-items";
-import { ReportProblemDialog } from "@/components/layout/report-problem-dialog";
+import { ReportBugDialog } from "@/components/layout/report-bug-dialog";
 
 type SidebarPlayer = {
   name: string;
@@ -53,13 +53,13 @@ type SidebarPlayer = {
 
 export function AppSidebar({
   player,
-  canReportProblems,
+  canReportBugs,
 }: {
   player: SidebarPlayer | null;
-  canReportProblems: boolean;
+  canReportBugs: boolean;
 }) {
   const pathname = usePathname();
-  const [reportingProblem, setReportingProblem] = useState(false);
+  const [reportingBug, setReportingBug] = useState(false);
   const { setTheme } = useTheme();
   const { isMobile, setOpenMobile } = useSidebar();
   const initials = player ? getInitials(player.name) : null;
@@ -170,12 +170,12 @@ export function AppSidebar({
                           </DropdownMenuItem>
                         </DropdownMenuSubContent>
                       </DropdownMenuSub>
-                      {canReportProblems ? (
+                      {canReportBugs ? (
                         <DropdownMenuItem
                           className="py-3 text-lg"
                           onSelect={() => {
                             closeMobileSidebar();
-                            setReportingProblem(true);
+                            setReportingBug(true);
                           }}
                         >
                           <HugeiconsIcon icon={Bug01Icon} className="size-5" />
@@ -201,11 +201,8 @@ export function AppSidebar({
           </SidebarFooter>
         ) : null}
       </Sidebar>
-      {canReportProblems ? (
-        <ReportProblemDialog
-          open={reportingProblem}
-          onOpenChange={setReportingProblem}
-        />
+      {canReportBugs ? (
+        <ReportBugDialog open={reportingBug} onOpenChange={setReportingBug} />
       ) : null}
     </>
   );

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { reportProblem } from "@/app/(app)/actions";
+import { reportBug } from "@/app/(app)/actions";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,15 +23,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  ProblemReportSchema,
-  type ProblemReportInput,
-} from "@/modules/problem-reports";
-import { recentClientErrors } from "@/modules/problem-reports/client";
+import { BugReportSchema, type BugReportInput } from "@/modules/bug-reports";
+import { recentClientErrors } from "@/modules/bug-reports/client";
 
-const EMPTY_REPORT: ProblemReportInput = { title: "", description: "" };
+const EMPTY_REPORT: BugReportInput = { title: "", description: "" };
 
-export function ReportProblemDialog({
+export function ReportBugDialog({
   open,
   onOpenChange,
 }: {
@@ -40,8 +37,8 @@ export function ReportProblemDialog({
 }) {
   const [isPending, startTransition] = useTransition();
   const [issueUrl, setIssueUrl] = useState<string | null>(null);
-  const form = useForm<ProblemReportInput>({
-    resolver: zodResolver(ProblemReportSchema),
+  const form = useForm<BugReportInput>({
+    resolver: zodResolver(BugReportSchema),
     defaultValues: EMPTY_REPORT,
   });
   const serverError = form.formState.errors.root?.server?.message;
@@ -54,10 +51,10 @@ export function ReportProblemDialog({
     onOpenChange(nextOpen);
   };
 
-  const onSubmit = (values: ProblemReportInput) => {
+  const onSubmit = (values: BugReportInput) => {
     form.clearErrors("root.server");
     startTransition(async () => {
-      const result = await reportProblem({
+      const result = await reportBug({
         ...values,
         path: window.location.pathname + window.location.search,
         viewport: window.innerWidth,

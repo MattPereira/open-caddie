@@ -6,37 +6,37 @@ import {
   type PageContext,
   type PageContextInput,
 } from "./page-context";
-import { ProblemReportSchema, type ProblemReportInput } from "./report-schema";
-import { getProblemReporter, type Reporter } from "./reporter";
+import { BugReportSchema, type BugReportInput } from "./report-schema";
+import { getBugReporter, type Reporter } from "./reporter";
 
 // Not agent:explore: bug-report-snapshot.yml adds that once prod is snapshotted.
 const LABELS = ["live-bug-report"];
 const REFUSED = {
   ok: false,
-  error: "You can't report problems here.",
+  error: "You can't report bugs here.",
 } as const;
 const LOOKUP_FAILED = {
   ok: false,
   error: "Couldn't file the report. Try again later.",
 } as const;
 
-export type ProblemReportSubmission = ProblemReportInput & PageContextInput;
+export type BugReportSubmission = BugReportInput & PageContextInput;
 
-export type ProblemReportResult = IssueResult;
+export type BugReportResult = IssueResult;
 
-export async function fileProblemReport(
+export async function fileBugReport(
   playerId: string | null,
-  input: ProblemReportSubmission,
+  input: BugReportSubmission,
   fetch: typeof globalThis.fetch = globalThis.fetch,
-): Promise<ProblemReportResult> {
+): Promise<BugReportResult> {
   let reporter: Reporter | null;
   try {
-    reporter = await getProblemReporter(playerId);
+    reporter = await getBugReporter(playerId);
   } catch {
     return LOOKUP_FAILED;
   }
   if (!reporter) return REFUSED;
-  const parsed = ProblemReportSchema.safeParse(input);
+  const parsed = BugReportSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0].message };
   }

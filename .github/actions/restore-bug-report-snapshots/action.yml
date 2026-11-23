@@ -1,10 +1,10 @@
-name: Copy Bug Reports' prod data into the database
+name: Restore Bug Reports' prod snapshots
 description: >-
   For each given issue labelled live-bug-report, restores the prod snapshot
   taken when it was reported (bug-report-snapshot.yml) into its own database,
   open_caddie_bug_<n>, on the job's Postgres service. Other issues get
   nothing, and setup-agent seeds the main database as usual. Run it from main
-  (MattPereira/open-caddie/.github/actions/copy-prod@main), before any step
+  (MattPereira/open-caddie/.github/actions/restore-bug-report-snapshots@main), before any step
   runs the branch's code, then setup-agent with its bug-reports output. The
   job must set DATABASE_URL.
 

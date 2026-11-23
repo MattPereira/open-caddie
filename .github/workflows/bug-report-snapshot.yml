@@ -4,13 +4,13 @@ name: Bug Report — Snapshot Prod
 #   When an issue gets `live-bug-report` (the app files every Bug Report with
 #   it), it creates Neon branch `bug-report/<n>` from prod: a copy-on-write
 #   snapshot of prod as the reporter saw it. Then it adds `agent:explore`, so
-#   explore never starts before the snapshot exists. copy-prod restores the
+#   explore never starts before the snapshot exists. restore-bug-report-snapshots restores the
 #   snapshot for every agent run on the issue.
 #
 #   When the issue closes, it deletes the snapshots the issue used, unless an
 #   open issue still uses one (a survivor whose duplicate it was).
 #
-#   Why only Bug Reports see prod at all: see .github/actions/copy-prod.
+#   Why only Bug Reports see prod at all: see .github/actions/restore-bug-report-snapshots.
 #
 # WHAT IT NEEDS
 #   The `live-bug-report` label. Explore's apply job creates it; on a fresh
@@ -74,7 +74,7 @@ jobs:
             echo "$branch already exists. Keeping it."
           else
             # No parent_id: the project's default branch, prod. The compute
-            # suspends when idle; copy-prod's pg_dump wakes it.
+            # suspends when idle; restore-bug-report-snapshots's pg_dump wakes it.
             neon -X POST "$api/branches" \
               -d "$(jq -n --arg name "$branch" \
                 '{branch: {name: $name}, endpoints: [{type: "read_write"}]}')" > /dev/null

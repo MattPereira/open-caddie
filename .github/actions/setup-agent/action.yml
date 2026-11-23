@@ -2,12 +2,12 @@ name: Set up an agent run
 description: >-
   Installs the toolchain, Claude Code and agent-browser, then migrates and
   seeds the job's Postgres service, and migrates each Bug Report's database
-  that copy-prod restored. Run it after checkout (and copy-prod, if any). The
+  that restore-bug-report-snapshots restored. Run it after checkout (and restore-bug-report-snapshots, if any). The
   job must set DATABASE_URL and DATABASE_DRIVER=node-postgres.
 
 inputs:
   bug-reports:
-    description: copy-prod's bug-reports output. Each has a database open_caddie_bug_<n>.
+    description: restore-bug-report-snapshots's bug-reports output. Each has a database open_caddie_bug_<n>.
     required: false
     default: ""
 

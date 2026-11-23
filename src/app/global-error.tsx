@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-import { recordClientError } from "@/modules/problem-reports/client";
+import { recordClientError } from "@/modules/bug-reports/client";
 import "./globals.css";
 
 // Replaces the root layout, so it brings its own html, body and styles, and

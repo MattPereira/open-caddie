@@ -76,8 +76,8 @@ name: Agent — Explore The Tickets
 #     has to go on with a token that is not the built-in one — and once that
 #     token is in the room, the factory uses it for everything.
 #   secrets.NEON_API_KEY, secrets.NEON_PROJECT_ID and
-#     secrets.PROD_READONLY_DATABASE_URL — copy-prod restores each Bug
-#     Report's prod snapshot with them. See .github/actions/copy-prod.
+#     secrets.PROD_READONLY_DATABASE_URL — restore-bug-report-snapshots restores each Bug
+#     Report's prod snapshot with them. See .github/actions/restore-bug-report-snapshots.
 #   secrets.GITHUB_TOKEN — supplied by Actions, and used only to check the
 #     code out. Scoped per job below.
 #   The `agent:explore` label. A fresh clone of this repository does not have
@@ -109,7 +109,7 @@ jobs:
 
     services:
       # Explore writes nothing, but the setup action migrates and seeds this
-      # DB, copy-prod restores each Bug Report's prod snapshot beside it, and
+      # DB, restore-bug-report-snapshots restores each Bug Report's prod snapshot beside it, and
       # the agent runs the app on them to reproduce an issue.
       postgres:
         image: postgres:18
@@ -186,11 +186,11 @@ jobs:
             gh issue edit "$n" --add-label "agent:in-progress"
           done
 
-      - name: Copy Bug Reports' prod data
+      - name: Restore Bug Reports' snapshots
         if: steps.batch.outputs.numbers != '[]'
-        id: copy-prod
+        id: restore-bug-report-snapshots
         # From main, never the checkout: see the action.
-        uses: MattPereira/open-caddie/.github/actions/copy-prod@main
+        uses: MattPereira/open-caddie/.github/actions/restore-bug-report-snapshots@main
         with:
           issues: ${{ steps.batch.outputs.numbers }}
           github-token: ${{ secrets.FACTORY_PAT }}
@@ -202,7 +202,7 @@ jobs:
         if: steps.batch.outputs.numbers != '[]'
         uses: ./.github/actions/setup-agent
         with:
-          bug-reports: ${{ steps.copy-prod.outputs.bug-reports }}
+          bug-reports: ${{ steps.restore-bug-report-snapshots.outputs.bug-reports }}
 
       - name: Explore
         if: steps.batch.outputs.numbers != '[]'
@@ -344,7 +344,7 @@ jobs:
 
             # A survivor that isn't a Bug Report takes the snapshot of the
             # oldest Bug Report closed onto it, so implement and review see
-            # the rows that report was about. copy-prod reads the marker.
+            # the rows that report was about. restore-bug-report-snapshots reads the marker.
             # The marker is posted before the label, so bug-report-snapshot.yml
             # sees it and takes no snapshot of its own.
             inherited=""

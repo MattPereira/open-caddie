@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 
 import { Button } from "@/components/ui/button";
-import { recordClientError } from "@/modules/problem-reports/client";
+import { recordClientError } from "@/modules/bug-reports/client";
 
 export default function AppError({
   error,

@@ -55,6 +55,9 @@ name: Agent — Review A Pull Request
 #     environment is tidiness, not a wall: the agent shares the machine with
 #     the steps that push and post. The real defence is who can reach the
 #     agent — same-repo PRs only, and a label only a collaborator can apply.
+#   secrets.NEON_API_KEY, vars.NEON_PROJECT_ID and
+#     secrets.PROD_READONLY_DATABASE_URL — restore-bug-report-snapshots restores each Bug
+#     Report's prod snapshot with them. See .github/actions/restore-bug-report-snapshots.
 #   secrets.GITHUB_TOKEN — supplied by Actions, used only for the checkout.
 #   The `agent:review` label. A fresh clone of this repository does not have
 #     it, and no workflow can create the label that starts it. Create it once:
@@ -147,6 +150,7 @@ jobs:
           persist-credentials: false
 
       - name: Collect the three primary sources
+        id: sources
         env:
           GH_TOKEN: ${{ secrets.FACTORY_PAT }}
         run: |
@@ -163,6 +167,7 @@ jobs:
           gh pr view "$PR_NUMBER" --json body --jq .body > /tmp/pr-body.md
           issue=$(grep -oiE '(closes|fixes|resolves) #[0-9]+' /tmp/pr-body.md \
             | head -n1 | grep -oE '[0-9]+' || true)
+          echo "issue=$issue" >> "$GITHUB_OUTPUT"
           if [ -n "$issue" ]; then
             gh issue view "$issue" --json number,title,body \
               --jq '"# Ticket #" + (.number|tostring) + ": " + .title + "\n\n" + .body' \
@@ -173,8 +178,21 @@ jobs:
           fi
           cat /tmp/review-spec.md
 
+      - name: Restore Bug Reports' snapshots
+        id: restore-bug-report-snapshots
+        # From main, never the checkout: see the action.
+        uses: MattPereira/open-caddie/.github/actions/restore-bug-report-snapshots@main
+        with:
+          issues: ${{ steps.sources.outputs.issue && format('[{0}]', steps.sources.outputs.issue) || '[]' }}
+          github-token: ${{ secrets.FACTORY_PAT }}
+          neon-api-key: ${{ secrets.NEON_API_KEY }}
+          neon-project-id: ${{ vars.NEON_PROJECT_ID }}
+          prod-database-url: ${{ secrets.PROD_READONLY_DATABASE_URL }}
+
       - name: Set up the agent run
         uses: ./.github/actions/setup-agent
+        with:
+          bug-reports: ${{ steps.restore-bug-report-snapshots.outputs.bug-reports }}
 
       - name: Open the branch
         run: |

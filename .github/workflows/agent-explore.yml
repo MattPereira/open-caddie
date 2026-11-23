@@ -75,6 +75,9 @@ name: Agent — Explore The Tickets
 #     explore to implement is exactly the loop we do want, so `agent:implement`
 #     has to go on with a token that is not the built-in one — and once that
 #     token is in the room, the factory uses it for everything.
+#   secrets.NEON_API_KEY, vars.NEON_PROJECT_ID and
+#     secrets.PROD_READONLY_DATABASE_URL — restore-bug-report-snapshots restores each Bug
+#     Report's prod snapshot with them. See .github/actions/restore-bug-report-snapshots.
 #   secrets.GITHUB_TOKEN — supplied by Actions, and used only to check the
 #     code out. Scoped per job below.
 #   The `agent:explore` label. A fresh clone of this repository does not have
@@ -106,7 +109,8 @@ jobs:
 
     services:
       # Explore writes nothing, but the setup action migrates and seeds this
-      # DB, and the agent runs the app on it to screenshot an issue.
+      # DB, restore-bug-report-snapshots restores each Bug Report's prod snapshot beside it, and
+      # the agent runs the app on them to reproduce an issue.
       postgres:
         image: postgres:18
         env:
@@ -157,7 +161,7 @@ jobs:
           # hidden `<!-- factory:status -->`).
           mkdir -p /tmp/explore
           gh issue list --state open --label "agent:explore" --limit 100 \
-            --json number,title,body,createdAt,comments \
+            --json number,title,body,createdAt,labels,comments \
             | jq 'map(.comments |= map(select(
                 (.authorAssociation | IN("OWNER", "MEMBER", "COLLABORATOR"))
                 and (.body | contains("<!-- factory:status -->") | not))))' \
@@ -182,9 +186,23 @@ jobs:
             gh issue edit "$n" --add-label "agent:in-progress"
           done
 
+      - name: Restore Bug Reports' snapshots
+        if: steps.batch.outputs.numbers != '[]'
+        id: restore-bug-report-snapshots
+        # From main, never the checkout: see the action.
+        uses: MattPereira/open-caddie/.github/actions/restore-bug-report-snapshots@main
+        with:
+          issues: ${{ steps.batch.outputs.numbers }}
+          github-token: ${{ secrets.FACTORY_PAT }}
+          neon-api-key: ${{ secrets.NEON_API_KEY }}
+          neon-project-id: ${{ vars.NEON_PROJECT_ID }}
+          prod-database-url: ${{ secrets.PROD_READONLY_DATABASE_URL }}
+
       - name: Set up the agent run
         if: steps.batch.outputs.numbers != '[]'
         uses: ./.github/actions/setup-agent
+        with:
+          bug-reports: ${{ steps.restore-bug-report-snapshots.outputs.bug-reports }}
 
       - name: Explore
         if: steps.batch.outputs.numbers != '[]'
@@ -295,6 +313,13 @@ jobs:
             --description "The factory stopped here" || true
           gh label create "agent:implement" --color 5319E7 \
             --description "Hand this issue to the implementer agent" || true
+          gh label create "live-bug-report" --color 0E8A16 \
+            --description "Filed from the app. Agents see prod as it was when reported" || true
+
+          live() {
+            gh issue view "$1" --json labels \
+              --jq '[.labels[].name] | index("live-bug-report") != null'
+          }
 
           # nullglob: an issue with no screenshots gets no --attach.
           shopt -s nullglob
@@ -316,11 +341,30 @@ jobs:
 
             jq -r '.comment' <<< "$entry" > /tmp/comment.md
             printf '\n\n---\n\n_%s_ [Logs](%s)\n' "$next" "$RUN_URL" >> /tmp/comment.md
+
+            # A survivor that isn't a Bug Report takes the snapshot of the
+            # oldest Bug Report closed onto it, so implement and review see
+            # the rows that report was about. restore-bug-report-snapshots reads the marker.
+            # The marker is posted before the label, so bug-report-snapshot.yml
+            # sees it and takes no snapshot of its own.
+            inherited=""
+            if [ -z "$dup" ] && [ "$(live "$n")" = "false" ]; then
+              for d in $(jq -r --argjson n "$n" \
+                  '[.issues[] | select(.duplicate_of == $n) | .number] | sort | .[]' /tmp/plan.json); do
+                if [ "$(live "$d")" = "true" ]; then inherited="$d"; break; fi
+              done
+            fi
+            if [ -n "$inherited" ]; then
+              printf '\n<!-- factory:snapshot bug-report/%s -->\n' "$inherited" >> /tmp/comment.md
+            fi
             # This issue's screenshots, /tmp/evidence/<n>-*.png. --attach
             # uploads them and swaps each path in the comment for its URL.
             attach=()
             for png in /tmp/evidence/"$n"-*.png; do attach+=(--attach "$png"); done
             gh issue comment "$n" --body-file /tmp/comment.md "${attach[@]}"
+            if [ -n "$inherited" ]; then
+              gh issue edit "$n" --add-label "live-bug-report"
+            fi
 
             # The branch. Every path takes `agent:in-progress` off: this
             # issue is done, and the finish job leaves it alone.

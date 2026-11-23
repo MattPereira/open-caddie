@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createFixtures } from "@/test/fixtures";
-import { isProblemReporter } from "../server";
+import { isBugReporter } from "../server";
 
-describe("who may report problems", () => {
+describe("who may file Bug Reports", () => {
   const fixtures = createFixtures();
 
   beforeEach(() => {
@@ -17,7 +17,7 @@ describe("who may report problems", () => {
   it("lets a stored Platform Admin report", async () => {
     const admin = await fixtures.player({ isAdmin: true });
 
-    expect(await isProblemReporter(admin.id)).toBe(true);
+    expect(await isBugReporter(admin.id)).toBe(true);
   });
 
   it.each([
@@ -31,17 +31,17 @@ describe("who may report problems", () => {
     const admin = await fixtures.player({ isAdmin: true });
     for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
 
-    expect(await isProblemReporter(admin.id)).toBe(false);
+    expect(await isBugReporter(admin.id)).toBe(false);
   });
 
   it("refuses a Player who is not a Platform Admin", async () => {
     const player = await fixtures.player();
 
-    expect(await isProblemReporter(player.id)).toBe(false);
+    expect(await isBugReporter(player.id)).toBe(false);
   });
 
   it("refuses an unknown Player and a signed-out visitor", async () => {
-    expect(await isProblemReporter(crypto.randomUUID())).toBe(false);
-    expect(await isProblemReporter(null)).toBe(false);
+    expect(await isBugReporter(crypto.randomUUID())).toBe(false);
+    expect(await isBugReporter(null)).toBe(false);
   });
 });

@@ -1,0 +1,118 @@
+name: Restore Bug Reports' prod snapshots
+description: >-
+  For each given issue labelled live-bug-report, restores the prod snapshot
+  taken when it was reported (bug-report-snapshot.yml) into its own database,
+  open_caddie_bug_<n>, on the job's Postgres service. Other issues get
+  nothing, and setup-agent seeds the main database as usual. Run it from main
+  (MattPereira/open-caddie/.github/actions/restore-bug-report-snapshots@main), before any step
+  runs the branch's code, then setup-agent with its bug-reports output. The
+  job must set DATABASE_URL.
+
+# Why only Bug Reports: a Bug Report is about rows a Player saw in prod, and
+# the seed can't reproduce them. Everything else runs on the seed, so it is
+# deterministic and prod data reaches CI only when a report needs it.
+#
+# Why the snapshot, not prod now: the reporter's rows may be edited or gone by
+# the time an agent looks. The snapshot is prod as it was when they reported,
+# and every run on the issue (explore, implement, review) sees the same data.
+# With no snapshot (deleted, or the label went on before this existed), it
+# falls back to prod now.
+#
+# Why from main, and why first: this step holds prod and Neon credentials.
+# Taken from the checkout, a pull request could rewrite it to print them. Run
+# after the branch's code, that code could have planted BASH_ENV or a shim on
+# PATH that runs here. It runs only the runner's own tools and docker.
+
+inputs:
+  issues:
+    description: A JSON array of issue numbers, e.g. [12] or []. Those without live-bug-report are skipped.
+    required: true
+  github-token:
+    description: Reads the issues' labels and comments.
+    required: true
+  neon-api-key:
+    description: secrets.NEON_API_KEY, to find the snapshot branches.
+    required: true
+  neon-project-id:
+    description: vars.NEON_PROJECT_ID, prod's Neon project.
+    required: true
+  prod-database-url:
+    description: secrets.PROD_READONLY_DATABASE_URL, a read-only login on prod.
+    required: true
+
+outputs:
+  bug-reports:
+    description: The issue numbers that got a database, space-separated.
+    value: ${{ steps.copy.outputs.bug-reports }}
+
+runs:
+  using: composite
+  steps:
+    - name: Restore each Bug Report's snapshot
+      id: copy
+      shell: bash
+      env:
+        ISSUES: ${{ inputs.issues }}
+        GH_TOKEN: ${{ inputs.github-token }}
+        GH_REPO: ${{ github.repository }}
+        NEON_API_KEY: ${{ inputs.neon-api-key }}
+        NEON_PROJECT_ID: ${{ inputs.neon-project-id }}
+        PROD_DATABASE_URL: ${{ inputs.prod-database-url }}
+      run: |
+        set -euo pipefail
+        neon() {
+          curl -fsS -H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json" \
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID$1"
+        }
+
+        done_list=()
+        for n in $(jq -r '.[]' <<< "$ISSUES"); do
+          live=$(gh api "repos/$GH_REPO/issues/$n" \
+            --jq '[.labels[].name] | index("live-bug-report") != null')
+          [ "$live" = "true" ] || continue
+          : "${PROD_DATABASE_URL:?PROD_READONLY_DATABASE_URL is not set}"
+
+          # A survivor of a duplicate carries the duplicate's snapshot as a
+          # marker (agent-explore.yml's apply job). The newest marker wins.
+          comments=$(gh api --paginate "repos/$GH_REPO/issues/$n/comments" --jq '.[].body')
+          branch=$(grep -oE '<!-- factory:snapshot bug-report/[0-9]+ -->' <<< "$comments" \
+            | tail -n1 | grep -oE 'bug-report/[0-9]+' || echo "bug-report/$n")
+
+          branch_id=$(neon "/branches?search=$(jq -rn --arg s "$branch" '$s|@uri')" \
+            | jq -r --arg name "$branch" '[.branches[] | select(.name == $name)][0].id // empty')
+          host=""
+          [ -z "$branch_id" ] || host=$(neon "/branches/$branch_id/endpoints" \
+            | jq -r '.endpoints[0].host // empty')
+
+          if [ -n "$host" ]; then
+            # A branch inherits prod's roles and passwords, so prod's login
+            # works on the snapshot's host.
+            SOURCE_URL=$(sed -E "s#@[^/?]+#@$host#" <<< "$PROD_DATABASE_URL")
+            echo "#$n: restoring snapshot $branch"
+          else
+            SOURCE_URL="$PROD_DATABASE_URL"
+            echo "::warning::#$n: no snapshot $branch, so restoring prod as it is now."
+          fi
+
+          # Exported and passed to docker by name, so the credential stays off
+          # its command line.
+          export SOURCE_URL
+          export TARGET_URL="${DATABASE_URL%/*}/open_caddie_bug_$n" DB="open_caddie_bug_$n"
+          # pg_dump runs in the Postgres 18 image because the runner's client
+          # is older than prod. Auth tables come over empty: they hold live
+          # Google tokens and sessions.
+          docker run --rm --network host \
+            -e SOURCE_URL -e DATABASE_URL -e TARGET_URL -e DB postgres:18 sh -c '
+              set -e
+              psql -q -v ON_ERROR_STOP=1 "$DATABASE_URL" -c "create database $DB"
+              psql -q -v ON_ERROR_STOP=1 "$TARGET_URL" -c "drop schema public cascade"
+              pg_dump "$SOURCE_URL" --no-owner --no-acl \
+                --schema=public --schema=drizzle \
+                --exclude-table-data=public.account \
+                --exclude-table-data=public.session \
+                --exclude-table-data="public.\"verificationToken\"" \
+                | psql -q -o /dev/null -v ON_ERROR_STOP=1 "$TARGET_URL"'
+          done_list+=("$n")
+        done
+
+        echo "bug-reports=${done_list[*]}" >> "$GITHUB_OUTPUT"

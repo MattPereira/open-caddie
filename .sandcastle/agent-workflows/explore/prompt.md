@@ -33,6 +33,6 @@ Include filenames, and lines of code. Remember that the agent that implements wi
      - whether it's a one-way or a two-way door
      - the duplicates closed onto it, crediting by number any detail only they had;
      - last, the open questions a human has to settle. An empty list is a claim, and usually a wrong one.
-   - When an issue shows in the UI, drive the app with agent-browser (docs/agents/agent-browser.md) and save a screenshot of it as /tmp/evidence/<issue-number>-<name>.png. The database is migrated and seeded already. Reference it in that issue's comment by its absolute path, e.g. `![now](/tmp/evidence/12-now.png)`. The workflow uploads them.
+   - When an issue shows in the UI, drive the app with agent-browser (docs/agents/agent-browser.md) and save a screenshot of it as /tmp/evidence/<issue-number>-<name>.png. The database is migrated and seeded already. A Bug Report (labelled `live-bug-report`) also has its own database holding prod as it was when it was filed, so a URL from it opens the rows the reporter saw: see "Data to look at" in that doc. If that URL's row is missing, say so. Reference it in that issue's comment by its absolute path, e.g. `![now](/tmp/evidence/12-now.png)`. The workflow uploads them.
 
 You and every subagent are read-only, apart from /tmp/evidence/. The plan is your only output, and you will be asked for it as structured output. The workflow checks it, posts every comment and closes every duplicate.

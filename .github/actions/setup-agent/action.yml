@@ -1,8 +1,15 @@
 name: Set up an agent run
 description: >-
   Installs the toolchain, Claude Code and agent-browser, then migrates and
-  seeds the job's Postgres service. Run it after checkout. The job must set
-  DATABASE_URL and DATABASE_DRIVER=node-postgres.
+  seeds the job's Postgres service, and migrates each Bug Report's database
+  that restore-bug-report-snapshots restored. Run it after checkout (and restore-bug-report-snapshots, if any). The
+  job must set DATABASE_URL and DATABASE_DRIVER=node-postgres.
+
+inputs:
+  bug-reports:
+    description: restore-bug-report-snapshots's bug-reports output. Each has a database open_caddie_bug_<n>.
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -39,16 +46,23 @@ runs:
         npm install -g agent-browser@0.27.0
         agent-browser install
 
-    - name: Prepare the database
+    - name: Prepare the databases
       # The repo's checks and pre-commit hook need a real database. It is
       # disposable: a fresh one on every run. The seed is a fixed world
       # (src/seed/world.ts) for the agent to render and screenshot, so it
-      # never writes its own rows. See docs/agents/agent-browser.md.
+      # never writes its own rows. Each Bug Report's database gets the
+      # branch's migrations on top of prod's, as a deploy would apply them.
+      # See docs/agents/agent-browser.md.
       shell: bash
+      env:
+        BUG_REPORTS: ${{ inputs.bug-reports }}
       run: |
         set -euo pipefail
         pnpm db:migrate
         pnpm db:seed
+        for n in $BUG_REPORTS; do
+          DATABASE_URL="${DATABASE_URL%/*}/open_caddie_bug_$n" pnpm db:migrate
+        done
 
     - name: Configure auth
       # Where the agent runs the app: Auth.js trusts this host even under

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getPlayerById } from "@/modules/players/server";
 import { createFixtures } from "@/test/fixtures";
-import { fileProblemReport } from "../server";
+import { fileBugReport } from "../server";
 
 vi.mock("@/modules/players/server", async (importOriginal) => {
   const actual =
@@ -11,7 +11,7 @@ vi.mock("@/modules/players/server", async (importOriginal) => {
 });
 
 const ISSUE_URL = "https://github.com/MattPereira/open-caddie/issues/42";
-const REFUSED = { ok: false, error: "You can't report problems here." };
+const REFUSED = { ok: false, error: "You can't report bugs here." };
 const REPORT = {
   title: "Scores vanish",
   description: "I entered a score and it disappeared.",
@@ -35,7 +35,7 @@ const github = () =>
     Response.json({ html_url: ISSUE_URL }, { status: 201 }),
   );
 
-describe("filing a problem report", () => {
+describe("filing a Bug Report", () => {
   const fixtures = createFixtures();
   let adminId: string;
 
@@ -62,7 +62,7 @@ describe("filing a problem report", () => {
   it("files one labelled issue on the repo and returns its link", async () => {
     const { fetch, requests } = github();
 
-    const result = await fileProblemReport(adminId, REPORT, fetch);
+    const result = await fileBugReport(adminId, REPORT, fetch);
 
     expect(result).toEqual({ ok: true, url: ISSUE_URL });
     expect(requests).toHaveLength(1);
@@ -78,9 +78,9 @@ describe("filing a problem report", () => {
     expect(headers.get("x-github-api-version")).toBe("2022-11-28");
     expect(JSON.parse(String(request.init.body))).toEqual({
       title: "Scores vanish",
-      labels: ["agent:explore"],
+      labels: ["live-bug-report"],
       body: [
-        `_Problem reported by **Ada Lovelace** (Player \`${adminId}\`) on \`/rounds/7?tab=scores\`_`,
+        `_Bug reported by **Ada Lovelace** (Player \`${adminId}\`) on \`/rounds/7?tab=scores\`_`,
         "_`9092a35` · viewport 390px_",
         "",
         "---",
@@ -94,7 +94,7 @@ describe("filing a problem report", () => {
     const { fetch, requests } = github();
     vi.stubGlobal("fetch", fetch);
 
-    expect(await fileProblemReport(adminId, REPORT)).toEqual({
+    expect(await fileBugReport(adminId, REPORT)).toEqual({
       ok: true,
       url: ISSUE_URL,
     });
@@ -104,7 +104,7 @@ describe("filing a problem report", () => {
   describe("page context", () => {
     async function sentHeader(context: { path?: unknown; viewport?: unknown }) {
       const { fetch, requests } = github();
-      const result = await fileProblemReport(
+      const result = await fileBugReport(
         adminId,
         { ...REPORT, ...context } as typeof REPORT,
         fetch,
@@ -121,7 +121,7 @@ describe("filing a problem report", () => {
       { when: "over 2,000 characters", path: `/${"x".repeat(2000)}` },
     ])("shows an invalid path ($when) as unknown", async ({ path }) => {
       expect(await sentHeader({ path })).toBe(
-        `_Problem reported by **Ada Lovelace** (Player \`${adminId}\`) on \`unknown\`_\n_\`9092a35\` · viewport 390px_`,
+        `_Bug reported by **Ada Lovelace** (Player \`${adminId}\`) on \`unknown\`_\n_\`9092a35\` · viewport 390px_`,
       );
     });
 
@@ -145,7 +145,7 @@ describe("filing a problem report", () => {
       { when: "a string", viewport: "390" },
     ])("shows an invalid viewport ($when) as unknown", async ({ viewport }) => {
       expect(await sentHeader({ viewport })).toBe(
-        `_Problem reported by **Ada Lovelace** (Player \`${adminId}\`) on \`/rounds/7?tab=scores\`_\n_\`9092a35\` · viewport unknown_`,
+        `_Bug reported by **Ada Lovelace** (Player \`${adminId}\`) on \`/rounds/7?tab=scores\`_\n_\`9092a35\` · viewport unknown_`,
       );
     });
 
@@ -161,6 +161,77 @@ describe("filing a problem report", () => {
     });
   });
 
+  describe("errors from the reporter's browser", () => {
+    const ERROR = {
+      at: "2026-11-22T18:00:00.000Z",
+      kind: "boundary",
+      message: "Error: An error occurred in the Server Components render.",
+      digest: "1234567890",
+    };
+
+    async function sentBody(clientErrors: unknown) {
+      const { fetch, requests } = github();
+      const result = await fileBugReport(
+        adminId,
+        { ...REPORT, clientErrors },
+        fetch,
+      );
+      expect(result.ok).toBe(true);
+      return JSON.parse(String(requests[0].init.body)).body as string;
+    }
+
+    it("lists them under the description, oldest first, with any digest", async () => {
+      const body = await sentBody([
+        ERROR,
+        {
+          at: "2026-11-22T18:00:01.000Z",
+          kind: "console",
+          message: "Warning: x",
+        },
+      ]);
+
+      expect(body).toMatch(
+        new RegExp(
+          [
+            "I entered a score and it disappeared.",
+            "",
+            "---",
+            "",
+            "\\*\\*Errors in the reporter's browser\\*\\*, oldest first:",
+            "",
+            "```text",
+            "2026-11-22T18:00:00.000Z boundary digest 1234567890: Error: An error occurred in the Server Components render\\.",
+            "2026-11-22T18:00:01.000Z console: Warning: x",
+            "```$",
+          ].join("\n"),
+        ),
+      );
+    });
+
+    it("fences them longer than any backtick run inside", async () => {
+      const body = await sentBody([{ ...ERROR, message: "a ```` b" }]);
+
+      expect(body).toContain("`````text\n");
+      expect(body).toMatch(/\n`````$/);
+    });
+
+    it.each([
+      { when: "missing", clientErrors: undefined },
+      { when: "empty", clientErrors: [] },
+      { when: "not a list", clientErrors: "boom" },
+      { when: "malformed", clientErrors: [{ ...ERROR, kind: "other" }] },
+      {
+        when: "over 20",
+        clientErrors: Array.from({ length: 21 }, () => ERROR),
+      },
+    ])(
+      "leaves the section out when they are $when",
+      async ({ clientErrors }) => {
+        expect(await sentBody(clientErrors)).not.toContain("Errors in");
+      },
+    );
+  });
+
   describe("refuses without calling GitHub", () => {
     it.each([
       { when: "no token is set", env: { PROBLEM_REPORT_GITHUB_TOKEN: "" } },
@@ -169,7 +240,7 @@ describe("filing a problem report", () => {
       for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
       const { fetch, requests } = github();
 
-      expect(await fileProblemReport(adminId, REPORT, fetch)).toEqual(REFUSED);
+      expect(await fileBugReport(adminId, REPORT, fetch)).toEqual(REFUSED);
       expect(requests).toHaveLength(0);
     });
 
@@ -177,25 +248,23 @@ describe("filing a problem report", () => {
       const player = await fixtures.player();
       const { fetch, requests } = github();
 
-      expect(await fileProblemReport(player.id, REPORT, fetch)).toEqual(
-        REFUSED,
-      );
+      expect(await fileBugReport(player.id, REPORT, fetch)).toEqual(REFUSED);
       expect(requests).toHaveLength(0);
     });
 
     it("when the Player does not exist", async () => {
       const { fetch, requests } = github();
 
-      expect(
-        await fileProblemReport(crypto.randomUUID(), REPORT, fetch),
-      ).toEqual(REFUSED);
+      expect(await fileBugReport(crypto.randomUUID(), REPORT, fetch)).toEqual(
+        REFUSED,
+      );
       expect(requests).toHaveLength(0);
     });
 
     it("when signed out", async () => {
       const { fetch, requests } = github();
 
-      expect(await fileProblemReport(null, REPORT, fetch)).toEqual(REFUSED);
+      expect(await fileBugReport(null, REPORT, fetch)).toEqual(REFUSED);
       expect(requests).toHaveLength(0);
     });
   });
@@ -223,7 +292,7 @@ describe("filing a problem report", () => {
       async ({ field, value, error }) => {
         const { fetch, requests } = github();
 
-        const result = await fileProblemReport(
+        const result = await fileBugReport(
           adminId,
           { ...REPORT, [field]: value },
           fetch,
@@ -239,7 +308,7 @@ describe("filing a problem report", () => {
       const title = "t".repeat(200);
       const description = "d".repeat(10_000);
 
-      const result = await fileProblemReport(
+      const result = await fileBugReport(
         adminId,
         { title: `  ${title}  `, description: `\n${description}\n` },
         fetch,
@@ -255,7 +324,7 @@ describe("filing a problem report", () => {
   it("names the stored Player even when the form claims to be someone else", async () => {
     const { fetch, requests } = github();
 
-    await fileProblemReport(
+    await fileBugReport(
       adminId,
       { ...REPORT, name: "Mallory", playerId: "someone-else" } as typeof REPORT,
       fetch,
@@ -272,7 +341,7 @@ describe("filing a problem report", () => {
       vi.mocked(getPlayerById).mockRejectedValueOnce(new Error("db down"));
       const { fetch, requests } = github();
 
-      expect(await fileProblemReport(adminId, REPORT, fetch)).toEqual({
+      expect(await fileBugReport(adminId, REPORT, fetch)).toEqual({
         ok: false,
         error: "Couldn't file the report. Try again later.",
       });
@@ -284,7 +353,7 @@ describe("filing a problem report", () => {
         Response.json({ message: "Bad credentials" }, { status: 401 }),
       );
 
-      expect(await fileProblemReport(adminId, REPORT, fetch)).toEqual({
+      expect(await fileBugReport(adminId, REPORT, fetch)).toEqual({
         ok: false,
         error: "GitHub refused the report (401). Try again later.",
       });
@@ -295,7 +364,7 @@ describe("filing a problem report", () => {
         throw new TypeError("fetch failed");
       });
 
-      expect(await fileProblemReport(adminId, REPORT, fetch)).toEqual({
+      expect(await fileBugReport(adminId, REPORT, fetch)).toEqual({
         ok: false,
         error: "Couldn't reach GitHub. Try again later.",
       });
@@ -325,7 +394,7 @@ describe("filing a problem report", () => {
     ])("when $when", async ({ response }) => {
       const { fetch } = githubReturning(response);
 
-      expect(await fileProblemReport(adminId, REPORT, fetch)).toEqual({
+      expect(await fileBugReport(adminId, REPORT, fetch)).toEqual({
         ok: false,
         error:
           "GitHub didn't return a link to the report. Check GitHub before trying again.",

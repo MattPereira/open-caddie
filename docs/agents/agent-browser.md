@@ -50,10 +50,14 @@ change you are reporting on trust.
 
 ## Data to look at
 
-The pages need data, and it comes from the seed: a fixed world of Players,
-two Courses, a Club with Tournaments, and Matches. `src/seed/world.ts` says
-exactly what is in it. The agent workflows seed their database before you
-start. Locally, against a local Postgres:
+**In the agent workflows**, the database is a copy of prod's data, taken
+before you start, with the branch's migrations on top. A URL from a bug
+report opens the rows the reporter saw. If its row is missing, prod no
+longer has it. Sign-in sessions and linked accounts are not copied.
+
+**Locally**, the data comes from the seed: a fixed world of Players, two
+Courses, a Club with Tournaments, and Matches. `src/seed/world.ts` says
+exactly what is in it. Against a local Postgres:
 
 ```bash
 pnpm db:migrate && pnpm db:seed   # an empty database
@@ -72,12 +76,15 @@ Sign-in normally goes through an email link or Google. You have neither, so
 mint the email link yourself and open it:
 
 ```bash
-agent-browser open "$(pnpm -s db:sign-in admin@example.com)"
+agent-browser open "$(pnpm -s db:sign-in admin)"           # a Platform Admin
+agent-browser open "$(pnpm -s db:sign-in someone@example.com)"
 ```
 
-- `admin@example.com` is the Platform Admin.
-- `tiger@example.com` (Tiger Woods) is an ordinary Player. Every seeded Player
-  has `<key>@example.com`, keyed as in `PLAYERS` in `src/seed/world.ts`.
+- `admin` signs in as a Platform Admin, in the seed or in a copy of prod.
+- In the seed, `tiger@example.com` (Tiger Woods) is an ordinary Player. Every
+  seeded Player has `<key>@example.com`, keyed as in `PLAYERS` in
+  `src/seed/world.ts`. In a copy of prod, read a Player's email from the
+  `user` table.
 
 Each link works once. The session lasts until you `close` the browser.
 `AUTH_SECRET` must be set, and the same in `pnpm db:sign-in` and the app.

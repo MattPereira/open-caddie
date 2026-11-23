@@ -149,6 +149,8 @@ jobs:
 
       - name: Set up the agent run
         uses: ./.github/actions/setup-agent
+        with:
+          prod-database-url: ${{ secrets.PROD_READONLY_DATABASE_URL }}
 
       - name: Open the branch
         id: branch

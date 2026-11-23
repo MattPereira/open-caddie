@@ -1,7 +1,9 @@
 import { createGitHubIssue, type IssueResult } from "./github";
+import type { ClientError } from "./client-error-schema";
 import {
   describePageContext,
   shortCommitSha,
+  type PageContext,
   type PageContextInput,
 } from "./page-context";
 import { ProblemReportSchema, type ProblemReportInput } from "./report-schema";
@@ -45,11 +47,7 @@ export async function fileProblemReport(
   });
 }
 
-function issueBody(
-  reporter: Reporter,
-  description: string,
-  page: { path: string; viewport: number | null },
-) {
+function issueBody(reporter: Reporter, description: string, page: PageContext) {
   const viewport = page.viewport === null ? "unknown" : `${page.viewport}px`;
   return [
     `_Problem reported by **${reporter.name}** (Player \`${reporter.id}\`) on \`${page.path}\`_`,
@@ -58,5 +56,33 @@ function issueBody(
     "---",
     "",
     description,
+    ...clientErrorsSection(page.clientErrors),
   ].join("\n");
+}
+
+function clientErrorsSection(errors: ClientError[]) {
+  if (errors.length === 0) return [];
+  const lines = errors.map(
+    ({ at, kind, digest, message }) =>
+      `${at} ${kind}${digest ? ` digest ${digest}` : ""}: ${message}`,
+  );
+  // Longer than any backtick run inside, so an error can't close the block.
+  const longestRun = Math.max(
+    0,
+    ...(lines
+      .join("\n")
+      .match(/`+/g)
+      ?.map((run) => run.length) ?? []),
+  );
+  const fence = "`".repeat(Math.max(3, longestRun + 1));
+  return [
+    "",
+    "---",
+    "",
+    `**Errors in the reporter's browser**, oldest first:`,
+    "",
+    `${fence}text`,
+    ...lines,
+    fence,
+  ];
 }

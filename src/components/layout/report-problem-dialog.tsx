@@ -27,6 +27,7 @@ import {
   ProblemReportSchema,
   type ProblemReportInput,
 } from "@/modules/problem-reports";
+import { recentClientErrors } from "@/modules/problem-reports/client";
 
 const EMPTY_REPORT: ProblemReportInput = { title: "", description: "" };
 
@@ -60,6 +61,7 @@ export function ReportProblemDialog({
         ...values,
         path: window.location.pathname + window.location.search,
         viewport: window.innerWidth,
+        clientErrors: recentClientErrors(),
       });
       if (!result.ok) {
         form.setError("root.server", { type: "server", message: result.error });

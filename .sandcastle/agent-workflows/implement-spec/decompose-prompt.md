@@ -20,8 +20,8 @@ Cut the spec into tickets on these lines:
 
 When a ticket changes something in the UI, drive the app with agent-browser
 (docs/agents/agent-browser.md) and save a screenshot of it as it is now, as
-/tmp/evidence/<position>-<name>.png. The database is migrated and seeded
-already. Reference it in that ticket's body by its absolute path, e.g.
+/tmp/evidence/<position>-<name>.png. The database holds a copy of prod's
+data already. Reference it in that ticket's body by its absolute path, e.g.
 `![now](/tmp/evidence/3-notes.png)`. The workflow uploads them.
 
 You will be asked for the queue as structured output.

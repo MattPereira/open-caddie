@@ -21,6 +21,11 @@ export async function reportProblem(
     return { ok: false, error: parsed.error.issues[0].message };
   }
 
-  const { path, viewport } = values;
-  return fileProblemReport(actor.id, { ...parsed.data, path, viewport });
+  const { path, viewport, clientErrors } = values;
+  return fileProblemReport(actor.id, {
+    ...parsed.data,
+    path,
+    viewport,
+    clientErrors,
+  });
 }

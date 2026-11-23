@@ -105,8 +105,8 @@ jobs:
       contents: read # the checkout. The tickets are read with FACTORY_PAT.
 
     services:
-      # Explore writes nothing, but the setup action migrates and seeds this
-      # DB, and the agent runs the app on it to screenshot an issue.
+      # Explore writes nothing, but the setup action copies prod into this
+      # DB, and the agent runs the app on it to reproduce an issue.
       postgres:
         image: postgres:18
         env:
@@ -185,6 +185,8 @@ jobs:
       - name: Set up the agent run
         if: steps.batch.outputs.numbers != '[]'
         uses: ./.github/actions/setup-agent
+        with:
+          prod-database-url: ${{ secrets.PROD_READONLY_DATABASE_URL }}
 
       - name: Explore
         if: steps.batch.outputs.numbers != '[]'

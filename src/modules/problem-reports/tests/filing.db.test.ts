@@ -161,6 +161,77 @@ describe("filing a problem report", () => {
     });
   });
 
+  describe("errors from the reporter's browser", () => {
+    const ERROR = {
+      at: "2026-11-22T18:00:00.000Z",
+      kind: "boundary",
+      message: "Error: An error occurred in the Server Components render.",
+      digest: "1234567890",
+    };
+
+    async function sentBody(clientErrors: unknown) {
+      const { fetch, requests } = github();
+      const result = await fileProblemReport(
+        adminId,
+        { ...REPORT, clientErrors },
+        fetch,
+      );
+      expect(result.ok).toBe(true);
+      return JSON.parse(String(requests[0].init.body)).body as string;
+    }
+
+    it("lists them under the description, oldest first, with any digest", async () => {
+      const body = await sentBody([
+        ERROR,
+        {
+          at: "2026-11-22T18:00:01.000Z",
+          kind: "console",
+          message: "Warning: x",
+        },
+      ]);
+
+      expect(body).toMatch(
+        new RegExp(
+          [
+            "I entered a score and it disappeared.",
+            "",
+            "---",
+            "",
+            "\\*\\*Errors in the reporter's browser\\*\\*, oldest first:",
+            "",
+            "```text",
+            "2026-11-22T18:00:00.000Z boundary digest 1234567890: Error: An error occurred in the Server Components render\\.",
+            "2026-11-22T18:00:01.000Z console: Warning: x",
+            "```$",
+          ].join("\n"),
+        ),
+      );
+    });
+
+    it("fences them longer than any backtick run inside", async () => {
+      const body = await sentBody([{ ...ERROR, message: "a ```` b" }]);
+
+      expect(body).toContain("`````text\n");
+      expect(body).toMatch(/\n`````$/);
+    });
+
+    it.each([
+      { when: "missing", clientErrors: undefined },
+      { when: "empty", clientErrors: [] },
+      { when: "not a list", clientErrors: "boom" },
+      { when: "malformed", clientErrors: [{ ...ERROR, kind: "other" }] },
+      {
+        when: "over 20",
+        clientErrors: Array.from({ length: 21 }, () => ERROR),
+      },
+    ])(
+      "leaves the section out when they are $when",
+      async ({ clientErrors }) => {
+        expect(await sentBody(clientErrors)).not.toContain("Errors in");
+      },
+    );
+  });
+
   describe("refuses without calling GitHub", () => {
     it.each([
       { when: "no token is set", env: { PROBLEM_REPORT_GITHUB_TOKEN: "" } },

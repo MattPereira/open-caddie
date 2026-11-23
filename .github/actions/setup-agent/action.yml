@@ -1,8 +1,15 @@
 name: Set up an agent run
 description: >-
-  Installs the toolchain, Claude Code and agent-browser, then migrates and
-  seeds the job's Postgres service. Run it after checkout. The job must set
-  DATABASE_URL and DATABASE_DRIVER=node-postgres.
+  Installs the toolchain, Claude Code and agent-browser, then copies prod's
+  data into the job's Postgres service and migrates it. Run it after checkout.
+  The job must set DATABASE_URL and DATABASE_DRIVER=node-postgres.
+
+inputs:
+  prod-database-url:
+    description: >-
+      secrets.PROD_READONLY_DATABASE_URL: a read-only login on prod, used
+      only by the copy step below, which runs before any agent exists.
+    required: true
 
 runs:
   using: composite
@@ -39,16 +46,32 @@ runs:
         npm install -g agent-browser@0.27.0
         agent-browser install
 
-    - name: Prepare the database
-      # The repo's checks and pre-commit hook need a real database. It is
-      # disposable: a fresh one on every run. The seed is a fixed world
-      # (src/seed/world.ts) for the agent to render and screenshot, so it
-      # never writes its own rows. See docs/agents/agent-browser.md.
+    - name: Copy prod into the database
+      # The agent sees exactly what broke in prod, not a stand-in: a
+      # reported URL like /tournaments/62 works as-is. pg_dump runs in the
+      # Postgres 18 image because the runner's client is older than prod.
+      # Auth tables come over empty: they hold live Google tokens and
+      # sessions. Then the branch's own migrations go on top, as a deploy
+      # would apply them.
       shell: bash
+      env:
+        PROD_DATABASE_URL: ${{ inputs.prod-database-url }}
       run: |
         set -euo pipefail
+        : "${PROD_DATABASE_URL:?PROD_READONLY_DATABASE_URL is not set}"
+        docker run --rm --network host \
+          -e PROD_DATABASE_URL -e DATABASE_URL postgres:18 sh -c '
+            set -e
+            psql -q -v ON_ERROR_STOP=1 "$DATABASE_URL" \
+              -c "drop schema if exists public cascade" \
+              -c "drop schema if exists drizzle cascade"
+            pg_dump "$PROD_DATABASE_URL" --no-owner --no-acl \
+              --schema=public --schema=drizzle \
+              --exclude-table-data=public.account \
+              --exclude-table-data=public.session \
+              --exclude-table-data="public.\"verificationToken\"" \
+              | psql -q -o /dev/null -v ON_ERROR_STOP=1 "$DATABASE_URL"'
         pnpm db:migrate
-        pnpm db:seed
 
     - name: Configure auth
       # Where the agent runs the app: Auth.js trusts this host even under

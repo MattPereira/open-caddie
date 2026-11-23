@@ -3,38 +3,17 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 import {
+  hasInstallPrompt,
+  showInstallPrompt,
+  subscribeToInstallPrompt,
+} from "./install-prompt-store";
+
+import {
   getInstallBannerMode,
   type InstallBannerMode,
 } from "./install-banner-mode";
 
-// Chromium-only event, missing from the DOM typings. `prompt()` settles once
-// the user accepts or dismisses the install dialog.
-type BeforeInstallPromptEvent = Event & { prompt: () => Promise<unknown> };
-
 const IOS_MARKED_INSTALLED_KEY = "opencaddie:iosMarkedInstalled";
-
-// Chromium fires `beforeinstallprompt` once per page load, so it is held at
-// module scope to survive the banner unmounting on client-side navigation.
-let deferredPrompt: BeforeInstallPromptEvent | null = null;
-const promptListeners = new Set<() => void>();
-
-function setDeferredPrompt(event: BeforeInstallPromptEvent | null) {
-  deferredPrompt = event;
-  promptListeners.forEach((listener) => listener());
-}
-
-function subscribeToPrompt(onChange: () => void) {
-  promptListeners.add(onChange);
-  return () => promptListeners.delete(onChange);
-}
-
-if (typeof window !== "undefined") {
-  window.addEventListener("beforeinstallprompt", (event) => {
-    event.preventDefault();
-    setDeferredPrompt(event as BeforeInstallPromptEvent);
-  });
-  window.addEventListener("appinstalled", () => setDeferredPrompt(null));
-}
 
 const neverChanges = () => () => {};
 
@@ -90,19 +69,11 @@ export function useInstallBanner(): {
     iosMarkedInstalled,
     subscribeToStorage,
   );
-  const promptEvent = useSyncExternalStore(
-    subscribeToPrompt,
-    () => deferredPrompt,
-    () => null,
+  const canPrompt = useSyncExternalStore(
+    subscribeToInstallPrompt,
+    hasInstallPrompt,
+    () => false,
   );
-
-  const install = useCallback(async () => {
-    if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    // A prompt event can only be shown once; Chromium fires a fresh one if
-    // the user dismissed and can still install.
-    setDeferredPrompt(null);
-  }, []);
 
   const markInstalledOnIos = useCallback(() => {
     window.localStorage.setItem(IOS_MARKED_INSTALLED_KEY, "true");
@@ -119,9 +90,9 @@ export function useInstallBanner(): {
           isStandalone: standalone,
           isTouchDevice: touchDevice,
           isIos: ios,
-          canPrompt: promptEvent !== null,
+          canPrompt,
           iosMarkedInstalled: markedInstalled,
         });
 
-  return { mode, install, markInstalledOnIos };
+  return { mode, install: showInstallPrompt, markInstalledOnIos };
 }

@@ -15,7 +15,7 @@ const clubPaths = [CLUB_HEAD, CLUB_SHAFT, CLUB_GRIP].map((d) => (
   <path key={d} d={d} />
 ));
 
-type BrandIconOptions = {
+export type BrandIconOptions = {
   size: number;
   shape: "circle" | "square";
   // Fraction of the canvas the crossed clubs fill. Maskable icons need it

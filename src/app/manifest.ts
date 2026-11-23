@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 import { lightBackground } from "@/app/theme-colors";
 import { siteDescription, siteName } from "@/app/metadata";
+import { pwaIconVariants } from "@/app/pwa-icons/variants";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -13,25 +14,13 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     background_color: lightBackground,
     theme_color: lightBackground,
-    icons: [
-      {
-        src: "/pwa-icons/192",
-        sizes: "192x192",
+    icons: Object.entries(pwaIconVariants).map(
+      ([variant, { size, shape }]) => ({
+        src: `/pwa-icons/${variant}`,
+        sizes: `${size}x${size}`,
         type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/pwa-icons/512",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "any",
-      },
-      {
-        src: "/pwa-icons/maskable",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "maskable",
-      },
-    ],
+        purpose: shape === "square" ? "maskable" : "any",
+      }),
+    ),
   };
 }

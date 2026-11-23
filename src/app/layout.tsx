@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { InstallPromptListener } from "@/components/features/install-app/install-prompt-listener";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { brandFont } from "@/app/fonts";
 import { siteDescription, siteName } from "@/app/metadata";
@@ -61,6 +62,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
+        <InstallPromptListener />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

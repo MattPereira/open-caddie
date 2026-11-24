@@ -1,23 +1,33 @@
 ---
 status: accepted
-date: 2026-11-09
+date: 2026-11-23
 ---
 
-# Migrations run in the Vercel build
+# Each Vercel build migrates its own Neon branch
 
-Every Vercel build runs `pnpm db:migrate` against `DATABASE_URL_UNPOOLED` before `next build` (`vercel.json` `buildCommand`). Each build migrates its own database over `DATABASE_URL_UNPOOLED`. Production builds migrate prod, and preview builds migrate the `preview/<git-branch>` Neon branch that the integration injects (ADR 0010). Previews can't reach prod because prod's connection vars are scoped to Production only. If the URL is missing, `drizzle.config.ts` throws and the build fails. The unpooled URL is passed in by the build command rather than as a fallback in `drizzle.config.ts`: that file also loads `.env.local`, whose Neon `DATABASE_URL_UNPOOLED` would win over a `DATABASE_URL` set for any other database and migrate Neon instead. Before this, nothing applied migrations automatically: prod was migrated by hand. A separate CI job (`Rehearse prod migrations`) tests migrations before merge: on PRs touching migrations it migrates a fresh Neon branch of prod, so an edited migration is re-tested on every push.
+Every Vercel build runs `pnpm db:migrate` before `next build` (`vercel.json` `buildCommand`), against the Neon branch that environment uses:
+
+- **Production** migrates the `production` branch. Its `DATABASE_URL` / `DATABASE_URL_UNPOOLED` are set by hand and scoped to Production only.
+- **Preview** migrates its own `preview/<git-branch>` branch. Neon's Neon-Managed Vercel integration creates it from `production` on the Git branch's first deploy, injects its URLs into that deployment, and deletes it once the Git branch is merged or deleted.
+- **Development** has a `vercel-dev` branch for local work. Builds never migrate it.
+
+The Neon project (`broad-bonus-57400925`) lives in our own Neon organization, not a Vercel-owned one.
+
+The build command passes `DATABASE_URL_UNPOOLED` in as `DATABASE_URL`, because drizzle-kit can fail over the pooler. It isn't a fallback in `drizzle.config.ts`, because that file also loads `.env.local`, whose `DATABASE_URL_UNPOOLED` would win and migrate the wrong database.
 
 ## Considered Options
 
-- **GitHub Actions migrates prod on push to `main`, then runs `vercel deploy --prod`** (with Vercel's git auto-deploy disabled for `main`). This gives explicit ordering and logs in GitHub. It was rejected because it needs `VERCEL_TOKEN` and a prod database URL in GitHub secrets, and it replaces Vercel's git deploy flow, all to order two steps the build already runs in sequence.
-- **Use a per-preview Neon branch's migration as the pre-merge check.** Rejected: a preview branch is copied from prod only once and drizzle skips migrations it has already recorded, so editing a migration between pushes would not re-test it. Previews still migrate their own branch (ADR 0010), but that is not the pre-merge check.
+- **GitHub Actions migrates prod, then runs `vercel deploy --prod`.** Rejected: it needs `VERCEL_TOKEN` and a prod URL in GitHub, and replaces Vercel's git deploys, all to order two steps the build already runs in sequence.
+- **Previews share one long-lived branch.** Rejected: a PR that adds a migration gets a preview running new code on the old schema, and every preview shares the same data.
+- **Per-PR branches created by GitHub Actions.** Rejected: it needs `VERCEL_TOKEN`, its own deploy step and a cleanup workflow. The integration does all three.
+- **A CI job that rehearses migrations on a fresh copy of prod before merge.** Rejected: a migration that fails on prod rolls back, since drizzle applies all pending migrations in one transaction. The build then stops and the previous deployment keeps serving. A preview has already run the migration against a copy of prod data.
 
 ## Consequences
 
-- **Migrations must be backward-compatible with the code currently deployed.** The schema changes before the new code is live, and if the build fails after migrating, the old code keeps serving on the new schema. Renames and drops take two PRs: first add the new column or table, then remove the old one once nothing reads it.
-- **No lock against concurrent migrations.** Two production builds in quick succession could both run `db:migrate`. drizzle applies all pending migrations in one transaction and records each one, so a double apply fails loudly instead of corrupting data. That is accepted for a single-maintainer project. Add `pg_advisory_lock` or serialise production builds if this ever bites.
-- Each production deploy wakes the prod compute briefly (see ADR 0005), even with no pending migrations.
-
-## Amendments
-
-Previews originally migrated their own `preview/<git-branch>` Neon branch, created by the Neon–Vercel integration, and the script refused to migrate prod's endpoint from a non-production build. The integration was then dropped (ADR 0009): previews shared a `staging` branch and didn't migrate, so the guard went too. ADR 0010 brought per-preview branches back through Neon's Neon-Managed integration, without the guard: previews no longer inherit prod's vars, so the script was reduced to a one-line build command. The decision above reflects the current behaviour.
+- **Migrations must work with the code that's already deployed.** The schema changes before the new code is live, and if `next build` fails after migrating, the old code keeps serving on the new schema. Renames and drops take two PRs.
+- **Only scoping protects prod.** Prod's URLs must stay scoped to Production. Nothing else stops a preview build from migrating prod.
+- **A preview branch is copied once and reused on later pushes.** Drizzle skips a migration it has already recorded, even if the file has changed. If you edit a migration after pushing it, reset `preview/<git-branch>` from `production` in Neon and redeploy.
+- **No lock against concurrent migrations.** Two production builds close together could both run `db:migrate`. The second fails loudly instead of corrupting data. Add `pg_advisory_lock` if this ever matters.
+- **If the integration doesn't inject a preview's URLs, that preview build fails.**
+- **Each build wakes a compute (ADR 0005).** Each preview branch has its own compute, and those count against Neon's limit on concurrently active computes.
+- **`vercel-dev` falls behind prod.** Reset it from `production` in Neon when needed.

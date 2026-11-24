@@ -21,6 +21,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
+    "env:pull": "vercel env pull .env.local --environment=development",
     "db:seed": "tsx --import ./src/seed/register.mjs src/seed/index.ts",
     "db:reset": "tsx src/seed/reset.ts && pnpm db:seed",
     "db:sign-in": "tsx --import ./src/seed/register.mjs src/seed/sign-in.ts",

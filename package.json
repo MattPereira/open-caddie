@@ -25,7 +25,7 @@
     "env:pull": "vercel env pull .env.local --environment=development",
     "db:seed": "tsx --import ./src/seed/register.mjs src/seed/index.ts",
     "db:reset": "tsx src/seed/reset.ts && pnpm db:seed",
-    "db:pull-prod": "tsx src/seed/prod-copy.ts pull",
+    "db:copy-prod": "tsx src/seed/prod-copy.ts copy",
     "db:sign-in": "tsx --import ./src/seed/register.mjs src/seed/sign-in.ts",
     "db:sign-in:prod": "tsx src/seed/prod-copy.ts sign-in",
     "spike:scorecard": "tsx evals/scorecard-import/spike.ts",

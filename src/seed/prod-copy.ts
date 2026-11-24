@@ -1,10 +1,19 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import type { Readable, Writable } from "node:stream";
 
 import { assertLocalConnection } from "@/db/connection";
 
 import { requireLocalDatabase } from "./local";
 import { PROD_COPY_DATABASE, prodCopyUrl } from "./prod-copy-url";
+
+class ExitError extends Error {
+  constructor(
+    name: string,
+    readonly code: number | null,
+    readonly signal: NodeJS.Signals | null,
+  ) {
+    super(`${name} exited with ${code ?? signal}`);
+  }
+}
 
 requireLocalDatabase();
 const localUrl = process.env.DATABASE_URL ?? "";
@@ -19,18 +28,17 @@ const copyUrl = prodCopyUrl(localUrl);
 assertLocalConnection({ connectionString: copyUrl }, process.env);
 
 const [command, ...rest] = process.argv.slice(2);
-if (command === "pull") await pull();
+if (command === "copy") await copy();
 // Ctrl-C is how you stop a dev server, not a failure.
 else if (command === "dev")
   await run("next", ["dev"], copyUrl).catch(ignoreInterrupt);
 // The link's token has to land in the database dev:prod reads.
 else if (command === "sign-in")
   await run("pnpm", ["-s", "db:sign-in", ...rest], copyUrl);
-else throw new Error("Usage: tsx src/seed/prod-copy.ts <pull | dev | sign-in>");
+else throw new Error("Usage: tsx src/seed/prod-copy.ts <copy | dev | sign-in>");
 
-async function pull() {
-  const prodUrl = process.env.PROD_READONLY_DATABASE_URL;
-  if (!prodUrl) {
+async function copy() {
+  if (!process.env.PROD_READONLY_DATABASE_URL) {
     throw new Error("PROD_READONLY_DATABASE_URL is not set");
   }
   await run("psql", [
@@ -45,25 +53,25 @@ async function pull() {
   ]);
   await run("psql", ["-q", copyUrl, "-c", "drop schema public cascade"]);
   // Same dump as .github/actions/restore-bug-report-snapshots: auth tables
-  // come over empty, since they hold live Google tokens and sessions.
-  await dumpInto(
+  // come over empty, since they hold live Google tokens and sessions. Neon
+  // tags columns with a `pg_attver` option that stock Postgres rejects.
+  await exited(
     spawn(
-      "pg_dump",
+      "bash",
       [
-        prodUrl,
-        "--no-owner",
-        "--no-acl",
-        "--schema=public",
-        "--schema=drizzle",
-        "--exclude-table-data=public.account",
-        "--exclude-table-data=public.session",
-        '--exclude-table-data=public."verificationToken"',
+        "-c",
+        `set -o pipefail
+        pg_dump "$PROD_READONLY_DATABASE_URL" --no-owner --no-acl \\
+          --schema=public --schema=drizzle \\
+          --exclude-table-data=public.account \\
+          --exclude-table-data=public.session \\
+          --exclude-table-data='public."verificationToken"' \\
+          | sed '/ SET (pg_attver=[0-9]*);$/d' \\
+          | psql -q -o /dev/null -v ON_ERROR_STOP=1 "$COPY_URL"`,
       ],
-      { stdio: ["ignore", "pipe", "inherit"] },
+      { stdio: "inherit", env: { ...process.env, COPY_URL: copyUrl } },
     ),
-    spawn("psql", ["-q", "-o", "/dev/null", "-v", "ON_ERROR_STOP=1", copyUrl], {
-      stdio: ["pipe", "inherit", "inherit"],
-    }),
+    "pg_dump | psql",
   );
   await run("pnpm", ["db:migrate"], copyUrl);
   console.log(`Copied prod into ${PROD_COPY_DATABASE}.`);
@@ -76,14 +84,6 @@ function run(cmd: string, args: string[], databaseUrl?: string) {
   return exited(spawn(cmd, args, { stdio: "inherit", env }), cmd);
 }
 
-async function dumpInto(
-  from: ChildProcess & { stdout: Readable },
-  to: ChildProcess & { stdin: Writable },
-) {
-  from.stdout.pipe(to.stdin);
-  await Promise.all([exited(from, "pg_dump"), exited(to, "psql")]);
-}
-
 function exited(child: ChildProcess, name: string) {
   return new Promise<void>((resolve, reject) => {
     child.on("error", reject);
@@ -92,16 +92,6 @@ function exited(child: ChildProcess, name: string) {
       else reject(new ExitError(name, code, signal));
     });
   });
-}
-
-class ExitError extends Error {
-  constructor(
-    name: string,
-    readonly code: number | null,
-    readonly signal: NodeJS.Signals | null,
-  ) {
-    super(`${name} exited with ${code ?? signal}`);
-  }
 }
 
 function ignoreInterrupt(error: unknown) {

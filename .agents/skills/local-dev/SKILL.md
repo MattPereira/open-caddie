@@ -18,7 +18,7 @@ The app runs on a local Postgres, never on Neon. Two databases, one per dev serv
 
 1. **Fill the database.**
    - Seed: `pnpm db:reset` when it's empty, or pages fail on a missing column or table (another branch migrated it; every worktree shares `open_caddie`).
-   - Copy: `pnpm db:pull-prod` when `open_caddie_prod` doesn't exist or the human wants it fresh. It reads prod through a read-only login and applies this branch's migrations to the copy.
+   - Copy: `pnpm db:copy-prod` when `open_caddie_prod` doesn't exist or the human wants it fresh. It reads prod through a read-only login and applies this branch's migrations to the copy.
 2. **Start the server** in the background, and read the address it prints. Next.js runs one dev server per worktree: switching between seed and copy means stopping the running one first (`Another next dev server is already running` names its PID). Stop only a server you started; ask the human about theirs.
 3. **Sign in.** Mint the link with the row's command, with `AUTH_URL` set to that address:
 

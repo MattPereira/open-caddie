@@ -11,7 +11,7 @@ const origin = process.env.AUTH_URL ?? "http://localhost:3000";
 const { createSignInLinkForEmail } = await import("@/lib/auth/sign-in-link");
 const { getAllPlayers } = await import("@/modules/players/server");
 
-// A copy of prod (a Bug Report snapshot, `pnpm db:pull-prod`) has Platform
+// A copy of prod (a Bug Report snapshot, `pnpm db:copy-prod`) has Platform
 // Admins with real addresses the agent has no reason to know.
 async function platformAdminEmail() {
   const admin = (await getAllPlayers()).find((p) => p.isAdmin && p.email);

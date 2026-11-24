@@ -100,7 +100,8 @@ runs:
           export TARGET_URL="${DATABASE_URL%/*}/open_caddie_bug_$n" DB="open_caddie_bug_$n"
           # pg_dump runs in the Postgres 18 image because the runner's client
           # is older than prod. Auth tables come over empty: they hold live
-          # Google tokens and sessions.
+          # Google tokens and sessions. Neon tags columns with a `pg_attver`
+          # option that stock Postgres rejects.
           docker run --rm --network host \
             -e SOURCE_URL -e DATABASE_URL -e TARGET_URL -e DB postgres:18 sh -c '
               set -e
@@ -111,6 +112,7 @@ runs:
                 --exclude-table-data=public.account \
                 --exclude-table-data=public.session \
                 --exclude-table-data="public.\"verificationToken\"" \
+                | sed "/ SET (pg_attver=[0-9]*);\$/d" \
                 | psql -q -o /dev/null -v ON_ERROR_STOP=1 "$TARGET_URL"'
           done_list+=("$n")
         done

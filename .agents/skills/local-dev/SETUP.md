@@ -12,10 +12,10 @@ createdb open_caddie_test
 ```bash
 DATABASE_URL=postgresql:///open_caddie?host=/var/run/postgresql
 DATABASE_DRIVER=node-postgres
-PROD_READONLY_DATABASE_URL=   # the GitHub secret of the same name; only db:pull-prod reads it
+PROD_READONLY_DATABASE_URL=   # the GitHub secret of the same name; only db:copy-prod reads it
 ```
 
-Keep `DATABASE_URL` a URL, never `DATABASE_LOCAL_SOCKET`: `db:pull-prod` and `dev:prod` swap its database name, and the socket vars ignore it.
+Keep `DATABASE_URL` a URL, never `DATABASE_LOCAL_SOCKET`: `db:copy-prod` and `dev:prod` swap its database name, and the socket vars ignore it.
 
 `.env.test`, for `pnpm test` (each worker copies `open_caddie_test`):
 

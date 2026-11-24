@@ -1,0 +1,18 @@
+# Only statements the code live in production can't survive (database-migrations
+# skill, Breaking statements). The lock and timeout rules matter for large
+# tables, which this database doesn't have.
+assume_in_transaction = true
+excluded_rules = [
+  "adding-foreign-key-constraint",
+  "ban-drop-constraint",
+  "constraint-missing-not-valid",
+  "prefer-bigint-over-int",
+  "prefer-bigint-over-smallint",
+  "prefer-identity",
+  "prefer-robust-stmts",
+  "prefer-timestamp-tz",
+  "require-concurrent-index-creation",
+  "require-concurrent-index-deletion",
+  "require-lock-timeout",
+  "require-statement-timeout",
+]

@@ -4,3 +4,4 @@
 - Only env var scoping protects prod. Prod's URLs are set by hand and scoped to Production; nothing else stops a preview build migrating prod.
 - Neon's Vercel integration injects each preview's URLs. Without them, the preview build fails.
 - Nothing locks against concurrent migrations: two production builds close together fail loudly on the second.
+- `db:check-migrations` reads `drizzle.__drizzle_migrations` before the build migrates. Prod's `0000` row holds `baseline:0000_magenta_argent` instead of a hash (inserted by hand when the prod schema was snapshotted); the check accepts `baseline:<tag>` for that reason.

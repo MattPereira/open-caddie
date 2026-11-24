@@ -1,17 +1,10 @@
-import { config } from "dotenv";
-
 import { assertLocalConnection, nodePostgresConfig } from "@/db/connection";
+import { loadDatabaseUrl } from "@/db/env";
 
 // Every `src/seed` command runs this before it loads `@/db`, which connects
 // on import.
 export function requireLocalDatabase() {
-  // Variables already set win over both files. .env.development.local holds
-  // the local database; .env.local is `vercel env pull`'s and may still carry
-  // a Neon URL.
-  config({ path: [".env.development.local", ".env.local"], quiet: true });
-
-  const url = process.env.DATABASE_URL;
-  if (!url) throw new Error("DATABASE_URL is not set");
+  const url = loadDatabaseUrl();
 
   // The app's default Neon driver can't reach a local Postgres.
   process.env.DATABASE_DRIVER ??= "node-postgres";

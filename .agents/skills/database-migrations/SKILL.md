@@ -1,16 +1,16 @@
 ---
 name: database-migrations
-description: Schema changes and Drizzle migrations. Use when editing `src/db/schema.ts` or `src/db/migrations/`, running `pnpm db:generate` / `pnpm db:migrate`, or changing migration wiring (`vercel.json`, `drizzle.config.ts`, Neon env vars).
+description: Schema changes and Drizzle migrations. Use when editing `src/db/schema.ts` or `src/db/migrations/`, running `pnpm db:generate` / `pnpm db:migrate`, a build failing `db:check-migrations`, or changing migration wiring (`vercel.json`, `drizzle.config.ts`, Neon env vars).
 ---
 
 # Database migrations
 
-Every Vercel build runs `pnpm db:migrate` before `next build`: Production against Neon `production`, each Preview against `preview/<git-branch>`, a copy of `production` made on the branch's first deploy. Drizzle applies all pending migrations in one transaction; a failure rolls back, stops the build, and the previous deployment keeps serving.
+Every Vercel build runs `pnpm db:migrate:checked` (`db:check-migrations`, then `db:migrate`) before `next build`: Production against Neon `production`, each Preview against `preview/<git-branch>`, a copy of `production` made on the branch's first deploy. Drizzle applies all pending migrations in one transaction; a failure rolls back, stops the build, and the previous deployment keeps serving.
 
 ## Rules
 
 1. **Compatible with the deployed code.** The schema changes before the new code is live, and stays changed if `next build` then fails. A change it can't survive takes [expand/contract](#expandcontract).
-2. **Applied migrations are frozen.** Drizzle records applied migrations by timestamp and skips an edited one, so the database drifts from the repo. Merged: write a new migration. Pushed but unmerged: you may edit it, then ask the human to reset `preview/<git-branch>` from `production` in Neon and redeploy.
+2. **Applied migrations are frozen.** Drizzle records applied migrations by timestamp and skips an edited one, so the database drifts from the repo. `pnpm db:check-migrations` runs before `db:migrate` in every build and fails it on an edited, missing or out-of-order migration, naming the fix. Merged: write a new migration. Pushed but unmerged: you may edit it, then ask the human to reset `preview/<git-branch>` from `production` in Neon and redeploy.
 3. **Existing rows survive.** A new NOT NULL column gets a default or a backfill in the same migration. Backfills and data fixes go in an idempotent custom migration: `pnpm db:generate --custom --name <what>`.
 
 ## Steps

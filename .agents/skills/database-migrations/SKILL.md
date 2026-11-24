@@ -1,6 +1,6 @@
 ---
 name: database-migrations
-description: Schema changes and Drizzle migrations. Use when editing `src/db/schema.ts` or `src/db/migrations/`, running `pnpm db:generate` / `pnpm db:migrate`, a build or CI failing `db:check-migrations` / `db:check-breaking`, or changing migration wiring (`vercel.json`, `drizzle.config.ts`, Neon env vars).
+description: Schema changes and Drizzle migrations. Use when planning a schema change, editing `src/db/schema.ts` or `src/db/migrations/`, a build or CI failing `db:check-migrations` / `db:check-breaking`, or changing migration wiring (`vercel.json`, `drizzle.config.ts`, Neon env vars).
 ---
 
 # Database migrations
@@ -13,6 +13,14 @@ Every Vercel build runs `pnpm db:migrate:checked` (`db:check-migrations`, then `
 2. **Applied migrations are frozen.** Drizzle records applied migrations by timestamp and skips an edited one, so the database drifts from the repo. `pnpm db:check-migrations` runs before `db:migrate` in every build and fails it on an edited, missing or out-of-order migration, naming the fix. Merged: write a new migration. Pushed but unmerged: you may edit it, then ask the human to reset `preview/<git-branch>` from `production` in Neon and redeploy.
 3. **Existing rows survive.** A new NOT NULL column gets a default or a backfill in the same migration. Backfills and data fixes go in an idempotent custom migration: `pnpm db:generate --custom --name <what>`.
 
+## Planning a schema change
+
+Classify the change against [Breaking statements](#breaking-statements) before writing the ticket, and shape the ticket to match:
+
+- Additive: one ticket.
+- A rename only the code needs: a TS-only rename (`newName: text("old_name")`), one ticket.
+- Otherwise: the ticket covers expand only; its run files switch, and switch's run files contract ([EXPAND-CONTRACT.md](EXPAND-CONTRACT.md)).
+
 ## Steps
 
 1. Edit `src/db/schema.ts`.
@@ -21,8 +29,9 @@ Every Vercel build runs `pnpm db:migrate:checked` (`db:check-migrations`, then `
 4. **Live code, new schema.** Apply the migration to the local database (`pnpm db:migrate`), then run `origin/main`'s code against it: `git worktree add ../open-caddie-live origin/main`, copy the `.env*.local` files in, `pnpm install` and `pnpm dev` there, sign in per the `local-dev` skill, and use every page that reads the changed tables. Remove the worktree after.
 5. `pnpm db:reset`.
 6. `pnpm check` and `pnpm db:check-breaking`.
+7. Commit, push, and open a PR with `gh pr create`, its body per the `pr` skill. In a factory run (`/tmp/ticket.md` exists), the workflow pushes and opens it: write the body to `/tmp/pr-body.md`.
 
-Done when every statement is classified, each breaking one is split or carries a checked `deploy-safe` reason, any follow-up is filed, step 4's pages work, step 5 succeeds, and step 6 passes.
+Done when every statement is classified, each breaking one is split or carries a checked `deploy-safe` reason, any follow-up is filed, step 4's pages work, step 5 succeeds, step 6 passes, and the PR is open.
 
 ## Breaking statements
 

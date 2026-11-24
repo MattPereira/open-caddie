@@ -1,51 +1,41 @@
 ---
 name: database-migrations
-description: Schema changes and Drizzle migrations. Use when editing `src/db/schema.ts` or `src/db/migrations/`, or running `pnpm db:generate` / `pnpm db:migrate`.
+description: Schema changes and Drizzle migrations. Use when editing `src/db/schema.ts` or `src/db/migrations/`, running `pnpm db:generate` / `pnpm db:migrate`, or changing migration wiring (`vercel.json`, `drizzle.config.ts`, Neon env vars).
 ---
 
 # Database migrations
 
-## Where migrations run
-
-Every Vercel build runs `pnpm db:migrate` before `next build`, against the Neon branch its environment uses:
-
-- **Production** migrates `production`.
-- **Preview** migrates `preview/<git-branch>`, copied from `production` on the Git branch's first deploy and deleted once it merges. A preview is your migration's rehearsal on prod data.
-
-Drizzle applies every pending migration in one transaction. A failure rolls back, the build stops, and the previous deployment keeps serving.
-
-Your own database depends on where you run:
-
-- **Factory run**: a local Postgres holding the seed. `pnpm db:reset` empties, migrates and reseeds it; it refuses any database that isn't local.
-- **Interactive session**: `.env.local` points at Neon `vercel-dev`, a copy of prod that can't be reseeded. `pnpm db:migrate` migrates it.
-- **Tests**: each worker migrates its own database (ADR 0008). Nothing to do.
+Every Vercel build runs `pnpm db:migrate` before `next build`: Production against Neon `production`, each Preview against `preview/<git-branch>`, a copy of `production` made on the branch's first deploy. Drizzle applies all pending migrations in one transaction; a failure rolls back, stops the build, and the previous deployment keeps serving.
 
 ## Rules
 
-1. **A migration works with the code already deployed.** The schema changes before the new code is live, and if `next build` fails after migrating, the old code keeps serving on the new schema. So a rename or drop takes two PRs: the first adds the new shape and moves every read and write to it; the second removes the old shape once nothing reads it.
-2. **A merged migration is frozen.** Prod has recorded it, and drizzle only compares timestamps, so prod would silently skip an edit and drift from the repo. Change it with a new migration. A pushed, unmerged migration is recorded on its preview branch the same way: after editing one, ask the human to reset `preview/<git-branch>` from `production` in Neon and redeploy.
-3. **Existing rows survive.** A new NOT NULL column gets a default or a backfill in the same migration. Backfills and data fixes are SQL in a custom migration (`pnpm db:generate --custom --name <what>`), written idempotent.
+1. **Compatible with the deployed code.** The schema changes before the new code is live, and stays changed if `next build` then fails. A change it can't survive takes [expand/contract](#expandcontract).
+2. **Applied migrations are frozen.** Drizzle records applied migrations by timestamp and skips an edited one, so the database drifts from the repo. Merged: write a new migration. Pushed but unmerged: you may edit it, then ask the human to reset `preview/<git-branch>` from `production` in Neon and redeploy.
+3. **Existing rows survive.** A new NOT NULL column gets a default or a backfill in the same migration. Backfills and data fixes go in an idempotent custom migration: `pnpm db:generate --custom --name <what>`.
 
 ## Steps
 
 1. Edit `src/db/schema.ts`.
-2. `pnpm db:generate`, then read the new SQL in `src/db/migrations/`. It says what you intended and drops or renames nothing the deployed code reads.
-3. Apply it:
-   - Factory run: `pnpm db:reset`. When the new schema needs data the seed lacks, add it to `src/seed/world.ts` through module entry points, in the same change.
-   - Interactive session: `pnpm db:migrate`.
-4. `pnpm check`.
+2. `pnpm db:generate`, then read the new SQL in `src/db/migrations/` and put every statement through [expand/contract](#expandcontract).
+3. When the new schema needs data the seed lacks, add it to `src/seed/world.ts` through module entry points.
+4. `pnpm db:reset`. If it refuses a non-local database, run `pnpm db:migrate` instead. If that fails on migrations this branch doesn't have, the database has drifted: ask the human to reset `vercel-dev` from `production` in Neon, then rerun.
+5. `pnpm check`.
 
-Done when the generated SQL matches your intent under all three rules, step 3 succeeds, and `pnpm check` passes.
+Done when the generated SQL passes all three rules, any follow-up is filed, step 4 succeeds, and `pnpm check` passes.
 
-## When `vercel-dev` drifts
+## Expand/contract
 
-`vercel-dev` keeps every migration applied to it, including ones later edited or abandoned, and falls behind prod as other PRs merge. Ask the human to reset `vercel-dev` from its parent (`production`) in Neon; its connection string stays the same. Then `pnpm db:migrate` to reapply your branch's unmerged migrations.
+Test every statement in the generated SQL: does the code live in production now still work once it runs? Split whatever fails across deploys: each PR leaves prod working, and the rest becomes a follow-up issue.
+
+What decides it in this repo:
+
+- **Deployed code selects every column its `schema.ts` lists** (`db.select().from(table)`, the Auth.js adapter). A column or table leaves the database one deploy after it leaves `schema.ts`: remove it from `schema.ts` and the code, replace the generated `DROP` with `SELECT 1;`, and drop it in the follow-up with a custom `DROP ... IF EXISTS`.
+- **A rename can stay in TypeScript.** Change the key and keep the database name (`newName: text("old_name")`); `db:generate` then emits nothing.
+- **A backfill misses what the old code writes before the new code is live.** Where those writes matter, have the new code write both shapes until the follow-up.
+- **`db:generate` asking whether a column was renamed** means the SQL is about to break deployed code.
+
+File the follow-up with `gh issue create --blocked-by <this issue>`, carrying this issue's labels minus `agent:*`, its body opening "Start once the production deploy of #<this issue> succeeded." Without `gh` access, put its title and body in the PR body under **Follow-up**.
 
 ## Wiring
 
-For changes to `vercel.json`, `drizzle.config.ts` or the Neon env vars:
-
-- The build passes `DATABASE_URL_UNPOOLED` in as `DATABASE_URL`, because drizzle-kit can fail over the pooler. It isn't a fallback in `drizzle.config.ts`: that file loads `.env.local`, whose unpooled URL would win and migrate the wrong database.
-- Only env var scoping protects prod. Prod's URLs are set by hand and scoped to Production; nothing else stops a preview build migrating prod.
-- Neon's Vercel integration injects each preview's URLs. Without them, the preview build fails.
-- Nothing locks against concurrent migrations: two production builds close together fail loudly on the second.
+Before changing `vercel.json`, `drizzle.config.ts` or the Neon env vars, read [WIRING.md](WIRING.md).

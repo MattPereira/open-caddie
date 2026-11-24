@@ -89,6 +89,7 @@ const FERN_HOLLOW: CoursePlan = {
   tees: [{ name: "Green", color: "#15803d", rating: "70.2", slope: 126 }],
 };
 
+const YARDS_SHORTER_PER_TEE = 25;
 const TEE_YARDS: Record<number, number> = { 3: 165, 4: 395, 5: 530 };
 
 async function seedCourse(adminId: string, plan: CoursePlan) {
@@ -102,9 +103,8 @@ async function seedCourse(adminId: string, plan: CoursePlan) {
         color,
         rating,
         slope,
-        // Each tee forward plays about 25 yards shorter per hole.
         yardages: plan.pars.map(
-          (par, i) => TEE_YARDS[par] + (i % 4) * 12 - t * 25,
+          (par, i) => TEE_YARDS[par] + (i % 4) * 12 - t * YARDS_SHORTER_PER_TEE,
         ),
         sortOrder: t,
       })),

@@ -49,7 +49,7 @@ describe("seedWorld", () => {
     );
   }
 
-  it("seeds a fuller world: Players, 18-hole Courses and two Clubs sharing Members", async () => {
+  it("seeds 20 Players, six Courses and two Clubs sharing Members", async () => {
     await seedWorld();
 
     expect(await getAllPlayers()).toHaveLength(20);
@@ -99,10 +99,28 @@ describe("seedWorld", () => {
     );
     const { rounds } = await getTournamentRounds(tournament.id);
     const skins = tournamentSkins(rounds);
-    expect(skins.length).toBeLessThan(18);
+    expect(skins).toHaveLength(12);
     const skinsByPlayer = Map.groupBy(skins, (skin) => skin.round.playerId);
     const noorSkins = skinsByPlayer.get(await playerId("Noor Haddad")) ?? [];
-    expect(noorSkins.length).toBeGreaterThanOrEqual(3);
+    expect(noorSkins).toHaveLength(4);
+  });
+
+  it("starts a Player with one prior Tournament Round off scratch", async () => {
+    await seedWorld();
+
+    const tournament = required(
+      (await getTournamentsByClubHandle("saturday-club")).find(
+        (t) => t.courseHandle === "saguaro-ridge" && t.season === 2,
+      ),
+      "today's Saguaro Tournament",
+    );
+    const { rounds } = await getTournamentRounds(tournament.id);
+    const mayaId = await playerId("Maya Thornbury");
+    const maya = required(
+      rounds.find((r) => r.playerId === mayaId),
+      "Maya's round",
+    );
+    expect(maya.playingHandicap).toBe(0);
   });
 
   it("seeds a Four-Ball whose Match Skins carry over", async () => {

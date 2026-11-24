@@ -64,7 +64,6 @@ export async function seedMatches(
     holes: 18,
   });
 
-  // Wilhelmina has no override and plays the White tee.
   const threeBall = await seedPlayedMatch(adminId, ids, {
     creator: "hannah",
     format: "three_ball_match_play",

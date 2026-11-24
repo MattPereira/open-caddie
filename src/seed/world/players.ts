@@ -43,8 +43,7 @@ export const PLAYERS = {
 export type PlayerKey = keyof typeof PLAYERS;
 export type PlayerIds = Record<PlayerKey, string>;
 
-/** Looks up each Player's Round among an Event's Rounds. */
-export function roundsByPlayer(
+export function roundIdOf(
   rounds: { id: number; playerId: string }[],
   ids: PlayerIds,
 ) {

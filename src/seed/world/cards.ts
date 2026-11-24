@@ -5,7 +5,6 @@ import { ok } from "./ok";
 export type HoleScore = { strokes: number; putts: number };
 export type Distance = { feet: number; inches: number };
 
-/** The card with only its first `holes` holes scored. */
 export function firstHoles(card: HoleScore[], holes: number) {
   return card.map((hole, i) => (i < holes ? hole : null));
 }

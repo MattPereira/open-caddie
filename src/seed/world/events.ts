@@ -25,14 +25,8 @@ import {
 } from "./cards";
 import type { SeededCourse } from "./courses";
 import { ok } from "./ok";
-import {
-  PLAYERS,
-  roundsByPlayer,
-  type PlayerIds,
-  type PlayerKey,
-} from "./players";
+import { PLAYERS, roundIdOf, type PlayerIds, type PlayerKey } from "./players";
 
-/** yyyy-mm-dd, `offset` days from today. */
 export function dateFromToday(offset: number) {
   return format(addDays(new Date(), offset), "yyyy-MM-dd");
 }
@@ -80,7 +74,7 @@ export async function seedTournament(
     "tournament players",
   );
   const { rounds } = await getTournamentRounds(tournamentId);
-  const roundOf = roundsByPlayer(rounds, ids);
+  const roundOf = roundIdOf(rounds, ids);
 
   for (const group of plan.pairings) {
     const pairing = ok(
@@ -150,7 +144,7 @@ export async function seedMatch(
     `${plan.format} match`,
   );
   const { rounds } = await getMatchRounds(required(created.id, "match id"));
-  const roundOf = roundsByPlayer(rounds, ids);
+  const roundOf = roundIdOf(rounds, ids);
   for (const [key, playerIndexOverride] of Object.entries(plan.overrides)) {
     ok(
       await changeRoundSettings(adminId, roundOf(key as PlayerKey), {

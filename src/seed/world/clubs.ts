@@ -24,6 +24,9 @@ const POINT_RULES: PointRules = {
   },
 };
 
+const SATURDAY_CLUB = "saturday-club";
+const DAWN_PATROL = "dawn-patrol";
+
 const SATURDAY_MEMBERS: PlayerKey[] = [
   "ava",
   "marcus",
@@ -81,12 +84,12 @@ export async function seedSaturdayClub(
 ) {
   const { gullwing, saguaro, oakmere, portHaven, brackenmoor } = courses;
   await seedClub(adminId, ids, {
-    handle: "saturday-club",
+    handle: SATURDAY_CLUB,
     name: "Saturday Club",
     members: SATURDAY_MEMBERS,
   });
   const seed = (plan: TournamentPlan) =>
-    seedTournament(adminId, ids, "saturday-club", plan);
+    seedTournament(adminId, ids, SATURDAY_CLUB, plan);
 
   // Season 1, now a Past Season.
   await seed({
@@ -239,6 +242,8 @@ export async function seedSaturdayClub(
       },
     ],
   });
+  // Maya's one prior Saturday Round is too few for a Player Index, so she
+  // plays off scratch.
   await seed({
     date: dateFromToday(0),
     course: saguaro,
@@ -270,12 +275,12 @@ export async function seedDawnPatrol(
 ) {
   const { gullwing, brackenmoor, fernHollow } = courses;
   await seedClub(adminId, ids, {
-    handle: "dawn-patrol",
+    handle: DAWN_PATROL,
     name: "Dawn Patrol Golf Society",
     members: DAWN_PATROL_MEMBERS,
   });
   const seed = (plan: TournamentPlan) =>
-    seedTournament(adminId, ids, "dawn-patrol", plan);
+    seedTournament(adminId, ids, DAWN_PATROL, plan);
 
   // Siobhán and Leo play only this one, with the same card, below every
   // paying Tournament Ranking position: they tie in Standings.

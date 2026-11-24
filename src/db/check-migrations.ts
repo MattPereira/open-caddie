@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 
-import { config } from "dotenv";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 import { Client } from "pg";
 
@@ -10,23 +9,22 @@ import {
   type MigrationDrift,
   type RepoMigration,
 } from "./migration-drift";
+import { loadDatabaseUrl } from "./env";
 
-// Runs before `pnpm db:migrate` in the Vercel build (ADR 0006), so it checks
-// the database drizzle-kit is about to migrate. Same env files as
-// drizzle.config.ts for local runs.
-config({ path: [".env.development.local", ".env.local"], quiet: true });
+// Runs before `pnpm db:migrate` in the Vercel build (ADR 0006), against the
+// database drizzle-kit is about to migrate.
 
 const MIGRATIONS_FOLDER = "src/db/migrations";
 
-const url = process.env.DATABASE_URL;
-if (!url) throw new Error("DATABASE_URL is not set");
-
-const drift = findMigrationDrift(await readApplied(url), readRepo());
+const drift = findMigrationDrift(
+  await readApplied(loadDatabaseUrl()),
+  readRepo(),
+);
 if (drift.length > 0) {
   console.error(
     [
       "Applied migrations differ from src/db/migrations; drizzle would skip these silently:",
-      ...drift.map((d) => `  - ${describeDrift(d)}\n    Fix: ${fixFor(d)}`),
+      ...drift.map(formatDrift),
     ].join("\n"),
   );
   process.exit(1);
@@ -70,31 +68,45 @@ function readRepo(): RepoMigration[] {
   );
 }
 
-function describeDrift(drift: MigrationDrift) {
+function formatDrift(drift: MigrationDrift) {
+  const { problem, prodFix, previewFollowUp } = reportFor(drift);
+  return `  - ${problem}\n    Fix: ${isPreview() ? previewFix(previewFollowUp) : prodFix}`;
+}
+
+function reportFor(drift: MigrationDrift): {
+  problem: string;
+  prodFix: string;
+  previewFollowUp?: string;
+} {
   switch (drift.kind) {
     case "edited":
-      return `${drift.tag} was edited after it was applied`;
+      return {
+        problem: `${drift.tag} was edited after it was applied`,
+        prodFix:
+          "restore the migration as applied and put the change in a new migration (`pnpm db:generate`).",
+      };
     case "missing":
-      return `the migration applied with timestamp ${drift.createdAt} is no longer in the repo`;
+      return {
+        problem: `the migration applied with timestamp ${drift.createdAt} is no longer in the repo`,
+        prodFix: "restore the removed migration file.",
+      };
     case "skipped":
-      return `${drift.tag} is older than the newest applied migration, so it would never run`;
+      return {
+        problem: `${drift.tag} is older than the newest applied migration, so it would never run`,
+        prodFix:
+          "it never ran here, so delete it and run `pnpm db:generate` again to give it a newer timestamp.",
+        previewFollowUp:
+          "If it still fails, this branch's migration is older than one production has: delete it and run `pnpm db:generate` again.",
+      };
   }
 }
 
-function fixFor(drift: MigrationDrift) {
-  if (process.env.VERCEL_ENV === "preview") {
-    const branch = process.env.VERCEL_GIT_COMMIT_REF ?? "<git-branch>";
-    const reset = `reset preview/${branch} from production in Neon, then redeploy.`;
-    return drift.kind === "skipped"
-      ? `${reset} If it still fails, this branch's migration is older than one production has: delete it and run \`pnpm db:generate\` again.`
-      : reset;
-  }
-  switch (drift.kind) {
-    case "edited":
-      return "restore the migration as applied and put the change in a new migration (`pnpm db:generate`).";
-    case "missing":
-      return "restore the removed migration file.";
-    case "skipped":
-      return "it never ran here, so delete it and run `pnpm db:generate` again to give it a newer timestamp.";
-  }
+function isPreview() {
+  return process.env.VERCEL_ENV === "preview";
+}
+
+function previewFix(followUp: string | undefined) {
+  const branch = process.env.VERCEL_GIT_COMMIT_REF ?? "<git-branch>";
+  const reset = `reset preview/${branch} from production in Neon, then redeploy.`;
+  return followUp ? `${reset} ${followUp}` : reset;
 }

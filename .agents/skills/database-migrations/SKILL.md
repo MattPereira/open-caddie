@@ -5,7 +5,7 @@ description: Schema changes and Drizzle migrations. Use when editing `src/db/sch
 
 # Database migrations
 
-Every Vercel build runs `pnpm db:check-migrations` then `pnpm db:migrate` before `next build`: Production against Neon `production`, each Preview against `preview/<git-branch>`, a copy of `production` made on the branch's first deploy. Drizzle applies all pending migrations in one transaction; a failure rolls back, stops the build, and the previous deployment keeps serving.
+Every Vercel build runs `pnpm db:migrate:checked` (`db:check-migrations`, then `db:migrate`) before `next build`: Production against Neon `production`, each Preview against `preview/<git-branch>`, a copy of `production` made on the branch's first deploy. Drizzle applies all pending migrations in one transaction; a failure rolls back, stops the build, and the previous deployment keeps serving.
 
 ## Rules
 

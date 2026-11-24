@@ -47,7 +47,8 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
         token.firstName = user.firstName ?? null;
         token.lastName = user.lastName ?? null;
         token.isAdmin = user.isAdmin ?? false;
-        // Expand of #95: the switch reads this claim, backfilling it from isAdmin.
+        // Expand of #95: written now so the switch can read it; tokens minted
+        // before this deploy lack it until the switch backfills from isAdmin.
         token.isPlatformAdmin = user.isPlatformAdmin ?? false;
       }
       if (trigger === "update" && session?.user) {

@@ -26,7 +26,7 @@ if (drift.length > 0) {
   console.error(
     [
       "Applied migrations differ from src/db/migrations; drizzle would skip these silently:",
-      ...drift.map((d) => `  - ${describe(d)}\n    Fix: ${fix(d)}`),
+      ...drift.map((d) => `  - ${describeDrift(d)}\n    Fix: ${fixFor(d)}`),
     ].join("\n"),
   );
   process.exit(1);
@@ -70,7 +70,7 @@ function readRepo(): RepoMigration[] {
   );
 }
 
-function describe(drift: MigrationDrift) {
+function describeDrift(drift: MigrationDrift) {
   switch (drift.kind) {
     case "edited":
       return `${drift.tag} was edited after it was applied`;
@@ -81,13 +81,20 @@ function describe(drift: MigrationDrift) {
   }
 }
 
-function fix(drift: MigrationDrift) {
-  if (drift.kind === "skipped") {
-    return "regenerate it (`pnpm db:generate`) so its journal `when` is newer than every applied migration.";
-  }
+function fixFor(drift: MigrationDrift) {
   if (process.env.VERCEL_ENV === "preview") {
     const branch = process.env.VERCEL_GIT_COMMIT_REF ?? "<git-branch>";
-    return `reset preview/${branch} from production in Neon, then redeploy.`;
+    const reset = `reset preview/${branch} from production in Neon, then redeploy.`;
+    return drift.kind === "skipped"
+      ? `${reset} If it still fails, this branch's migration is older than one production has: delete it and run \`pnpm db:generate\` again.`
+      : reset;
   }
-  return "restore the migration as applied and put the change in a new migration (`pnpm db:generate`).";
+  switch (drift.kind) {
+    case "edited":
+      return "restore the migration as applied and put the change in a new migration (`pnpm db:generate`).";
+    case "missing":
+      return "restore the removed migration file.";
+    case "skipped":
+      return "it never ran here, so delete it and run `pnpm db:generate` again to give it a newer timestamp.";
+  }
 }

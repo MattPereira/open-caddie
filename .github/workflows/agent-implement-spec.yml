@@ -32,7 +32,7 @@ name: Agent — Implement A Spec
 #             │ queue has a frontier ticket           │
 #             ▼                                       │
 #        ┌───────────┐                                │
-#        │ implement │ ──► draft PR ──► agent:review  │
+#        │ implement │ ──► draft PR ──► agent-review  │
 #        └─────┬─────┘                                │
 #              │                                      │
 #              ▼                                      ▼
@@ -50,11 +50,11 @@ name: Agent — Implement A Spec
 #                               Sandcastle scripts in
 #                               .sandcastle/agent-workflows/implement-spec/.
 #   secrets.FACTORY_PAT       — a fine-grained PAT on this repository with
-#                               Issues, Pull requests, Contents, Workflows and
-#                               Actions, all read/write. Every step that talks
-#                               to GitHub uses it, and only those steps: no
-#                               agent step, and no step that runs code an
-#                               agent wrote, has it in its environment.
+#                               Issues, Pull requests, Contents and Workflows,
+#                               all read/write. It reads, pushes, opens the
+#                               draft PR and comments, and only those steps
+#                               get it: no agent step, and no step that runs
+#                               code an agent wrote, has it in its environment.
 #
 #                               That keeps it out of the agent's way, not out
 #                               of its reach: the agent shares a machine with
@@ -63,17 +63,21 @@ name: Agent — Implement A Spec
 #                               collaborator-only issues and comments, and
 #                               labels only a collaborator can apply.
 #
-#                               Why one token for everything? Simplicity, and
-#                               because two hops need it anyway. The draft PR:
-#                               by default the built-in GITHUB_TOKEN may not
-#                               open one. The `agent:review` label: one applied
-#                               with the built-in token lands, and starts no
-#                               workflow, so the reviewer would never wake.
-#                               Once a PAT has to be in the room, every other
-#                               call may as well be the same PAT.
-#   secrets.GITHUB_TOKEN      — supplied by Actions, and used for the checkout
-#                               and nothing else. `permissions:` shrinks it to
-#                               match.
+#                               Why not the built-in GITHUB_TOKEN for these?
+#                               By default it may not open a pull request, and
+#                               a comment it posts is from github-actions[bot],
+#                               which the next agent does not read.
+#   secrets.GITHUB_TOKEN      — supplied by Actions. It checks the code out,
+#                               moves the queue's labels (`spec:<n>`,
+#                               `agent:queued`, `agent:in-progress`,
+#                               `agent:blocked`), and starts the reviewer and
+#                               the next run with `gh workflow run`. GitHub
+#                               starts no workflow from a label this token
+#                               applies, so the queue's labels add no runs to
+#                               the Actions tab. `workflow_dispatch` is the one
+#                               event it is allowed to start, so no hand-off
+#                               needs the PAT. Each job's `permissions:`
+#                               shrinks it to match.
 #   The `agent:implement-spec` label. A fresh clone of this repository does
 #     not have it, and no workflow can create the label that starts it. Create
 #     it once (the cron and the button need no label):
@@ -110,8 +114,7 @@ on:
         required: false
         type: string
 
-# A ceiling on the GITHUB_TOKEN, which now only checks the code out. Pushing,
-# labelling, commenting and dispatching all go through FACTORY_PAT.
+# A ceiling on the GITHUB_TOKEN. Jobs that label or dispatch widen it.
 permissions:
   contents: read # the checkout
 
@@ -120,13 +123,11 @@ permissions:
 # and build it twice. `cancel-in-progress: false` matters just as much — a
 # cron tick must not kill a build that is halfway through.
 #
-# Only the runs that can do something join that group. Every label on every
-# issue starts this workflow, and the factory's own labels do too now that
-# FACTORY_PAT applies them (`agent:in-progress` when it claims a ticket,
-# `agent:blocked` when it parks one). A group holds one running run and one
-# waiting run, and a newcomer replaces the one waiting — so those label runs,
-# left in the group, could bump the chain's next run out of the queue. Every
-# other label gets a throwaway group of its own, and is skipped for free.
+# Only the runs that can do something join that group. Every label a person
+# puts on any issue starts this workflow. A group holds one running run and
+# one waiting run, and a newcomer replaces the one waiting — so those label
+# runs, left in the group, could bump the chain's next run out of the queue.
+# Every other label gets a throwaway group of its own, and is skipped for free.
 concurrency:
   group: ${{ (github.event_name != 'issues' || github.event.label.name == 'agent:implement-spec') && 'agent-implement-spec' || format('ignore-{0}', github.run_id) }}
   cancel-in-progress: false
@@ -258,6 +259,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
+    permissions:
+      contents: read # the checkout
+      issues: write # the queue's labels
+
     services:
       # Decompose writes no code, but the setup action migrates and seeds
       # this DB, and the agent runs the app on it to screenshot a ticket.
@@ -311,6 +316,7 @@ jobs:
       - name: Write the queue as issues
         env:
           GH_TOKEN: ${{ secrets.FACTORY_PAT }}
+          ACTIONS_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           cp "$RUNNER_TEMP/queue.json" /tmp/queue.json
@@ -318,9 +324,9 @@ jobs:
 
           # Labels this queue uses. Creating them is idempotent enough with
           # `|| true`, and it means a fresh clone of the repo works first time.
-          gh label create "spec:${SPEC}" --color BFD4F2 \
+          GH_TOKEN="$ACTIONS_TOKEN" gh label create "spec:${SPEC}" --color BFD4F2 \
             --description "A ticket in the queue for spec #${SPEC}" || true
-          gh label create "agent:queued" --color FEF2C0 \
+          GH_TOKEN="$ACTIONS_TOKEN" gh label create "agent:queued" --color FEF2C0 \
             --description "Waiting for the implement-spec chain" || true
 
           total=$(jq '.tickets | length' /tmp/queue.json)
@@ -355,12 +361,14 @@ jobs:
             attach=()
             for png in /tmp/evidence/"${position}"-*.png; do attach+=(--attach "$png"); done
 
-            gh issue create \
+            # Created with the PAT, which --attach needs, and labelled after
+            # with ACTIONS_TOKEN: labels given at creation fire `labeled` too.
+            url=$(gh issue create \
               --title "$title" \
               --body-file /tmp/ticket-body.md \
-              --label "spec:${SPEC}" \
-              --label "agent:queued" \
-              "${attach[@]}"
+              "${attach[@]}")
+            GH_TOKEN="$ACTIONS_TOKEN" gh issue edit "${url##*/}" \
+              --add-label "spec:${SPEC}" --add-label "agent:queued"
           done
 
           gh issue comment "$SPEC" --body \
@@ -379,6 +387,11 @@ jobs:
     if: needs.survey.outputs.mode == 'implement'
     runs-on: ubuntu-latest
     timeout-minutes: 60
+
+    permissions:
+      contents: read # the checkout
+      issues: write # the status labels
+      actions: write # gh workflow run agent-review.yml
 
     services:
       # Throwaway DB for the agent's checks; discarded with the runner.
@@ -421,11 +434,12 @@ jobs:
         # long build from picking the same ticket up again.
         env:
           GH_TOKEN: ${{ secrets.FACTORY_PAT }}
+          ACTIONS_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh label create "agent:in-progress" --color FBCA04 \
+          GH_TOKEN="$ACTIONS_TOKEN" gh label create "agent:in-progress" --color FBCA04 \
             --description "An agent is working on this right now" || true
-          gh issue edit "$TICKET" \
+          GH_TOKEN="$ACTIONS_TOKEN" gh issue edit "$TICKET" \
             --remove-label "agent:queued" \
             --add-label "agent:in-progress"
           gh issue comment "$TICKET" --body "Building — [logs](${RUN_URL}). <!-- factory:status -->"
@@ -511,7 +525,7 @@ jobs:
       - name: Open the draft PR
         id: ship
         env:
-          # One of the two hops that made FACTORY_PAT necessary: by default
+          # Why this step takes FACTORY_PAT: by default
           # the built-in GITHUB_TOKEN is not allowed to open a pull request,
           # so `gh pr create` with it fails. This step runs nothing the agent
           # wrote: it reads the agent's summary as text and hands it to `gh`.
@@ -550,32 +564,24 @@ jobs:
       - name: Hand the pull request to the reviewer
         if: steps.ship.outputs.shipped == 'true'
         env:
-          # The other hop that made FACTORY_PAT necessary, and the line the
-          # whole chain ends on. agent-review.yml triggers on `pull_request: [labeled]`, and
-          # a label applied with the built-in token does not fire a workflow —
-          # GitHub suppresses that so a workflow cannot trigger itself. With
-          # GITHUB_TOKEN the label lands, the run goes green, and the reviewer
-          # never wakes: the last link in the chain breaks and says nothing.
-          GH_TOKEN: ${{ secrets.FACTORY_PAT }}
-          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ steps.ship.outputs.url }}
         run: |
           set -euo pipefail
-          gh label create "agent:review" --color 5319E7 \
-            --description "Ask the review workflow to read this pull request" || true
-
           # No `|| true` and no `::warning` fallback here, on purpose. If this
           # fails the factory has stopped at its last hop, and a green tick over
           # a chain that ended is worse than a red one.
-          gh pr edit "$BRANCH" --add-label "agent:review"
+          gh workflow run agent-review.yml -f "pr=${PR_URL##*/}"
 
       - name: Close the ticket and move the queue on
         if: always()
         env:
           GH_TOKEN: ${{ secrets.FACTORY_PAT }}
+          ACTIONS_TOKEN: ${{ github.token }}
           PR_URL: ${{ steps.ship.outputs.url }}
         run: |
           set -euo pipefail
-          gh issue edit "$TICKET" --remove-label "agent:in-progress" || true
+          GH_TOKEN="$ACTIONS_TOKEN" gh issue edit "$TICKET" --remove-label "agent:in-progress" || true
 
           if [ "${{ steps.ship.outputs.shipped }}" = "true" ]; then
             # Closing it is what advances the frontier: the next run's survey
@@ -587,9 +593,9 @@ jobs:
             # Left open on purpose. A failed ticket must not silently drain
             # out of the queue, and it must not be retried forever either — so
             # it is parked for a person.
-            gh label create "agent:blocked" --color B60205 \
+            GH_TOKEN="$ACTIONS_TOKEN" gh label create "agent:blocked" --color B60205 \
               --description "An agent run failed here. Its comment says how to retry" || true
-            gh issue edit "$TICKET" --add-label "agent:blocked"
+            GH_TOKEN="$ACTIONS_TOKEN" gh issue edit "$TICKET" --add-label "agent:blocked"
             gh issue comment "$TICKET" \
               --body "The chain could not finish this one (**${{ job.status }}**) — [logs](${RUN_URL}). Left open and labelled for a person. The queue will skip past it. Take \`agent:blocked\` off to put it back in the queue. <!-- factory:status -->"
           fi
@@ -623,18 +629,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
+    permissions:
+      actions: write # gh workflow run
+
     steps:
       - name: Start the next ticket
         env:
-          # FACTORY_PAT, like every other call in this file — for simplicity,
-          # not because this hop needs it. `workflow_dispatch` is the one
-          # event the built-in GITHUB_TOKEN *is* allowed to start (with
-          # `actions: write`); it is labels and pushes it cannot. One token
-          # for the whole factory is easier to reason about than two, and
-          # the draft PR and the `agent:review` label above need the PAT
-          # anyway. The cost: the PAT
-          # needs Actions: write for this line.
-          GH_TOKEN: ${{ secrets.FACTORY_PAT }}
+          GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           SPEC: ${{ needs.survey.outputs.spec }}
           REF: ${{ github.ref_name }}

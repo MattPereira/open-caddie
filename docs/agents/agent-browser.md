@@ -56,12 +56,14 @@ exactly what is in it. The agent workflows seed their database before you
 start. A Bug Report also has a prod snapshot: see
 `docs/agents/live-bug-report.md`.
 
-Locally, against a local Postgres:
+Locally, the seed lives in `open_caddie` (README, "Local development"):
 
 ```bash
-pnpm db:migrate && pnpm db:seed   # an empty database
-pnpm db:reset                     # start over: empty, migrate, seed
+pnpm db:reset    # start over: empty, migrate, seed
 ```
+
+Every worktree shares `open_caddie`. If pages fail on a missing column or
+table after switching branch, another branch migrated it: `pnpm db:reset`.
 
 **Never write rows with SQL.** When a page needs data the seed lacks, add it
 to `src/seed/world.ts` through module entry points, in the same change, then

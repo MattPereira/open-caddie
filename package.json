@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "dev:prod": "tsx src/seed/prod-copy.ts dev",
     "build": "next build",
     "start": "next start",
     "check": "pnpm run format:check && pnpm run lint && pnpm run lint:boundaries && pnpm run typecheck && pnpm run test",
@@ -24,6 +25,7 @@
     "env:pull": "vercel env pull .env.local --environment=development",
     "db:seed": "tsx --import ./src/seed/register.mjs src/seed/index.ts",
     "db:reset": "tsx src/seed/reset.ts && pnpm db:seed",
+    "db:pull-prod": "tsx src/seed/prod-copy.ts pull",
     "db:sign-in": "tsx --import ./src/seed/register.mjs src/seed/sign-in.ts",
     "spike:scorecard": "tsx evals/scorecard-import/spike.ts",
     "neon": "neon --config-dir .neon-local --no-analytics",

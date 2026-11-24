@@ -60,10 +60,60 @@ Every course keeps a scorecard per tee with its rating and slope, plus its own l
 ### Tech stack
 
 - **Framework** — Next.js 16 (App Router), React 19, TypeScript
-- **Database** — Postgres on Neon, Drizzle ORM with generated migrations
+- **Database** — Postgres on Neon in production, a local Postgres in development; Drizzle ORM with generated migrations
 - **Auth** — Auth.js with the Drizzle adapter, Google OAuth and Resend email sign-in
 - **AI** — Vercel AI SDK through the AI Gateway, with a model eval harness
 - **Storage** — Vercel Blob for course, scorecard, and avatar images
 - **UI** — Tailwind CSS v4, shadcn/ui on Radix, Motion for animation
 - **Testing** — Vitest, with integration tests against a real Postgres instance
 - **Hosting** — Vercel, including a nightly cron job
+
+---
+
+### Local development
+
+Development runs on a local Postgres, never on Neon. You need Postgres 18 (its `pg_dump` must be at least prod's version) and a role that can `CREATEDB`.
+
+```bash
+pnpm install
+pnpm env:pull            # app secrets into .env.local (needs `vercel link`)
+createdb open_caddie
+createdb open_caddie_test
+```
+
+`.env.development.local`, which `pnpm dev`, the `db:*` commands and drizzle-kit read before `.env.local`:
+
+```bash
+DATABASE_URL=postgresql:///open_caddie?host=/var/run/postgresql
+DATABASE_DRIVER=node-postgres
+PROD_READONLY_DATABASE_URL=   # a read-only login on prod; only for db:pull-prod
+```
+
+`.env.test`, for `pnpm test` (each worker gets its own copy of `open_caddie_test`):
+
+```bash
+DATABASE_URL=postgresql:///open_caddie_test?host=/var/run/postgresql
+TEST_DATABASE_URL=postgresql:///open_caddie_test?host=/var/run/postgresql
+DATABASE_DRIVER=node-postgres
+```
+
+Keep `DATABASE_URL` a URL: `db:pull-prod` and `dev:prod` swap its database name.
+
+**The seed** (`open_caddie`), the default for everything:
+
+```bash
+pnpm db:reset              # empty, migrate, seed
+pnpm dev
+pnpm -s db:sign-in admin   # a sign-in link for a Platform Admin; open it
+```
+
+**A copy of prod** (`open_caddie_prod`), read from prod and never written back:
+
+```bash
+pnpm db:pull-prod          # dump prod, restore, apply this branch's migrations
+pnpm dev:prod              # pnpm dev on the copy
+```
+
+Sign-in sessions and linked Google accounts are not copied: sign in with `pnpm -s db:sign-in admin`, which finds the real Platform Admin.
+
+`pnpm check` runs format, lint, module boundaries, typecheck and tests.

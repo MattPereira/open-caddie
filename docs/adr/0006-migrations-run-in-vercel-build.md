@@ -5,7 +5,7 @@ date: 2026-11-23
 
 # Each Vercel build migrates its own Neon branch
 
-Every Vercel build runs `pnpm db:migrate` before `next build` (`vercel.json` `buildCommand`), against its environment's branch in the Neon project `broad-bonus-57400925`, which lives in our own Neon organization: Production migrates `production`, and each Preview migrates a `preview/<git-branch>` that Neon's Vercel integration copies from `production` and deletes on merge.
+Every Vercel build runs `pnpm db:check-migrations` then `pnpm db:migrate` before `next build` (`vercel.json` `buildCommand`), against its environment's branch in the Neon project `broad-bonus-57400925`, which lives in our own Neon organization: Production migrates `production`, and each Preview migrates a `preview/<git-branch>` that Neon's Vercel integration copies from `production` and deletes on merge.
 
 How to work with this: the `database-migrations` skill (`.agents/skills/database-migrations/SKILL.md`).
 

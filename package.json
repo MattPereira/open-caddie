@@ -23,6 +23,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:check-migrations": "tsx src/db/check-migrations.ts",
     "db:migrate:checked": "pnpm db:check-migrations && pnpm db:migrate",
+    "db:check-breaking": "tsx src/db/check-breaking-migrations.ts",
     "db:studio": "drizzle-kit studio",
     "env:pull": "vercel env pull .env.local --environment=development",
     "db:seed": "tsx --import ./src/seed/register.mjs src/seed/index.ts",

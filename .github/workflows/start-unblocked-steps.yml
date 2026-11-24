@@ -21,6 +21,12 @@ name: Start Unblocked Expand/Contract Steps
 #
 #   The implementer opens a draft pull request. The merge stays a human's.
 #
+#   The checkout is the deployed commit, so a change to the script takes
+#   effect from its own production deploy on.
+#
+#   To see what a deploy would start without starting it, run the script
+#   locally with GH_REPO, DEPLOYED_SHA and DRY_RUN=1.
+#
 # WHAT IT NEEDS
 #   secrets.GITHUB_TOKEN only. `workflow_dispatch` is the one event it may
 #   start, which is why it runs agent-implement.yml rather than adding the
@@ -35,14 +41,16 @@ permissions:
   pull-requests: read # the linked pull requests
   actions: write # gh workflow run agent-implement.yml
 
-# Two deploys at once could each start the same step before either comments.
-concurrency:
-  group: start-unblocked-steps
-  cancel-in-progress: false
-
 jobs:
   start:
     if: github.event.deployment.environment == 'Production' && github.event.deployment_status.state == 'success'
+    # Two deploys at once could each start the same step before either
+    # comments. On the job, not the workflow: every preview and pending status
+    # would join a workflow-level group, and a newer pending run cancels the
+    # older one, which could drop the Production run.
+    concurrency:
+      group: start-unblocked-steps
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

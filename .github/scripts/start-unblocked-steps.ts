@@ -1,5 +1,4 @@
-// Starts each expand/contract step whose previous step just reached
-// production. Run by .github/workflows/start-unblocked-steps.yml; see there.
+// See .github/workflows/start-unblocked-steps.yml.
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
@@ -76,15 +75,15 @@ async function findDeployed(
   return undefined;
 }
 
-function gh(...args: string[]): string {
+function runGh(...args: string[]): string {
   return execFileSync("gh", args, { encoding: "utf8" }).trim();
 }
 
-function ghCli(repo: string): GitHub {
+function cliGitHub(repo: string): GitHub {
   return {
     openIssues: async () =>
       JSON.parse(
-        gh(
+        runGh(
           "issue",
           "list",
           "--state",
@@ -96,7 +95,7 @@ function ghCli(repo: string): GitHub {
         ),
       ),
     mergedPullsMentioning: async (issue) => {
-      const numbers = gh(
+      const numbers = runGh(
         "api",
         "--paginate",
         `repos/${repo}/issues/${issue}/timeline`,
@@ -107,7 +106,7 @@ function ghCli(repo: string): GitHub {
         .filter(Boolean);
       return [...new Set(numbers)].map((number) => {
         const pull = JSON.parse(
-          gh("pr", "view", number, "--json", "number,body,mergeCommit"),
+          runGh("pr", "view", number, "--json", "number,body,mergeCommit"),
         );
         return {
           number: pull.number,
@@ -117,7 +116,7 @@ function ghCli(repo: string): GitHub {
       });
     },
     isAncestor: async (commit, of) => {
-      const status = gh(
+      const status = runGh(
         "api",
         `repos/${repo}/compare/${commit}...${of}`,
         "--jq",
@@ -126,7 +125,7 @@ function ghCli(repo: string): GitHub {
       return status === "identical" || status === "ahead";
     },
     alreadyStarted: async (issue) =>
-      gh(
+      runGh(
         "issue",
         "view",
         String(issue),
@@ -143,17 +142,16 @@ async function main() {
   if (!GH_REPO || !DEPLOYED_SHA)
     throw new Error("GH_REPO and DEPLOYED_SHA are required.");
 
-  const starts = await stepsToStart(DEPLOYED_SHA, ghCli(GH_REPO));
+  const starts = await stepsToStart(DEPLOYED_SHA, cliGitHub(GH_REPO));
   if (starts.length === 0) console.log(`No step waits on ${DEPLOYED_SHA}.`);
   for (const { issue, blocker, pull } of starts) {
     console.log(`#${issue}: #${pull} (#${blocker}) is in ${DEPLOYED_SHA}.`);
     if (DRY_RUN) continue;
-    gh("workflow", "run", "agent-implement.yml", "-f", `issue=${issue}`);
+    runGh("workflow", "run", "agent-implement.yml", "-f", `issue=${issue}`);
     const deploy = DEPLOY_URL
       ? `[production deploy](${DEPLOY_URL})`
       : "production deploy";
-    // factory:status keeps it out of the ticket the implementer reads.
-    gh(
+    runGh(
       "issue",
       "comment",
       String(issue),

@@ -23,6 +23,7 @@ This is a different integration from the **Vercel-Managed** one ("Create New Neo
 
 - A PR's preview shows its schema changes. CI's `Rehearse prod migrations` is still the pre-merge check, because a preview branch is copied once and wouldn't re-test an edited migration (ADR 0006).
 - Each preview branch starts as a copy of prod data.
-- If the integration hasn't injected the branch's URLs, a preview build sees no `DATABASE_URL_UNPOOLED` and fails, or sees prod's and the endpoint guard refuses it. On #94 the old integration's provisioning timed out before builds started. If that comes back, #244 is the fallback.
+- Prod's connection vars must stay scoped to Production only. Nothing else stops a preview build from migrating prod.
+- If the integration hasn't injected the branch's URLs, a preview build sees no `DATABASE_URL_UNPOOLED` and fails. On #94 the old integration's provisioning timed out before builds started. If that comes back, #244 is the fallback.
 - One Neon branch per pushed Git branch counts against Neon branch limits, and each preview build wakes a compute (ADR 0005).
 - `vercel-dev` drifts from prod. Reset it from its parent in Neon when needed.

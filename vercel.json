@@ -1,5 +1,5 @@
 {
-  "buildCommand": "bash scripts/vercel-migrate.sh && pnpm build",
+  "buildCommand": "DATABASE_URL=$DATABASE_URL_UNPOOLED pnpm db:migrate && pnpm build",
   "crons": [
     {
       "path": "/api/cron/course-scorecard-import-cleanup",

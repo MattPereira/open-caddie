@@ -21,8 +21,9 @@ Every Vercel build runs `pnpm db:migrate:checked` (`db:check-migrations`, then `
 4. **Live code, new schema.** Apply the migration to the local database (`pnpm db:migrate`), then run `origin/main`'s code against it: `git worktree add ../open-caddie-live origin/main`, copy the `.env*.local` files in, `pnpm install` and `pnpm dev` there, sign in per the `local-dev` skill, and use every page that reads the changed tables. Remove the worktree after.
 5. `pnpm db:reset`.
 6. `pnpm check` and `pnpm db:check-breaking`.
+7. Commit, push, and open a PR with `gh pr create`, its body per the `pr` skill. In a factory run (`/tmp/ticket.md` exists), the workflow pushes and opens it: write the body to `/tmp/pr-body.md`.
 
-Done when every statement is classified, each breaking one is split or carries a checked `deploy-safe` reason, any follow-up is filed, step 4's pages work, step 5 succeeds, and step 6 passes.
+Done when every statement is classified, each breaking one is split or carries a checked `deploy-safe` reason, any follow-up is filed, step 4's pages work, step 5 succeeds, step 6 passes, and the PR is open.
 
 ## Breaking statements
 

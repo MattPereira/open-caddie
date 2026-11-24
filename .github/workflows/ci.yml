@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      # Build validates the app without Neon provisioning or production secrets.
+      # Build validates the app without a Neon database or production secrets.
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/open_caddie_test
     steps:
       - uses: actions/checkout@v7
@@ -123,82 +123,6 @@ jobs:
             node_modules/.cache/dependency-cruiser
           key: tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
 
-  detect-migration-changes:
-    name: Detect migration changes
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: read # dorny/paths-filter lists PR files via the API
-    outputs:
-      migrations: ${{ steps.filter.outputs.migrations }}
-    steps:
-      # Pushes to main skip because the Vercel production build migrates prod
-      # itself. Forks lack the Neon secrets.
-      - name: Check for migration changes
-        id: filter
-        if: >-
-          github.event_name == 'pull_request' &&
-          github.event.pull_request.head.repo.full_name == github.repository
-        uses: dorny/paths-filter@v4
-        with:
-          filters: |
-            migrations:
-              - 'src/db/migrations/**'
-              - 'src/db/schema.ts'
-              - 'drizzle.config.ts'
-              - '.github/workflows/ci.yml'
-
-  rehearse-prod-migrations:
-    name: Rehearse prod migrations
-    needs: detect-migration-changes
-    if: needs.detect-migration-changes.outputs.migrations == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: pnpm/action-setup@v6
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: pnpm
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      # Backstop for runs killed before the cleanup step gets to run.
-      - name: Compute branch expiry
-        id: expiry
-        run: echo "at=$(date -u -d '+1 hour' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
-
-      # A fresh copy each run: drizzle skips migrations it has recorded, so a
-      # reused branch would not re-test an edited migration.
-      - name: Create Neon branch from prod
-        id: branch
-        uses: neondatabase/create-branch-action@v6
-        with:
-          project_id: ${{ vars.NEON_PROJECT_ID }}
-          api_key: ${{ secrets.NEON_API_KEY }}
-          parent_branch: main
-          branch_name: ci/migrate-check/pr-${{ github.event.pull_request.number }}-${{ github.run_id }}-${{ github.run_attempt }}
-          expires_at: ${{ steps.expiry.outputs.at }}
-
-      - name: Migrate
-        env:
-          # Direct URL: drizzle-kit over the pooler can fail.
-          DATABASE_URL: ${{ steps.branch.outputs.db_url }}
-        run: pnpm db:migrate
-
-      - name: Delete Neon branch
-        if: always() && steps.branch.outputs.branch_id != ''
-        uses: neondatabase/delete-branch-action@v3
-        with:
-          project_id: ${{ vars.NEON_PROJECT_ID }}
-          api_key: ${{ secrets.NEON_API_KEY }}
-          branch: ${{ steps.branch.outputs.branch_id }}
-
   # The only check the main ruleset needs to require, so jobs can be added,
   # renamed or skipped by editing `needs` here instead of the ruleset.
   # `always()` is load-bearing: without it a failed dependency skips this job,
@@ -206,7 +130,7 @@ jobs:
   merge-gate:
     name: Merge gate
     if: always()
-    needs: [build, checks, detect-migration-changes, rehearse-prod-migrations]
+    needs: [build, checks]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

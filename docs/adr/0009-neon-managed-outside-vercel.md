@@ -12,7 +12,7 @@ The integration created a `preview/<git-branch>` Neon branch for every preview a
 ## Considered Options
 
 - **Keep the integration and retry provisioning.** Rejected: the failure is in a handshake we don't control, and it blocks builds.
-- **A Neon branch per PR, created by GitHub Actions** and passed to the Vercel preview. Deferred: it isolates each PR and lets previews show schema changes, but it needs a `VERCEL_TOKEN` in GitHub, a cleanup workflow, and its own deploy step. Tracked as a follow-up issue.
+- **A Neon branch per PR, created by GitHub Actions** and passed to the Vercel preview. Deferred: it isolates each PR and lets previews show schema changes, but it needs a `VERCEL_TOKEN` in GitHub, a cleanup workflow, and its own deploy step. Tracked in #244.
 - **No database for previews.** Rejected: previews of non-schema changes are useful to click around.
 - **Previews migrate staging.** Rejected: migrations from one PR would change the schema under every other open preview, and a closed PR's migration would stay behind.
 
@@ -21,4 +21,4 @@ The integration created a `preview/<git-branch>` Neon branch for every preview a
 - A PR that adds a migration has a preview running new code on the old schema; it may break. Its migration is still checked before merge by CI's `Rehearse prod migrations` job, and it can be exercised locally.
 - All previews read and write the same staging data.
 - Staging drifts from prod as migrations land on `main`. Reset it from its parent in Neon when it does.
-- The `Cleanup Neon preview branch` workflow is gone; nothing creates per-preview branches.
+- No per-PR Neon branches exist, so there is nothing to clean up when a PR closes.

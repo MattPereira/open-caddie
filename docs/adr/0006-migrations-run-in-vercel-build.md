@@ -5,7 +5,7 @@ date: 2026-11-09
 
 # Migrations run in the Vercel build
 
-Every Vercel build runs `scripts/vercel-migrate.sh` before `next build` (`vercel.json` `buildCommand`). Production builds migrate the production database over `DATABASE_URL_UNPOOLED`. Every other build (preview, development) skips migrations and exits 0. Previews share one staging database (ADR 0009), so migrating it from one PR would change the schema under every other open preview. Skipping by `VERCEL_ENV` also means a preview can never migrate prod, even if it is misconfigured with prod's connection vars. The unpooled URL is passed in by the script rather than as a fallback in `drizzle.config.ts`: that file also loads `.env.local`, whose Neon `DATABASE_URL_UNPOOLED` would win over a `DATABASE_URL` set for any other database and migrate Neon instead. Before this, nothing applied migrations automatically: prod was migrated by hand. A separate CI job (`Rehearse prod migrations`) tests migrations before merge: on PRs touching migrations it migrates a fresh Neon branch of prod, so an edited migration is re-tested on every push.
+Every Vercel build runs `scripts/vercel-migrate.sh` before `next build` (`vercel.json` `buildCommand`). Production builds migrate the production database over `DATABASE_URL_UNPOOLED`. Every other build (preview, development) skips migrations and exits 0. Previews share one staging database that they must not migrate (ADR 0009). Skipping by `VERCEL_ENV` also means a preview can never migrate prod, even if it is misconfigured with prod's connection vars. The unpooled URL is passed in by the script rather than as a fallback in `drizzle.config.ts`: that file also loads `.env.local`, whose Neon `DATABASE_URL_UNPOOLED` would win over a `DATABASE_URL` set for any other database and migrate Neon instead. Before this, nothing applied migrations automatically: prod was migrated by hand. A separate CI job (`Rehearse prod migrations`) tests migrations before merge: on PRs touching migrations it migrates a fresh Neon branch of prod, so an edited migration is re-tested on every push.
 
 ## Considered Options
 
@@ -16,4 +16,8 @@ Every Vercel build runs `scripts/vercel-migrate.sh` before `next build` (`vercel
 
 - **Migrations must be backward-compatible with the code currently deployed.** The schema changes before the new code is live, and if the build fails after migrating, the old code keeps serving on the new schema. Renames and drops take two PRs: first add the new column or table, then remove the old one once nothing reads it.
 - **No lock against concurrent migrations.** Two production builds in quick succession could both run `db:migrate`. drizzle applies all pending migrations in one transaction and records each one, so a double apply fails loudly instead of corrupting data. That is accepted for a single-maintainer project. Add `pg_advisory_lock` or serialise production builds if this ever bites.
-- Each production deploy wakes the prod compute briefly (see ADR 0005), even with no pending migrations. Previews don't migrate, so a PR's preview runs its new code on staging's old schema.
+- Each production deploy wakes the prod compute briefly (see ADR 0005), even with no pending migrations.
+
+## Amendments
+
+Previews originally migrated their own `preview/<git-branch>` Neon branch, created by the Neon–Vercel integration, and the script refused to migrate prod's endpoint from a non-production build. The integration was dropped (ADR 0009); previews now share a staging branch and don't migrate, so the endpoint guard went too. The decision above reflects the amended behaviour.

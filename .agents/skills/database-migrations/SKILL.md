@@ -1,6 +1,6 @@
 ---
 name: database-migrations
-description: Schema changes and Drizzle migrations. Use when editing `src/db/schema.ts` or `src/db/migrations/`, running `pnpm db:generate` / `pnpm db:migrate`, a build or CI failing `db:check-migrations` / `db:check-breaking`, or changing migration wiring (`vercel.json`, `drizzle.config.ts`, Neon env vars).
+description: Schema changes and Drizzle migrations. Use when planning or writing a ticket that changes the schema, editing `src/db/schema.ts` or `src/db/migrations/`, running `pnpm db:generate` / `pnpm db:migrate`, a build or CI failing `db:check-migrations` / `db:check-breaking`, or changing migration wiring (`vercel.json`, `drizzle.config.ts`, Neon env vars).
 ---
 
 # Database migrations
@@ -12,6 +12,14 @@ Every Vercel build runs `pnpm db:migrate:checked` (`db:check-migrations`, then `
 1. **Compatible with the deployed code.** The schema changes before the new code is live, and stays changed if `next build` then fails. A [breaking statement](#breaking-statements) ships split across deploys.
 2. **Applied migrations are frozen.** Drizzle records applied migrations by timestamp and skips an edited one, so the database drifts from the repo. `pnpm db:check-migrations` runs before `db:migrate` in every build and fails it on an edited, missing or out-of-order migration, naming the fix. Merged: write a new migration. Pushed but unmerged: you may edit it, then ask the human to reset `preview/<git-branch>` from `production` in Neon and redeploy.
 3. **Existing rows survive.** A new NOT NULL column gets a default or a backfill in the same migration. Backfills and data fixes go in an idempotent custom migration: `pnpm db:generate --custom --name <what>`.
+
+## Planning a schema change
+
+Classify the change against [Breaking statements](#breaking-statements) before writing the ticket, and shape the ticket to match:
+
+- Additive: one ticket.
+- A rename only the code needs: a TS-only rename (`newName: text("old_name")`), one ticket.
+- Otherwise: the ticket covers expand only; its run files switch, and switch's run files contract ([EXPAND-CONTRACT.md](EXPAND-CONTRACT.md)).
 
 ## Steps
 

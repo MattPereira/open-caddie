@@ -173,9 +173,8 @@ jobs:
         id: expiry
         run: echo "at=$(date -u -d '+1 hour' +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
 
-      # A fresh copy each run: the PR's preview branch is copied from prod only
-      # once and drizzle skips migrations it has recorded, so an edited
-      # migration would not be re-tested there.
+      # A fresh copy each run: drizzle skips migrations it has recorded, so a
+      # reused branch would not re-test an edited migration.
       - name: Create Neon branch from prod
         id: branch
         uses: neondatabase/create-branch-action@v6

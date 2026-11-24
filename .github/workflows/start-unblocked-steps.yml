@@ -1,0 +1,67 @@
+name: Start Unblocked Expand/Contract Steps
+
+# An expand/contract step may start only once the previous step's production
+# deploy succeeded (.agents/skills/database-migrations/EXPAND-CONTRACT.md).
+# Each follow-up step's issue opens with
+#   Start once the production deploy of #<n> succeeded.
+# This watches production deploys and starts that step when one lands.
+#
+# WHAT TRIGGERS IT
+#   `deployment_status`, which Vercel's GitHub integration reports. Only a
+#   `success` on `Production` gets past the job's `if`.
+#
+# WHAT IT DOES
+#   .github/scripts/start-unblocked-steps.ts. For each open issue with that
+#   first line, it looks for a merged pull request that links #<n> ("Part of",
+#   or a closing keyword) whose merge commit is in the deployed commit's
+#   history. Ancestry, so promoting an older deployment starts nothing. A
+#   match starts agent-implement.yml on the issue and comments which deploy
+#   unblocked it. The comment also marks the step started, so later deploys
+#   skip it.
+#
+#   The implementer opens a draft pull request. The merge stays a human's.
+#
+# WHAT IT NEEDS
+#   secrets.GITHUB_TOKEN only. `workflow_dispatch` is the one event it may
+#   start, which is why it runs agent-implement.yml rather than adding the
+#   `agent:implement` label: a label it applied would start nothing.
+
+on:
+  deployment_status:
+
+permissions:
+  contents: read # the checkout and the compare API
+  issues: write # the comment
+  pull-requests: read # the linked pull requests
+  actions: write # gh workflow run agent-implement.yml
+
+# Two deploys at once could each start the same step before either comments.
+concurrency:
+  group: start-unblocked-steps
+  cancel-in-progress: false
+
+jobs:
+  start:
+    if: github.event.deployment.environment == 'Production' && github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Start the steps this deploy unblocked
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          DEPLOYED_SHA: ${{ github.event.deployment.sha }}
+          DEPLOY_URL: ${{ github.event.deployment_status.environment_url }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node .github/scripts/start-unblocked-steps.ts

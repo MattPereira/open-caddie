@@ -56,7 +56,7 @@ ALTER TABLE "user" DROP COLUMN IF EXISTS "isAdmin";
 
 The reason is a claim for the PR reviewer: write it once you have checked it. squawk reads the ignore line as rule names only, so the reason gets its own line.
 
-File each follow-up with `gh issue create --blocked-by <this issue>`, carrying this issue's labels minus `agent:*`, its body opening "Start once the production deploy of #<this issue> succeeded." File only the next step; its own run files the one after. Without `gh` access, put its title and body in the PR body under **Follow-up**.
+File each follow-up with `gh issue create --blocked-by <this issue>`, carrying this issue's labels minus `agent:*`, its body opening "Start once the production deploy of #<this issue> succeeded." That line is load-bearing: `start-unblocked-steps.yml` starts the step when a production deploy contains a merged PR saying "Part of #<this issue>" or closing it. File only the next step; its own run files the one after. Without `gh` access, put its title and body in the PR body under **Follow-up**.
 
 ## Wiring
 

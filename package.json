@@ -27,6 +27,7 @@
     "db:reset": "tsx src/seed/reset.ts && pnpm db:seed",
     "db:pull-prod": "tsx src/seed/prod-copy.ts pull",
     "db:sign-in": "tsx --import ./src/seed/register.mjs src/seed/sign-in.ts",
+    "db:sign-in:prod": "tsx src/seed/prod-copy.ts sign-in",
     "spike:scorecard": "tsx evals/scorecard-import/spike.ts",
     "neon": "neon --config-dir .neon-local --no-analytics",
     "prepare": "husky"

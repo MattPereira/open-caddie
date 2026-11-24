@@ -112,8 +112,9 @@ pnpm -s db:sign-in admin   # a sign-in link for a Platform Admin; open it
 ```bash
 pnpm db:pull-prod          # dump prod, restore, apply this branch's migrations
 pnpm dev:prod              # pnpm dev on the copy
+pnpm -s db:sign-in:prod admin   # a sign-in link for the real Platform Admin
 ```
 
-Sign-in sessions and linked Google accounts are not copied: sign in with `pnpm -s db:sign-in admin`, which finds the real Platform Admin.
+Sign-in sessions and linked Google accounts are not copied, so sign in with `db:sign-in:prod`.
 
 `pnpm check` runs format, lint, module boundaries, typecheck and tests.

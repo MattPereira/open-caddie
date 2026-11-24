@@ -6,9 +6,6 @@ import { assertLocalConnection } from "@/db/connection";
 import { requireLocalDatabase } from "./local";
 import { PROD_COPY_DATABASE, prodCopyUrl } from "./prod-copy-url";
 
-// `pnpm db:pull-prod` copies prod into open_caddie_prod; `pnpm dev:prod` runs
-// the app on it.
-
 requireLocalDatabase();
 const localUrl = process.env.DATABASE_URL ?? "";
 // The socket vars connect by DATABASE_NAME and ignore the database in
@@ -21,10 +18,15 @@ if (process.env.DATABASE_LOCAL_SOCKET) {
 const copyUrl = prodCopyUrl(localUrl);
 assertLocalConnection({ connectionString: copyUrl }, process.env);
 
-const command = process.argv[2];
+const [command, ...rest] = process.argv.slice(2);
 if (command === "pull") await pull();
-else if (command === "dev") await run("next", ["dev"], copyUrl);
-else throw new Error("Usage: tsx src/seed/prod-copy.ts <pull | dev>");
+// Ctrl-C is how you stop a dev server, not a failure.
+else if (command === "dev")
+  await run("next", ["dev"], copyUrl).catch(ignoreInterrupt);
+// The link's token has to land in the database dev:prod reads.
+else if (command === "sign-in")
+  await run("pnpm", ["-s", "db:sign-in", ...rest], copyUrl);
+else throw new Error("Usage: tsx src/seed/prod-copy.ts <pull | dev | sign-in>");
 
 async function pull() {
   const prodUrl = process.env.PROD_READONLY_DATABASE_URL;
@@ -44,7 +46,7 @@ async function pull() {
   await run("psql", ["-q", copyUrl, "-c", "drop schema public cascade"]);
   // Same dump as .github/actions/restore-bug-report-snapshots: auth tables
   // come over empty, since they hold live Google tokens and sessions.
-  await pipe(
+  await dumpInto(
     spawn(
       "pg_dump",
       [
@@ -63,7 +65,6 @@ async function pull() {
       stdio: ["pipe", "inherit", "inherit"],
     }),
   );
-  // Applies this branch's migrations on top of prod's.
   await run("pnpm", ["db:migrate"], copyUrl);
   console.log(`Copied prod into ${PROD_COPY_DATABASE}.`);
 }
@@ -75,7 +76,7 @@ function run(cmd: string, args: string[], databaseUrl?: string) {
   return exited(spawn(cmd, args, { stdio: "inherit", env }), cmd);
 }
 
-async function pipe(
+async function dumpInto(
   from: ChildProcess & { stdout: Readable },
   to: ChildProcess & { stdin: Writable },
 ) {
@@ -87,8 +88,25 @@ function exited(child: ChildProcess, name: string) {
   return new Promise<void>((resolve, reject) => {
     child.on("error", reject);
     child.on("exit", (code, signal) => {
-      if (code === 0 || signal === "SIGINT") resolve();
-      else reject(new Error(`${name} exited with ${code ?? signal}`));
+      if (code === 0) resolve();
+      else reject(new ExitError(name, code, signal));
     });
   });
+}
+
+class ExitError extends Error {
+  constructor(
+    name: string,
+    readonly code: number | null,
+    readonly signal: NodeJS.Signals | null,
+  ) {
+    super(`${name} exited with ${code ?? signal}`);
+  }
+}
+
+function ignoreInterrupt(error: unknown) {
+  const interrupted =
+    error instanceof ExitError &&
+    (error.signal === "SIGINT" || error.code === 130);
+  if (!interrupted) throw error;
 }

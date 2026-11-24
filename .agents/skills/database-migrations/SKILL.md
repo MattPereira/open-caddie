@@ -29,7 +29,7 @@ Classify the change against [Breaking statements](#breaking-statements) before w
 4. **Live code, new schema.** Apply the migration to the local database (`pnpm db:migrate`), then run `origin/main`'s code against it: `git worktree add ../open-caddie-live origin/main`, copy the `.env*.local` files in, `pnpm install` and `pnpm dev` there, sign in per the `local-dev` skill, and use every page that reads the changed tables. Remove the worktree after.
 5. `pnpm db:reset`.
 6. `pnpm check` and `pnpm db:check-breaking`.
-7. Commit, push, and open a PR with `gh pr create`, its body per the `pr` skill. In a factory run (`/tmp/ticket.md` exists), the workflow pushes and opens it: write the body to `/tmp/pr-body.md`.
+7. Commit, push, and open a PR with `gh pr create`, its body per the `pr` skill and saying `Closes #<this issue>`. In a factory run (`/tmp/ticket.md` exists), the workflow pushes and opens it: write the body to `/tmp/pr-body.md`.
 
 Done when every statement is classified, each breaking one is split or carries a checked `deploy-safe` reason, any follow-up is filed, step 4's pages work, step 5 succeeds, step 6 passes, and the PR is open.
 
@@ -56,7 +56,7 @@ ALTER TABLE "user" DROP COLUMN IF EXISTS "isAdmin";
 
 The reason is a claim for the PR reviewer: write it once you have checked it. squawk reads the ignore line as rule names only, so the reason gets its own line.
 
-File each follow-up with `gh issue create --blocked-by <this issue>`, carrying this issue's labels minus `agent:*`, its body opening "Start once the production deploy of #<this issue> succeeded." That line is load-bearing: `start-unblocked-steps.yml` starts the step when a production deploy contains a merged PR saying "Part of #<this issue>" or closing it. File only the next step; its own run files the one after. Without `gh` access, put its title and body in the PR body under **Follow-up**.
+File each follow-up with `gh issue create --blocked-by <this issue>`, carrying this issue's labels minus `agent:*`, its body opening "Start once the production deploy of #<this issue> succeeded." That line is load-bearing: `start-unblocked-steps.yml` starts the step once a production deploy contains the merged PR that closes this issue (step 7). File only the next step; its own run files the one after. Without `gh` access, put its title and body in the PR body under **Follow-up**.
 
 ## Wiring
 

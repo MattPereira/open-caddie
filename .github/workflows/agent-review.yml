@@ -4,10 +4,12 @@ name: Agent — Review A Pull Request
 # built.
 #
 # WHAT TRIGGERS IT
-#   Someone puts the `agent:review` label on a pull request. The
-#   implementer does this itself for every pull request it opens, and so does
-#   agent-implement-spec.yml. Add it by hand to review again, or when that
-#   hand-off failed.
+#   Someone puts the `agent:review` label on a pull request. Add it by hand to
+#   review again, or when a hand-off failed.
+#
+#   Or the implementer starts it with `gh workflow run`, with the PR number as
+#   the `pr` input. agent-implement.yml and agent-implement-spec.yml both do
+#   this for every pull request they open.
 #
 # THE POINT OF THIS FILE: IT IS MEMORY-LESS
 #   This workflow shares nothing with the implementer run. No session, no
@@ -58,7 +60,10 @@ name: Agent — Review A Pull Request
 #   secrets.NEON_API_KEY, vars.NEON_PROJECT_ID and
 #     secrets.PROD_READONLY_DATABASE_URL — restore-bug-report-snapshots restores each Bug
 #     Report's prod snapshot with them. See .github/actions/restore-bug-report-snapshots.
-#   secrets.GITHUB_TOKEN — supplied by Actions, used only for the checkout.
+#   secrets.GITHUB_TOKEN — supplied by Actions. It reads the pull request,
+#     checks the code out, and moves the status labels (`agent:in-progress`,
+#     `agent:blocked`). GitHub starts no workflow from a label this token
+#     applies, so the status labels add no runs to the Actions tab.
 #   The `agent:review` label. A fresh clone of this repository does not have
 #     it, and no workflow can create the label that starts it. Create it once:
 #       gh label create "agent:review" --color 5319E7 \
@@ -66,32 +71,79 @@ name: Agent — Review A Pull Request
 #
 # A CAUTION THAT COMES WITH IT
 #   `pull_request` (not `pull_request_target`), so a PR from a fork runs with
-#   a read-only token and no secrets — no FACTORY_PAT either, so the run
-#   fails at its first `gh` call. That means this workflow will not review a
-#   fork PR. That is the correct trade: reviewing a stranger's code
+#   a read-only token and no secrets. `workflow_dispatch` has the secrets
+#   whatever PR it is pointed at, so the `resolve` job refuses a PR from a
+#   fork on both paths, before anything else runs. This workflow will not
+#   review a fork PR. That is the correct trade: reviewing a stranger's code
 #   with a writable token is how a factory gets robbed.
 
 on:
   pull_request:
     types: [labeled]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "The pull request number to review."
+        required: true
+        type: number
 
-# A ceiling on the GITHUB_TOKEN, which only checks the code out. Reading the
-# PR and the ticket, pushing the fixes, posting the verdict and the inline
-# comments, and marking the PR ready all go through FACTORY_PAT.
+# A ceiling on the GITHUB_TOKEN, which reads the PR, checks the code out and
+# moves the status labels. Reading the ticket, pushing the fixes, posting the
+# verdict and the inline comments, and marking the PR ready all go through
+# FACTORY_PAT.
 permissions:
   contents: read # the checkout
+  issues: write # the status labels
+  pull-requests: write # the status labels
 
 # One review per PR, never cancelled: a cancelled review would lose the
-# commits it made. A fresh `agent:review` waits for the one running. Only
-# that label joins the group: every other label gets a throwaway group of its
+# commits it made. A fresh start waits for the one running. Only a real
+# start joins the group: every other label gets a throwaway group of its
 # own, so labelling a PR under review `bug` queues nothing.
 concurrency:
-  group: ${{ github.event.label.name == 'agent:review' && format('agent-review-{0}', github.event.pull_request.number) || format('ignore-{0}', github.run_id) }}
+  group: ${{ (github.event_name == 'workflow_dispatch' || github.event.label.name == 'agent:review') && format('agent-review-{0}', inputs.pr || github.event.pull_request.number) || format('ignore-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
+  # The PR as it is now, read the same way for a label and a dispatch, which
+  # carries no `pull_request` payload.
+  resolve:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'agent:review'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      pull-requests: read
+
+    outputs:
+      branch: ${{ steps.pr.outputs.branch }}
+      base_ref: ${{ steps.pr.outputs.base_ref }}
+      head_sha: ${{ steps.pr.outputs.head_sha }}
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR_NUMBER: ${{ inputs.pr || github.event.pull_request.number }}
+
+    steps:
+      - name: Read the pull request
+        id: pr
+        run: |
+          set -euo pipefail
+          gh pr view "$PR_NUMBER" \
+            --json headRefName,headRefOid,baseRefName,isCrossRepository > /tmp/pr.json
+          if [ "$(jq -r .isCrossRepository /tmp/pr.json)" = "true" ]; then
+            echo "::error::#$PR_NUMBER is from a fork. This workflow does not review fork PRs."
+            exit 1
+          fi
+          {
+            echo "branch=$(jq -r .headRefName /tmp/pr.json)"
+            echo "base_ref=$(jq -r .baseRefName /tmp/pr.json)"
+            echo "head_sha=$(jq -r .headRefOid /tmp/pr.json)"
+          } >> "$GITHUB_OUTPUT"
+
   review:
-    if: github.event.label.name == 'agent:review'
+    needs: resolve
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -112,12 +164,12 @@ jobs:
 
     env:
       GH_REPO: ${{ github.repository }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-      BRANCH: ${{ github.event.pull_request.head.ref }}
+      PR_NUMBER: ${{ inputs.pr || github.event.pull_request.number }}
+      BRANCH: ${{ needs.resolve.outputs.branch }}
       # Where the fixes go if the push to BRANCH is rejected. New every run.
-      FALLBACK_BRANCH: ${{ github.event.pull_request.head.ref }}-${{ github.run_id }}
-      BASE_REF: ${{ github.event.pull_request.base.ref }}
-      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+      FALLBACK_BRANCH: ${{ needs.resolve.outputs.branch }}-${{ github.run_id }}
+      BASE_REF: ${{ needs.resolve.outputs.base_ref }}
+      HEAD_SHA: ${{ needs.resolve.outputs.head_sha }}
       RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/open_caddie_test
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/open_caddie_test
@@ -129,7 +181,7 @@ jobs:
         # The trigger comes off, so putting it back on is how you retry.
         # `agent:in-progress` goes on until the run ends, however it ends.
         env:
-          GH_TOKEN: ${{ secrets.FACTORY_PAT }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           # A fresh clone of this repository does not have these labels yet.
           gh label create "agent:in-progress" --color FBCA04 \
@@ -145,7 +197,7 @@ jobs:
         with:
           # The PR's head, so the review's fixes are commits on top of it.
           # Full history: the review diffs it against the base.
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ needs.resolve.outputs.head_sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -311,7 +363,7 @@ jobs:
         # outside the diff, because GitHub rejects the whole review for one.
         env:
           GH_TOKEN: ${{ secrets.FACTORY_PAT }}
-          TARGET: ${{ steps.fallback.outputs.number || github.event.pull_request.number }}
+          TARGET: ${{ steps.fallback.outputs.number || inputs.pr || github.event.pull_request.number }}
         run: |
           set -euo pipefail
           review="$RUNNER_TEMP/review-comments.json"
@@ -344,11 +396,11 @@ jobs:
         # a person has to choose between the two PRs.
         if: failure() || steps.push.outputs.fallback == 'true'
         env:
-          GH_TOKEN: ${{ secrets.FACTORY_PAT }}
+          GH_TOKEN: ${{ github.token }}
         run: gh pr edit "$PR_NUMBER" --add-label "agent:blocked" || true
 
       - name: Always remove in-progress
         if: always()
         env:
-          GH_TOKEN: ${{ secrets.FACTORY_PAT }}
+          GH_TOKEN: ${{ github.token }}
         run: gh pr edit "$PR_NUMBER" --remove-label "agent:in-progress" || true

@@ -6,14 +6,17 @@ name: Agent — Implement A Ticket
 #   Someone puts the `agent:implement` label on an issue. That is the whole
 #   interface. No comment, no trigger phrase, no @mention — one label.
 #
+#   Or agent-explore.yml starts it with `gh workflow run`, with the issue
+#   number as the `issue` input, when its plan says the ticket is an easy call.
+#
 # WHAT IT DOES
 #   Checks the repo out, gives an agent the ticket and the repo's own
 #   verification checks, and opens a DRAFT pull request with whatever the
 #   agent committed. Draft, always: the human checkpoint we removed from the
 #   *build* has not been removed from the *merge*.
 #
-#   Then it hands that pull request to the reviewer: it adds `agent:review`,
-#   which starts agent-review.yml. The reviewer marks the PR ready once its
+#   Then it hands that pull request to the reviewer: it starts
+#   agent-review.yml with `gh workflow run`. The reviewer marks the PR ready once its
 #   verdict is posted. The merge stays a human's.
 #
 #   Every run pushes to a branch of its own, `agent/issue-<n>-<run id>`. A
@@ -30,17 +33,19 @@ name: Agent — Implement A Ticket
 #     agent or how it is billed, see
 #     .sandcastle/agent-workflows/shared/common.ts.
 #   secrets.FACTORY_PAT — a fine-grained PAT on this repository with Issues,
-#     Pull requests, Contents, Workflows and Actions, all read/write. Every
-#     step that talks to GitHub uses it: reading the ticket, pushing, opening
-#     the pull request, commenting. One token for the whole factory, because some
-#     hops need it anyway — by default the built-in GITHUB_TOKEN cannot open a
-#     pull request at all, and a label it applies starts no workflow. That
-#     second hop is `agent:review`, the label that starts the reviewer.
+#     Pull requests, Contents and Workflows, all read/write. It reads the
+#     ticket, pushes, opens the pull request and comments. By default the
+#     built-in GITHUB_TOKEN cannot open a pull request at all, and a comment it
+#     posts is from github-actions[bot], which the next agent does not read.
 #   secrets.NEON_API_KEY, vars.NEON_PROJECT_ID and
 #     secrets.PROD_READONLY_DATABASE_URL — restore-bug-report-snapshots restores each Bug
 #     Report's prod snapshot with them. See .github/actions/restore-bug-report-snapshots.
-#   secrets.GITHUB_TOKEN — supplied by Actions, and now used for one thing:
-#     the checkout. The `permissions:` block below shrinks it to match.
+#   secrets.GITHUB_TOKEN — supplied by Actions. It checks the code out, moves
+#     the status labels (`agent:in-progress`, `agent:blocked`) and starts the
+#     reviewer. GitHub starts no workflow from a label this token applies, so
+#     the status labels add no runs to the Actions tab. `workflow_dispatch` is
+#     the one event it is allowed to start, so the hand-off needs no PAT. The
+#     `permissions:` block below shrinks it to match.
 #   The `agent:implement` label. A fresh clone of this repository does not
 #     have it, and no workflow can create the label that starts it. Create it
 #     once:
@@ -70,7 +75,8 @@ name: Agent — Implement A Ticket
 #   holds one switches hooks off with `core.hooksPath=/dev/null`.
 #
 # A CAUTION THAT COMES WITH IT
-#   `issues: labeled` fires on issues, which cannot come from a fork. Do not
+#   `issues: labeled` fires on issues, which cannot come from a fork, and
+#   `workflow_dispatch` needs write access to this repository. Do not
 #   copy this trigger onto `pull_request_target` — that runs fork code with
 #   this job's secrets, and a fork can label nothing but can change the code
 #   the agent runs.
@@ -78,27 +84,34 @@ name: Agent — Implement A Ticket
 on:
   issues:
     types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: "The issue number to implement."
+        required: true
+        type: number
 
 # The permissions block. It is per-workflow, and it is a ceiling on the
-# GITHUB_TOKEN — and the GITHUB_TOKEN now only checks the code out. Everything
-# that writes goes through FACTORY_PAT, whose reach is set where you created
-# it, not here.
+# GITHUB_TOKEN. Everything else that writes goes through FACTORY_PAT, whose
+# reach is set where you created it, not here.
 permissions:
   contents: read # the checkout
+  issues: write # the status labels
+  actions: write # gh workflow run agent-review.yml
 
-# One run per ticket. A second label event on the same issue waits for the
-# first to finish rather than building the same ticket twice at once. Only
-# `agent:implement` joins the group: this run's own label edits fire
-# `labeled` too, and in the group they would queue behind it and could bump
-# a real retry out of the queue. Every other label gets a throwaway group.
+# One run per ticket. A second run on the same issue waits for the first to
+# finish rather than building the same ticket twice at once. Only a real
+# start joins the group: a person's other labels would queue behind it and
+# could bump a real retry out of the queue. Every other label gets a
+# throwaway group.
 concurrency:
-  group: ${{ github.event.label.name == 'agent:implement' && format('agent-implement-{0}', github.event.issue.number) || format('ignore-{0}', github.run_id) }}
+  group: ${{ (github.event_name == 'workflow_dispatch' || github.event.label.name == 'agent:implement') && format('agent-implement-{0}', inputs.issue || github.event.issue.number) || format('ignore-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
   implement:
     # Every other label on every other issue stops here, for free.
-    if: github.event.label.name == 'agent:implement'
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'agent:implement'
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -119,9 +132,9 @@ jobs:
 
     env:
       GH_REPO: ${{ github.repository }}
-      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      ISSUE_NUMBER: ${{ inputs.issue || github.event.issue.number }}
       # The run id makes the branch new on every run. See WHAT IT DOES.
-      BRANCH: agent/issue-${{ github.event.issue.number }}-${{ github.run_id }}
+      BRANCH: agent/issue-${{ inputs.issue || github.event.issue.number }}-${{ github.run_id }}
       RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/open_caddie_test
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/open_caddie_test
@@ -133,7 +146,7 @@ jobs:
         # The trigger comes off, so putting it back on is how you retry.
         # `agent:in-progress` goes on until the run ends, however it ends.
         env:
-          GH_TOKEN: ${{ secrets.FACTORY_PAT }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           # A fresh clone of this repository does not have these labels yet.
           gh label create "agent:in-progress" --color FBCA04 \
@@ -155,7 +168,7 @@ jobs:
         # From main, never the checkout: see the action.
         uses: MattPereira/open-caddie/.github/actions/restore-bug-report-snapshots@main
         with:
-          issues: "[${{ github.event.issue.number }}]"
+          issues: "[${{ inputs.issue || github.event.issue.number }}]"
           github-token: ${{ secrets.FACTORY_PAT }}
           neon-api-key: ${{ secrets.NEON_API_KEY }}
           neon-project-id: ${{ vars.NEON_PROJECT_ID }}
@@ -280,7 +293,7 @@ jobs:
 
           url="$(gh pr create \
             --draft \
-            --base "${{ github.event.repository.default_branch }}" \
+            --base "${{ github.event.repository.default_branch || 'main' }}" \
             --head "$BRANCH" \
             --title "$title" \
             --body-file "$body_file" \
@@ -290,26 +303,19 @@ jobs:
       - name: Hand the pull request to the reviewer
         id: handoff
         env:
-          # The other hop that needs FACTORY_PAT. agent-review.yml triggers
-          # on `pull_request: [labeled]`, and a label applied with the
-          # built-in token starts no workflow. With GITHUB_TOKEN the label
-          # lands, the run goes green, and the reviewer never wakes.
-          GH_TOKEN: ${{ secrets.FACTORY_PAT }}
+          GH_TOKEN: ${{ github.token }}
           PR_URL: ${{ steps.pr.outputs.url }}
         run: |
           set -euo pipefail
-          gh label create "agent:review" --color 5319E7 \
-            --description "Ask the review workflow to read this pull request" || true
-
           # No `|| true` here, on purpose. If this fails, the chain has
           # stopped at its last hop, and a red run says so. A green run over
           # a chain that stopped says nothing.
-          gh pr edit "$PR_URL" --add-label "agent:review"
+          gh workflow run agent-review.yml -f "pr=${PR_URL##*/}"
 
       - name: Mark blocked on failure
         if: failure()
         env:
-          GH_TOKEN: ${{ secrets.FACTORY_PAT }}
+          GH_TOKEN: ${{ github.token }}
         run: gh issue edit "$ISSUE_NUMBER" --add-label "agent:blocked" || true
 
       - name: Report back on the ticket
@@ -338,5 +344,5 @@ jobs:
       - name: Always remove in-progress
         if: always()
         env:
-          GH_TOKEN: ${{ secrets.FACTORY_PAT }}
+          GH_TOKEN: ${{ github.token }}
         run: gh issue edit "$ISSUE_NUMBER" --remove-label "agent:in-progress" || true

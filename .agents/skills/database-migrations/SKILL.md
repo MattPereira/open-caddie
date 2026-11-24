@@ -26,18 +26,26 @@ Done when every statement is classified, each breaking one is split or carries a
 
 ## Breaking statements
 
-CI's `pnpm db:check-breaking` flags these in migrations new to the branch:
+CI's `pnpm db:check-breaking` runs [squawk](https://squawkhq.com) on migrations new to the branch, with the rules in `.squawk.toml`:
 
-| Statement | Why live code breaks | Ship it as |
+| Statement (squawk rule) | Why live code breaks | Ship it as |
 | --- | --- | --- |
-| `DROP COLUMN`, `DROP TABLE` | Live code selects every column its `schema.ts` lists (`db.select().from(table)`, the Auth.js adapter). | Remove it from `schema.ts` and the code, replace the generated `DROP` with `SELECT 1;`, and drop it in a follow-up with a custom `DROP ... IF EXISTS`. |
-| `RENAME` | Live code uses the old name. | Rename in TypeScript only (`newName: text("old_name")`, which generates nothing), or [expand/contract](EXPAND-CONTRACT.md) to rename the column itself. |
-| `ALTER COLUMN ... TYPE` | Live code reads and writes the old type. | [Expand/contract](EXPAND-CONTRACT.md). |
-| `SET NOT NULL`, `DROP DEFAULT` | Live code inserts rows without the column. | Ship code that always writes the column (and backfill nulls), then the constraint in a follow-up. |
+| `DROP COLUMN`, `DROP TABLE`, `DROP VIEW` (`ban-drop-*`) | Live code selects every column its `schema.ts` lists (`db.select().from(table)`, the Auth.js adapter). | Remove it from `schema.ts` and the code, replace the generated `DROP` with `SELECT 1;`, and drop it in a follow-up with a custom `DROP ... IF EXISTS`. |
+| `RENAME` (`renaming-column`, `renaming-object`) | Live code uses the old name. | Rename in TypeScript only (`newName: text("old_name")`, which generates nothing), or [expand/contract](EXPAND-CONTRACT.md) to rename the column itself. |
+| `ALTER COLUMN ... TYPE` (`changing-column-type`) | Live code reads and writes the old type. | [Expand/contract](EXPAND-CONTRACT.md). |
+| `SET NOT NULL`, `DROP DEFAULT` (`adding-not-nullable-field`, `ban-drop-default`) | Live code inserts rows without the column. | Ship code that always writes the column (and backfill nulls), then the constraint in a follow-up. |
 
 New tables, new nullable or defaulted columns, new indexes and `DROP NOT NULL` ship in one PR. `db:generate` asking whether a column was renamed means it is about to emit a `RENAME`.
 
-A flagged statement the live code does survive (a contract step after its switch deployed, a default no live insert relies on) gets `-- deploy-safe: <reason>` on the line above it. The reason is a claim for the PR reviewer: write it once you have checked it.
+A flagged statement the live code does survive (a contract step after its switch deployed, a default no live insert relies on) gets its reason and squawk's ignore on the lines above it:
+
+```sql
+-- deploy-safe: contract of #95, switch deployed
+-- squawk-ignore ban-drop-column
+ALTER TABLE "user" DROP COLUMN IF EXISTS "isAdmin";
+```
+
+The reason is a claim for the PR reviewer: write it once you have checked it. squawk reads the ignore line as rule names only, so the reason gets its own line.
 
 File each follow-up with `gh issue create --blocked-by <this issue>`, carrying this issue's labels minus `agent:*`, its body opening "Start once the production deploy of #<this issue> succeeded." File only the next step; its own run files the one after. Without `gh` access, put its title and body in the PR body under **Follow-up**.
 

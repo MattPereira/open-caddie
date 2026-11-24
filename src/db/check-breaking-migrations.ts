@@ -6,21 +6,26 @@ import { execFileSync, spawnSync } from "node:child_process";
 
 const BASE = "origin/main";
 
-const added = execFileSync(
-  "git",
-  [
+const MIGRATIONS = "src/db/migrations/*.sql";
+
+const git = (...args: string[]) =>
+  execFileSync("git", args, { encoding: "utf8" }).split("\n").filter(Boolean);
+
+// Diffs the working tree, not HEAD, so a local run sees a migration the agent
+// hasn't committed yet; untracked files need ls-files on top.
+const [mergeBase] = git("merge-base", BASE, "HEAD");
+const added = [
+  ...git(
     "diff",
     "--name-only",
     "--no-renames",
     "--diff-filter=A",
-    `${BASE}...HEAD`,
+    mergeBase,
     "--",
-    "src/db/migrations/*.sql",
-  ],
-  { encoding: "utf8" },
-)
-  .split("\n")
-  .filter(Boolean);
+    MIGRATIONS,
+  ),
+  ...git("ls-files", "--others", "--exclude-standard", "--", MIGRATIONS),
+];
 
 if (added.length === 0) {
   console.log(`No new migrations since ${BASE}.`);

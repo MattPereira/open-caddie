@@ -1,6 +1,6 @@
 ---
 name: database-migrations
-description: Schema changes and Drizzle migrations. Use when planning or writing a ticket that changes the schema, editing `src/db/schema.ts` or `src/db/migrations/`, running `pnpm db:generate` / `pnpm db:migrate`, a build or CI failing `db:check-migrations` / `db:check-breaking`, or changing migration wiring (`vercel.json`, `drizzle.config.ts`, Neon env vars).
+description: Schema changes and Drizzle migrations. Use when planning a schema change, editing `src/db/schema.ts` or `src/db/migrations/`, a build or CI failing `db:check-migrations` / `db:check-breaking`, or changing migration wiring (`vercel.json`, `drizzle.config.ts`, Neon env vars).
 ---
 
 # Database migrations

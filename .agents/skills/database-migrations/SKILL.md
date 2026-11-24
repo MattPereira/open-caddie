@@ -1,6 +1,6 @@
 ---
 name: database-migrations
-description: Schema changes and Drizzle migrations. Use when editing `src/db/schema.ts` or `src/db/migrations/`, running `pnpm db:generate` / `pnpm db:migrate`, a build failing `db:check-migrations`, or changing migration wiring (`vercel.json`, `drizzle.config.ts`, Neon env vars).
+description: Schema changes and Drizzle migrations. Use when editing `src/db/schema.ts` or `src/db/migrations/`, running `pnpm db:generate` / `pnpm db:migrate`, a build or CI failing `db:check-migrations` / `db:check-breaking`, or changing migration wiring (`vercel.json`, `drizzle.config.ts`, Neon env vars).
 ---
 
 # Database migrations
@@ -9,32 +9,45 @@ Every Vercel build runs `pnpm db:migrate:checked` (`db:check-migrations`, then `
 
 ## Rules
 
-1. **Compatible with the deployed code.** The schema changes before the new code is live, and stays changed if `next build` then fails. A change it can't survive takes [expand/contract](#expandcontract).
+1. **Compatible with the deployed code.** The schema changes before the new code is live, and stays changed if `next build` then fails. A [breaking statement](#breaking-statements) ships split across deploys.
 2. **Applied migrations are frozen.** Drizzle records applied migrations by timestamp and skips an edited one, so the database drifts from the repo. `pnpm db:check-migrations` runs before `db:migrate` in every build and fails it on an edited, missing or out-of-order migration, naming the fix. Merged: write a new migration. Pushed but unmerged: you may edit it, then ask the human to reset `preview/<git-branch>` from `production` in Neon and redeploy.
 3. **Existing rows survive.** A new NOT NULL column gets a default or a backfill in the same migration. Backfills and data fixes go in an idempotent custom migration: `pnpm db:generate --custom --name <what>`.
 
 ## Steps
 
 1. Edit `src/db/schema.ts`.
-2. `pnpm db:generate`, then read the new SQL in `src/db/migrations/` and put every statement through [expand/contract](#expandcontract).
+2. `pnpm db:generate`, then classify every statement in the new SQL against [Breaking statements](#breaking-statements). A rename or type change: follow [EXPAND-CONTRACT.md](EXPAND-CONTRACT.md) from here.
 3. When the new schema needs data the seed lacks, add it to `src/seed/world.ts` through module entry points.
-4. `pnpm db:reset`.
-5. `pnpm check`.
+4. **Live code, new schema.** Apply the migration to the local database (`pnpm db:migrate`), then run `origin/main`'s code against it: `git worktree add ../open-caddie-live origin/main`, copy the `.env*.local` files in, `pnpm install` and `pnpm dev` there, sign in per the `local-dev` skill, and use every page that reads the changed tables. Remove the worktree after.
+5. `pnpm db:reset`.
+6. `pnpm check` and `pnpm db:check-breaking`.
 
-Done when the generated SQL passes all three rules, any follow-up is filed, step 4 succeeds, and `pnpm check` passes.
+Done when every statement is classified, each breaking one is split or carries a checked `deploy-safe` reason, any follow-up is filed, step 4's pages work, step 5 succeeds, and step 6 passes.
 
-## Expand/contract
+## Breaking statements
 
-Test every statement in the generated SQL: does the code live in production now still work once it runs? Split whatever fails across deploys: each PR leaves prod working, and the rest becomes a follow-up issue.
+CI's `pnpm db:check-breaking` runs [squawk](https://squawkhq.com) on migrations new to the branch, with the rules in `.squawk.toml`:
 
-What decides it in this repo:
+| Statement (squawk rule) | Why live code breaks | Ship it as |
+| --- | --- | --- |
+| `DROP COLUMN`, `DROP TABLE`, `DROP VIEW` (`ban-drop-*`) | Live code selects every column its `schema.ts` lists (`db.select().from(table)`, the Auth.js adapter). | Remove it from `schema.ts` and the code, replace the generated `DROP` with `SELECT 1;`, and drop it in a follow-up with a custom `DROP ... IF EXISTS`. |
+| `RENAME` (`renaming-column`, `renaming-object`) | Live code uses the old name. | Rename in TypeScript only (`newName: text("old_name")`, which generates nothing), or [expand/contract](EXPAND-CONTRACT.md) to rename the column itself. |
+| `ALTER COLUMN ... TYPE` (`changing-column-type`) | Live code reads and writes the old type. | [Expand/contract](EXPAND-CONTRACT.md). |
+| `SET NOT NULL`, `DROP DEFAULT` (`adding-not-nullable-field`, `ban-drop-default`) | Live code inserts rows without the column. | Ship code that always writes the column (and backfill nulls), then the constraint in a follow-up. |
 
-- **Deployed code selects every column its `schema.ts` lists** (`db.select().from(table)`, the Auth.js adapter). A column or table leaves the database one deploy after it leaves `schema.ts`: remove it from `schema.ts` and the code, replace the generated `DROP` with `SELECT 1;`, and drop it in the follow-up with a custom `DROP ... IF EXISTS`.
-- **A rename can stay in TypeScript.** Change the key and keep the database name (`newName: text("old_name")`); `db:generate` then emits nothing.
-- **A backfill misses what the old code writes before the new code is live.** Where those writes matter, have the new code write both shapes until the follow-up.
-- **`db:generate` asking whether a column was renamed** means the SQL is about to break deployed code.
+New tables, new nullable or defaulted columns, new indexes and `DROP NOT NULL` ship in one PR. `db:generate` asking whether a column was renamed means it is about to emit a `RENAME`.
 
-File the follow-up with `gh issue create --blocked-by <this issue>`, carrying this issue's labels minus `agent:*`, its body opening "Start once the production deploy of #<this issue> succeeded." Without `gh` access, put its title and body in the PR body under **Follow-up**.
+A flagged statement the live code does survive (a contract step after its switch deployed, a default no live insert relies on) gets its reason and squawk's ignore on the lines above it:
+
+```sql
+-- deploy-safe: contract of #95, switch deployed
+-- squawk-ignore ban-drop-column
+ALTER TABLE "user" DROP COLUMN IF EXISTS "isAdmin";
+```
+
+The reason is a claim for the PR reviewer: write it once you have checked it. squawk reads the ignore line as rule names only, so the reason gets its own line.
+
+File each follow-up with `gh issue create --blocked-by <this issue>`, carrying this issue's labels minus `agent:*`, its body opening "Start once the production deploy of #<this issue> succeeded." File only the next step; its own run files the one after. Without `gh` access, put its title and body in the PR body under **Follow-up**.
 
 ## Wiring
 

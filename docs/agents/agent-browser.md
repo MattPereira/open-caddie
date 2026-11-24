@@ -50,8 +50,9 @@ change you are reporting on trust.
 
 ## Data to look at
 
-The pages need data, and it comes from the seed: a fixed world of Players,
-two Courses, a Club with Tournaments, and Matches. `src/seed/world.ts` says
+The pages need data, and it comes from the seed: a fixed, fictional world of
+Players, six Courses, two Clubs with Past and Current Seasons of Tournaments,
+and Matches. `src/seed/world.ts` says
 exactly what is in it. The agent workflows seed their database before you
 start. A Bug Report also has a prod snapshot: see
 `docs/agents/live-bug-report.md`.
@@ -74,8 +75,8 @@ mint the email link yourself and open it:
 agent-browser open "$(pnpm -s db:sign-in admin)"   # a Platform Admin
 ```
 
-`tiger@example.com` (Tiger Woods) is an ordinary Player. Every seeded Player
-has `<key>@example.com`, keyed as in `PLAYERS` in `src/seed/world.ts`.
+`ava@example.com` (Ava Lindqvist) is an ordinary Player. Every seeded Player
+but one has `<key>@example.com`, keyed as in `PLAYERS` in `src/seed/world.ts`.
 
 Each link works once. The session lasts until you `close` the browser.
 `AUTH_SECRET` must be set, and the same in `pnpm db:sign-in` and the app.

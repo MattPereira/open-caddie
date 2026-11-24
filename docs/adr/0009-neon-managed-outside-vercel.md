@@ -1,11 +1,11 @@
 ---
-status: accepted
+status: superseded by ADR 0010
 date: 2026-11-23
 ---
 
 # Neon is managed outside Vercel; previews share a staging branch
 
-The database moves from a Vercel-managed Neon project, wired up by the Neon–Vercel integration, to an independently managed Neon project (#96). Vercel keeps hosting the app. Connection strings are set as plain Vercel env vars: production's point at the Neon `main` branch, and the Preview environment's point at one long-lived `staging` Neon branch that every preview deployment shares. Previews never migrate it (ADR 0006).
+The database moves from a Vercel-managed Neon project, wired up by the Neon–Vercel integration, to an independently managed Neon project (#96). Vercel keeps hosting the app. Connection strings are set as plain Vercel env vars: production's point at the Neon `production` branch, and the Preview environment's point at one long-lived `staging` Neon branch that every preview deployment shares. Previews never migrate it (ADR 0006).
 
 The integration created a `preview/<git-branch>` Neon branch for every preview and injected its URLs into the build. On PR #94 that provisioning repeatedly timed out before the Vercel build started, though the branch itself was ready; the integration handshake is the suspected cause. Neon can't transfer a project out of a Vercel-managed organization, so the move is a new project plus a data copy.
 
@@ -22,3 +22,7 @@ The integration created a `preview/<git-branch>` Neon branch for every preview a
 - All previews read and write the same staging data.
 - Staging drifts from prod as migrations land on `main`. Reset it from its parent in Neon when it does.
 - No per-PR Neon branches exist, so there is nothing to clean up when a PR closes.
+
+## Amendments
+
+Superseded by ADR 0010: Neon's Neon-Managed Vercel integration now gives each preview its own branch, and `staging` has been deleted. The move to an independently managed Neon project still stands.

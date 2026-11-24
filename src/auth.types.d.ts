@@ -16,6 +16,7 @@ declare module "next-auth" {
     firstName?: string | null;
     lastName?: string | null;
     isAdmin?: boolean;
+    isPlatformAdmin?: boolean;
   }
 }
 
@@ -26,5 +27,6 @@ declare module "next-auth/jwt" {
     firstName: string | null;
     lastName: string | null;
     isAdmin: boolean;
+    isPlatformAdmin?: boolean;
   }
 }

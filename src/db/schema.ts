@@ -49,6 +49,8 @@ export const users = pgTable("user", {
   firstName: text("firstName"),
   lastName: text("lastName"),
   isAdmin: boolean("isAdmin").notNull().default(false),
+  // Expand of #95: written alongside isAdmin, read once the switch ships.
+  isPlatformAdmin: boolean("isPlatformAdmin").notNull().default(false),
 });
 
 // Auth.js adapter tables keep User naming (ADR 0007).

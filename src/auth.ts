@@ -47,6 +47,8 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
         token.firstName = user.firstName ?? null;
         token.lastName = user.lastName ?? null;
         token.isAdmin = user.isAdmin ?? false;
+        // Expand of #95: the switch reads this claim, backfilling it from isAdmin.
+        token.isPlatformAdmin = user.isPlatformAdmin ?? false;
       }
       if (trigger === "update" && session?.user) {
         if (session.user.username !== undefined)

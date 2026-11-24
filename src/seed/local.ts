@@ -5,8 +5,10 @@ import { assertLocalConnection, nodePostgresConfig } from "@/db/connection";
 // Every `src/seed` command runs this before it loads `@/db`, which connects
 // on import.
 export function requireLocalDatabase() {
-  // Variables already set win over .env.local.
-  config({ path: ".env.local", quiet: true });
+  // Variables already set win over both files. .env.development.local holds
+  // the local database; .env.local is `vercel env pull`'s and may still carry
+  // a Neon URL.
+  config({ path: [".env.development.local", ".env.local"], quiet: true });
 
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set");

@@ -11,8 +11,8 @@ const origin = process.env.AUTH_URL ?? "http://localhost:3000";
 const { createSignInLinkForEmail } = await import("@/lib/auth/sign-in-link");
 const { getAllPlayers } = await import("@/modules/players/server");
 
-// The agent workflows run on a copy of prod, whose Platform Admins have real
-// addresses the agent has no reason to know.
+// A copy of prod (a Bug Report snapshot, `pnpm db:copy-prod`) has Platform
+// Admins with real addresses the agent has no reason to know.
 async function platformAdminEmail() {
   const admin = (await getAllPlayers()).find((p) => p.isAdmin && p.email);
   if (!admin?.email) throw new Error("No Platform Admin has an email.");

@@ -18,7 +18,7 @@ Every Vercel build runs `pnpm db:migrate` before `next build`: Production agains
 1. Edit `src/db/schema.ts`.
 2. `pnpm db:generate`, then read the new SQL in `src/db/migrations/` and put every statement through [expand/contract](#expandcontract).
 3. When the new schema needs data the seed lacks, add it to `src/seed/world.ts` through module entry points.
-4. `pnpm db:reset`. If it refuses a non-local database, run `pnpm db:migrate` instead. If that fails on migrations this branch doesn't have, the database has drifted: ask the human to reset `vercel-dev` from `production` in Neon, then rerun.
+4. `pnpm db:reset`.
 5. `pnpm check`.
 
 Done when the generated SQL passes all three rules, any follow-up is filed, step 4 succeeds, and `pnpm check` passes.

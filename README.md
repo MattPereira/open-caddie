@@ -60,7 +60,7 @@ Every course keeps a scorecard per tee with its rating and slope, plus its own l
 ### Tech stack
 
 - **Framework** — Next.js 16 (App Router), React 19, TypeScript
-- **Database** — Postgres on Neon, Drizzle ORM with generated migrations
+- **Database** — Postgres on Neon in production, a local Postgres in development; Drizzle ORM with generated migrations
 - **Auth** — Auth.js with the Drizzle adapter, Google OAuth and Resend email sign-in
 - **AI** — Vercel AI SDK through the AI Gateway, with a model eval harness
 - **Storage** — Vercel Blob for course, scorecard, and avatar images

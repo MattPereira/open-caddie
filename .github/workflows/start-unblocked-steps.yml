@@ -2,27 +2,27 @@ name: Start Unblocked Expand/Contract Steps
 
 # An expand/contract step may start only once the previous step's production
 # deploy succeeded (.agents/skills/database-migrations/EXPAND-CONTRACT.md).
-# Each follow-up step's issue opens with
-#   Start once the production deploy of #<n> succeeded.
-# This watches production deploys and starts that step when one lands.
+# GitHub's own "blocked by" clears when the blocker closes, which is before
+# its deploy, so this watches the deploys instead.
 #
 # WHAT TRIGGERS IT
 #   `deployment_status`, which Vercel's GitHub integration reports. Only a
-#   `success` on `Production` gets past the job's `if`.
+#   `success` on `Production` gets past the job's `if`. Or by hand, with the
+#   deployed commit as the `sha` input, to re-check a deploy a run missed.
 #
 # WHAT IT DOES
-#   .github/scripts/start-unblocked-steps.ts. For each open issue with that
-#   first line, it looks for a merged pull request that links #<n> ("Part of",
-#   or a closing keyword) whose merge commit is in the deployed commit's
-#   history. Ancestry, so promoting an older deployment starts nothing. A
-#   match starts agent-implement.yml on the issue and comments which deploy
-#   unblocked it. The comment also marks the step started, so later deploys
-#   skip it.
+#   .github/scripts/start-unblocked-steps.ts. For each open issue labelled
+#   `awaits-deploy`, it takes the issue's native blockers and the merged pull
+#   requests GitHub records as closing each one. Once every blocker has one
+#   whose merge commit is in the deployed commit's history, it starts
+#   agent-implement.yml on the issue, takes `awaits-deploy` off and comments
+#   which deploy unblocked it. Ancestry, so promoting an older deployment
+#   starts nothing.
 #
 #   The implementer opens a draft pull request. The merge stays a human's.
 #
-#   The checkout is the deployed commit, so a change to the script takes
-#   effect from its own production deploy on.
+#   On a deploy the checkout is the deployed commit, so a change to the script
+#   takes effect from its own production deploy on.
 #
 #   To see what a deploy would start without starting it, run the script
 #   locally with GH_REPO, DEPLOYED_SHA and DRY_RUN=1.
@@ -31,23 +31,32 @@ name: Start Unblocked Expand/Contract Steps
 #   secrets.GITHUB_TOKEN only. `workflow_dispatch` is the one event it may
 #   start, which is why it runs agent-implement.yml rather than adding the
 #   `agent:implement` label: a label it applied would start nothing.
+#   The `awaits-deploy` label:
+#     gh label create "awaits-deploy" --color C5DEF5 \
+#       --description "Starts when its blocker's PR is in a production deploy"
 
 on:
   deployment_status:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "The commit a production deploy served."
+        required: true
+        type: string
 
 permissions:
   contents: read # the checkout and the compare API
-  issues: write # the comment
-  pull-requests: read # the linked pull requests
+  issues: write # the label and the comment
+  pull-requests: read # the closing pull requests
   actions: write # gh workflow run agent-implement.yml
 
 jobs:
   start:
-    if: github.event.deployment.environment == 'Production' && github.event.deployment_status.state == 'success'
-    # Two deploys at once could each start the same step before either
-    # comments. On the job, not the workflow: every preview and pending status
-    # would join a workflow-level group, and a newer pending run cancels the
-    # older one, which could drop the Production run.
+    if: github.event_name == 'workflow_dispatch' || (github.event.deployment.environment == 'Production' && github.event.deployment_status.state == 'success')
+    # Two deploys at once could each start the same step before either takes
+    # the label off. On the job, not the workflow: every preview and pending
+    # status would join a workflow-level group, and a newer pending run
+    # cancels the older one, which could drop the Production run.
     concurrency:
       group: start-unblocked-steps
       cancel-in-progress: false
@@ -69,7 +78,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          DEPLOYED_SHA: ${{ github.event.deployment.sha }}
+          DEPLOYED_SHA: ${{ inputs.sha || github.event.deployment.sha }}
           DEPLOY_URL: ${{ github.event.deployment_status.environment_url }}
           RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: node .github/scripts/start-unblocked-steps.ts

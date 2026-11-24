@@ -3,15 +3,8 @@
 For a column rename or type change the live code can't survive. Three PRs, each its own production deploy, each safe to roll back to the one before:
 
 1. **Expand.** Additive migration: add the new column with a default (or nullable), then backfill it from the old one in an idempotent custom migration (`UPDATE ... SET new = old WHERE new IS DISTINCT FROM old`). `schema.ts` holds both. The code writes both and reads the old one. File the switch follow-up.
-2. **Switch.** Re-run the backfill as a new custom migration first: it catches rows the pre-expand code wrote during expand's rollout. Reads move to the new column; the old one leaves `schema.ts` and the code, and its generated `DROP` becomes `SELECT 1;`. File the contract follow-up.
-3. **Contract.** A custom migration drops the old column, under its reason:
-
-   ```sql
-   -- deploy-safe: contract of #<expand issue>, switch deployed
-   ALTER TABLE "<table>" DROP COLUMN IF EXISTS "<old>";
-   ```
-
-   Transition code (dual reads, claim fallbacks) goes too.
+2. **Switch.** Re-run the backfill as a new custom migration first: it catches rows the pre-expand code wrote during expand's rollout. Reads move to the new column, and the TypeScript rename of keys and callers lands here. The old column leaves `schema.ts` and the code as the drop row of [Breaking statements](SKILL.md#breaking-statements) says. File the contract follow-up.
+3. **Contract.** That row's follow-up drop, under `-- deploy-safe: contract of #<expand issue>, switch deployed`. Remaining transition code (claim fallbacks) goes too.
 
 Each step is done when the SKILL.md steps pass for it, including step 4 against the previous step's code.
 

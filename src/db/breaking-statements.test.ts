@@ -25,6 +25,7 @@ describe("findBreakingStatements", () => {
       `ALTER TABLE "rounds" ALTER COLUMN "score" SET DATA TYPE integer`,
     ],
     ["change-type", `ALTER TABLE "rounds" ALTER COLUMN "score" TYPE integer`],
+    ["change-type", `ALTER TABLE "rounds" ALTER "score" TYPE integer`],
     ["set-not-null", `ALTER TABLE "rounds" ALTER COLUMN "tee_id" SET NOT NULL`],
     [
       "drop-default",

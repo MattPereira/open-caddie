@@ -1,21 +1,37 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
-import { findBreakingStatements } from "./breaking-statements";
+import {
+  type BreakingStatement,
+  findBreakingStatements,
+} from "./breaking-statements";
 
-// Runs in CI on each PR: Vercel migrates before the new code is live, so a
-// statement the live code can't survive must ship through expand/contract.
-// Only added migrations count; edits to applied ones are db:check-migrations'.
+// Only added migrations count: edits to applied ones are db:check-migrations'.
+// --no-renames keeps a new migration that git pairs with a deleted file as "A".
 
-const base = process.argv[2] ?? "origin/main";
+const BASE = "origin/main";
+const SKILL = ".agents/skills/database-migrations";
+
+const DROP_FIX = `remove it from schema.ts now and drop it in a follow-up (${SKILL}/SKILL.md, Breaking statements).`;
+const CODE_FIRST_FIX = `ship code that always writes the column first, then this statement in a follow-up (${SKILL}/SKILL.md, Breaking statements).`;
+
+const FIX: Record<BreakingStatement["kind"], string> = {
+  "drop-table": DROP_FIX,
+  "drop-column": DROP_FIX,
+  rename: `rename in TypeScript only, or follow ${SKILL}/EXPAND-CONTRACT.md.`,
+  "change-type": `follow ${SKILL}/EXPAND-CONTRACT.md.`,
+  "set-not-null": CODE_FIRST_FIX,
+  "drop-default": CODE_FIRST_FIX,
+};
 
 const added = execFileSync(
   "git",
   [
     "diff",
     "--name-only",
+    "--no-renames",
     "--diff-filter=A",
-    `${base}...HEAD`,
+    `${BASE}...HEAD`,
     "--",
     "src/db/migrations/*.sql",
   ],
@@ -26,7 +42,7 @@ const added = execFileSync(
 
 const findings = added.flatMap((file) =>
   findBreakingStatements(readFileSync(file, "utf8")).map(
-    ({ kind, statement }) => `  - ${file} (${kind}): ${statement}`,
+    ({ kind, statement }) => `  - ${file}: ${statement}\n    Fix: ${FIX[kind]}`,
   ),
 );
 
@@ -35,12 +51,11 @@ if (findings.length > 0) {
     [
       "New migrations may break the code live in production while this deploy rolls out:",
       ...findings,
-      "Split the change with expand/contract (.agents/skills/database-migrations/SKILL.md).",
-      "If the live code survives it, put `-- deploy-safe: <reason>` on the line above the statement.",
+      "If the live code survives a statement, put `-- deploy-safe: <reason>` on the line above it.",
     ].join("\n"),
   );
   process.exit(1);
 }
 console.log(
-  `No breaking statements in ${added.length} new migration(s) since ${base}.`,
+  `No breaking statements in ${added.length} new migration(s) since ${BASE}.`,
 );

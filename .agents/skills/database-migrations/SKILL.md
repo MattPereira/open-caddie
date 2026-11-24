@@ -26,7 +26,7 @@ Done when every statement is classified, each breaking one is split or carries a
 
 ## Breaking statements
 
-A statement is breaking when the code live in production can't survive it. CI's `pnpm db:check-breaking` flags these in migrations new to the branch:
+CI's `pnpm db:check-breaking` flags these in migrations new to the branch:
 
 | Statement | Why live code breaks | Ship it as |
 | --- | --- | --- |

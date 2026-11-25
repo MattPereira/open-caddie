@@ -5,7 +5,7 @@ import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { accounts, sessions, users, verificationTokens } from "@/db/schema";
-import { platformAdminClaim } from "@/modules/players";
+import { sessionTokenClaims } from "@/modules/players";
 
 export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
   adapter: DrizzleAdapter(db, {
@@ -39,27 +39,12 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
       if (existing) return true;
       return `/login?error=AccessDenied&email=${encodeURIComponent(email)}`;
     },
-    async jwt({ token, user, trigger, session }) {
-      if (user) {
-        if (!user.id)
-          throw new Error("Auth.js adapter returned a user without an id");
-        token.id = user.id;
-        token.username = user.username ?? null;
-        token.firstName = user.firstName ?? null;
-        token.lastName = user.lastName ?? null;
-        token.isPlatformAdmin = user.isPlatformAdmin ?? false;
-      }
-      token.isPlatformAdmin = platformAdminClaim(token);
-      if (trigger === "update" && session?.user) {
-        if (session.user.username !== undefined)
-          token.username = session.user.username;
-        if (session.user.firstName !== undefined)
-          token.firstName = session.user.firstName;
-        if (session.user.lastName !== undefined)
-          token.lastName = session.user.lastName;
-        if (session.user.name !== undefined) token.name = session.user.name;
-      }
-      return token;
+    jwt({ token, user, trigger, session }) {
+      return sessionTokenClaims({
+        token,
+        player: user,
+        update: trigger === "update" ? session?.user : undefined,
+      });
     },
     async session({ session, token }) {
       if (session.user) {

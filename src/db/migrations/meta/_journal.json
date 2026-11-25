@@ -183,6 +183,13 @@
       "when": 1795575634681,
       "tag": "0025_drop_is_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795579847392,
+      "tag": "0026_drop_is_admin_column",
+      "breakpoints": true
     }
   ]
 }

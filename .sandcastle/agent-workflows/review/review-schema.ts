@@ -61,8 +61,20 @@ export const reviewSchema = z
       .describe(
         "One entry per finding you left unfixed, on the first line it concerns. Empty is fine.",
       ),
+    merge: z
+      .strictObject({
+        call: z
+          .enum(["auto", "needs-a-human"])
+          .describe(
+            "`auto` if this PR can merge with no person reading it; `needs-a-human` otherwise.",
+          ),
+        reason: z.string().min(1).describe("Why, in one sentence, plain text."),
+      })
+      .describe("Your merge call."),
   })
-  .describe("The findings the review fixed and the ones it left.");
+  .describe(
+    "The findings the review fixed, the ones it left, and its merge call.",
+  );
 
 export type ReviewFix = z.infer<typeof reviewSchema>["fixes"][number];
 export type ReviewComment = z.infer<typeof reviewSchema>["comments"][number];

@@ -43,17 +43,44 @@ name: Agent — Review A Pull Request
 #
 # HOW IT ENDS: THE PR GOES READY
 #   The implementer opens every PR as a draft, and the draft means "nobody
-#   has read this yet". Once the verdict is posted, somebody has. So the last
-#   step marks the PR ready for review — on a fail as well as a pass. Ready is
-#   not approved. A failing verdict is for a human to read, and the merge is
-#   still a human's.
+#   has read this yet". Once the verdict is posted, somebody has. So the
+#   review marks the PR ready for review — on a fail as well as a pass. Ready
+#   is not approved. A failing verdict is for a human to read, and the merge
+#   is a human's, with one exception.
+#
+# THE EXCEPTION: A CLEAN EXPAND/CONTRACT STEP MERGES ITSELF
+#   So a breaking change's chain of steps runs end to end. Modelled on
+#   agent-explore.yml: the agent makes one closed-enum call, `auto` or
+#   `needs-a-human` with a reason (.sandcastle/agent-workflows/review/
+#   review-schema.ts), and a step that runs no agent decides with hard checks
+#   (.github/scripts/expand-contract.ts merge). It turns on GitHub auto-merge
+#   only when all of these hold:
+#     - the call is `auto`;
+#     - the review left no finding;
+#     - the PR closes an `expand-contract` issue;
+#     - no migration in the diff adds a `DROP`, which can't be rolled back
+#       (#270 tracks revisiting this).
+#   Otherwise it comments the reasons and turns auto-merge off if an earlier
+#   review turned it on. A PR that closes no `expand-contract` issue gets no
+#   auto-merge and no comment.
+#
+#   Auto-merge waits for the required checks, `Merge gate` and `Previous step
+#   deployed`, so the step still merges only after the previous one is in
+#   production. expand-contract-update.yml keeps its branch up to date with
+#   main, which `protect main` requires.
+#
+#   Auto-merge stays on through later pushes by a collaborator. Push to a
+#   step's PR after its review only what you would merge unread, or turn
+#   auto-merge off first.
 #
 # WHAT IT NEEDS
 #   secrets.CLAUDE_CODE_OAUTH_TOKEN — the agent's auth token.
 #   secrets.FACTORY_PAT — the factory's one token. Only the steps that call
 #     GitHub get it; the agent's step does not. It pushes the review's
-#     commits and posts its verdict and inline comments, so it needs
-#     Contents and Pull requests: write. Keeping it out of the agent's
+#     commits, posts its verdict and inline comments, and turns on a step's
+#     auto-merge, so it needs Contents and Pull requests: write. The merge
+#     must be by this token: one by GITHUB_TOKEN fires no `issues: closed`,
+#     and expand-contract-start.yml would not start the next step. Keeping it out of the agent's
 #     environment is tidiness, not a wall: the agent shares the machine with
 #     the steps that push and post. The real defence is who can reach the
 #     agent — same-repo PRs only, and a label only a collaborator can apply.
@@ -64,6 +91,7 @@ name: Agent — Review A Pull Request
 #     checks the code out, and moves the status labels (`agent:in-progress`,
 #     `agent:blocked`). GitHub starts no workflow from a label this token
 #     applies, so the status labels add no runs to the Actions tab.
+#   "Allow auto-merge" on in the repository's settings, for the exception.
 #   The `agent:review` label. A fresh clone of this repository does not have
 #     it, and no workflow can create the label that starts it. Create it once:
 #       gh label create "agent:review" --color 5319E7 \
@@ -89,8 +117,8 @@ on:
 
 # A ceiling on the GITHUB_TOKEN, which reads the PR, checks the code out and
 # moves the status labels. Reading the ticket, pushing the fixes, posting the
-# verdict and the inline comments, and marking the PR ready all go through
-# FACTORY_PAT.
+# verdict and the inline comments, marking the PR ready and turning on
+# auto-merge all go through FACTORY_PAT.
 permissions:
   contents: read # the checkout
   issues: write # the status labels
@@ -375,6 +403,7 @@ jobs:
             --input "$review" --silent
 
       - name: Mark the pull request ready
+        id: ready
         # No `always()` here. If the agent broke, nobody has read the PR, so
         # it stays a draft. And it goes ready only when a real verdict was
         # posted: the fallback note above is not a review. The verdict's own
@@ -387,9 +416,33 @@ jobs:
           set -euo pipefail
           if grep -q '## Standards:' /tmp/review-verdict.md; then
             gh pr ready "$PR_NUMBER"
+            echo "ready=true" >> "$GITHUB_OUTPUT"
           else
             echo "No verdict, so the PR stays a draft."
           fi
+
+      - name: Checkout main's merge checks
+        # Main's script, not the PR's, so a PR cannot edit the checks that
+        # merge it. Not after a rejected push: the fixes are on another branch.
+        if: steps.ready.outputs.ready == 'true' && steps.push.outputs.fallback != 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: .factory-main
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Act on the merge call
+        # Only for a PR that closes an `expand-contract` issue; any other PR
+        # gets nothing from this step. See expand-contract.ts `merge`.
+        if: steps.ready.outputs.ready == 'true' && steps.push.outputs.fallback != 'true'
+        env:
+          # FACTORY_PAT, not GITHUB_TOKEN: a merge by the built-in token fires
+          # no `issues: closed`, so the next step would never start.
+          GH_TOKEN: ${{ secrets.FACTORY_PAT }}
+          PULL: ${{ inputs.pr || github.event.pull_request.number }}
+          MERGE_FILE: ${{ runner.temp }}/review-merge.json
+        run: node .factory-main/.github/scripts/expand-contract.ts merge
 
       - name: Mark blocked on failure or a rejected push
         # A rejected push is blocked too: the fixes are on another branch, and

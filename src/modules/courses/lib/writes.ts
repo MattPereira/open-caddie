@@ -40,6 +40,7 @@ export type CourseUpdateInput = {
 
 /** A new course's form values; every tee is new. */
 export type CourseCreateInput = Omit<CourseUpdateInput, "id" | "tees"> & {
+  scorecardImgUrl?: string;
   tees: Omit<CourseUpdateInput["tees"][number], "id">[];
 };
 
@@ -74,7 +75,12 @@ export async function createCourse(
     id = await db.transaction(async (tx) => {
       const [created] = await tx
         .insert(courses)
-        .values({ handle, name, imgUrl: emptyToNull(imgUrl) })
+        .values({
+          handle,
+          name,
+          imgUrl: emptyToNull(imgUrl),
+          scorecardImgUrl: emptyToNull(values.scorecardImgUrl ?? ""),
+        })
         .returning({ id: courses.id });
       await writeTeesAndHoles(tx, created.id, tees, holes);
       return created.id;

@@ -2,6 +2,7 @@ import { required } from "@/lib/required";
 import { createPlayer } from "@/modules/players/server";
 
 import { ok } from "./ok";
+import { PLAYER_IMAGES } from "./image-data";
 
 type PlayerPlan = {
   firstName: string;
@@ -12,33 +13,32 @@ type PlayerPlan = {
 };
 
 export const PLAYERS = {
-  ava: { firstName: "Ava", lastName: "Lindqvist", skill: -2 },
-  marcus: { firstName: "Marcus", lastName: "Okafor", skill: -1 },
-  kenji: { firstName: "Kenji", lastName: "Watanabe", skill: -1 },
-  priya: { firstName: "Priya", lastName: "Raman", skill: 0 },
-  noor: { firstName: "Noor", lastName: "Haddad", skill: 0 },
-  bram: { firstName: "Bram", lastName: "Vandersteen", skill: 0 },
-  jules: { firstName: "Jules", lastName: "Fontaine", skill: 0 },
-  tomas: { firstName: "Tomás", lastName: "Ibarra", skill: 1 },
-  hannah: { firstName: "Hannah", lastName: "Brightwater", skill: 1 },
-  felix: { firstName: "Felix", lastName: "Moreau", skill: 1 },
-  maya: { firstName: "Maya", lastName: "Thornbury", skill: 1 },
-  zoe: { firstName: "Zoë", lastName: "Kristiansen", skill: 1 },
+  panther: { firstName: "Panther", lastName: "Woods", skill: -2 },
+  john: { firstName: "John", lastName: "Nightly", skill: -1 },
+  scottie: { firstName: "Scottie", lastName: "Shuffler", skill: -1 },
+  rory: { firstName: "Rory", lastName: "McEagle", skill: 0 },
+  phil: { firstName: "Phil", lastName: "Nickelson", skill: 0 },
+  tyson: { firstName: "Tyson", lastName: "DeShambles", skill: 0 },
+  rivers: { firstName: "Rivers", lastName: "Koepka", skill: 0 },
+  dustin: { firstName: "Dustin", lastName: "Thomas", skill: 1 },
+  justin: { firstName: "Justin", lastName: "Johnson", skill: 1 },
+  jordan: { firstName: "Jordan", lastName: "Slice", skill: 1 },
+  rickie: { firstName: "Rickie", lastName: "Fowleri", skill: 1 },
+  bubba: { firstName: "Bubba", lastName: "Wattson", skill: 1 },
   // createPlayer stores "" for no email, and the column is unique, so only
   // one Player can go without.
-  rosa: { firstName: "Rosa", lastName: "Delgado", skill: 1, email: "" },
-  dev: { firstName: "Devon", lastName: "Achterberg", skill: 2 },
-  grace: { firstName: "Grace", lastName: "Whitfield", skill: 2 },
-  siobhan: { firstName: "Siobhán", lastName: "Ó Ceallaigh", skill: 2 },
-  // Long enough to wrap or truncate in tables and cards.
-  wilhelmina: {
-    firstName: "Wilhelmina",
-    lastName: "Featherstonehaugh-Montgomery",
+  arnold: { firstName: "Arnold", lastName: "Lemonade", skill: 1, email: "" },
+  jack: { firstName: "Jack", lastName: "Nickel", skill: 2 },
+  jon: { firstName: "Jon", lastName: "Ram", skill: 2 },
+  vijay: { firstName: "Vijay", lastName: "Swing", skill: 2 },
+  collin: {
+    firstName: "Collin",
+    lastName: "Mulligan",
     skill: 2,
   },
-  leo: { firstName: "Leo", lastName: "Castellanos", skill: 3 },
-  // A Club Member with no last name and no Rounds.
-  ike: { firstName: "Ike", lastName: "", skill: 3 },
+  max: { firstName: "Max", lastName: "Bogey", skill: 3 },
+  // A Club Member with no Rounds.
+  adam: { firstName: "Adam", lastName: "Scotty", skill: 3 },
 } satisfies Record<string, PlayerPlan>;
 export type PlayerKey = keyof typeof PLAYERS;
 export type PlayerIds = Record<PlayerKey, string>;
@@ -66,7 +66,7 @@ export async function seedPlayers(adminId: string): Promise<PlayerIds> {
         firstName: player.firstName,
         lastName: player.lastName,
         username: "",
-        image: "",
+        image: PLAYER_IMAGES[key],
         isAdmin: false,
       }),
       `player ${key}`,

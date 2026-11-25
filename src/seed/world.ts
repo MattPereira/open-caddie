@@ -3,18 +3,15 @@ import {
   getAllPlayers,
 } from "@/modules/players/server";
 
-import { seedDawnPatrol, seedSaturdayClub } from "./world/clubs";
+import { seedHandicapHustlers, seedMulliganMafia } from "./world/clubs";
 import { seedCourses } from "./world/courses";
 import { dateFromToday, seedCasualRound } from "./world/events";
 import { seedMatches } from "./world/matches";
 import { ok } from "./world/ok";
 import { seedPlayers } from "./world/players";
 
-// A fixed, fictional world for agents to render. Content is the same every
-// run; ids are whatever the database hands out, and dates follow the day it
-// runs so "upcoming" and "past" both have something in them. Every Player,
-// Course and Club is made up, so generated photos of them can't be mistaken
-// for real people or places.
+// Fictional amateurs and societies play real courses. Dates follow today so
+// upcoming, live and completed Events are always available to render.
 
 export async function seedWorld() {
   if ((await getAllPlayers()).length > 0) {
@@ -35,21 +32,21 @@ export async function seedWorld() {
 
   const courses = await seedCourses(adminId);
 
-  await seedSaturdayClub(adminId, ids, courses);
-  await seedDawnPatrol(adminId, ids, courses);
+  await seedMulliganMafia(adminId, ids, courses);
+  await seedHandicapHustlers(adminId, ids, courses);
   await seedMatches(adminId, ids, courses);
 
   await seedCasualRound(adminId, ids, {
-    player: "dev",
-    course: courses.fernHollow,
-    tee: "Green",
+    player: "jack",
+    course: courses.royalCountyDown,
+    tee: "White",
     date: dateFromToday(-5),
     salt: 710,
   });
   await seedCasualRound(adminId, ids, {
-    player: "grace",
-    course: courses.saguaro,
-    tee: "Red",
+    player: "jon",
+    course: courses.sawgrass,
+    tee: "Green",
     date: dateFromToday(-20),
     salt: 720,
   });

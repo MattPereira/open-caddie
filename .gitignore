@@ -60,3 +60,6 @@ stryker.log
 # scripts/pr-screenshots.sh; the folder itself stays so save paths always exist.
 /screenshots/*
 !/screenshots/.gitkeep
+
+# Original image-generation drops; optimized assets live under public/seed/.
+/scripts/seed-images/raw/

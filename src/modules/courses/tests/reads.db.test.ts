@@ -184,7 +184,7 @@ describe("Course reads", () => {
       });
     });
 
-    it("has no scorecard image for a course saved without an import", async () => {
+    it("has no scorecard image when none was supplied", async () => {
       const { course } = await courseWith();
       expect(await courses.getCourseForEdit(course.handle)).toMatchObject({
         scorecardImgUrl: null,

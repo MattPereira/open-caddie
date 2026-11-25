@@ -1,0 +1,65 @@
+name: Expand/Contract — Start The Next Step
+
+# Starts the next expand/contract step as soon as the previous one merges.
+# (.agents/skills/database-migrations/EXPAND-CONTRACT.md)
+#
+# WHAT TRIGGERS IT
+#   Any issue closing. The script ignores issues that block no open
+#   `expand-contract` issue.
+#
+# WHAT IT DOES
+#   .github/scripts/expand-contract.ts start. For each open `expand-contract`
+#   issue the closed one blocked: once all its native blockers are closed and
+#   each has a merged pull request closing it, it starts agent-implement.yml on
+#   the issue and comments. A blocker closed as "not planned" starts nothing.
+#
+#   Starting early is safe; *merging* early is not. Each step must ship in its
+#   own production deploy, after the previous one's. expand-contract-gate.yml
+#   holds the step's PR until then, so this start does not wait for a deploy.
+#
+# WHAT IT NEEDS
+#   secrets.GITHUB_TOKEN only. `workflow_dispatch` is the one event it may
+#   start, which is why it runs agent-implement.yml rather than adding the
+#   `agent:implement` label: a label it applied would start nothing.
+#   The `expand-contract` label:
+#     gh label create "expand-contract" --color C5DEF5 \
+#       --description "An expand/contract step: starts when its blockers merge"
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  contents: read # the checkout
+  issues: write # the comment
+  pull-requests: read # the closing pull requests
+  actions: write # gh workflow run agent-implement.yml
+
+jobs:
+  start:
+    # A merge closing two of one step's blockers fires two runs. One at a time,
+    # the second sees the first's start comment and skips the step.
+    concurrency:
+      group: expand-contract-start
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Start the steps this close unblocked
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          CLOSED_ISSUE: ${{ github.event.issue.number }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node .github/scripts/expand-contract.ts start

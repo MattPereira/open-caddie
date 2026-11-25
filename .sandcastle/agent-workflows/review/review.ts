@@ -80,7 +80,6 @@ const verdict = fs.existsSync(VERDICT)
   : "The review run produced no verdict. See the logs. Re-add `agent:review` to retry.\n";
 fs.writeFileSync(VERDICT, addFindings(verdict, { fixed, posted, dropped }));
 
-// The workflow's merge step decides with this; the call alone merges nothing.
 writeJson("review-merge.json", { merge, findingsLeft: found.length });
 
 // The request body for POST /repos/{owner}/{repo}/pulls/{n}/reviews.

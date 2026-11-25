@@ -435,10 +435,18 @@ async function gate(repo: string, env: NodeJS.ProcessEnv) {
   }
 }
 
-const MERGE_CHECKS = "`Merge gate` and `Previous step deployed`";
+const MERGE_CHECKS = `\`Merge gate\` and \`${GATE_CONTEXT}\``;
 
 async function merge(repo: string, env: NodeJS.ProcessEnv) {
-  const pull = required(env.PULL, "PULL");
+  const pullNumber = Number(required(env.PULL, "PULL"));
+  const pull = String(pullNumber);
+  // Checked first, so a failure in the rest can't touch an unrelated PR.
+  const closesStep =
+    (await cliGitHub(repo).stepsClosedBy(pullNumber)).length > 0;
+  if (!closesStep) {
+    console.log(`#${pull} closes no expand/contract step.`);
+    return;
+  }
   const review = JSON.parse(
     readFileSync(required(env.MERGE_FILE, "MERGE_FILE"), "utf8"),
   ) as { merge: MergeCall; findingsLeft: number };
@@ -448,7 +456,7 @@ async function merge(repo: string, env: NodeJS.ProcessEnv) {
     { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
   );
   const decision = mergeDecision({
-    closesStep: (await cliGitHub(repo).stepsClosedBy(Number(pull))).length > 0,
+    closesStep,
     call: review.merge,
     findingsLeft: review.findingsLeft,
     drops: migrationDrops(diff),
@@ -456,7 +464,7 @@ async function merge(repo: string, env: NodeJS.ProcessEnv) {
   console.log(`#${pull}: ${JSON.stringify(decision)}`);
   if (env.DRY_RUN || decision.action === "none") return;
   if (decision.action === "auto-merge") {
-    runGh("pr", "merge", pull, "--auto", "--squash");
+    enableAutoMerge(pull);
     runGh(
       "pr",
       "comment",
@@ -487,6 +495,28 @@ async function merge(repo: string, env: NodeJS.ProcessEnv) {
   );
 }
 
+function enableAutoMerge(pull: string) {
+  try {
+    runGh("pr", "merge", pull, "--auto", "--squash");
+  } catch (error) {
+    // GitHub refuses auto-merge on a PR that can merge right now.
+    if (!String(error).includes("clean status")) throw error;
+    runGh("pr", "merge", pull, "--squash");
+    return;
+  }
+  // Main may have moved during the review, after the last update run. Not
+  // fatal: the next push to main updates it again.
+  try {
+    updateBranch(pull);
+  } catch (error) {
+    console.error(`::warning::#${pull} could not be updated: ${error}`);
+  }
+}
+
+function updateBranch(pull: string) {
+  runGh("pr", "update-branch", pull);
+}
+
 // `protect main` requires up-to-date branches, and auto-merge won't update
 // them. A merge, not a rebase, so the reviewed commits keep their SHAs.
 async function update(repo: string, env: NodeJS.ProcessEnv) {
@@ -504,7 +534,7 @@ async function update(repo: string, env: NodeJS.ProcessEnv) {
     console.log(`Updating #${pull} from main.`);
     if (env.DRY_RUN) continue;
     try {
-      runGh("pr", "update-branch", String(pull));
+      updateBranch(String(pull));
     } catch (error) {
       failed = true;
       console.error(`::error::#${pull} could not be updated: ${error}`);

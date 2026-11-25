@@ -80,9 +80,9 @@ name: Agent — Review A Pull Request
 #     commits, posts its verdict and inline comments, and turns on a step's
 #     auto-merge, so it needs Contents and Pull requests: write. The merge
 #     must be by this token: one by GITHUB_TOKEN fires no `issues: closed`,
-#     and expand-contract-start.yml would not start the next step. Keeping it out of the agent's
-#     environment is tidiness, not a wall: the agent shares the machine with
-#     the steps that push and post. The real defence is who can reach the
+#     and expand-contract-start.yml would not start the next step. Keeping
+#     it out of the agent's environment is tidiness, not a wall: the agent
+#     shares the machine with the steps that push and post. The real defence is who can reach the
 #     agent — same-repo PRs only, and a label only a collaborator can apply.
 #   secrets.NEON_API_KEY, vars.NEON_PROJECT_ID and
 #     secrets.PROD_READONLY_DATABASE_URL — restore-bug-report-snapshots restores each Bug
@@ -433,12 +433,8 @@ jobs:
           persist-credentials: false
 
       - name: Act on the merge call
-        # Only for a PR that closes an `expand-contract` issue; any other PR
-        # gets nothing from this step. See expand-contract.ts `merge`.
         if: steps.ready.outputs.ready == 'true' && steps.push.outputs.fallback != 'true'
         env:
-          # FACTORY_PAT, not GITHUB_TOKEN: a merge by the built-in token fires
-          # no `issues: closed`, so the next step would never start.
           GH_TOKEN: ${{ secrets.FACTORY_PAT }}
           PULL: ${{ inputs.pr || github.event.pull_request.number }}
           MERGE_FILE: ${{ runner.temp }}/review-merge.json

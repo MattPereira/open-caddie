@@ -19,26 +19,27 @@ Classify the change against [Breaking statements](#breaking-statements) before f
 
 - Additive: one issue.
 - A rename only the code needs: a TS-only rename (`newName: text("old_name")`), one issue.
-- Otherwise: a **chain**. File the whole chain now; implementing a step files nothing. The steps are expand, switch, contract for a rename or type change ([EXPAND-CONTRACT.md](EXPAND-CONTRACT.md)), or the two steps its row of [Breaking statements](#breaking-statements) names. #95 is the worked example.
+- Otherwise: a **chain**. Planning files every step of it. The steps are expand, switch, contract for a rename or type change ([EXPAND-CONTRACT.md](EXPAND-CONTRACT.md)), or the two steps its row of [Breaking statements](#breaking-statements) names. #95 is the worked example.
 
-Write expand (the first step) concretely. Write each later step at the level of **intent**: what it drops or removes, and its done-when checks, never file or function names, since the earlier step's code does not exist yet. File the parent, then each step in order, each blocked by the one before:
+Write the first step (expand, or a two-step chain's code change) concretely. Write each later step at the level of **intent**: what it drops or removes, and its done-when checks, in terms of behaviour and schema, since the earlier step's code does not exist yet. File the parent, then each step in order, each blocked by the one before:
 
 ```sh
-num() { gh issue create "$@" | sed 's|.*/||'; }
-parent=$(num --title "<the change>" --body "<the change and its chain>")
-expand=$(num --parent "$parent" --label expand-contract \
+set -eo pipefail
+issue_number() { gh issue create "$@" | sed 's|.*/||'; }
+parent=$(issue_number --title "<the change>" --body "<the change and its chain>")
+expand=$(issue_number --parent "$parent" --label expand-contract \
   --title "Expand: <...>" --body "<expand>")
-switch=$(num --parent "$parent" --blocked-by "$expand" --label expand-contract \
+switch=$(issue_number --parent "$parent" --blocked-by "$expand" --label expand-contract \
   --title "Switch: <...>" --body "Merge once the production deploy of #$expand succeeded.
 
 <switch, as intent>")
-contract=$(num --parent "$parent" --blocked-by "$switch" --label expand-contract \
+contract=$(issue_number --parent "$parent" --blocked-by "$switch" --label expand-contract \
   --title "Contract: <...>" --body "Merge once the production deploy of #$switch succeeded.
 
 <contract, as intent>")
 ```
 
-A two-step chain drops `switch` and titles its steps for what they do. Every step after the first opens its body with that `Merge once` line. `expand-contract-start.yml` starts a step once the PRs closing its blockers merge, and `expand-contract-gate.yml` holds its PR until those PRs are in production.
+A two-step chain drops `switch`, blocks its second step on `$expand`, and titles its steps for what they do. `expand-contract-start.yml` starts a step once the PRs closing its blockers merge, and `expand-contract-gate.yml` holds its PR until those PRs are in production.
 
 Show the human the filed chain: the parent and every step, with its blocker. Once they confirm it, start the chain: `gh issue edit <first step> --add-label agent:implement`.
 
@@ -46,7 +47,7 @@ Done when every step is filed under the parent with its blocker and `expand-cont
 
 ## Implementing a step
 
-The issue is the step's whole scope. When it turns out wrong (the step needs more, or a later step's intent no longer fits), say so in the PR body for the reviewer to flag.
+The issue is the step's whole scope. When it turns out wrong (the step needs more, or a later step's intent no longer fits), say so in the PR body's Summary (`pr` skill) for the reviewer to flag.
 
 1. Edit `src/db/schema.ts`.
 2. `pnpm db:generate`, then classify every statement in the new SQL against [Breaking statements](#breaking-statements). A step of a rename or type change: follow [EXPAND-CONTRACT.md](EXPAND-CONTRACT.md) from here.
@@ -64,10 +65,10 @@ CI's `pnpm db:check-breaking` runs [squawk](https://squawkhq.com) on migrations 
 
 | Statement (squawk rule) | Why live code breaks | Ship it as |
 | --- | --- | --- |
-| `DROP COLUMN`, `DROP TABLE`, `DROP VIEW` (`ban-drop-*`) | Live code selects every column its `schema.ts` lists (`db.select().from(table)`, the Auth.js adapter). | Remove it from `schema.ts` and the code, replace the generated `DROP` with `SELECT 1;`, and drop it in the next step with a custom `DROP ... IF EXISTS`. |
+| `DROP COLUMN`, `DROP TABLE`, `DROP VIEW` (`ban-drop-*`) | Live code selects every column its `schema.ts` lists (`db.select().from(table)`, the Auth.js adapter). | Remove it from `schema.ts` and the code, replace the generated `DROP` with `SELECT 1;`, and drop it in the chain's next step with a custom `DROP ... IF EXISTS`. |
 | `RENAME` (`renaming-column`, `renaming-object`) | Live code uses the old name. | Rename in TypeScript only (`newName: text("old_name")`, which generates nothing), or [expand/contract](EXPAND-CONTRACT.md) to rename the column itself. |
 | `ALTER COLUMN ... TYPE` (`changing-column-type`) | Live code reads and writes the old type. | [Expand/contract](EXPAND-CONTRACT.md). |
-| `SET NOT NULL`, `DROP DEFAULT` (`adding-not-nullable-field`, `ban-drop-default`) | Live code inserts rows without the column. | Ship code that always writes the column (and backfill nulls), then the constraint in the next step. |
+| `SET NOT NULL`, `DROP DEFAULT` (`adding-not-nullable-field`, `ban-drop-default`) | Live code inserts rows without the column. | Ship code that always writes the column (and backfill nulls), then the constraint in the chain's next step. |
 
 New tables, new nullable or defaulted columns, new indexes and `DROP NOT NULL` ship in one PR. `db:generate` asking whether a column was renamed means it is about to emit a `RENAME`.
 

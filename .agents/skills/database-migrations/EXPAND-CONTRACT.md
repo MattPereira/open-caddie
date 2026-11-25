@@ -6,7 +6,7 @@ For a column rename or type change the live code can't survive. Three PRs, each 
 2. **Switch.** Re-run the backfill as a new custom migration first: it catches rows the pre-expand code wrote during expand's rollout. Reads move to the new column, and the TypeScript rename of keys and callers lands here. The old column leaves `schema.ts` and the code as the drop row of [Breaking statements](SKILL.md#breaking-statements) says.
 3. **Contract.** That row's drop, under its `deploy-safe` reason and `squawk-ignore ban-drop-column`. Remaining transition code (claim fallbacks) goes too.
 
-Each step is done when [Implementing a step](SKILL.md#implementing-a-step) passes for it, including step 4 against the previous step's code.
+Each step is done when [Implementing a step](SKILL.md#implementing-a-step) passes for it, including its live-code check (4) against the previous step's code.
 
 ## Rules
 

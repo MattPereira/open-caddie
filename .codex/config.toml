@@ -6,29 +6,14 @@ approvals_reviewer = "auto_review"
 network_access = true
 
 [mcp_servers.shadcn]
-command = "npx"
-args = ["shadcn@latest", "mcp"]
-
-[mcp_servers.shadcn.tools.list_items_in_registries]
-approval_mode = "approve"
-
-[mcp_servers.shadcn.tools.search_items_in_registries]
-approval_mode = "approve"
-
-[mcp_servers.shadcn.tools.view_items_in_registries]
-approval_mode = "approve"
-
-[mcp_servers.shadcn.tools.get_add_command_for_items]
-approval_mode = "approve"
-
-[mcp_servers.shadcn.tools.get_audit_checklist]
-approval_mode = "approve"
+command = "pnpm"
+args = ["exec", "shadcn", "mcp"]
+default_tools_approval_mode = "approve"
 
 [mcp_servers.vercel]
 url = "https://mcp.vercel.com"
 
 [mcp_servers.Neon]
-type = "http"
 url = "https://mcp.neon.tech/mcp"
 
 [plugins."vercel@openai-curated"]

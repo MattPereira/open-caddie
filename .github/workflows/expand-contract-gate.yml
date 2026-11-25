@@ -11,8 +11,10 @@ name: Expand/Contract — Merge Gate
 # WHAT TRIGGERS IT
 #   A pull request opening, pushing, reopening or having its body edited (the
 #   body's `Closes #n` decides whether it is gated). And a successful
-#   `Production` deploy, reported by Vercel's GitHub integration, which
-#   re-checks every open PR that closes an `expand-contract` issue.
+#   `Production` deploy, reported by Vercel's GitHub integration, or the
+#   `expand-contract` label going on an issue: both re-check every open PR that
+#   closes an `expand-contract` issue. Adding a blocked-by edge fires nothing;
+#   push to the PR to re-check it.
 #
 # WHAT IT DOES
 #   .github/scripts/expand-contract.ts gate. Posts the `Previous step deployed`
@@ -26,8 +28,13 @@ name: Expand/Contract — Merge Gate
 #   let the next step merge.
 #
 #   The production commit is the newest `Production` GitHub deployment whose
-#   latest status is success. A Vercel instant rollback records no deployment,
-#   so after rolling a step back, hold the next step's merge yourself.
+#   latest status is success, looked up on every run because deploy events can
+#   arrive out of order. A Vercel instant rollback records no deployment, so
+#   after rolling a step back, hold the next step's merge yourself.
+#
+#   A PR run that read the production commit just before a deploy can post
+#   `pending` over the deploy run's `success`. That errs safe; push or re-run
+#   the job to clear it.
 #
 #   `pull_request_target`, not `pull_request`: it runs main's script, so a PR
 #   cannot edit the gate to pass itself. It checks out no PR code.
@@ -44,6 +51,8 @@ on:
   pull_request_target:
     types: [opened, synchronize, reopened, edited]
   deployment_status:
+  issues:
+    types: [labeled]
 
 permissions:
   contents: read # the checkout and the compare API
@@ -54,11 +63,15 @@ permissions:
 
 jobs:
   gate:
-    if: github.event_name == 'pull_request_target' || (github.event.deployment.environment == 'Production' && github.event.deployment_status.state == 'success')
+    if: >-
+      github.event_name == 'pull_request_target' ||
+      (github.event_name == 'issues' && github.event.label.name == 'expand-contract') ||
+      (github.event.deployment.environment == 'Production' && github.event.deployment_status.state == 'success')
     # Per PR, so a slow older run cannot overwrite a newer run's status. On the
     # job, not the workflow: preview deploy statuses would join the group.
+    # Re-scans share one group; the newest pending one is the one that counts.
     concurrency:
-      group: expand-contract-gate-${{ github.event.pull_request.number || 'deploy' }}
+      group: expand-contract-gate-${{ github.event.pull_request.number || 'rescan' }}
       cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -81,6 +94,5 @@ jobs:
           GH_REPO: ${{ github.repository }}
           PULL: ${{ github.event.pull_request.number }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PROD_SHA: ${{ github.event.deployment.sha }}
           RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: node .github/scripts/expand-contract.ts gate

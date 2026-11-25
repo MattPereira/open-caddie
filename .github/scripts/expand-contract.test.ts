@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { type GitHub, gateStatus, stepsToStart } from "./expand-contract";
 
 const expandIssue = 265;
-const switchStep = { number: 260, blockers: [{ number: 265, closed: true }] };
+const switchStep = {
+  number: 260,
+  blockers: [{ number: expandIssue, closed: true }],
+};
 const expandPull = { number: 261, mergeCommit: "expand-merge" };
 
 function fakeGitHub(overrides: Partial<GitHub> = {}): GitHub {
@@ -10,7 +13,8 @@ function fakeGitHub(overrides: Partial<GitHub> = {}): GitHub {
     stepsBlockedBy: async (issue) =>
       issue === expandIssue ? [switchStep] : [],
     stepsClosedBy: async () => [],
-    mergedClosingPulls: async (issue) => (issue === 265 ? [expandPull] : []),
+    mergedClosingPulls: async (issue) =>
+      issue === expandIssue ? [expandPull] : [],
     isAncestor: async () => false,
     ...overrides,
   };

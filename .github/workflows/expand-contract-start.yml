@@ -37,11 +37,10 @@ permissions:
 
 jobs:
   start:
-    # A merge closing two of one step's blockers fires two runs. One at a time,
-    # the second sees the first's start comment and skips the step.
-    concurrency:
-      group: expand-contract-start
-      cancel-in-progress: false
+    # No concurrency group: a group keeps one pending run and cancels the rest,
+    # so a burst of closes would lose starts. The start comment stops a second
+    # run from starting the same step, except two closes of one step's
+    # blockers at the same moment, which can open two draft PRs.
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

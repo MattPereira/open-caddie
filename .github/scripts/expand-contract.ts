@@ -15,7 +15,6 @@ export interface MergedPull {
 export interface GitHub {
   /** Open `expand-contract` issues blocked by `issue`. */
   stepsBlockedBy(issue: number): Promise<Step[]>;
-  /** `expand-contract` issues `pull` closes. */
   stepsClosedBy(pull: number): Promise<Step[]>;
   mergedClosingPulls(issue: number): Promise<MergedPull[]>;
   isAncestor(commit: string, of: string): Promise<boolean>;
@@ -27,7 +26,7 @@ export async function stepsToStart(
 ): Promise<number[]> {
   const starts: number[] = [];
   for (const step of await gh.stepsBlockedBy(closedIssue)) {
-    if (await allMerged(step, gh)) starts.push(step.number);
+    if (await blockersAllMerged(step, gh)) starts.push(step.number);
   }
   return starts;
 }
@@ -50,12 +49,12 @@ export async function gateStatus(
   for (const step of steps) {
     for (const blocker of step.blockers) {
       const pulls = await gh.mergedClosingPulls(blocker.number);
-      const named =
+      const blockerLabel =
         pulls.length === 0
           ? `a merged PR closing #${blocker.number}`
           : `${pulls.map((p) => `#${p.number}`).join(", ")} (closes #${blocker.number})`;
-      const inProd = await someInProd(pulls, prodSha, gh);
-      (inProd ? deployed : waiting).push(named);
+      const inProd = await anyPullInProd(pulls, prodSha, gh);
+      (inProd ? deployed : waiting).push(blockerLabel);
     }
   }
   if (waiting.length === 0 && deployed.length === 0)
@@ -71,9 +70,7 @@ export async function gateStatus(
   };
 }
 
-// Ancestry, not "a deploy succeeded": promoting an older deployment must not
-// let the next step merge.
-async function someInProd(
+async function anyPullInProd(
   pulls: MergedPull[],
   prodSha: string | undefined,
   gh: GitHub,
@@ -86,7 +83,7 @@ async function someInProd(
 }
 
 // Closed as "not planned" starts nothing: the gate could never pass.
-async function allMerged(step: Step, gh: GitHub): Promise<boolean> {
+async function blockersAllMerged(step: Step, gh: GitHub): Promise<boolean> {
   for (const blocker of step.blockers) {
     if (!blocker.closed) return false;
     if ((await gh.mergedClosingPulls(blocker.number)).length === 0)
@@ -230,8 +227,11 @@ function cliGitHub(repo: string): GitHub {
   };
 }
 
-// The commit of the newest Production deployment whose latest status is
-// success. Blind to a Vercel instant rollback, which records no deployment.
+interface PullHead {
+  number: number;
+  headSha: string;
+}
+
 function prodSha(repo: string): string | undefined {
   const deployments = JSON.parse(
     runGh(
@@ -251,8 +251,7 @@ function prodSha(repo: string): string | undefined {
   return undefined;
 }
 
-// Open PRs that close an open `expand-contract` issue.
-function gatedPulls(repo: string): { number: number; headSha: string }[] {
+function openPullsClosingSteps(repo: string): PullHead[] {
   const [owner, name] = repo.split("/");
   const data = graphql<{
     repository: {
@@ -292,8 +291,8 @@ function gatedPulls(repo: string): { number: number; headSha: string }[] {
 
 const STARTED = "<!-- expand-contract:started -->";
 
-// The workflow's concurrency group runs one close at a time, so a second
-// close sees the first one's comment.
+// A step with two blockers is reached from each one's close. Not atomic: two
+// closes at the same moment can both start it (expand-contract-start.yml).
 function alreadyStarted(issue: number): boolean {
   const bodies = runGh(
     "issue",
@@ -331,10 +330,16 @@ async function start(repo: string, env: NodeJS.ProcessEnv) {
 }
 
 async function gate(repo: string, env: NodeJS.ProcessEnv) {
-  const sha = env.PROD_SHA || prodSha(repo);
+  // Looked up even on a deploy event: deploy events can arrive out of order.
+  const sha = prodSha(repo);
   const pulls = env.PULL
-    ? [{ number: Number(env.PULL), headSha: env.HEAD_SHA ?? "" }]
-    : gatedPulls(repo);
+    ? [
+        {
+          number: Number(env.PULL),
+          headSha: required(env.HEAD_SHA, "HEAD_SHA"),
+        },
+      ]
+    : openPullsClosingSteps(repo);
   const gh = cliGitHub(repo);
   for (const pull of pulls) {
     const status = await gateStatus(pull.number, sha, gh);
@@ -354,6 +359,11 @@ async function gate(repo: string, env: NodeJS.ProcessEnv) {
       `target_url=${env.RUN_URL}`,
     );
   }
+}
+
+function required(value: string | undefined, name: string): string {
+  if (!value) throw new Error(`${name} is required.`);
+  return value;
 }
 
 async function main() {

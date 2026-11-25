@@ -25,7 +25,7 @@ export type PlayerCreateInput = {
   lastName: string;
   username: string;
   image: string;
-  isAdmin: boolean;
+  isPlatformAdmin: boolean;
 };
 
 export type PlayerUpdateInput = PlayerCreateInput & { id: string };
@@ -50,11 +50,7 @@ export async function createPlayer(
   try {
     [{ id }] = await db
       .insert(users)
-      .values({
-        ...fields,
-        isAdmin: values.isAdmin,
-        isPlatformAdmin: values.isAdmin,
-      })
+      .values({ ...fields, isPlatformAdmin: values.isPlatformAdmin })
       .returning({ id: users.id });
   } catch (e) {
     if (pgCode(e) === "23505") return { ok: false, error: IN_USE };
@@ -82,7 +78,7 @@ export async function createFirstPlatformAdmin(
     ...values,
     username: "",
     image: "",
-    isAdmin: true,
+    isPlatformAdmin: true,
   });
   const refused = await refuseIfTaken(fields);
   if (refused) return refused;
@@ -94,12 +90,12 @@ export async function createFirstPlatformAdmin(
     const [existing] = await tx
       .select({ id: users.id })
       .from(users)
-      .where(eq(users.isAdmin, true))
+      .where(eq(users.isPlatformAdmin, true))
       .limit(1);
     if (existing) return null;
     const [{ id }] = await tx
       .insert(users)
-      .values({ ...fields, isAdmin: true, isPlatformAdmin: true })
+      .values({ ...fields, isPlatformAdmin: true })
       .returning({ id: users.id });
     return id;
   });
@@ -142,7 +138,7 @@ export async function updatePlayer(
       .set({
         ...fields,
         ...(canManagePlayers
-          ? { isAdmin: values.isAdmin, isPlatformAdmin: values.isAdmin }
+          ? { isPlatformAdmin: values.isPlatformAdmin }
           : {}),
         ...(emailChanged ? { emailVerified: null } : {}),
       })

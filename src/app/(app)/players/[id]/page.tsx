@@ -44,7 +44,7 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
     getPlayerRoundsById(player.id),
   ]);
   const name = displayName(player);
-  const canManagePlayers = currentPlayer?.isAdmin ?? false;
+  const canManagePlayers = currentPlayer?.isPlatformAdmin ?? false;
   const canEdit = canManagePlayers || currentPlayer?.id === player.id;
 
   return (

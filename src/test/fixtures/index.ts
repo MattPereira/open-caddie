@@ -70,7 +70,7 @@ export type FixturePlayer = {
   email: string;
   firstName: string;
   lastName: string;
-  isAdmin: boolean;
+  isPlatformAdmin: boolean;
 };
 export type FixtureRound = {
   id: number;
@@ -129,7 +129,7 @@ export function createFixtures() {
   }
 
   async function player({
-    isAdmin = false,
+    isPlatformAdmin = false,
     firstName = "Player",
     lastName = crypto.randomUUID(),
   } = {}): Promise<FixturePlayer> {
@@ -139,7 +139,7 @@ export function createFixtures() {
       lastName,
       username: "",
       image: "",
-      isAdmin,
+      isPlatformAdmin,
     };
     const created = ok(await createPlayer(await admin(), values), "player");
     return {
@@ -147,7 +147,7 @@ export function createFixtures() {
       email: created.email,
       firstName: values.firstName,
       lastName: values.lastName,
-      isAdmin,
+      isPlatformAdmin,
     };
   }
 

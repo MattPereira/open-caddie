@@ -29,8 +29,8 @@ export async function hasPlayerWithEmail(email: string): Promise<boolean> {
 }
 
 // The one place the session becomes a Player (ADR 0007). Reads only the
-// session token, so `isAdmin` and names may be stale; use getCurrentPlayer for
-// the stored row.
+// session token, so `isPlatformAdmin` and names may be stale; use
+// getCurrentPlayer for the stored row.
 export const getSignedInPlayer = cache(async () => {
   const session = await auth();
   return session?.user?.id ? session.user : null;
@@ -131,7 +131,7 @@ export const getAllPlayers = cache(async () => {
       lastName: users.lastName,
       username: users.username,
       image: users.image,
-      isAdmin: users.isAdmin,
+      isPlatformAdmin: users.isPlatformAdmin,
       roundsCount: sql<number>`coalesce("rc"."value", 0)`.mapWith(Number),
       greeniesCount: sql<number>`coalesce("gc"."value", 0)`.mapWith(Number),
     })

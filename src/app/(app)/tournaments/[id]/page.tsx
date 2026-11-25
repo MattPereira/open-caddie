@@ -75,7 +75,7 @@ export default async function TournamentPage({ params }: TournamentPageProps) {
             <h1 className="text-2xl font-semibold tracking-normal">
               Tournament
             </h1>
-            {currentPlayer?.isAdmin ? (
+            {currentPlayer?.isPlatformAdmin ? (
               <EditTournamentLink href={`/tournaments/${tournament.id}/edit`} />
             ) : null}
           </div>

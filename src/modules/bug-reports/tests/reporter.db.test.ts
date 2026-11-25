@@ -15,7 +15,7 @@ describe("who may file Bug Reports", () => {
   });
 
   it("lets a stored Platform Admin report", async () => {
-    const admin = await fixtures.player({ isAdmin: true });
+    const admin = await fixtures.player({ isPlatformAdmin: true });
 
     expect(await isBugReporter(admin.id)).toBe(true);
   });
@@ -28,7 +28,7 @@ describe("who may file Bug Reports", () => {
     },
     { when: "not in production", env: { VERCEL_ENV: "preview" } },
   ])("refuses a Platform Admin when $when", async ({ env }) => {
-    const admin = await fixtures.player({ isAdmin: true });
+    const admin = await fixtures.player({ isPlatformAdmin: true });
     for (const [name, value] of Object.entries(env)) vi.stubEnv(name, value);
 
     expect(await isBugReporter(admin.id)).toBe(false);

@@ -15,7 +15,7 @@ type ClubMember = {
   lastName: string | null;
   username: string | null;
   image: string | null;
-  isAdmin: boolean;
+  isPlatformAdmin: boolean;
   roundsCount: number;
   greeniesCount: number;
 };

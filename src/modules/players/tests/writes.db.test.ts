@@ -18,7 +18,7 @@ type Editable = {
   lastName: string | null;
   username?: string | null;
   image?: string | null;
-  isAdmin: boolean;
+  isPlatformAdmin: boolean;
 };
 
 describe("Player writes", () => {
@@ -33,7 +33,7 @@ describe("Player writes", () => {
       lastName: "Lee",
       username: "",
       image: "",
-      isAdmin: false,
+      isPlatformAdmin: false,
       ...overrides,
     };
   }
@@ -49,7 +49,7 @@ describe("Player writes", () => {
       lastName: target.lastName ?? "",
       username: target.username ?? "",
       image: target.image ?? "",
-      isAdmin: target.isAdmin,
+      isPlatformAdmin: target.isPlatformAdmin,
       ...overrides,
     };
   }
@@ -75,7 +75,7 @@ describe("Player writes", () => {
   }
 
   beforeEach(async () => {
-    admin = await fixtures.player({ isAdmin: true });
+    admin = await fixtures.player({ isPlatformAdmin: true });
     player = await fixtures.player();
     del.mockReset();
   });
@@ -126,7 +126,7 @@ describe("Player writes", () => {
           firstName: " Ann ",
           lastName: "  ",
           username: "  ",
-          isAdmin: true,
+          isPlatformAdmin: true,
         }),
       );
 
@@ -141,7 +141,7 @@ describe("Player writes", () => {
         lastName: null,
         username: null,
         image: null,
-        isAdmin: true,
+        isPlatformAdmin: true,
         name: "Ann",
       });
       expect(refreshed()).toEqual(["/players"]);
@@ -159,7 +159,7 @@ describe("Player writes", () => {
         name: "Ann Lee",
         username: "ann-lee",
         image: `${BLOB}/a.png`,
-        isAdmin: false,
+        isPlatformAdmin: false,
       });
     });
 
@@ -230,24 +230,27 @@ describe("Player writes", () => {
     it("ignores a non-admin's Platform Admin value", async () => {
       const result = await players.updatePlayer(
         player.id,
-        editOf(player, { isAdmin: true }),
+        editOf(player, { isPlatformAdmin: true }),
       );
       expect(result).toEqual({ ok: true });
-      expect((await stored(player.id)).isAdmin).toBe(false);
+      expect((await stored(player.id)).isPlatformAdmin).toBe(false);
     });
 
     it("lets a Platform Admin edit anyone and grant or remove Platform Admin", async () => {
       expect(
-        await players.updatePlayer(admin.id, editOf(player, { isAdmin: true })),
+        await players.updatePlayer(
+          admin.id,
+          editOf(player, { isPlatformAdmin: true }),
+        ),
       ).toEqual({ ok: true });
-      expect((await stored(player.id)).isAdmin).toBe(true);
+      expect((await stored(player.id)).isPlatformAdmin).toBe(true);
       expect(
         await players.updatePlayer(
           admin.id,
-          editOf(player, { isAdmin: false }),
+          editOf(player, { isPlatformAdmin: false }),
         ),
       ).toEqual({ ok: true });
-      expect((await stored(player.id)).isAdmin).toBe(false);
+      expect((await stored(player.id)).isPlatformAdmin).toBe(false);
     });
 
     it("clears email verification only when the email changes", async () => {

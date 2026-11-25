@@ -14,7 +14,9 @@ const { getAllPlayers } = await import("@/modules/players/server");
 // A copy of prod (a Bug Report snapshot, `pnpm db:copy-prod`) has Platform
 // Admins with real addresses the agent has no reason to know.
 async function platformAdminEmail() {
-  const admin = (await getAllPlayers()).find((p) => p.isAdmin && p.email);
+  const admin = (await getAllPlayers()).find(
+    (p) => p.isPlatformAdmin && p.email,
+  );
   if (!admin?.email) throw new Error("No Platform Admin has an email.");
   return admin.email;
 }

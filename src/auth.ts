@@ -5,6 +5,7 @@ import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { accounts, sessions, users, verificationTokens } from "@/db/schema";
+import { platformAdminClaim } from "@/modules/players";
 
 export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
   adapter: DrizzleAdapter(db, {
@@ -46,11 +47,9 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
         token.username = user.username ?? null;
         token.firstName = user.firstName ?? null;
         token.lastName = user.lastName ?? null;
-        token.isAdmin = user.isAdmin ?? false;
-        // Expand of #95: written now so the switch can read it; tokens minted
-        // before this deploy lack it until the switch backfills from isAdmin.
         token.isPlatformAdmin = user.isPlatformAdmin ?? false;
       }
+      token.isPlatformAdmin = platformAdminClaim(token);
       if (trigger === "update" && session?.user) {
         if (session.user.username !== undefined)
           token.username = session.user.username;
@@ -68,7 +67,7 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
         session.user.username = token.username as string | null;
         session.user.firstName = token.firstName as string | null;
         session.user.lastName = token.lastName as string | null;
-        session.user.isAdmin = token.isAdmin as boolean;
+        session.user.isPlatformAdmin = token.isPlatformAdmin === true;
       }
       return session;
     },

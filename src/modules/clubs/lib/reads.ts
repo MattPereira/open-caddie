@@ -128,7 +128,7 @@ export const getClubMembersByHandle = cache(async (handle: string) => {
       lastName: users.lastName,
       username: users.username,
       image: users.image,
-      isAdmin: users.isAdmin,
+      isPlatformAdmin: users.isPlatformAdmin,
       roundsCount: sql<number>`coalesce("rc"."value", 0)`.mapWith(Number),
       greeniesCount: sql<number>`coalesce("gc"."value", 0)`.mapWith(Number),
     })

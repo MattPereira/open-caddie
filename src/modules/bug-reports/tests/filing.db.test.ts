@@ -48,7 +48,7 @@ describe("filing a Bug Report", () => {
     );
     adminId = (
       await fixtures.player({
-        isAdmin: true,
+        isPlatformAdmin: true,
         firstName: "Ada",
         lastName: "Lovelace",
       })

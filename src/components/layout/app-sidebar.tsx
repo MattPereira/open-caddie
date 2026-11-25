@@ -47,7 +47,7 @@ type SidebarPlayer = {
   name: string;
   email: string;
   image?: string | null;
-  isAdmin: boolean;
+  isPlatformAdmin: boolean;
   id: string;
 };
 

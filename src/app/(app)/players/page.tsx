@@ -28,7 +28,7 @@ export default async function PlayersPage() {
         >
           Players
         </PageHeading>
-        {currentPlayer?.isAdmin ? (
+        {currentPlayer?.isPlatformAdmin ? (
           <div className="ml-auto">
             <AddPlayerButton />
           </div>

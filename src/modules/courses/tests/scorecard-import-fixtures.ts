@@ -93,7 +93,7 @@ export async function importedCourse(
 /** Two Platform Admins and a unique tag, fresh before each test. */
 export function importActors(fixtures: {
   admin: () => Promise<string>;
-  player: (options: { isAdmin: boolean }) => Promise<{ id: string }>;
+  player: (options: { isPlatformAdmin: boolean }) => Promise<{ id: string }>;
 }) {
   const actors = { actorId: "", secondActorId: "", tag: "" };
   beforeEach(async () => {
@@ -101,7 +101,9 @@ export function importActors(fixtures: {
     // own staged images apart by the tag.
     actors.tag = crypto.randomUUID();
     actors.actorId = await fixtures.admin();
-    actors.secondActorId = (await fixtures.player({ isAdmin: true })).id;
+    actors.secondActorId = (
+      await fixtures.player({ isPlatformAdmin: true })
+    ).id;
   });
   return actors;
 }

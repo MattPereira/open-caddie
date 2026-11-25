@@ -48,8 +48,6 @@ export const users = pgTable("user", {
   username: text("username").unique(),
   firstName: text("firstName"),
   lastName: text("lastName"),
-  isAdmin: boolean("isAdmin").notNull().default(false),
-  // Expand of #95: written alongside isAdmin, read once the switch ships.
   isPlatformAdmin: boolean("isPlatformAdmin").notNull().default(false),
 });
 

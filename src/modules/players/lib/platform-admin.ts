@@ -6,11 +6,11 @@ import { users } from "@/db/schema";
 /** Reads the stored row, not the session. False for an unknown Player. */
 export async function isPlatformAdmin(playerId: string): Promise<boolean> {
   const [player] = await db
-    .select({ isAdmin: users.isAdmin })
+    .select({ isPlatformAdmin: users.isPlatformAdmin })
     .from(users)
     .where(eq(users.id, playerId))
     .limit(1);
-  return player?.isAdmin === true;
+  return player?.isPlatformAdmin === true;
 }
 
 /** Platform Admin check for write modules; refuses with `error` instead of throwing. */

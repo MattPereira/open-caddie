@@ -200,7 +200,7 @@ describe("Round writes", () => {
     it("lets an admin delete someone else's Round", async () => {
       const t = await fixtures.tournament();
       const player = await fixtures.tournamentPlayer(t);
-      const admin = await fixtures.player({ isAdmin: true });
+      const admin = await fixtures.player({ isPlatformAdmin: true });
 
       expect(await rounds.deleteRound(admin.id, player.round.id)).toEqual({
         ok: true,

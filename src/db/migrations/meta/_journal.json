@@ -169,6 +169,20 @@
       "when": 1795559318002,
       "tag": "0023_backfill_is_platform_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795575633984,
+      "tag": "0024_backfill_is_platform_admin_again",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795575634681,
+      "tag": "0025_drop_is_admin",
+      "breakpoints": true
     }
   ]
 }

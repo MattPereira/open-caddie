@@ -37,7 +37,7 @@ export default async function Home() {
     currentPlayer ? getActiveRoundForPlayer(currentPlayer.id) : null,
     currentPlayer ? getCoursesWithTees() : [],
     currentPlayer ? getAllPlayers() : [],
-    currentPlayer?.isAdmin ? getAllClubsWithSeasons() : [],
+    currentPlayer?.isPlatformAdmin ? getAllClubsWithSeasons() : [],
   ]);
 
   const today = getLocalDateKey(new Date());
@@ -96,7 +96,7 @@ export default async function Home() {
           tournaments={recentTournaments}
           matches={recentMatches}
           tournamentAction={
-            currentPlayer?.isAdmin ? (
+            currentPlayer?.isPlatformAdmin ? (
               <AddTournamentButton
                 clubs={clubs}
                 courses={courses}

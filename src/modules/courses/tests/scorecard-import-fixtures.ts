@@ -64,7 +64,6 @@ export const imports = importsParsing({
   tees: [parsedTee("Blue", { color: "blue", rating: 71.2, slope: 128 })],
 });
 
-/** A course published by a Scorecard Import, the only write that sets a scorecard image. */
 export async function importedCourse(
   fixtures: Pick<Fixtures, "admin">,
   images: { scorecard: string; course?: string },

@@ -178,6 +178,17 @@ describe("Course writes", () => {
       expect(refreshed()).toEqual(coursePaths(input.handle));
     });
 
+    it("saves a supplied local scorecard image", async () => {
+      const input = {
+        ...createInput(),
+        scorecardImgUrl: "/seed/courses/pebble-beach-scorecard.svg",
+      };
+      expect((await courses.createCourse(admin.id, input)).ok).toBe(true);
+      expect((await stored(input.handle))?.scorecardImgUrl).toBe(
+        "/seed/courses/pebble-beach-scorecard.svg",
+      );
+    });
+
     it("stores a blank image as none", async () => {
       const input = createInput();
       await courses.createCourse(admin.id, input);

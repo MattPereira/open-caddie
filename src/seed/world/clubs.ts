@@ -5,6 +5,7 @@ import { strugglingCard } from "./cards";
 import type { SeededCourses } from "./courses";
 import { dateFromToday, seedTournament, type TournamentPlan } from "./events";
 import { ok } from "./ok";
+import { CLUB_IMAGES } from "./image-data";
 import type { PlayerIds, PlayerKey } from "./players";
 
 const POINT_RULES: PointRules = {
@@ -64,7 +65,7 @@ async function seedClub(
     await createClub(adminId, {
       handle: club.handle,
       name: club.name,
-      logo: "",
+      logo: CLUB_IMAGES[club.handle],
       pointRules: POINT_RULES,
     }),
     `club ${club.handle}`,

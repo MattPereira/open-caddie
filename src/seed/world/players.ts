@@ -2,6 +2,7 @@ import { required } from "@/lib/required";
 import { createPlayer } from "@/modules/players/server";
 
 import { ok } from "./ok";
+import { PLAYER_IMAGES } from "./image-data";
 
 type PlayerPlan = {
   firstName: string;
@@ -65,7 +66,7 @@ export async function seedPlayers(adminId: string): Promise<PlayerIds> {
         firstName: player.firstName,
         lastName: player.lastName,
         username: "",
-        image: "",
+        image: PLAYER_IMAGES[key],
         isAdmin: false,
       }),
       `player ${key}`,

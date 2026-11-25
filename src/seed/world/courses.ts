@@ -2,6 +2,7 @@ import { required } from "@/lib/required";
 import { createCourse, getCourseForEdit } from "@/modules/courses/server";
 
 import { ok } from "./ok";
+import { COURSE_IMAGES } from "./image-data";
 
 import { COURSE_PLANS, type CoursePlan } from "./course-data";
 
@@ -10,7 +11,8 @@ async function seedCourse(adminId: string, plan: CoursePlan) {
     await createCourse(adminId, {
       handle: plan.handle,
       name: plan.name,
-      imgUrl: "",
+      imgUrl: COURSE_IMAGES[plan.handle],
+      scorecardImgUrl: `/seed/courses/${plan.handle}-scorecard.svg`,
       tees: plan.tees.map((tee, sortOrder) => ({ ...tee, sortOrder })),
       holes: plan.pars.map((par, i) => ({
         hole: i + 1,

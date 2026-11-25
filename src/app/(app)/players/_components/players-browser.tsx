@@ -18,7 +18,7 @@ type Player = {
   lastName: string | null;
   username: string | null;
   image: string | null;
-  isAdmin: boolean;
+  isPlatformAdmin: boolean;
 };
 
 export function PlayersBrowser({ players }: { players: Player[] }) {

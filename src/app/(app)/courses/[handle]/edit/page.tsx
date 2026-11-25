@@ -29,7 +29,7 @@ export default async function EditCoursePage({ params }: EditCoursePageProps) {
     getCourseForEdit(handle),
   ]);
 
-  if (!player?.isAdmin) {
+  if (!player?.isPlatformAdmin) {
     redirect(`/courses/${handle}`);
   }
 

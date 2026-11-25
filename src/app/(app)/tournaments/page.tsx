@@ -22,7 +22,7 @@ export default async function TournamentsPage() {
     getCurrentPlayer(),
   ]);
 
-  const [clubs, courses] = currentPlayer?.isAdmin
+  const [clubs, courses] = currentPlayer?.isPlatformAdmin
     ? await Promise.all([getAllClubsWithSeasons(), getCoursesWithTees()])
     : [[], []];
 
@@ -35,7 +35,7 @@ export default async function TournamentsPage() {
         >
           Tournaments
         </PageHeading>
-        {currentPlayer?.isAdmin ? (
+        {currentPlayer?.isPlatformAdmin ? (
           <AddTournamentButton clubs={clubs} courses={courses} />
         ) : null}
       </div>

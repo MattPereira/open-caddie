@@ -41,7 +41,7 @@ export default async function EditTournamentPage({
 
   const tournament = await getTournamentById(tournamentId);
   if (!tournament) notFound();
-  if (!currentPlayer?.isAdmin) redirect(`/tournaments/${tournamentId}`);
+  if (!currentPlayer?.isPlatformAdmin) redirect(`/tournaments/${tournamentId}`);
 
   const [addablePlayers, clubs, courses, pairings, unassigned] =
     await Promise.all([

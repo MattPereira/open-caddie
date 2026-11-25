@@ -10,7 +10,7 @@ export const PlayerFormSchema = z.object({
     .max(50)
     .regex(/^[A-Za-z0-9-]*$/, "Letters, numbers, and hyphens only"),
   image: z.union([z.url("Must be a valid URL").max(2048), z.literal("")]),
-  isAdmin: z.boolean(),
+  isPlatformAdmin: z.boolean(),
 });
 
 export const PlayerCreateSchema = PlayerFormSchema;

@@ -29,7 +29,7 @@ export default async function ClubsPage() {
         >
           Clubs
         </PageHeading>
-        {currentPlayer?.isAdmin ? (
+        {currentPlayer?.isPlatformAdmin ? (
           <div className="ml-auto">
             <AddClubButton />
           </div>

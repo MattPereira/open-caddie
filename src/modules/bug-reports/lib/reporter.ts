@@ -19,7 +19,7 @@ export async function getBugReporter(
   // the repo owner reviewing them, so Platform Admins are trusted like
   // collaborators here. Do not widen sending beyond them without revisiting
   // that trust (see #218).
-  if (!player?.isAdmin) return null;
+  if (!player?.isPlatformAdmin) return null;
   return { id: player.id, name: displayName(player) };
 }
 

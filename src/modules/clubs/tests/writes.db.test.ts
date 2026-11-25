@@ -42,7 +42,7 @@ describe("Club writes", () => {
   }
 
   beforeEach(async () => {
-    admin = await fixtures.player({ isAdmin: true });
+    admin = await fixtures.player({ isPlatformAdmin: true });
     player = await fixtures.player();
     vi.mocked(revalidatePath).mockClear();
   });

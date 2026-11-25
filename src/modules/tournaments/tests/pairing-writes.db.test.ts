@@ -25,8 +25,8 @@ describe("Pairing writes", () => {
     return result.id;
   }
 
-  async function newPlayerId(isAdmin = false) {
-    return (await fixtures.player({ isAdmin })).id;
+  async function newPlayerId(isPlatformAdmin = false) {
+    return (await fixtures.player({ isPlatformAdmin })).id;
   }
 
   beforeEach(async () => {
@@ -45,20 +45,22 @@ describe("Pairing writes", () => {
   it("rejects every Pairing mutation from a non-admin", async () => {
     const { tournament } = await tournamentFixture();
     const pairingId = await createPairing(tournament.id);
-    const nonAdminId = await newPlayerId();
+    const nonPlatformAdminId = await newPlayerId();
 
     expect(
-      await tournaments.createPairing(nonAdminId, {
+      await tournaments.createPairing(nonPlatformAdminId, {
         tournamentId: tournament.id,
       }),
     ).toEqual({ ok: false, error: "Only admins can manage Pairings." });
     expect(
-      await tournaments.renamePairing(nonAdminId, {
+      await tournaments.renamePairing(nonPlatformAdminId, {
         pairingId,
         name: "Late tee",
       }),
     ).toEqual({ ok: false, error: "Only admins can manage Pairings." });
-    expect(await tournaments.deletePairing(nonAdminId, { pairingId })).toEqual({
+    expect(
+      await tournaments.deletePairing(nonPlatformAdminId, { pairingId }),
+    ).toEqual({
       ok: false,
       error: "Only admins can manage Pairings.",
     });
@@ -357,16 +359,16 @@ describe("Pairing writes", () => {
       pairingId,
       roundId: assigned.round.id,
     });
-    const nonAdminId = await newPlayerId();
+    const nonPlatformAdminId = await newPlayerId();
 
     expect(
-      await tournaments.assignRoundToPairing(nonAdminId, {
+      await tournaments.assignRoundToPairing(nonPlatformAdminId, {
         pairingId,
         roundId: unassigned.round.id,
       }),
     ).toEqual({ ok: false, error: "Only admins can manage Pairings." });
     expect(
-      await tournaments.removeRoundFromPairing(nonAdminId, {
+      await tournaments.removeRoundFromPairing(nonPlatformAdminId, {
         roundId: assigned.round.id,
       }),
     ).toEqual({ ok: false, error: "Only admins can manage Pairings." });

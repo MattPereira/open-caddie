@@ -71,7 +71,7 @@ describe("Course writes", () => {
   }
 
   beforeEach(async () => {
-    admin = await fixtures.player({ isAdmin: true });
+    admin = await fixtures.player({ isPlatformAdmin: true });
     player = await fixtures.player();
     del.mockReset();
   });

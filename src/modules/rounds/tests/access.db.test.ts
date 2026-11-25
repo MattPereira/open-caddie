@@ -44,7 +44,7 @@ describe("Round access", () => {
     const target = await fixtures.tournamentPlayer(t);
     const mate = await fixtures.tournamentPlayer(t);
     await fixtures.pairing(t.tournament.id, [target.round.id, mate.round.id]);
-    const admin = await fixtures.player({ isAdmin: true });
+    const admin = await fixtures.player({ isPlatformAdmin: true });
 
     expect(await accessOf(admin.id, target.round.id)).toEqual({
       canScore: true,
@@ -224,7 +224,7 @@ describe("Event Round access", () => {
     const t = await fixtures.tournament();
     const first = await fixtures.tournamentPlayer(t);
     const second = await fixtures.tournamentPlayer(t);
-    const admin = await fixtures.player({ isAdmin: true });
+    const admin = await fixtures.player({ isPlatformAdmin: true });
     const all = sorted([first.round.id, second.round.id]);
 
     expect(

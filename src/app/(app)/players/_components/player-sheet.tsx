@@ -40,7 +40,7 @@ export type EditablePlayer = {
   lastName: string | null;
   username: string | null;
   image: string | null;
-  isAdmin: boolean;
+  isPlatformAdmin: boolean;
 };
 
 type PlayerSheetProps = (
@@ -60,7 +60,7 @@ const emptyDefaults: PlayerFormValues = {
   lastName: "",
   username: "",
   image: "",
-  isAdmin: false,
+  isPlatformAdmin: false,
 };
 
 function toFormValues(player?: EditablePlayer): PlayerFormValues {
@@ -71,7 +71,7 @@ function toFormValues(player?: EditablePlayer): PlayerFormValues {
     lastName: player.lastName ?? "",
     username: player.username ?? "",
     image: player.image ?? "",
-    isAdmin: player.isAdmin,
+    isPlatformAdmin: player.isPlatformAdmin,
   };
 }
 
@@ -104,7 +104,7 @@ export function PlayerSheet({
   });
   const serverError = form.formState.errors.root?.server?.message;
   const isDirty = form.formState.isDirty;
-  const showAdminControls = mode === "create" || canManagePlayers;
+  const showPlatformAdminControls = mode === "create" || canManagePlayers;
   const showDelete = mode === "edit" && canManagePlayers;
   const playerImagePathSegment = player?.username?.trim() || player?.id;
 
@@ -298,10 +298,10 @@ export function PlayerSheet({
                   </p>
                 )}
 
-                {showAdminControls ? (
+                {showPlatformAdminControls ? (
                   <FormField
                     control={form.control}
-                    name="isAdmin"
+                    name="isPlatformAdmin"
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
                         <div className="space-y-0.5">

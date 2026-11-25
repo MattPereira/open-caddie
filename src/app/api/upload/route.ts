@@ -56,16 +56,16 @@ export async function POST(request: Request): Promise<NextResponse> {
           const storedActor = await getPlayerById(actor.id);
           const isSelf =
             actor.id === target.id || storedActor?.username === target.id;
-          if (!isSelf && !actor.isAdmin) {
+          if (!isSelf && !actor.isPlatformAdmin) {
             throw new Error("Forbidden");
           }
         } else if (target.kind === "course") {
-          if (!actor.isAdmin) {
+          if (!actor.isPlatformAdmin) {
             throw new Error("Forbidden");
           }
         } else if (target.kind === "round-scorecard") {
           const isSelf = actor.id === target.id;
-          if (!isSelf && !actor.isAdmin) {
+          if (!isSelf && !actor.isPlatformAdmin) {
             throw new Error("Forbidden");
           }
         }

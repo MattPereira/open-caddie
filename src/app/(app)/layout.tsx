@@ -58,19 +58,20 @@ type SidebarSourcePlayer = {
   username?: string | null;
   email?: string | null;
   image?: string | null;
-  isAdmin?: boolean | null;
+  isPlatformAdmin?: boolean | null;
   id?: string | null;
 };
 
 function getSidebarPlayer(player: SidebarSourcePlayer) {
-  const { firstName, lastName, username, email, image, isAdmin, id } = player;
+  const { firstName, lastName, username, email, image, isPlatformAdmin, id } =
+    player;
   const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
 
   return {
     name: fullName || username || email || "Account",
     email: email ?? "",
     image: image ?? null,
-    isAdmin: isAdmin ?? false,
+    isPlatformAdmin: isPlatformAdmin ?? false,
     id: id ?? "",
   };
 }

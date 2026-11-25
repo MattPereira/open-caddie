@@ -72,7 +72,9 @@ export default async function ClubPage({
           <h1 className="text-2xl font-semibold tracking-normal">
             {club.name}
           </h1>
-          {currentPlayer?.isAdmin ? <EditClubButton club={club} /> : null}
+          {currentPlayer?.isPlatformAdmin ? (
+            <EditClubButton club={club} />
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-6">

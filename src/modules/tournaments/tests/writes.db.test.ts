@@ -49,7 +49,7 @@ describe("Tournament Season mutations", () => {
   }
 
   beforeEach(async () => {
-    admin = await fixtures.player({ isAdmin: true });
+    admin = await fixtures.player({ isPlatformAdmin: true });
   });
 
   it("creates Season 1 for a Club's first Tournament", async () => {

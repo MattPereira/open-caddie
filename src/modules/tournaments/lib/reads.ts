@@ -164,7 +164,7 @@ export const getAddablePlayersForTournament = cache(
         lastName: users.lastName,
         username: users.username,
         image: users.image,
-        isAdmin: users.isAdmin,
+        isPlatformAdmin: users.isPlatformAdmin,
       })
       .from(users)
       .innerJoin(tournaments, eq(tournaments.id, tournamentId))

@@ -10,7 +10,7 @@ import { displayName, getInitials, type NamedPlayer } from "@/modules/players";
 
 export type PlayerCardPlayer = NamedPlayer & {
   image: string | null;
-  isAdmin?: boolean;
+  isPlatformAdmin?: boolean;
   roundsCount?: number;
   greeniesCount?: number;
 };
@@ -32,7 +32,7 @@ export function PlayerCard({
 
   const name = displayName(player);
   const stats: string[] = [];
-  if (player.isAdmin) stats.push("Admin");
+  if (player.isPlatformAdmin) stats.push("Admin");
   if (player.roundsCount != null) {
     stats.push(
       `${player.roundsCount} ${player.roundsCount === 1 ? "round" : "rounds"}`,
@@ -94,7 +94,7 @@ function CompactPlayerCard({
       </Avatar>
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <span className="truncate text-sm font-medium">{name}</span>
-        {player.isAdmin ? <Badge variant="outline">Admin</Badge> : null}
+        {player.isPlatformAdmin ? <Badge variant="outline">Admin</Badge> : null}
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ declare module "next-auth" {
       username: string | null;
       firstName: string | null;
       lastName: string | null;
-      isAdmin: boolean;
+      isPlatformAdmin: boolean;
     } & DefaultSession["user"];
   }
 
@@ -15,7 +15,6 @@ declare module "next-auth" {
     username?: string | null;
     firstName?: string | null;
     lastName?: string | null;
-    isAdmin?: boolean;
     isPlatformAdmin?: boolean;
   }
 }
@@ -26,7 +25,6 @@ declare module "next-auth/jwt" {
     username: string | null;
     firstName: string | null;
     lastName: string | null;
-    isAdmin: boolean;
     isPlatformAdmin?: boolean;
   }
 }

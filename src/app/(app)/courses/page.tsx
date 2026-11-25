@@ -32,7 +32,7 @@ export default async function CoursesPage() {
         >
           Courses
         </PageHeading>
-        {currentPlayer?.isAdmin ? (
+        {currentPlayer?.isPlatformAdmin ? (
           <div className="ml-auto">
             <Button
               asChild

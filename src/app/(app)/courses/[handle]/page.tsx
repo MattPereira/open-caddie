@@ -45,7 +45,9 @@ export default async function CoursePage({ params }: CoursePageProps) {
           <h1 className="text-xl font-semibold tracking-normal">
             {course.name}
           </h1>
-          {currentPlayer?.isAdmin ? <EditCourseButton course={course} /> : null}
+          {currentPlayer?.isPlatformAdmin ? (
+            <EditCourseButton course={course} />
+          ) : null}
         </div>
 
         <CourseHero courseName={course.name} courseImgUrl={course.imgUrl} />

@@ -22,7 +22,7 @@ export type AccessedRound = {
   matchId: number | null;
 };
 
-type Viewer = { id: string; isAdmin: boolean };
+type Viewer = { id: string; isPlatformAdmin: boolean };
 
 export type RoundManageFailure =
   | { ok: false; reason: "not_found"; error: string }
@@ -59,7 +59,7 @@ function decideAccess(
   sameGroup: { playerId: string }[],
   matchCreatorId: string | null,
 ) {
-  const canManage = round.playerId === viewer.id || viewer.isAdmin;
+  const canManage = round.playerId === viewer.id || viewer.isPlatformAdmin;
   const canScore =
     canManage ||
     matchCreatorId === viewer.id ||
@@ -172,7 +172,7 @@ export const getEventRoundAccess = cache(
 );
 
 async function readViewer(playerId: string): Promise<Viewer> {
-  return { id: playerId, isAdmin: await isPlatformAdmin(playerId) };
+  return { id: playerId, isPlatformAdmin: await isPlatformAdmin(playerId) };
 }
 
 type EventScoringGroups = {

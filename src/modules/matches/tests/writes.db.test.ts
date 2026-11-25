@@ -161,7 +161,7 @@ describe("Match mutations", () => {
       expect(await matches.updateMatch(m.creator.id, input)).toEqual({
         ok: true,
       });
-      const admin = await fixtures.player({ isAdmin: true });
+      const admin = await fixtures.player({ isPlatformAdmin: true });
       expect(
         await matches.updateMatch(admin.id, { ...input, date: "2026-03-01" }),
       ).toEqual({ ok: true });

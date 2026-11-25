@@ -67,7 +67,7 @@ export async function seedPlayers(adminId: string): Promise<PlayerIds> {
         lastName: player.lastName,
         username: "",
         image: PLAYER_IMAGES[key],
-        isAdmin: false,
+        isPlatformAdmin: false,
       }),
       `player ${key}`,
     );

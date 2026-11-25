@@ -33,7 +33,7 @@ describe("Player reads", () => {
 
   describe("Platform Admin", () => {
     it("is true for a Platform Admin and false for anyone else", async () => {
-      const admin = await fixtures.player({ isAdmin: true });
+      const admin = await fixtures.player({ isPlatformAdmin: true });
       const player = await fixtures.player();
       expect(await players.isPlatformAdmin(admin.id)).toBe(true);
       expect(await players.isPlatformAdmin(player.id)).toBe(false);
@@ -41,7 +41,7 @@ describe("Player reads", () => {
     });
 
     it("refuses with the caller's error unless a Platform Admin", async () => {
-      const admin = await fixtures.player({ isAdmin: true });
+      const admin = await fixtures.player({ isPlatformAdmin: true });
       const player = await fixtures.player();
       expect(await players.requirePlatformAdmin(admin.id, "Nope.")).toEqual({
         ok: true,

@@ -5,3 +5,4 @@ export {
   type NamedPlayer,
   type SortablePlayer,
 } from "./lib/player-name";
+export { platformAdminClaim } from "./lib/platform-admin-claim";

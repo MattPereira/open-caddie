@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export default async function NewCoursePage() {
   const player = await getCurrentPlayer();
-  if (!player?.isAdmin) {
+  if (!player?.isPlatformAdmin) {
     redirect("/courses");
   }
 

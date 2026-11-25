@@ -13,9 +13,9 @@ type SignedInPlayer = ProfileClaims & {
 type SessionToken = Record<string, unknown>;
 
 /**
- * The Auth.js `jwt` callback's claims. Sign-in copies the Player's row onto the
- * token; a session update copies only the profile fields it names. The Platform
- * Admin claim is written at sign-in and nowhere else.
+ * The Auth.js `jwt` callback's claims. A session update comes from the client,
+ * so it may change profile fields only: the Platform Admin claim is written at
+ * sign-in, from the stored row.
  */
 export function sessionTokenClaims<Token extends SessionToken>({
   token,

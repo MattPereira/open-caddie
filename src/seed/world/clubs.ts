@@ -24,35 +24,35 @@ const POINT_RULES: PointRules = {
   },
 };
 
-const SATURDAY_CLUB = "saturday-club";
-const DAWN_PATROL = "dawn-patrol";
+const MULLIGAN_MAFIA = "mulligan-mafia";
+const HANDICAP_HUSTLERS = "handicap-hustlers";
 
-const SATURDAY_MEMBERS: PlayerKey[] = [
-  "ava",
-  "marcus",
-  "priya",
-  "tomas",
-  "hannah",
-  "dev",
-  "noor",
-  "felix",
-  "grace",
-  "kenji",
-  "wilhelmina",
-  "rosa",
-  "maya",
-  "ike",
+const MULLIGAN_MEMBERS: PlayerKey[] = [
+  "panther",
+  "john",
+  "rory",
+  "dustin",
+  "justin",
+  "jack",
+  "phil",
+  "jordan",
+  "jon",
+  "scottie",
+  "collin",
+  "arnold",
+  "rickie",
+  "adam",
 ];
-const DAWN_PATROL_MEMBERS: PlayerKey[] = [
-  "kenji",
-  "noor",
-  "priya",
-  "maya",
-  "bram",
-  "jules",
-  "zoe",
-  "siobhan",
-  "leo",
+const HANDICAP_HUSTLERS_MEMBERS: PlayerKey[] = [
+  "scottie",
+  "phil",
+  "rory",
+  "rickie",
+  "tyson",
+  "rivers",
+  "bubba",
+  "vijay",
+  "max",
 ];
 
 async function seedClub(
@@ -77,75 +77,75 @@ async function seedClub(
   }
 }
 
-export async function seedSaturdayClub(
+export async function seedMulliganMafia(
   adminId: string,
   ids: PlayerIds,
   courses: SeededCourses,
 ) {
-  const { gullwing, saguaro, oakmere, portHaven, brackenmoor } = courses;
+  const { pebbleBeach, sawgrass, kapalua, maunaKea, bethpage } = courses;
   await seedClub(adminId, ids, {
-    handle: SATURDAY_CLUB,
-    name: "Saturday Club",
-    members: SATURDAY_MEMBERS,
+    handle: MULLIGAN_MAFIA,
+    name: "Mulligan Mafia",
+    members: MULLIGAN_MEMBERS,
   });
   const seed = (plan: TournamentPlan) =>
-    seedTournament(adminId, ids, SATURDAY_CLUB, plan);
+    seedTournament(adminId, ids, MULLIGAN_MAFIA, plan);
 
   // Season 1, now a Past Season.
   await seed({
     date: dateFromToday(-150),
-    course: oakmere,
-    tee: "White",
+    course: kapalua,
+    tee: "Resort",
     pairings: [
-      ["ava", "marcus", "priya", "tomas"],
-      ["hannah", "dev", "noor", "felix"],
+      ["panther", "john", "rory", "dustin"],
+      ["justin", "jack", "phil", "jordan"],
     ],
     holesScored: 18,
     salt: 1,
     greenies: [
       {
-        player: "ava",
-        hole: oakmere.parThrees[0],
+        player: "panther",
+        hole: kapalua.parThrees[0],
         distance: { feet: 4, inches: 2 },
       },
       {
-        player: "felix",
-        hole: oakmere.parThrees[2],
+        player: "jordan",
+        hole: kapalua.parThrees[2],
         distance: { feet: 18, inches: 6 },
       },
     ],
   });
   await seed({
     date: dateFromToday(-136),
-    course: gullwing,
+    course: pebbleBeach,
     tee: "Blue",
     pairings: [
-      ["ava", "marcus", "priya"],
-      ["tomas", "grace", "kenji"],
-      ["wilhelmina", "rosa", "felix"],
+      ["panther", "john", "rory"],
+      ["dustin", "jon", "scottie"],
+      ["collin", "arnold", "jordan"],
     ],
     holesScored: 18,
     salt: 2,
     greenies: [
       {
-        player: "kenji",
-        hole: gullwing.parThrees[1],
+        player: "scottie",
+        hole: pebbleBeach.parThrees[1],
         distance: { feet: 1, inches: 11 },
       },
       {
-        player: "wilhelmina",
-        hole: gullwing.parThrees[3],
+        player: "collin",
+        hole: pebbleBeach.parThrees[3],
         distance: { feet: 7, inches: 0 },
       },
     ],
   });
   await seed({
     date: dateFromToday(-122),
-    course: saguaro,
+    course: sawgrass,
     tee: "White",
     pairings: [
-      ["ava", "priya", "tomas", "hannah"],
-      ["dev", "noor", "felix", "grace"],
+      ["panther", "rory", "dustin", "justin"],
+      ["jack", "phil", "jordan", "jon"],
     ],
     holesScored: 18,
     salt: 3,
@@ -154,188 +154,188 @@ export async function seedSaturdayClub(
   // Season 2, the Current Season.
   await seed({
     date: dateFromToday(-56),
-    course: portHaven,
-    tee: "Blue",
+    course: maunaKea,
+    tee: "Tournament",
     startNextSeason: true,
     pairings: [
-      ["ava", "marcus", "priya", "tomas"],
-      ["hannah", "dev", "noor"],
-      ["felix", "grace", "kenji"],
+      ["panther", "john", "rory", "dustin"],
+      ["justin", "jack", "phil"],
+      ["jordan", "jon", "scottie"],
     ],
     holesScored: 18,
     salt: 4,
     greenies: [
       {
-        player: "marcus",
-        hole: portHaven.parThrees[0],
+        player: "john",
+        hole: maunaKea.parThrees[0],
         distance: { feet: 3, inches: 0 },
       },
       {
-        player: "grace",
-        hole: portHaven.parThrees[2],
+        player: "jon",
+        hole: maunaKea.parThrees[2],
         distance: { feet: 22, inches: 4 },
       },
     ],
   });
-  // Salt 34 has Noor win four Tournament Skins and leaves six holes dead.
+  // Salt 100 has Phil win four Tournament Skins and leaves six holes dead.
   // The Playing Handicaps come from the Rounds before, so changing those can
   // undo it; the seed test checks.
   await seed({
     date: dateFromToday(-42),
-    course: brackenmoor,
-    tee: "Gold",
+    course: bethpage,
+    tee: "White",
     pairings: [
-      ["ava", "marcus", "priya"],
-      ["tomas", "hannah", "noor"],
-      ["felix", "wilhelmina", "rosa"],
+      ["panther", "john", "rory"],
+      ["dustin", "justin", "phil"],
+      ["jordan", "collin", "arnold"],
     ],
     holesScored: 18,
-    salt: 34,
+    salt: 100,
   });
   await seed({
     date: dateFromToday(-28),
-    course: oakmere,
-    tee: "Blue",
+    course: kapalua,
+    tee: "Regular",
     pairings: [
-      ["ava", "marcus", "tomas", "hannah"],
-      ["dev", "noor", "felix", "grace"],
-      ["kenji", "wilhelmina", "maya"],
+      ["panther", "john", "dustin", "justin"],
+      ["jack", "phil", "jordan", "jon"],
+      ["scottie", "collin", "rickie"],
     ],
     holesScored: 18,
     salt: 6,
     greenies: [
       {
-        player: "hannah",
-        hole: oakmere.parThrees[1],
+        player: "justin",
+        hole: kapalua.parThrees[1],
         distance: { feet: 9, inches: 5 },
       },
     ],
   });
   await seed({
     date: dateFromToday(-14),
-    course: gullwing,
+    course: pebbleBeach,
     tee: "White",
     pairings: [
-      ["ava", "priya", "tomas"],
-      ["marcus", "noor", "felix"],
-      ["grace", "kenji", "rosa"],
+      ["panther", "rory", "dustin"],
+      ["john", "phil", "jordan"],
+      ["jon", "scottie", "arnold"],
     ],
     holesScored: 18,
     salt: 7,
     holes: [
       {
-        player: "noor",
-        hole: gullwing.parThrees[2],
+        player: "phil",
+        hole: pebbleBeach.parThrees[2],
         score: { strokes: 1, putts: 0 },
       },
     ],
     greenies: [
       {
-        player: "noor",
-        hole: gullwing.parThrees[2],
+        player: "phil",
+        hole: pebbleBeach.parThrees[2],
         distance: { feet: 0, inches: 0 },
       },
       {
-        player: "rosa",
-        hole: gullwing.parThrees[0],
+        player: "arnold",
+        hole: pebbleBeach.parThrees[0],
         distance: { feet: 12, inches: 0 },
       },
     ],
   });
-  // Maya's one prior Saturday Round is too few for a Player Index, so she
+  // Rickie's one prior Mafia Round is too few for a Player Index, so he
   // plays off scratch.
   await seed({
     date: dateFromToday(0),
-    course: saguaro,
+    course: sawgrass,
     tee: "Blue",
     pairings: [
-      ["ava", "marcus", "priya", "tomas"],
-      ["hannah", "maya"],
+      ["panther", "john", "rory", "dustin"],
+      ["justin", "rickie"],
     ],
     holesScored: 9,
     salt: 8,
   });
   await seed({
     date: dateFromToday(7),
-    course: portHaven,
-    tee: "White",
+    course: maunaKea,
+    tee: "Resort",
     pairings: [
-      ["ava", "marcus", "dev"],
-      ["noor", "grace"],
+      ["panther", "john", "jack"],
+      ["phil", "jon"],
     ],
     holesScored: 0,
     salt: 9,
   });
 }
 
-export async function seedDawnPatrol(
+export async function seedHandicapHustlers(
   adminId: string,
   ids: PlayerIds,
   courses: SeededCourses,
 ) {
-  const { gullwing, brackenmoor, fernHollow } = courses;
+  const { pebbleBeach, bethpage, royalCountyDown } = courses;
   await seedClub(adminId, ids, {
-    handle: DAWN_PATROL,
-    name: "Dawn Patrol Golf Society",
-    members: DAWN_PATROL_MEMBERS,
+    handle: HANDICAP_HUSTLERS,
+    name: "Handicap Hustlers",
+    members: HANDICAP_HUSTLERS_MEMBERS,
   });
   const seed = (plan: TournamentPlan) =>
-    seedTournament(adminId, ids, DAWN_PATROL, plan);
+    seedTournament(adminId, ids, HANDICAP_HUSTLERS, plan);
 
-  // Siobhán and Leo play only this one, with the same card, below every
+  // Vijay and Max play only this one, with the same card, below every
   // paying Tournament Ranking position: they tie in Standings.
-  const struggling = strugglingCard(fernHollow.pars);
+  const struggling = strugglingCard(royalCountyDown.pars);
   await seed({
     date: dateFromToday(-70),
-    course: fernHollow,
-    tee: "Green",
+    course: royalCountyDown,
+    tee: "White",
     pairings: [
-      ["kenji", "noor", "priya", "bram"],
-      ["maya", "zoe", "siobhan", "leo"],
+      ["scottie", "phil", "rory", "tyson"],
+      ["rickie", "bubba", "vijay", "max"],
     ],
     holesScored: 18,
     salt: 11,
-    cards: { siobhan: struggling, leo: struggling },
+    cards: { vijay: struggling, max: struggling },
   });
   await seed({
     date: dateFromToday(-35),
-    course: brackenmoor,
-    tee: "Black",
+    course: bethpage,
+    tee: "Blue",
     pairings: [
-      ["kenji", "noor", "priya"],
-      ["bram", "maya", "zoe", "jules"],
+      ["scottie", "phil", "rory"],
+      ["tyson", "rickie", "bubba", "rivers"],
     ],
     holesScored: 18,
     salt: 12,
     greenies: [
       {
-        player: "zoe",
-        hole: brackenmoor.parThrees[0],
+        player: "bubba",
+        hole: bethpage.parThrees[0],
         distance: { feet: 5, inches: 8 },
       },
       {
-        player: "jules",
-        hole: brackenmoor.parThrees[3],
+        player: "rivers",
+        hole: bethpage.parThrees[3],
         distance: { feet: 2, inches: 1 },
       },
     ],
   });
   await seed({
     date: dateFromToday(-21),
-    course: gullwing,
+    course: pebbleBeach,
     tee: "Blue",
     pairings: [
-      ["kenji", "bram", "jules", "zoe"],
-      ["noor", "maya", "priya"],
+      ["scottie", "tyson", "rivers", "bubba"],
+      ["phil", "rickie", "rory"],
     ],
     holesScored: 18,
     salt: 13,
   });
   await seed({
     date: dateFromToday(14),
-    course: fernHollow,
-    tee: "Green",
-    pairings: [["kenji", "noor", "bram"]],
+    course: royalCountyDown,
+    tee: "White",
+    pairings: [["scottie", "phil", "tyson"]],
     holesScored: 0,
     salt: 14,
   });

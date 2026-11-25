@@ -57,25 +57,27 @@ describe("seedWorld", () => {
     expect(courses).toHaveLength(6);
     expect(await getAllClubsFull()).toHaveLength(2);
 
-    const saturday = await getClubMembersByHandle("saturday-club");
-    const dawn = await getClubMembersByHandle("dawn-patrol");
-    const saturdayIds = new Set(saturday.map((m) => m.id));
-    expect(dawn.filter((m) => saturdayIds.has(m.id)).length).toBeGreaterThan(1);
+    const mafia = await getClubMembersByHandle("mulligan-mafia");
+    const hustlers = await getClubMembersByHandle("handicap-hustlers");
+    const mafiaIds = new Set(mafia.map((m) => m.id));
+    expect(hustlers.filter((m) => mafiaIds.has(m.id)).length).toBeGreaterThan(
+      1,
+    );
   });
 
-  it("gives Saturday Club a Past Season and a Current Season with Standings", async () => {
+  it("gives Mulligan Mafia a Past Season and a Current Season with Standings", async () => {
     await seedWorld();
 
-    const club = required(await getClubByHandle("saturday-club"), "club");
+    const club = required(await getClubByHandle("mulligan-mafia"), "club");
     expect(await getClubSeasonNumbers(club.id)).toEqual([1, 2]);
-    expect((await standings("saturday-club", 1)).players).toHaveLength(12);
-    expect((await standings("saturday-club", 2)).players).toHaveLength(13);
+    expect((await standings("mulligan-mafia", 1)).players).toHaveLength(12);
+    expect((await standings("mulligan-mafia", 2)).players).toHaveLength(13);
   });
 
-  it("puts two Players level on points in Dawn Patrol's Standings", async () => {
+  it("puts two Players level on points in Handicap Hustlers' Standings", async () => {
     await seedWorld();
 
-    const { players } = await standings("dawn-patrol", 1);
+    const { players } = await standings("handicap-hustlers", 1);
     const total = async (name: string) => {
       const id = await playerId(name);
       return required(
@@ -83,44 +85,42 @@ describe("seedWorld", () => {
         `${name}'s standing`,
       ).points.total;
     };
-    expect(await total("Siobhán Ó Ceallaigh")).toBe(
-      await total("Leo Castellanos"),
-    );
+    expect(await total("Vijay Swing")).toBe(await total("Max Bogey"));
   });
 
   it("seeds a Tournament whose Skins have dead holes and one Player winning several", async () => {
     await seedWorld();
 
     const tournament = required(
-      (await getTournamentsByClubHandle("saturday-club")).find(
-        (t) => t.courseHandle === "brackenmoor-heath",
+      (await getTournamentsByClubHandle("mulligan-mafia")).find(
+        (t) => t.courseHandle === "bethpage-black",
       ),
-      "Brackenmoor Tournament",
+      "Bethpage Tournament",
     );
     const { rounds } = await getTournamentRounds(tournament.id);
     const skins = tournamentSkins(rounds);
     expect(skins).toHaveLength(12);
     const skinsByPlayer = Map.groupBy(skins, (skin) => skin.round.playerId);
-    const noorSkins = skinsByPlayer.get(await playerId("Noor Haddad")) ?? [];
-    expect(noorSkins).toHaveLength(4);
+    const philSkins = skinsByPlayer.get(await playerId("Phil Nickelson")) ?? [];
+    expect(philSkins).toHaveLength(4);
   });
 
   it("starts a Player with one prior Tournament Round off scratch", async () => {
     await seedWorld();
 
     const tournament = required(
-      (await getTournamentsByClubHandle("saturday-club")).find(
-        (t) => t.courseHandle === "saguaro-ridge" && t.season === 2,
+      (await getTournamentsByClubHandle("mulligan-mafia")).find(
+        (t) => t.courseHandle === "tpc-sawgrass" && t.season === 2,
       ),
-      "today's Saguaro Tournament",
+      "today's Sawgrass Tournament",
     );
     const { rounds } = await getTournamentRounds(tournament.id);
-    const mayaId = await playerId("Maya Thornbury");
-    const maya = required(
-      rounds.find((r) => r.playerId === mayaId),
-      "Maya's round",
+    const rickieId = await playerId("Rickie Fowleri");
+    const rickie = required(
+      rounds.find((r) => r.playerId === rickieId),
+      "Rickie's round",
     );
-    expect(maya.playingHandicap).toBe(0);
+    expect(rickie.playingHandicap).toBe(0);
   });
 
   it("seeds a Four-Ball whose Match Skins carry over", async () => {
@@ -128,32 +128,30 @@ describe("seedWorld", () => {
 
     const { course, rounds } = await matchRounds(
       "four_ball_match_play",
-      "saguaro-ridge",
+      "tpc-sawgrass",
     );
     const skins = scoreMatchSkins(rounds, course.holes);
     if (skins.status !== "ready") throw new Error("skins unavailable");
-    const mayaId = await playerId("Maya Thornbury");
-    const maya = required(
-      rounds.find((r) => r.playerId === mayaId),
-      "Maya's round",
+    const rickieId = await playerId("Rickie Fowleri");
+    const rickie = required(
+      rounds.find((r) => r.playerId === rickieId),
+      "Rickie's round",
     );
     const sixth = required(
       skins.holes.find((h) => h.hole === 6),
       "hole 6",
     );
     expect(sixth.skinsAwarded).toBe(4);
-    expect(sixth.winningRoundId).toBe(maya.id);
+    expect(sixth.winningRoundId).toBe(rickie.id);
   });
 
   it("leaves one Three-Ball Round without a Player Index Override, on another tee", async () => {
     await seedWorld();
 
-    const { rounds } = await matchRounds("three_ball_match_play", "port-haven");
-    const wilhelmina = await playerId(
-      "Wilhelmina Featherstonehaugh-Montgomery",
-    );
+    const { rounds } = await matchRounds("three_ball_match_play", "mauna-kea");
+    const collin = await playerId("Collin Mulligan");
     const [without] = rounds.filter((r) => r.playerIndexOverride === null);
-    expect(without.playerId).toBe(wilhelmina);
+    expect(without.playerId).toBe(collin);
     expect(new Set(rounds.map((r) => r.teeId)).size).toBe(2);
   });
 

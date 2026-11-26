@@ -7,6 +7,7 @@ import { dateFromToday, seedTournament, type TournamentPlan } from "./events";
 import { ok } from "./ok";
 import { CLUB_IMAGES } from "./image-data";
 import type { PlayerIds, PlayerKey } from "./players";
+import type { SeededRoute } from "./routes";
 
 const POINT_RULES: PointRules = {
   participation: 2,
@@ -25,8 +26,11 @@ const POINT_RULES: PointRules = {
   },
 };
 
-const MULLIGAN_MAFIA = "mulligan-mafia";
-const HANDICAP_HUSTLERS = "handicap-hustlers";
+const MULLIGAN_MAFIA = { handle: "mulligan-mafia", name: "Mulligan Mafia" };
+const HANDICAP_HUSTLERS = {
+  handle: "handicap-hustlers",
+  name: "Handicap Hustlers",
+};
 
 const MULLIGAN_MEMBERS: PlayerKey[] = [
   "panther",
@@ -60,7 +64,8 @@ async function seedClub(
   adminId: string,
   ids: PlayerIds,
   club: { handle: string; name: string; members: PlayerKey[] },
-) {
+  standings: string,
+): Promise<SeededRoute[]> {
   const { id: clubId } = ok(
     await createClub(adminId, {
       handle: club.handle,
@@ -76,21 +81,33 @@ async function seedClub(
       `${club.handle} member ${key}`,
     );
   }
+  return [
+    {
+      path: `/clubs/${club.handle}`,
+      shows: `${club.name}: ${club.members.length} Members, ${standings}`,
+    },
+  ];
 }
 
 export async function seedMulliganMafia(
   adminId: string,
   ids: PlayerIds,
   courses: SeededCourses,
-) {
+): Promise<SeededRoute[]> {
   const { pebbleBeach, sawgrass, kapalua, maunaKea, bethpage } = courses;
-  await seedClub(adminId, ids, {
-    handle: MULLIGAN_MAFIA,
-    name: "Mulligan Mafia",
-    members: MULLIGAN_MEMBERS,
+  const routes = await seedClub(
+    adminId,
+    ids,
+    { ...MULLIGAN_MAFIA, members: MULLIGAN_MEMBERS },
+    "Current Season 2 Standings",
+  );
+  routes.push({
+    path: `/clubs/${MULLIGAN_MAFIA.handle}?season=1`,
+    shows: `${MULLIGAN_MAFIA.name}: Past Season 1 Standings`,
   });
-  const seed = (plan: TournamentPlan) =>
-    seedTournament(adminId, ids, MULLIGAN_MAFIA, plan);
+  const seed = async (plan: TournamentPlan) => {
+    routes.push(...(await seedTournament(adminId, ids, MULLIGAN_MAFIA, plan)));
+  };
 
   // Season 1, now a Past Season.
   await seed({
@@ -158,6 +175,7 @@ export async function seedMulliganMafia(
     course: maunaKea,
     tee: "Tournament",
     startNextSeason: true,
+    note: "Starts Season 2",
     pairings: [
       ["panther", "john", "rory", "dustin"],
       ["justin", "jack", "phil"],
@@ -192,6 +210,7 @@ export async function seedMulliganMafia(
     ],
     holesScored: 18,
     salt: 100,
+    note: "Tournament Skins: Phil wins four, six holes dead",
   });
   await seed({
     date: dateFromToday(-28),
@@ -223,6 +242,7 @@ export async function seedMulliganMafia(
     ],
     holesScored: 18,
     salt: 7,
+    note: "Phil's hole-in-one, a 0-ft Greenie",
     holes: [
       {
         player: "phil",
@@ -255,6 +275,7 @@ export async function seedMulliganMafia(
     ],
     holesScored: 9,
     salt: 8,
+    note: "Rickie plays off scratch",
   });
   await seed({
     date: dateFromToday(7),
@@ -267,21 +288,26 @@ export async function seedMulliganMafia(
     holesScored: 0,
     salt: 9,
   });
+  return routes;
 }
 
 export async function seedHandicapHustlers(
   adminId: string,
   ids: PlayerIds,
   courses: SeededCourses,
-) {
+): Promise<SeededRoute[]> {
   const { pebbleBeach, bethpage, royalCountyDown } = courses;
-  await seedClub(adminId, ids, {
-    handle: HANDICAP_HUSTLERS,
-    name: "Handicap Hustlers",
-    members: HANDICAP_HUSTLERS_MEMBERS,
-  });
-  const seed = (plan: TournamentPlan) =>
-    seedTournament(adminId, ids, HANDICAP_HUSTLERS, plan);
+  const routes = await seedClub(
+    adminId,
+    ids,
+    { ...HANDICAP_HUSTLERS, members: HANDICAP_HUSTLERS_MEMBERS },
+    "one Season, Vijay and Max tied in Standings",
+  );
+  const seed = async (plan: TournamentPlan) => {
+    routes.push(
+      ...(await seedTournament(adminId, ids, HANDICAP_HUSTLERS, plan)),
+    );
+  };
 
   // Vijay and Max play only this one, with the same card, below every
   // paying Tournament Ranking position: they tie in Standings.
@@ -297,6 +323,7 @@ export async function seedHandicapHustlers(
     holesScored: 18,
     salt: 11,
     cards: { vijay: struggling, max: struggling },
+    note: "Vijay and Max tie on the same struggling card",
   });
   await seed({
     date: dateFromToday(-35),
@@ -340,4 +367,5 @@ export async function seedHandicapHustlers(
     holesScored: 0,
     salt: 14,
   });
+  return routes;
 }

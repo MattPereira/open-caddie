@@ -155,6 +155,23 @@ describe("seedWorld", () => {
     expect(new Set(rounds.map((r) => r.teeId)).size).toBe(2);
   });
 
+  it("lists a route for every Tournament, Match and Course it seeds", async () => {
+    const paths = (await seedWorld()).map((route) => route.path);
+
+    const tournaments = [
+      ...(await getTournamentsByClubHandle("mulligan-mafia")),
+      ...(await getTournamentsByClubHandle("handicap-hustlers")),
+    ];
+    for (const { id } of tournaments)
+      expect(paths).toContain(`/tournaments/${id}`);
+    for (const { id } of await getAllMatches())
+      expect(paths).toContain(`/matches/${id}`);
+    for (const { handle } of await getAllCourses())
+      expect(paths).toContain(`/courses/${handle}`);
+    expect(paths).toContain(`/players/${await playerId("Adam Scotty")}`);
+    expect(new Set(paths).size).toBe(paths.length);
+  });
+
   it("refuses a database that already has Players", async () => {
     await seedWorld();
 

@@ -3,6 +3,7 @@ import { createPlayer } from "@/modules/players/server";
 
 import { ok } from "./ok";
 import { PLAYER_IMAGES } from "./image-data";
+import type { SeededRoute } from "./routes";
 
 type PlayerPlan = {
   firstName: string;
@@ -74,4 +75,26 @@ export async function seedPlayers(adminId: string): Promise<PlayerIds> {
     ids[key] = created.id;
   }
   return ids;
+}
+
+const NOTABLE_PLAYERS: Partial<Record<PlayerKey, string>> = {
+  phil: "hole-in-one, four Tournament Skins at Bethpage",
+  scottie: "plus index in a Three-Ball Match",
+  rickie: "one prior Mafia Round, so plays off scratch today",
+  arnold: "no email; created a Four-Ball Match without playing in it",
+  vijay: "tied with Max in Handicap Hustlers Standings",
+  max: "tied with Vijay in Handicap Hustlers Standings",
+  adam: "Club Member with no Rounds",
+};
+
+export function playerRoutes(ids: PlayerIds): SeededRoute[] {
+  return [
+    { path: "/players", shows: "every Player, searchable by name" },
+    ...(Object.entries(NOTABLE_PLAYERS) as [PlayerKey, string][]).map(
+      ([key, note]) => ({
+        path: `/players/${ids[key]}`,
+        shows: `${PLAYERS[key].firstName} ${PLAYERS[key].lastName}: ${note}`,
+      }),
+    ),
+  ];
 }

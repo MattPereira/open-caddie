@@ -5,6 +5,7 @@ import { ok } from "./ok";
 import { COURSE_IMAGES } from "./image-data";
 
 import { COURSE_PLANS, type CoursePlan } from "./course-data";
+import type { SeededRoute } from "./routes";
 
 async function seedCourse(adminId: string, plan: CoursePlan) {
   ok(
@@ -28,6 +29,7 @@ async function seedCourse(adminId: string, plan: CoursePlan) {
   );
   return {
     handle: stored.handle,
+    name: plan.name,
     pars: plan.pars,
     parThrees: plan.pars.flatMap((par, i) => (par === 3 ? [i + 1] : [])),
     tee: (name: string) =>
@@ -50,3 +52,10 @@ export async function seedCourses(adminId: string) {
   };
 }
 export type SeededCourses = Awaited<ReturnType<typeof seedCourses>>;
+
+export function courseRoutes(courses: SeededCourses): SeededRoute[] {
+  return Object.values(courses).map((course) => ({
+    path: `/courses/${course.handle}`,
+    shows: `Course: ${course.name}`,
+  }));
+}

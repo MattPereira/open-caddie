@@ -104,5 +104,18 @@ Bug Report's snapshot has its own, in `docs/agents/live-bug-report.md`.
 ## A thing that will bite you
 
 **Hydration lags "networkidle".** The button is in the server HTML before
-React attaches its `onClick`, so the first click can be a silent no-op. Poll
-for the click's effect and click again, rather than waiting a fixed time.
+React attaches its `onClick`, so a click before hydration is a silent no-op.
+The app sets `data-hydrated` on `<body>` once React has hydrated, so after
+every `open` or navigation, wait for it before you click or run `find`:
+
+```bash
+agent-browser open http://localhost:3000/players
+agent-browser wait '[data-hydrated]'
+```
+
+Don't retry clicks or wait a fixed time instead.
+
+`find` needs the wait too: it marks the element it matches with a
+`data-agent-browser-located` attribute. Before hydration, React finds that
+attribute missing from the server HTML and logs a hydration attribute
+mismatch in `console`. The tool caused that, not the app.

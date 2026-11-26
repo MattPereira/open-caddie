@@ -1,0 +1,29 @@
+name: Install agent-browser
+description: >-
+  Installs agent-browser and its Chrome, restoring Chrome from the cache when
+  it can. Needs Node.js on the PATH.
+
+inputs:
+  version:
+    description: The agent-browser version. Also keys the cache, so bump it here, not per caller.
+    required: false
+    default: 0.27.0
+
+runs:
+  using: composite
+  steps:
+    # Only ci.yml's push runs save this; see its warm-agent-browser-cache job.
+    - name: Cache agent-browser's Chrome
+      uses: actions/cache@v6
+      with:
+        path: ~/.agent-browser/browsers
+        key: agent-browser-${{ inputs.version }}-${{ runner.os }}
+
+    # On a cache hit, `agent-browser install` finds Chrome and does nothing.
+    - name: Install agent-browser
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+      run: |
+        npm install -g "agent-browser@$VERSION"
+        agent-browser install

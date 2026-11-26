@@ -130,9 +130,10 @@ jobs:
             node_modules/.cache/dependency-cruiser
           key: tsc-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ github.sha }}
 
-  # Keeps agent-browser's Chrome cached on main for the agent workflows, whose
-  # issue-triggered runs can restore a cache but never save one. Not in the
-  # merge gate: a cold cache only slows the agents down.
+  # Keeps agent-browser's Chrome cached on main for the agent workflows. Their
+  # issue-triggered runs get a read-only cache (whatever the job's
+  # permissions), so they can restore it but never save it. Not in the merge
+  # gate: a cold cache only slows the agents down.
   warm-agent-browser-cache:
     name: Warm agent-browser cache
     if: github.event_name == 'push'
@@ -148,7 +149,8 @@ jobs:
         with:
           node-version: 24
 
-      - uses: ./.github/actions/install-agent-browser
+      - name: Install agent-browser
+        uses: ./.github/actions/install-agent-browser
 
   # The only check the main ruleset needs to require, so jobs can be added,
   # renamed or skipped by editing `needs` here instead of the ruleset.

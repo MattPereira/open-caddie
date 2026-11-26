@@ -26,13 +26,13 @@ Include filenames, and lines of code. Remember that the agent that implements wi
 
 5. COMMENT. Write one Markdown `comment` per issue.
    - A duplicate's comment is ONE line: why it is the same issue. The workflow adds "Closed as duplicate of #N." under it.
-   - A survivor's comment is skimmable, about 20 lines. Use the style guide in the /pr skill.
+   - A survivor's comment is skimmable, about 20 lines. Use the style guide in the `/pr` skill (`.agents/skills/pr/SKILL.md`).
      - the tag, and one line on why;
      - whether the issue's claims hold up against the code, with evidence.
      - the blast radius, in prose: the 2–3 places that matter (modules under src/modules/, routes, tables). A schema change or a migration goes first, and loudly, saying whether it needs expand/contract (the `database-migrations` skill);
      - whether it's a one-way or a two-way door
      - the duplicates closed onto it, crediting by number any detail only they had;
      - last, the open questions a human has to settle. An empty list is a claim, and usually a wrong one.
-   - When an issue shows in the UI, drive the app with agent-browser (docs/agents/agent-browser.md) and save a screenshot of it as /tmp/evidence/<issue-number>-<name>.png. The database is migrated and seeded already. A Bug Report has a prod snapshot holding the reporter's rows: see docs/agents/live-bug-report.md. Reference it in that issue's comment by its absolute path, e.g. `![now](/tmp/evidence/12-now.png)`. The workflow uploads them.
+   - When an issue shows in the UI, drive the app with agent-browser (docs/agents/agent-browser.md) and save a screenshot of it as /tmp/evidence/<issue-number>-<name>.png. The database is migrated and seeded already. A Bug Report has a prod snapshot holding the reporter's rows: see docs/agents/live-bug-report.md. Reference it in that issue's comment by its absolute path, e.g. `![now](/tmp/evidence/12-now.png)`. The workflow uploads the ones a comment references and drops the rest.
 
 You and every subagent are read-only, apart from /tmp/evidence/. The plan is your only output, and you will be asked for it as structured output. The workflow checks it, posts every comment and closes every duplicate.

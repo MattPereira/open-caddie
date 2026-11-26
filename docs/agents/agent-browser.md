@@ -3,7 +3,8 @@
 This is how you drive a page in the app, and ask it questions.
 
 It uses [agent-browser](https://github.com/vercel-labs/agent-browser), a CLI
-built for exactly this — one command per action, an answer on stdout.
+built for exactly this — one command per action, an answer on stdout. Its
+docs: https://agent-browser.dev/introduction.
 
 ## Once, per machine
 
@@ -50,6 +51,13 @@ The commands worth knowing: `open`, `click`, `fill`,
 `is visible|enabled|checked`, `eval`, `snapshot` (the accessibility tree, with
 refs), `screenshot`, `set viewport <w> <h>`, `set media dark|light`,
 `console`, `errors`, `close`. `agent-browser --help` has the rest.
+
+Icon buttons have no text, so `find label` misses them. Use their
+`aria-label`: `click '[aria-label="Add match"]'`.
+
+The console buffer is shared across sessions, so `console` can show another
+project's lines, such as `[vite]`. Pass `--session <name>` to every command,
+or run `console --clear` before the action you are checking.
 
 `screenshot` needs an absolute path: a relative one resolves against the
 agent-browser daemon's directory, not yours.

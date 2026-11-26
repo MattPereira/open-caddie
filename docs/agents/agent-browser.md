@@ -48,7 +48,9 @@ pnpm db:migrate                                          # the seed
 DATABASE_URL="${DATABASE_URL%/*}/open_caddie_bug_12" pnpm db:migrate   # Bug Report #12
 ```
 
-Locally, start the app with `pnpm dev` and use the address it printed.
+Locally, start the app with `pnpm dev:agent`, use the address it prints, and
+run `pnpm dev:agent stop` when you're done checking. The `local-dev` skill
+has the details.
 
 A screenshot is pixels. To verify a fix you need a yes or a no, so read the
 DOM:

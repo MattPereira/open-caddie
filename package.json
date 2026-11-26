@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:prod": "tsx src/seed/prod-copy.ts dev",
+    "dev:agent": "tsx src/seed/dev-agent.ts",
     "build": "next build",
     "start": "next start",
     "check": "pnpm run format:check && pnpm run lint && pnpm run lint:boundaries && pnpm run typecheck && pnpm run test",

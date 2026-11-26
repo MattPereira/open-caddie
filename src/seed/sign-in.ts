@@ -1,3 +1,4 @@
+import { readAgentServer } from "./dev-agent-server";
 import { requireLocalDatabase } from "./local";
 
 requireLocalDatabase();
@@ -5,7 +6,10 @@ requireLocalDatabase();
 const who = process.argv[2];
 if (!who) throw new Error("Usage: pnpm db:sign-in <email | admin>");
 
-const origin = process.env.AUTH_URL ?? "http://localhost:3000";
+const origin =
+  process.env.AUTH_URL ??
+  readAgentServer(process.cwd())?.url ??
+  "http://localhost:3000";
 
 // Imported only after the guard, since loading them connects `@/db`.
 const { createSignInLinkForEmail } = await import("@/lib/auth/sign-in-link");

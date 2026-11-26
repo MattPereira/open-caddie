@@ -106,6 +106,14 @@ Each link works once. The session lasts until you `close` the browser.
 you open it on. It defaults to `http://localhost:3000`, the seed's server; a
 Bug Report's snapshot has its own, in `docs/agents/live-bug-report.md`.
 
+If you need a page's server HTML as a signed-in Player (what the server sent,
+before React touches it), fetch it from the signed-in page. Curl has no
+session, so it gets the login redirect:
+
+```bash
+agent-browser eval 'fetch("/onboarding").then(r => r.text())' | jq -r . > /tmp/onboarding.html
+```
+
 ## A thing that will bite you
 
 **Hydration lags "networkidle".** The button is in the server HTML before

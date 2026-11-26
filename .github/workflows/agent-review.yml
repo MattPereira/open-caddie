@@ -53,34 +53,36 @@ name: Agent — Review A Pull Request
 #   agent-explore.yml: the agent makes one closed-enum call, `auto` or
 #   `needs-a-human` with a reason (.sandcastle/agent-workflows/review/
 #   review-schema.ts), and a step that runs no agent decides with hard checks
-#   (.github/scripts/expand-contract.ts merge). It turns on GitHub auto-merge
-#   only when all of these hold:
+#   (.github/scripts/expand-contract.ts merge). It merges only when all of
+#   these hold:
 #     - the call is `auto`;
 #     - the review left no finding;
 #     - the PR closes an `expand-contract` issue;
 #     - no migration in the diff adds a `DROP`, which can't be rolled back
 #       (#270 tracks revisiting this).
-#   Otherwise it comments the reasons and turns auto-merge off if an earlier
-#   review turned it on. A PR that closes no `expand-contract` issue gets no
-#   auto-merge and no comment.
+#   Otherwise it comments the reasons. A PR that closes no `expand-contract`
+#   issue gets no merge and no comment.
 #
-#   Auto-merge waits for the required checks, `Merge gate` and `Previous step
-#   deployed`, so the step still merges only after the previous one is in
-#   production. expand-contract-update.yml keeps its branch up to date with
-#   main, which `protect main` requires.
+#   It merges directly, not with GitHub auto-merge, which never updates a
+#   branch that `protect main` requires up to date. Up to 3 attempts: update
+#   the branch from main if it is behind, wait for the required checks (30
+#   minutes in all), squash-merge. It merges only the commit it reviewed or
+#   its own updates of it; a push by anyone else, a failed check, the wait
+#   running out or main moving under every attempt hands the PR to a human
+#   with a comment.
 #
-#   Auto-merge stays on through later pushes by a collaborator. Push to a
-#   step's PR after its review only what you would merge unread, or turn
-#   auto-merge off first.
+#   The step's PR exists only once the previous step is in production
+#   (expand-contract.yml starts it then), so merging it can't ship two steps
+#   in one deploy.
 #
 # WHAT IT NEEDS
 #   secrets.CLAUDE_CODE_OAUTH_TOKEN — the agent's auth token.
 #   secrets.FACTORY_PAT — the factory's one token. Only the steps that call
 #     GitHub get it; the agent's step does not. It pushes the review's
-#     commits, posts its verdict and inline comments, and turns on a step's
-#     auto-merge, so it needs Contents and Pull requests: write. The merge
-#     must be by this token: one by GITHUB_TOKEN fires no `issues: closed`,
-#     and expand-contract-start.yml would not start the next step. Keeping
+#     commits, posts its verdict and inline comments, and merges a clean
+#     step, so it needs Contents and Pull requests: write. The merge must be
+#     by this token: a push to main by GITHUB_TOKEN starts no workflow, so
+#     expand-contract.yml would not start the next step. Keeping
 #     it out of the agent's environment is tidiness, not a wall: the agent
 #     shares the machine with the steps that push and post. The real defence is who can reach the
 #     agent — same-repo PRs only, and a label only a collaborator can apply.
@@ -91,7 +93,6 @@ name: Agent — Review A Pull Request
 #     checks the code out, and moves the status labels (`agent:in-progress`,
 #     `agent:blocked`). GitHub starts no workflow from a label this token
 #     applies, so the status labels add no runs to the Actions tab.
-#   "Allow auto-merge" on in the repository's settings, for the exception.
 #   The `agent:review` label. A fresh clone of this repository does not have
 #     it, and no workflow can create the label that starts it. Create it once:
 #       gh label create "agent:review" --color 5319E7 \
@@ -117,8 +118,8 @@ on:
 
 # A ceiling on the GITHUB_TOKEN, which reads the PR, checks the code out and
 # moves the status labels. Reading the ticket, pushing the fixes, posting the
-# verdict and the inline comments, marking the PR ready and turning on
-# auto-merge all go through FACTORY_PAT.
+# verdict and the inline comments, marking the PR ready and merging a clean
+# step all go through FACTORY_PAT.
 permissions:
   contents: read # the checkout
   issues: write # the status labels
@@ -173,7 +174,8 @@ jobs:
   review:
     needs: resolve
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # 45 for the review, 30 for a clean step's merge to wait on its checks.
+    timeout-minutes: 80
 
     services:
       # Throwaway DB for the agent's checks; discarded with the runner.

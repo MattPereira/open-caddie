@@ -30,18 +30,18 @@ parent=$(issue_number --title "<the change>" --body "<the change and its chain>"
 expand=$(issue_number --parent "$parent" --label expand-contract \
   --title "Expand: <...>" --body "<expand>")
 switch=$(issue_number --parent "$parent" --blocked-by "$expand" --label expand-contract \
-  --title "Switch: <...>" --body "Merge once the production deploy of #$expand succeeded.
+  --title "Switch: <...>" --body "Starts once the production deploy of #$expand succeeded.
 
 <switch, as intent>")
 contract=$(issue_number --parent "$parent" --blocked-by "$switch" --label expand-contract \
-  --title "Contract: <...>" --body "Merge once the production deploy of #$switch succeeded.
+  --title "Contract: <...>" --body "Starts once the production deploy of #$switch succeeded.
 
 <contract, as intent>")
 ```
 
 A two-step chain drops `switch` and blocks its second step on `$expand`.
 
-Show the human the filed chain: the parent and every step, with its blocker. Once they confirm it, label the first step only: `gh issue edit <first step> --add-label agent:implement`. `expand-contract-start.yml` starts each later step when its blockers' PRs merge, and `expand-contract-gate.yml` holds its PR until those PRs are in production.
+Show the human the filed chain: the parent and every step, with its blocker. Once they confirm it, label the first step only: `gh issue edit <first step> --add-label agent:implement`. `expand-contract.yml` starts each later step once its blockers' PRs are in production, and the review merges a clean step's PR ([ADR 0009](../../../docs/adr/0009-expand-contract-starts-on-deploy.md)).
 
 Done when every step is filed under the parent with its blocker and `expand-contract` label, and the first step carries `agent:implement` after the human's confirmation.
 

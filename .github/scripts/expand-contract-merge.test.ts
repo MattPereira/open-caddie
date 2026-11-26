@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  type CheckContext,
+  checksVerdict,
   type MergeInputs,
+  type MergeOps,
   mergeDecision,
+  mergeWhenGreen,
   migrationDrops,
-  pullsToUpdate,
-} from "./expand-contract";
+} from "./expand-contract-merge";
 
 const clean: MergeInputs = {
   closesStep: true,
@@ -14,8 +17,8 @@ const clean: MergeInputs = {
 };
 
 describe("mergeDecision", () => {
-  it("auto-merges a clean step", () => {
-    expect(mergeDecision(clean)).toEqual({ action: "auto-merge" });
+  it("merges a clean step", () => {
+    expect(mergeDecision(clean)).toEqual({ action: "merge" });
   });
 
   it("leaves a PR that closes no step alone, whatever the review said", () => {
@@ -126,18 +129,132 @@ describe("migrationDrops", () => {
   });
 });
 
-describe("pullsToUpdate", () => {
-  it("updates only the open step PRs with auto-merge on, each once", () => {
-    const steps = [
-      {
-        closingPulls: [
-          { number: 280, autoMerge: true },
-          { number: 281, autoMerge: false },
-        ],
-      },
-      { closingPulls: [{ number: 280, autoMerge: true }] },
-      { closingPulls: [] },
-    ];
-    expect(pullsToUpdate(steps)).toEqual([280]);
+const required = (state: CheckContext["state"]): CheckContext => ({
+  required: true,
+  state,
+});
+
+describe("checksVerdict", () => {
+  it("passes once every required check passed, whatever the others say", () => {
+    expect(
+      checksVerdict([
+        required("pass"),
+        required("pass"),
+        { required: false, state: "fail" },
+      ]),
+    ).toBe("passed");
+  });
+
+  it("waits while a required check runs", () => {
+    expect(checksVerdict([required("pass"), required("pending")])).toBe(
+      "pending",
+    );
+  });
+
+  it("waits while no required check has reported yet", () => {
+    expect(checksVerdict([{ required: false, state: "pass" }])).toBe("pending");
+  });
+
+  it("fails on a failed required check, even while another runs", () => {
+    expect(checksVerdict([required("pending"), required("fail")])).toBe(
+      "failed",
+    );
+  });
+});
+
+interface FakePull {
+  head: string;
+  behind: boolean;
+  checks: "passed" | "failed" | "timed-out";
+  /** How many merges main moves under, refusing them. */
+  mainMoves: number;
+}
+
+function fakeOps(pull: FakePull) {
+  const merged: string[] = [];
+  let updates = 0;
+  const ops: MergeOps = {
+    head: async () => ({ sha: pull.head, behind: pull.behind }),
+    updateBranch: async () => {
+      updates++;
+      pull.head = `${pull.head}+main`;
+      pull.behind = false;
+      return pull.head;
+    },
+    waitForChecks: async () => pull.checks,
+    merge: async (sha) => {
+      if (pull.mainMoves > 0) {
+        pull.mainMoves--;
+        pull.behind = true;
+        return false;
+      }
+      merged.push(sha);
+      return true;
+    },
+  };
+  return { ops, merged, updates: () => updates };
+}
+
+const reviewed = (overrides: Partial<FakePull> = {}): FakePull => ({
+  head: "reviewed",
+  behind: false,
+  checks: "passed",
+  mainMoves: 0,
+  ...overrides,
+});
+
+describe("mergeWhenGreen", () => {
+  it("merges the reviewed commit once its checks pass", async () => {
+    const { ops, merged } = fakeOps(reviewed());
+    expect(await mergeWhenGreen("reviewed", ops)).toEqual({ merged: true });
+    expect(merged).toEqual(["reviewed"]);
+  });
+
+  it("updates a branch that is behind main, then merges the update", async () => {
+    const { ops, merged } = fakeOps(reviewed({ behind: true }));
+    expect(await mergeWhenGreen("reviewed", ops)).toEqual({ merged: true });
+    expect(merged).toEqual(["reviewed+main"]);
+  });
+
+  it("updates again when main moves during the wait", async () => {
+    const { ops, merged, updates } = fakeOps(reviewed({ mainMoves: 1 }));
+    expect(await mergeWhenGreen("reviewed", ops)).toEqual({ merged: true });
+    expect(updates()).toBe(1);
+    expect(merged).toEqual(["reviewed+main"]);
+  });
+
+  it("gives up after three attempts", async () => {
+    const { ops, merged } = fakeOps(reviewed({ mainMoves: 3 }));
+    expect(await mergeWhenGreen("reviewed", ops)).toEqual({
+      merged: false,
+      reason: "Main moved under 3 merge attempts.",
+    });
+    expect(merged).toEqual([]);
+  });
+
+  it("refuses a branch someone pushed to after the review", async () => {
+    const { ops, merged } = fakeOps(reviewed({ head: "someone-else" }));
+    expect(await mergeWhenGreen("reviewed", ops)).toEqual({
+      merged: false,
+      reason: "`someone` was pushed after the review.",
+    });
+    expect(merged).toEqual([]);
+  });
+
+  it("stops on a failed required check", async () => {
+    const { ops, merged } = fakeOps(reviewed({ checks: "failed" }));
+    expect(await mergeWhenGreen("reviewed", ops)).toEqual({
+      merged: false,
+      reason: "A required check failed.",
+    });
+    expect(merged).toEqual([]);
+  });
+
+  it("stops when the checks outlast the wait", async () => {
+    const { ops } = fakeOps(reviewed({ checks: "timed-out" }));
+    expect(await mergeWhenGreen("reviewed", ops)).toEqual({
+      merged: false,
+      reason: "The required checks did not finish within 30 minutes.",
+    });
   });
 });

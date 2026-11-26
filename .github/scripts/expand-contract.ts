@@ -1,51 +1,59 @@
-// See .github/workflows/expand-contract-start.yml, expand-contract-gate.yml,
-// expand-contract-update.yml and agent-review.yml.
-import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+// See .github/workflows/expand-contract.yml, agent-review.yml and ci.yml.
 import { fileURLToPath } from "node:url";
+import {
+  closingPulls,
+  cliGitHub,
+  type GitHub,
+  type MergedPull,
+  required,
+  runGh,
+  POLL_MS,
+  sleep,
+  type Step,
+} from "./expand-contract-github.ts";
+import { merge } from "./expand-contract-merge.ts";
 
-export interface Step {
-  number: number;
-  blockers: { number: number; closed: boolean }[];
-}
-
-export interface MergedPull {
-  number: number;
-  mergeCommit: string;
-}
-
-export interface GitHub {
-  /** Open `expand-contract` issues blocked by `issue`. */
-  stepsBlockedBy(issue: number): Promise<Step[]>;
-  stepsClosedBy(pull: number): Promise<Step[]>;
-  mergedClosingPulls(issue: number): Promise<MergedPull[]>;
-  isAncestor(commit: string, of: string): Promise<boolean>;
-}
-
+// Every open step, not just the ones this deploy's push touched: a deploy
+// that failed or was skipped is caught up by the next one that succeeds.
 export async function stepsToStart(
-  closedIssue: number,
+  deployedSha: string,
   gh: GitHub,
 ): Promise<number[]> {
   const starts: number[] = [];
-  for (const step of await gh.stepsBlockedBy(closedIssue)) {
-    if (await blockersAllMerged(step, gh)) starts.push(step.number);
+  for (const step of await gh.openSteps()) {
+    if (step.blockers.length === 0) continue;
+    if (await blockersDeployed(step, deployedSha, gh)) starts.push(step.number);
   }
   return starts;
 }
 
-export interface GateStatus {
-  state: "success" | "pending";
+// Closed as "not planned" starts nothing: it has no merged PR to deploy.
+async function blockersDeployed(
+  step: Step,
+  deployedSha: string,
+  gh: GitHub,
+): Promise<boolean> {
+  for (const blocker of step.blockers) {
+    if (!blocker.closed) return false;
+    const pulls = await gh.mergedClosingPulls(blocker.number);
+    if (!(await anyPullInProd(pulls, deployedSha, gh))) return false;
+  }
+  return true;
+}
+
+export interface Readiness {
+  ready: boolean;
   description: string;
 }
 
-export async function gateStatus(
+export async function previousStepsDeployed(
   pull: number,
   prodSha: string | undefined,
   gh: GitHub,
-): Promise<GateStatus> {
+): Promise<Readiness> {
   const steps = await gh.stepsClosedBy(pull);
   if (steps.length === 0)
-    return { state: "success", description: "Not an expand/contract step." };
+    return { ready: true, description: "Not an expand/contract step." };
   const deployed: string[] = [];
   const waiting: string[] = [];
   for (const step of steps) {
@@ -60,14 +68,14 @@ export async function gateStatus(
     }
   }
   if (waiting.length === 0 && deployed.length === 0)
-    return { state: "success", description: "No previous step to wait on." };
+    return { ready: true, description: "No previous step to wait on." };
   if (waiting.length === 0)
     return {
-      state: "success",
+      ready: true,
       description: `${deployed.join(", ")} is in production.`,
     };
   return {
-    state: "pending",
+    ready: false,
     description: `Waiting for ${waiting.join(", ")} in production.`,
   };
 }
@@ -84,290 +92,65 @@ async function anyPullInProd(
   return false;
 }
 
-// Closed as "not planned" starts nothing: the gate could never pass.
-async function blockersAllMerged(step: Step, gh: GitHub): Promise<boolean> {
-  for (const blocker of step.blockers) {
-    if (!blocker.closed) return false;
-    if ((await gh.mergedClosingPulls(blocker.number)).length === 0)
-      return false;
-  }
-  return true;
+interface Deployment {
+  id: number;
+  sha: string;
 }
 
-export interface MergeCall {
-  call: "auto" | "needs-a-human";
-  reason: string;
-}
-
-export interface MergeInputs {
-  closesStep: boolean;
-  call: MergeCall;
-  findingsLeft: number;
-  /** Migration files whose added lines contain DROP. */
-  drops: string[];
-}
-
-export type MergeDecision =
-  | { action: "none" }
-  | { action: "auto-merge" }
-  | { action: "needs-a-human"; reasons: string[] };
-
-// The reviewer only makes the call; these checks decide.
-export function mergeDecision(inputs: MergeInputs): MergeDecision {
-  if (!inputs.closesStep) return { action: "none" };
-  const reasons: string[] = [];
-  if (inputs.call.call !== "auto")
-    reasons.push(`The reviewer's call: ${inputs.call.reason}`);
-  if (inputs.findingsLeft > 0)
-    reasons.push(
-      `The review left ${inputs.findingsLeft} ${inputs.findingsLeft === 1 ? "finding" : "findings"} for you.`,
-    );
-  for (const file of inputs.drops)
-    reasons.push(
-      `\`${file}\` contains \`DROP\`, which can't be rolled back (#270).`,
-    );
-  return reasons.length === 0
-    ? { action: "auto-merge" }
-    : { action: "needs-a-human", reasons };
-}
-
-const MIGRATION = /^src\/db\/migrations\/.*\.sql$/;
-
-/** The migration files a unified diff adds a `DROP` line to. */
-export function migrationDrops(diff: string): string[] {
-  const drops = new Set<string>();
-  let file = "";
-  for (const line of diff.split("\n")) {
-    if (line.startsWith("+++ ")) file = line.replace(/^\+\+\+ b\//, "");
-    else if (line.startsWith("+") && /\bDROP\b/i.test(line)) drops.add(file);
-  }
-  return [...drops].filter((file) => MIGRATION.test(file));
-}
-
-export interface OpenStep {
-  closingPulls: { number: number; autoMerge: boolean }[];
-}
-
-export function pullsToUpdate(steps: OpenStep[]): number[] {
-  const pulls = new Set<number>();
-  for (const step of steps)
-    for (const pull of step.closingPulls)
-      if (pull.autoMerge) pulls.add(pull.number);
-  return [...pulls];
-}
-
-const STEP_LABEL = "expand-contract";
-const GATE_CONTEXT = "Previous step deployed";
-
-function runGh(...args: string[]): string {
-  return execFileSync("gh", args, { encoding: "utf8" }).trim();
-}
-
-function graphql<T>(
-  query: string,
-  variables: Record<string, string | number>,
-): T {
-  const fields = Object.entries(variables).flatMap(([key, value]) => [
-    typeof value === "number" ? "-F" : "-f",
-    `${key}=${value}`,
-  ]);
-  return JSON.parse(runGh("api", "graphql", "-f", `query=${query}`, ...fields))
-    .data;
-}
-
-interface IssueNode {
-  number: number;
-  state: "OPEN" | "CLOSED";
-  labels: { nodes: { name: string }[] };
-  blockedBy: { nodes: { number: number; state: "OPEN" | "CLOSED" }[] };
-}
-
-const ISSUE_FIELDS = `
-  number
-  state
-  labels(first: 50) { nodes { name } }
-  blockedBy(first: 20) { nodes { number state } }
-`;
-
-function toSteps(issues: IssueNode[]): Step[] {
-  return issues
-    .filter((issue) => issue.labels.nodes.some((l) => l.name === STEP_LABEL))
-    .map((issue) => ({
-      number: issue.number,
-      blockers: issue.blockedBy.nodes.map((blocker) => ({
-        number: blocker.number,
-        closed: blocker.state === "CLOSED",
-      })),
-    }));
-}
-
-function cliGitHub(repo: string): GitHub {
-  const [owner, name] = repo.split("/");
-  return {
-    stepsBlockedBy: async (issue) => {
-      const data = graphql<{
-        repository: { issue: { blocking: { nodes: IssueNode[] } } };
-      }>(
-        `query ($owner: String!, $name: String!, $issue: Int!) {
-          repository(owner: $owner, name: $name) {
-            issue(number: $issue) { blocking(first: 20) { nodes { ${ISSUE_FIELDS} } } }
-          }
-        }`,
-        { owner, name, issue },
-      );
-      return toSteps(
-        data.repository.issue.blocking.nodes.filter((i) => i.state === "OPEN"),
-      );
-    },
-    stepsClosedBy: async (pull) => {
-      const data = graphql<{
-        repository: {
-          pullRequest: { closingIssuesReferences: { nodes: IssueNode[] } };
-        };
-      }>(
-        `query ($owner: String!, $name: String!, $pull: Int!) {
-          repository(owner: $owner, name: $name) {
-            pullRequest(number: $pull) {
-              closingIssuesReferences(first: 20) { nodes { ${ISSUE_FIELDS} } }
-            }
-          }
-        }`,
-        { owner, name, pull },
-      );
-      return toSteps(data.repository.pullRequest.closingIssuesReferences.nodes);
-    },
-    mergedClosingPulls: async (issue) => {
-      const data = graphql<{
-        repository: {
-          issue: {
-            closedByPullRequestsReferences: {
-              nodes: {
-                number: number;
-                merged: boolean;
-                mergeCommit: { oid: string } | null;
-              }[];
-            };
-          };
-        };
-      }>(
-        `
-          query ($owner: String!, $name: String!, $issue: Int!) {
-            repository(owner: $owner, name: $name) {
-              issue(number: $issue) {
-                closedByPullRequestsReferences(
-                  first: 20
-                  includeClosedPrs: true
-                ) {
-                  nodes {
-                    number
-                    merged
-                    mergeCommit {
-                      oid
-                    }
-                  }
-                }
-              }
-            }
-          }
-        `,
-        { owner, name, issue },
-      );
-      return data.repository.issue.closedByPullRequestsReferences.nodes.flatMap(
-        (pull) =>
-          pull.merged && pull.mergeCommit
-            ? [{ number: pull.number, mergeCommit: pull.mergeCommit.oid }]
-            : [],
-      );
-    },
-    isAncestor: async (commit, of) => {
-      const status = runGh(
-        "api",
-        `repos/${repo}/compare/${commit}...${of}`,
-        "--jq",
-        ".status",
-      );
-      return status === "identical" || status === "ahead";
-    },
-  };
-}
-
-interface PullHead {
-  number: number;
-  headSha: string;
-}
-
-function prodSha(repo: string): string | undefined {
-  const deployments = JSON.parse(
+function productionDeployments(repo: string, sha?: string): Deployment[] {
+  const query = sha ? `&sha=${sha}` : "";
+  return JSON.parse(
     runGh(
       "api",
-      `repos/${repo}/deployments?environment=Production&per_page=20`,
+      `repos/${repo}/deployments?environment=Production&per_page=20${query}`,
     ),
-  ) as { id: number; sha: string }[];
-  for (const deployment of deployments) {
-    const state = runGh(
-      "api",
-      `repos/${repo}/deployments/${deployment.id}/statuses?per_page=1`,
-      "--jq",
-      ".[0].state",
-    );
-    if (state === "success") return deployment.sha;
+  ) as Deployment[];
+}
+
+function deploymentState(repo: string, id: number): string {
+  return runGh(
+    "api",
+    `repos/${repo}/deployments/${id}/statuses?per_page=1`,
+    "--jq",
+    '.[0].state // "pending"',
+  );
+}
+
+/** The newest `Production` deployment whose latest status is success. */
+function prodSha(repo: string): string | undefined {
+  for (const deployment of productionDeployments(repo)) {
+    if (deploymentState(repo, deployment.id) === "success")
+      return deployment.sha;
   }
   return undefined;
 }
 
-interface OpenPull {
-  number: number;
-  headRefOid: string;
-  autoMergeRequest: { enabledAt: string } | null;
-}
-
-function openPullsByStep(repo: string): OpenPull[][] {
-  const [owner, name] = repo.split("/");
-  const data = graphql<{
-    repository: {
-      issues: {
-        nodes: { closedByPullRequestsReferences: { nodes: OpenPull[] } }[];
-      };
-    };
-  }>(
-    `
-      query ($owner: String!, $name: String!, $label: String!) {
-        repository(owner: $owner, name: $name) {
-          issues(first: 100, states: OPEN, labels: [$label]) {
-            nodes {
-              closedByPullRequestsReferences(first: 20) {
-                nodes {
-                  number
-                  headRefOid
-                  autoMergeRequest {
-                    enabledAt
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    `,
-    { owner, name, label: STEP_LABEL },
-  );
-  return data.repository.issues.nodes.map(
-    (issue) => issue.closedByPullRequestsReferences.nodes,
-  );
-}
-
-function openPullsClosingSteps(repo: string): PullHead[] {
-  const pulls = new Map<number, string>();
-  for (const step of openPullsByStep(repo))
-    for (const pull of step) pulls.set(pull.number, pull.headRefOid);
-  return [...pulls].map(([number, headSha]) => ({ number, headSha }));
+async function waitForDeploy(
+  repo: string,
+  sha: string,
+  deadline: number,
+): Promise<"success" | "failure" | "timed-out"> {
+  while (Date.now() < deadline) {
+    const states = productionDeployments(repo, sha).map((d) =>
+      deploymentState(repo, d.id),
+    );
+    if (states.includes("success")) return "success";
+    // A redeploy of the same commit can still succeed; a failure with
+    // nothing else in flight is final.
+    if (
+      states.length > 0 &&
+      states.every((state) => state === "failure" || state === "error")
+    )
+      return "failure";
+    await sleep(POLL_MS);
+  }
+  return "timed-out";
 }
 
 const STARTED = "<!-- expand-contract:started -->";
 
-// A step with two blockers is reached from each one's close. Not atomic: two
-// closes at the same moment can both start it (expand-contract-start.yml).
-function alreadyStarted(issue: number): boolean {
+// Covers a step started by hand, which carries no marker but has a PR.
+function alreadyStarted(repo: string, issue: number): boolean {
   const bodies = runGh(
     "issue",
     "view",
@@ -377,20 +160,43 @@ function alreadyStarted(issue: number): boolean {
     "--jq",
     ".comments[].body",
   );
-  return bodies.includes(STARTED);
+  return bodies.includes(STARTED) || closingPulls(repo, issue).length > 0;
 }
 
+const DEPLOY_WAIT_MINUTES = 30;
+
 async function start(repo: string, env: NodeJS.ProcessEnv) {
-  const closed = Number(env.CLOSED_ISSUE);
-  if (!closed) throw new Error("CLOSED_ISSUE is required.");
-  const starts = await stepsToStart(closed, cliGitHub(repo));
-  if (starts.length === 0) console.log(`#${closed} unblocked no step.`);
+  let sha = env.SHA;
+  if (sha) {
+    const deploy = await waitForDeploy(
+      repo,
+      sha,
+      Date.now() + DEPLOY_WAIT_MINUTES * 60_000,
+    );
+    if (deploy === "failure") {
+      console.log(
+        `${sha}'s production deploy failed; the next successful one starts what it would have.`,
+      );
+      return;
+    }
+    if (deploy === "timed-out") {
+      console.log(
+        `::warning::No successful production deploy of ${sha} within ${DEPLOY_WAIT_MINUTES} minutes. The next one, or a dispatch of this workflow, starts what it would have.`,
+      );
+      return;
+    }
+  } else {
+    sha = prodSha(repo);
+    if (!sha) throw new Error("No successful production deploy found.");
+  }
+  const starts = await stepsToStart(sha, cliGitHub(repo));
+  if (starts.length === 0) console.log(`${sha} unblocked no step.`);
   for (const issue of starts) {
-    if (alreadyStarted(issue)) {
+    if (alreadyStarted(repo, issue)) {
       console.log(`#${issue} already started.`);
       continue;
     }
-    console.log(`#${closed} unblocked #${issue}.`);
+    console.log(`${sha} unblocked #${issue}.`);
     if (env.DRY_RUN) continue;
     runGh("workflow", "run", "agent-implement.yml", "-f", `issue=${issue}`);
     runGh(
@@ -398,154 +204,24 @@ async function start(repo: string, env: NodeJS.ProcessEnv) {
       "comment",
       String(issue),
       "--body",
-      `Unblocked: #${closed} closed. [This run](${env.RUN_URL}) started the implementer. Its PR can merge once #${closed}'s PR is in production (the \`${GATE_CONTEXT}\` check). ${STARTED} <!-- factory:status -->`,
+      `Unblocked: the previous step is in production (${sha.slice(0, 7)}). [This run](${env.RUN_URL}) started the implementer. ${STARTED} <!-- factory:status -->`,
     );
   }
 }
 
-async function gate(repo: string, env: NodeJS.ProcessEnv) {
-  // Looked up even on a deploy event: deploy events can arrive out of order.
-  const sha = prodSha(repo);
-  const pulls = env.PULL
-    ? [
-        {
-          number: Number(env.PULL),
-          headSha: required(env.HEAD_SHA, "HEAD_SHA"),
-        },
-      ]
-    : openPullsClosingSteps(repo);
-  const gh = cliGitHub(repo);
-  for (const pull of pulls) {
-    const status = await gateStatus(pull.number, sha, gh);
-    console.log(`#${pull.number} ${status.state}: ${status.description}`);
-    if (env.DRY_RUN) continue;
-    runGh(
-      "api",
-      `repos/${repo}/statuses/${pull.headSha}`,
-      "-f",
-      `state=${status.state}`,
-      "-f",
-      `context=${GATE_CONTEXT}`,
-      // GitHub rejects a status description over 140 characters.
-      "-f",
-      `description=${status.description.slice(0, 140)}`,
-      "-f",
-      `target_url=${env.RUN_URL}`,
-    );
-  }
-}
-
-const MERGE_CHECKS = `\`Merge gate\` and \`${GATE_CONTEXT}\``;
-
-async function merge(repo: string, env: NodeJS.ProcessEnv) {
-  const pullNumber = Number(required(env.PULL, "PULL"));
-  const pull = String(pullNumber);
-  // Checked first, so a failure in the rest can't touch an unrelated PR.
-  const closesStep =
-    (await cliGitHub(repo).stepsClosedBy(pullNumber)).length > 0;
-  if (!closesStep) {
-    console.log(`#${pull} closes no expand/contract step.`);
-    return;
-  }
-  const review = JSON.parse(
-    readFileSync(required(env.MERGE_FILE, "MERGE_FILE"), "utf8"),
-  ) as { merge: MergeCall; findingsLeft: number };
-  const diff = execFileSync(
-    "git",
-    ["diff", `origin/${required(env.BASE_REF, "BASE_REF")}...HEAD`],
-    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
-  );
-  const decision = mergeDecision({
-    closesStep,
-    call: review.merge,
-    findingsLeft: review.findingsLeft,
-    drops: migrationDrops(diff),
-  });
-  console.log(`#${pull}: ${JSON.stringify(decision)}`);
-  if (env.DRY_RUN || decision.action === "none") return;
-  if (decision.action === "auto-merge") {
-    enableAutoMerge(pull);
-    runGh(
-      "pr",
-      "comment",
-      pull,
-      "--body",
-      `Auto-merge is on: the review was clean. It merges once ${MERGE_CHECKS} pass. Reviewer: ${review.merge.reason} <!-- factory:status -->`,
-    );
-    return;
-  }
-  // A re-review can find what an earlier one missed.
-  try {
-    runGh("pr", "merge", pull, "--disable-auto");
-  } catch {
-    console.log(`#${pull} had no auto-merge to turn off.`);
-  }
-  runGh(
-    "pr",
-    "comment",
+async function check(repo: string, env: NodeJS.ProcessEnv) {
+  const pull = Number(required(env.PULL, "PULL"));
+  const readiness = await previousStepsDeployed(
     pull,
-    "--body",
-    [
-      "This expand/contract step needs a human to merge it:",
-      "",
-      ...decision.reasons.map((reason) => `- ${reason}`),
-      "",
-      `Merge it yourself once ${MERGE_CHECKS} pass. <!-- factory:status -->`,
-    ].join("\n"),
+    prodSha(repo),
+    cliGitHub(repo),
   );
-}
-
-function enableAutoMerge(pull: string) {
-  try {
-    runGh("pr", "merge", pull, "--auto", "--squash");
-  } catch (error) {
-    // GitHub refuses auto-merge on a PR that can merge right now.
-    if (!String(error).includes("clean status")) throw error;
-    runGh("pr", "merge", pull, "--squash");
+  if (readiness.ready) {
+    console.log(readiness.description);
     return;
   }
-  // Main may have moved during the review, after the last update run. Not
-  // fatal: the next push to main updates it again.
-  try {
-    updateBranch(pull);
-  } catch (error) {
-    console.error(`::warning::#${pull} could not be updated: ${error}`);
-  }
-}
-
-function updateBranch(pull: string) {
-  runGh("pr", "update-branch", pull);
-}
-
-// `protect main` requires up-to-date branches, and auto-merge won't update
-// them. A merge, not a rebase, so the reviewed commits keep their SHAs.
-async function update(repo: string, env: NodeJS.ProcessEnv) {
-  const pulls = pullsToUpdate(
-    openPullsByStep(repo).map((pulls) => ({
-      closingPulls: pulls.map((pull) => ({
-        number: pull.number,
-        autoMerge: pull.autoMergeRequest !== null,
-      })),
-    })),
-  );
-  if (pulls.length === 0) console.log("No auto-merge step PR to update.");
-  let failed = false;
-  for (const pull of pulls) {
-    console.log(`Updating #${pull} from main.`);
-    if (env.DRY_RUN) continue;
-    try {
-      updateBranch(String(pull));
-    } catch (error) {
-      failed = true;
-      console.error(`::error::#${pull} could not be updated: ${error}`);
-    }
-  }
-  if (failed) process.exitCode = 1;
-}
-
-function required(value: string | undefined, name: string): string {
-  if (!value) throw new Error(`${name} is required.`);
-  return value;
+  console.log(`::error::${readiness.description} Re-run this job once it is.`);
+  process.exitCode = 1;
 }
 
 async function main() {
@@ -553,12 +229,11 @@ async function main() {
   if (!repo) throw new Error("GH_REPO is required.");
   const mode = process.argv[2];
   if (mode === "start") await start(repo, process.env);
-  else if (mode === "gate") await gate(repo, process.env);
+  else if (mode === "check") await check(repo, process.env);
   else if (mode === "merge") await merge(repo, process.env);
-  else if (mode === "update") await update(repo, process.env);
   else
     throw new Error(
-      `Usage: expand-contract.ts start|gate|merge|update, got ${mode}.`,
+      `Usage: expand-contract.ts start|check|merge, got ${mode}.`,
     );
 }
 

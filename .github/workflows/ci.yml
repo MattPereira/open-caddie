@@ -140,7 +140,36 @@ jobs:
     needs: [build, checks]
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read # the checkout and the compare API
+      deployments: read # the production commit
+      issues: read # the step and its blockers
+      pull-requests: read # the closing pull requests
     steps:
       - name: Fail if any job failed or was cancelled
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: exit 1
+
+      # Backstop for docs/adr/0009: an expand/contract step's PR normally
+      # exists only once its previous step is in production. This fails one
+      # opened or merged early. Re-run the job once the deploy is in.
+      - name: Checkout the step check
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Setup Node.js 24
+        if: github.event_name == 'pull_request'
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Previous expand/contract step deployed
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PULL: ${{ github.event.pull_request.number }}
+        run: node .github/scripts/expand-contract.ts check

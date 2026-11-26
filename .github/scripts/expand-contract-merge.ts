@@ -49,7 +49,6 @@ export function mergeDecision(inputs: MergeInputs): MergeDecision {
 
 const MIGRATION = /^src\/db\/migrations\/.*\.sql$/;
 
-/** The migration files a unified diff adds a `DROP` line to. */
 export function migrationDrops(diff: string): string[] {
   const drops = new Set<string>();
   let file = "";
@@ -98,16 +97,16 @@ export async function mergeWhenGreen(
   reviewedSha: string,
   ops: MergeOps,
 ): Promise<MergeResult> {
-  let ours = reviewedSha;
+  let expectedHead = reviewedSha;
   for (let attempt = 0; attempt < MERGE_ATTEMPTS; attempt++) {
     const head = await ops.head();
-    if (head.sha !== ours)
+    if (head.sha !== expectedHead)
       return {
         merged: false,
         reason: `\`${head.sha.slice(0, 7)}\` was pushed after the review.`,
       };
-    if (head.behind) ours = await ops.updateBranch();
-    const checks = await ops.waitForChecks(ours);
+    if (head.behind) expectedHead = await ops.updateBranch();
+    const checks = await ops.waitForChecks(expectedHead);
     if (checks === "failed")
       return { merged: false, reason: "A required check failed." };
     if (checks === "timed-out")
@@ -115,7 +114,7 @@ export async function mergeWhenGreen(
         merged: false,
         reason: `The required checks did not finish within ${CHECKS_WAIT_MINUTES} minutes.`,
       };
-    if (await ops.merge(ours)) return { merged: true };
+    if (await ops.merge(expectedHead)) return { merged: true };
   }
   return {
     merged: false,
@@ -124,11 +123,9 @@ export async function mergeWhenGreen(
 }
 
 export async function merge(repo: string, env: NodeJS.ProcessEnv) {
-  const pullNumber = Number(required(env.PULL, "PULL"));
-  const pull = String(pullNumber);
+  const pull = Number(required(env.PULL, "PULL"));
   // Checked first, so a failure in the rest can't touch an unrelated PR.
-  const closesStep =
-    (await cliGitHub(repo).stepsClosedBy(pullNumber)).length > 0;
+  const closesStep = (await cliGitHub(repo).stepsClosedBy(pull)).length > 0;
   if (!closesStep) {
     console.log(`#${pull} closes no expand/contract step.`);
     return;
@@ -156,7 +153,7 @@ export async function merge(repo: string, env: NodeJS.ProcessEnv) {
       ? decision.reasons
       : await mergeWhenGreen(
           git("rev-parse", "HEAD"),
-          cliMergeOps(repo, pullNumber),
+          cliMergeOps(repo, pull),
         ).then((result) => (result.merged ? [] : [result.reason]));
   if (reasons.length === 0) {
     console.log(`#${pull} merged.`);
@@ -165,7 +162,7 @@ export async function merge(repo: string, env: NodeJS.ProcessEnv) {
   runGh(
     "pr",
     "comment",
-    pull,
+    String(pull),
     "--body",
     [
       "This expand/contract step needs a human to merge it:",
@@ -180,17 +177,21 @@ export async function merge(repo: string, env: NodeJS.ProcessEnv) {
 function cliMergeOps(repo: string, pull: number): MergeOps {
   const [owner, name] = repo.split("/");
   const deadline = Date.now() + CHECKS_WAIT_MINUTES * 60_000;
+  // Compared with the base, not `mergeStateStatus`: that reads BLOCKED, not
+  // BEHIND, while the required checks are pending.
   const head = async () => {
     const view = JSON.parse(
+      runGh("pr", "view", String(pull), "--json", "headRefOid,baseRefName"),
+    ) as { headRefOid: string; baseRefName: string };
+    const behindBy = Number(
       runGh(
-        "pr",
-        "view",
-        String(pull),
-        "--json",
-        "headRefOid,mergeStateStatus",
+        "api",
+        `repos/${repo}/compare/${view.baseRefName}...${view.headRefOid}`,
+        "--jq",
+        ".behind_by",
       ),
-    ) as { headRefOid: string; mergeStateStatus: string };
-    return { sha: view.headRefOid, behind: view.mergeStateStatus === "BEHIND" };
+    );
+    return { sha: view.headRefOid, behind: behindBy > 0 };
   };
   return {
     head,

@@ -107,19 +107,22 @@ function productionDeployments(repo: string, sha?: string): Deployment[] {
   ) as Deployment[];
 }
 
-function deploymentState(repo: string, id: number): string {
-  return runGh(
-    "api",
-    `repos/${repo}/deployments/${id}/statuses?per_page=1`,
-    "--jq",
-    '.[0].state // "pending"',
-  );
+/** Newest first. */
+function deploymentStates(repo: string, id: number): string[] {
+  return JSON.parse(
+    runGh(
+      "api",
+      `repos/${repo}/deployments/${id}/statuses`,
+      "--jq",
+      "[.[].state]",
+    ),
+  ) as string[];
 }
 
 /** The newest `Production` deployment whose latest status is success. */
 function prodSha(repo: string): string | undefined {
   for (const deployment of productionDeployments(repo)) {
-    if (deploymentState(repo, deployment.id) === "success")
+    if (deploymentStates(repo, deployment.id)[0] === "success")
       return deployment.sha;
   }
   return undefined;
@@ -131,15 +134,17 @@ async function waitForDeploy(
   deadline: number,
 ): Promise<"success" | "failure" | "timed-out"> {
   while (Date.now() < deadline) {
-    const states = productionDeployments(repo, sha).map((d) =>
-      deploymentState(repo, d.id),
+    const histories = productionDeployments(repo, sha).map((d) =>
+      deploymentStates(repo, d.id),
     );
-    if (states.includes("success")) return "success";
+    // Any success, not the latest: a newer deploy marks this one `inactive`.
+    if (histories.some((states) => states.includes("success")))
+      return "success";
     // A redeploy of the same commit can still succeed; a failure with
     // nothing else in flight is final.
     if (
-      states.length > 0 &&
-      states.every((state) => state === "failure" || state === "error")
+      histories.length > 0 &&
+      histories.every(([latest]) => latest === "failure" || latest === "error")
     )
       return "failure";
     await sleep(POLL_MS);

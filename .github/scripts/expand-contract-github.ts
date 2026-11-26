@@ -13,7 +13,6 @@ export interface MergedPull {
 }
 
 export interface GitHub {
-  /** Open `expand-contract` issues. */
   openSteps(): Promise<Step[]>;
   stepsClosedBy(pull: number): Promise<Step[]>;
   mergedClosingPulls(issue: number): Promise<MergedPull[]>;

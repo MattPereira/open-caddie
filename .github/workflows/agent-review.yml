@@ -82,10 +82,11 @@ name: Agent — Review A Pull Request
 #     commits, posts its verdict and inline comments, and merges a clean
 #     step, so it needs Contents and Pull requests: write. The merge must be
 #     by this token: a push to main by GITHUB_TOKEN starts no workflow, so
-#     expand-contract.yml would not start the next step. Keeping
-#     it out of the agent's environment is tidiness, not a wall: the agent
-#     shares the machine with the steps that push and post. The real defence is who can reach the
-#     agent — same-repo PRs only, and a label only a collaborator can apply.
+#     expand-contract.yml would not start the next step. Keeping it out of
+#     the agent's environment is tidiness, not a wall: the agent shares the
+#     machine with the steps that push and post. The real defence is who can
+#     reach the agent — same-repo PRs only, and a label only a collaborator
+#     can apply.
 #   secrets.NEON_API_KEY, vars.NEON_PROJECT_ID and
 #     secrets.PROD_READONLY_DATABASE_URL — restore-bug-report-snapshots restores each Bug
 #     Report's prod snapshot with them. See .github/actions/restore-bug-report-snapshots.

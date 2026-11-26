@@ -31,6 +31,14 @@ describe("sessionCookieHeader", () => {
     );
   });
 
+  it("throws when the callback only cleared the session", () => {
+    expect(() =>
+      sessionCookieHeader([
+        "authjs.session-token=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0",
+      ]),
+    ).toThrow(/no session cookie/i);
+  });
+
   it("throws when the callback set no session, as on a rejected link", () => {
     expect(() =>
       sessionCookieHeader([

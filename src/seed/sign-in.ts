@@ -1,9 +1,12 @@
 import { requireLocalDatabase } from "./local";
+import { sessionCookieHeader } from "./session-cookie";
 
 requireLocalDatabase();
 
-const who = process.argv[2];
-if (!who) throw new Error("Usage: pnpm db:sign-in <email | admin>");
+const args = process.argv.slice(2);
+const cookie = args.includes("--cookie");
+const who = args.find((arg) => arg !== "--cookie");
+if (!who) throw new Error("Usage: pnpm db:sign-in [--cookie] <email | admin>");
 
 const origin = process.env.AUTH_URL ?? "http://localhost:3000";
 
@@ -21,8 +24,15 @@ async function platformAdminEmail() {
   return admin.email;
 }
 
+// Redeeming the link on the server, rather than encoding the JWT here, runs
+// the real Auth.js callback, so the cookie name and claims can't drift.
+async function redeem(url: string) {
+  const response = await fetch(url, { redirect: "manual" });
+  return sessionCookieHeader(response.headers.getSetCookie());
+}
+
 const email = who === "admin" ? await platformAdminEmail() : who;
 const result = await createSignInLinkForEmail({ email, origin });
 if (!result.ok) throw new Error(result.error);
-console.log(result.url);
+console.log(cookie ? await redeem(result.url) : result.url);
 process.exit(0);

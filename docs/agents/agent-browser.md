@@ -106,6 +106,18 @@ Each link works once. The session lasts until you `close` the browser.
 you open it on. It defaults to `http://localhost:3000`, the seed's server; a
 Bug Report's snapshot has its own, in `docs/agents/live-bug-report.md`.
 
+To fetch a page as a signed-in Player with curl (to diff the server HTML, say),
+`--cookie` redeems the link on that server and prints a `Cookie:` header
+instead. Each header is a fresh session, so mint one and reuse it:
+
+```bash
+cookie="$(pnpm -s db:sign-in --cookie admin)"   # or db:sign-in:prod
+curl -s -H "$cookie" "${AUTH_URL:-http://localhost:3000}/onboarding"
+```
+
+It fails, rather than printing a header that doesn't work, if no server is
+answering at `AUTH_URL` or the server rejects the link.
+
 ## A thing that will bite you
 
 **Hydration lags "networkidle".** The button is in the server HTML before

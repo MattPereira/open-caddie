@@ -147,9 +147,13 @@ async function supervise(port: number, database: string | undefined) {
     );
   }
 
+  // Turbopack writes its cache a few seconds after it compiles, and `next dev`
+  // gives next-server only 100ms after a signal before SIGKILL by default. A
+  // kill mid-write leaves .next/dev corrupt, and the next start can hang.
   const child = spawn(command, args, {
     detached: true,
     stdio: ["ignore", "pipe", "pipe"],
+    env: { ...process.env, NEXT_EXIT_TIMEOUT_MS: "10000" },
   });
   state.serverPid = child.pid;
   if (capped) state.memoryMax = memoryMax;
@@ -174,8 +178,10 @@ async function supervise(port: number, database: string | undefined) {
     if (stopping) return;
     stopping = true;
     console.log(`[dev-agent] Stopping: ${reason}.`);
-    killGroup(child.pid, "SIGTERM");
-    setTimeout(() => killGroup(child.pid, "SIGKILL"), 10_000).unref();
+    // Only the parent: it forwards the signal to next-server and waits for it
+    // to finish writing. The group SIGKILL is for a parent that hangs.
+    child.kill("SIGTERM");
+    setTimeout(() => killGroup(child.pid, "SIGKILL"), 15_000).unref();
   };
   const idleCheck = setInterval(
     () => {

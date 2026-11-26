@@ -35,19 +35,10 @@ runs:
       shell: bash
       run: npm install -g @anthropic-ai/claude-code
 
-    - name: Cache agent-browser's Chrome
-      uses: actions/cache@v6
-      with:
-        path: ~/.agent-browser/browsers
-        key: agent-browser-0.27.0-${{ runner.os }}
-
+    # The agent drives the app with it for screenshots and checks. Without it
+    # here, each run installs it mid-session.
     - name: Install agent-browser
-      # The agent drives the app with it for screenshots and checks. Without
-      # it here, each run installs it mid-session.
-      shell: bash
-      run: |
-        npm install -g agent-browser@0.27.0
-        agent-browser install
+      uses: ./.github/actions/install-agent-browser
 
     - name: Prepare the databases
       # The repo's checks and pre-commit hook need a real database. It is

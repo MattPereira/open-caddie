@@ -47,6 +47,15 @@ The workflow ends each axis's section with a **Fixed** and a **Left** list,
 built from your structured output and left out when empty, so each finding
 appears there once and your text stays the reasoning.
 
+## The merge call
+
+You will also be asked for a merge call: `auto` or `needs-a-human`, with a
+one-sentence reason. Call `auto` only when you would merge this PR without a
+person reading it: both axes pass, you left no finding, and nothing in it is a
+decision a person should make. Otherwise call `needs-a-human` and say what the
+person should look at. The call alone merges nothing: the workflow acts on it
+only for an expand/contract step, and checks the rest itself.
+
 ## Evidence
 
 When the PR changes the UI, check its after state in the browser as part of

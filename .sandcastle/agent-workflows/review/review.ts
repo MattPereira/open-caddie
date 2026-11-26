@@ -22,9 +22,9 @@ const HEAD_SHA = required("HEAD_SHA");
 const VERDICT = "/tmp/review-verdict.md";
 
 // The agent fixes and commits, writes the verdict file, and hands back the
-// findings it fixed and left. This script lists those in the verdict. The
-// workflow pushes the commits, posts the verdict and the inline comments,
-// and marks the PR ready.
+// findings it fixed and left, and its merge call. This script lists the
+// findings in the verdict. The workflow pushes the commits, posts the verdict
+// and the inline comments, marks the PR ready, and acts on the merge call.
 const result = await runWithExtraction({
   name: "review",
   agent: claudeAgent(),
@@ -46,7 +46,11 @@ const git = (...args: string[]): string =>
 
 // The diff after the agent's commits: the comments land on that.
 const hunks = diffLines(git("diff", `origin/${BASE_REF}...HEAD`));
-const { fixes, comments: found }: z.infer<typeof reviewSchema> = result.output;
+const {
+  fixes,
+  comments: found,
+  merge,
+}: z.infer<typeof reviewSchema> = result.output;
 const inDiff = ({ path: file, line }: { path: string; line: number }) =>
   hunks.get(file)?.has(line) ?? false;
 const posted = found.filter(inDiff);
@@ -75,6 +79,8 @@ const verdict = fs.existsSync(VERDICT)
   ? fs.readFileSync(VERDICT, "utf8")
   : "The review run produced no verdict. See the logs. Re-add `agent:review` to retry.\n";
 fs.writeFileSync(VERDICT, addFindings(verdict, { fixed, posted, dropped }));
+
+writeJson("review-merge.json", { merge, findingsLeft: found.length });
 
 // The request body for POST /repos/{owner}/{repo}/pulls/{n}/reviews.
 writeJson("review-comments.json", {

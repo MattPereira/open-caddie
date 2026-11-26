@@ -13,21 +13,6 @@ npm install -g agent-browser
 agent-browser install
 ```
 
-On Ubuntu 23.10+, `open` can fail with `FATAL … No usable sandbox!`: AppArmor
-(`kernel.apparmor_restrict_unprivileged_userns = 1`) blocks the Chrome that
-`install` downloads, and `/etc/apparmor.d/chrome` allows only system Chrome.
-Point agent-browser at it in `~/.agent-browser/config.json`, which keeps the
-sandbox:
-
-```json
-{ "executablePath": "/opt/google/chrome/chrome" }
-```
-
-The project's `./agent-browser.json` doesn't accept `executablePath`, so this
-stays per machine. The catch: it relies on system Chrome being kept up to
-date. The alternatives are an AppArmor profile, or `--no-sandbox` (not
-recommended).
-
 ## Asking your own question
 
 In the agent workflows, the app is already running, as a prod build

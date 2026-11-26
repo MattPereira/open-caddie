@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ClientErrorCapture } from "@/components/layout/client-error-capture";
+import { HydrationMarker } from "@/components/layout/hydration-marker";
 import { InstallPromptListener } from "@/components/features/install-app/install-prompt-listener";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { brandFont } from "@/app/fonts";
@@ -65,6 +66,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col">
         <ClientErrorCapture />
         <InstallPromptListener />
+        <HydrationMarker />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

@@ -3,6 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // The agents' screenshots run in CI, where the badge covers the page.
   devIndicators: process.env.CI ? false : undefined,
+  // setup-agent runs one `next start` per database from a copy of the build.
+  // Servers sharing a distDir share its data cache, so one database's cached
+  // rows (`unstable_cache`) would show on another's server.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   // `pg` serves the local Postgres (DATABASE_DRIVER=node-postgres) in dev and
   // tests; deployments use neon-serverless. Keep it out of the Next bundle
   // graph, otherwise Turbopack tries to bundle its Node built-ins

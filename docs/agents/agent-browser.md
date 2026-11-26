@@ -14,9 +14,18 @@ agent-browser install
 
 ## Asking your own question
 
-Start the app with `pnpm dev` first. The examples below use
-`http://localhost:3000`, the Next.js dev server's default address — if
-`pnpm dev` printed a different one, use that.
+In the agent workflows, the app is already running, as a prod build
+(`next build`, then `next start`), once per database:
+
+- the seed: `http://localhost:3000`.
+- Bug Report #n's snapshot: port 3000 + n, e.g. #12 on
+  `http://localhost:3012`. See `docs/agents/live-bug-report.md`.
+
+Setup starts them and the runner stops them when the job ends. Don't build,
+start or kill a server. They run the code as it was when the job started, not
+your edits. A server's log is `/tmp/app-<port>.log`.
+
+Locally, start the app with `pnpm dev` and use the address it printed.
 
 A screenshot is pixels. To verify a fix you need a yes or a no, so read the
 DOM:
@@ -80,17 +89,12 @@ but one has `<key>@example.com`, keyed as in `PLAYERS` in `src/seed/world.ts`.
 
 Each link works once. The session lasts until you `close` the browser.
 `AUTH_SECRET` must be set, and the same in `pnpm db:sign-in` and the app.
-`AUTH_URL` sets the link's origin (default `http://localhost:3000`). Match it
-to the address `pnpm dev` printed.
+`AUTH_URL` sets the link's origin, and must be the address of the server
+you open it on. It defaults to `http://localhost:3000`, the seed's server; a
+Bug Report's snapshot has its own, in `docs/agents/live-bug-report.md`.
 
-## Two things that will bite you
+## A thing that will bite you
 
 **Hydration lags "networkidle".** The button is in the server HTML before
 React attaches its `onClick`, so the first click can be a silent no-op. Poll
 for the click's effect and click again, rather than waiting a fixed time.
-
-**Next.js compiles each route on its first request.** In `pnpm dev`, the
-first load of a route can take seconds and may trigger a reload once it
-finishes. Warm the route with a throwaway `open` before the real loop;
-otherwise it lands mid-interaction and clicks hit a page that is navigating
-away.

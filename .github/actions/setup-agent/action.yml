@@ -2,8 +2,11 @@ name: Set up an agent run
 description: >-
   Installs the toolchain, Claude Code and agent-browser, then migrates and
   seeds the job's Postgres service, and migrates each Bug Report's database
-  that restore-bug-report-snapshots restored. Run it after checkout (and restore-bug-report-snapshots, if any). The
-  job must set DATABASE_URL and DATABASE_DRIVER=node-postgres.
+  that restore-bug-report-snapshots restored. Then it leaves a prod build of
+  the app running on each: the seed on localhost:3000, Bug Report n's on
+  localhost:3000 + n. Run it after checkout (and
+  restore-bug-report-snapshots, if any). The job must set DATABASE_URL and
+  DATABASE_DRIVER=node-postgres.
 
 inputs:
   bug-reports:
@@ -65,11 +68,52 @@ runs:
         done
 
     - name: Configure auth
-      # Where the agent runs the app: Auth.js trusts this host even under
-      # `next start`, and `pnpm db:sign-in` builds its links on it. The secret
-      # is throwaway, shared by the app and `pnpm db:sign-in` for this run.
+      # The secret is throwaway, shared by the servers and `pnpm db:sign-in`
+      # for this run. AUTH_URL is the seed server's address, where
+      # `pnpm db:sign-in` builds its links by default.
       shell: bash
       run: |
         set -euo pipefail
         echo "AUTH_URL=http://localhost:3000" >> "$GITHUB_ENV"
         echo "AUTH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+
+    - name: Start the app
+      # Prod builds, so no route compiles on its first request and the agent
+      # never sees dev-only behaviour. One server per database: the seed on
+      # 3000, Bug Report n's snapshot on 3000 + n. Each gets its own copy of
+      # the build, whose data cache would otherwise leak rows between
+      # databases (see next.config.ts), and an AUTH_URL of its own address,
+      # since Auth.js rejects any other host. The runner kills them at the end
+      # of the job. See docs/agents/agent-browser.md.
+      shell: bash
+      env:
+        BUG_REPORTS: ${{ inputs.bug-reports }}
+      run: |
+        set -euo pipefail
+        pnpm build
+
+        start() {
+          local port=$1 database_url=$2 dist_dir=${3:-}
+          DATABASE_URL="$database_url" AUTH_URL="http://localhost:$port" \
+            NEXT_DIST_DIR="$dist_dir" \
+            nohup pnpm start -p "$port" > "/tmp/app-$port.log" 2>&1 &
+        }
+        start 3000 "$DATABASE_URL"
+        ports=(3000)
+        for n in $BUG_REPORTS; do
+          mkdir -p ".next/bug-$n"
+          rsync -a --exclude=/cache --exclude='/bug-*' .next/ ".next/bug-$n/"
+          port=$((3000 + n))
+          start "$port" "${DATABASE_URL%/*}/open_caddie_bug_$n" ".next/bug-$n"
+          ports+=("$port")
+        done
+
+        for port in "${ports[@]}"; do
+          for _ in $(seq 60); do
+            curl -s -o /dev/null --max-time 5 "http://localhost:$port/" && continue 2
+            sleep 1
+          done
+          echo "::error::The server on localhost:$port did not answer within a minute."
+          cat "/tmp/app-$port.log"
+          exit 1
+        done

@@ -22,9 +22,10 @@ In the agent workflows, the app is already running, once per database:
 
 `echo $APP_MODE` says how:
 
-- `dev`, in the roles that edit code (implement, review): `next dev`, so your
-  edits show without a restart. A route's first visit can take a few seconds
-  while it compiles.
+- `dev`, in the roles that edit code (implement, implement-spec's build,
+  review): `next dev`, so your edits show without a restart. A route's first
+  visit can take a few seconds while it compiles; a Bug Report's server always
+  starts cold, so its first visits are the slow ones.
 - `prod`, in the roles that only read (explore, decompose): a prod build
   (`next build`, then `next start`) of the code as it was when the job
   started, not your edits.

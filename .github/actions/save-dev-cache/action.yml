@@ -1,4 +1,4 @@
-name: Save the dev servers' cache
+name: Save the seed's dev cache
 description: >-
   Stops the seed's dev server that setup-agent started with app-mode dev, then
   saves its Turbopack cache for the next run to restore. Make it the job's
@@ -15,6 +15,9 @@ runs:
       run: |
         set -uo pipefail
         cache=.next/dev/cache
+        log=/tmp/app-3000.log
+        # setup-agent's command line for the seed's server, via serve-dev.sh.
+        server="^node .*next dev -p 3000\$"
         if [ ! -d "$cache" ]; then
           echo "No $cache to save."
           exit 0
@@ -24,17 +27,17 @@ runs:
         # the cache nor the server's log (a line per request) has changed for
         # 15 seconds, or two minutes at most.
         for _ in $(seq 24); do
-          [ -z "$(find "$cache" /tmp/app-3000.log -mmin -0.25 -print -quit)" ] && break
+          [ -z "$(find "$cache" "$log" -mmin -0.25 -print -quit 2>/dev/null)" ] && break
           sleep 5
         done
         # The restart loop first, so it can't bring the server back.
         pkill -f "setup-agent/serve-dev\.sh 3000( |\$)" || true
-        pkill -TERM -f "^node .*next dev -p 3000\$" || true
+        pkill -TERM -f "$server" || true
         for _ in $(seq 30); do
-          pgrep -f "^node .*next dev -p 3000\$" > /dev/null || break
+          pgrep -f "$server" > /dev/null || break
           sleep 1
         done
-        if pgrep -f "^node .*next dev -p 3000\$" > /dev/null; then
+        if pgrep -f "$server" > /dev/null; then
           echo "::warning::The seed's dev server did not stop; not saving its cache."
           exit 0
         fi

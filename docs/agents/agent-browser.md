@@ -71,7 +71,12 @@ The pages need data, and it comes from the seed: a fixed, fictional world of
 Players, six Courses, two Clubs with Past and Current Seasons of Tournaments,
 and Matches. `src/seed/world.ts` says
 exactly what is in it. The agent workflows seed their database before you
-start. A Bug Report also has a prod snapshot: see
+start.
+
+**Read `/tmp/seed-routes.txt` before you look for a page.** The seed writes
+it: one line per seeded page (each Tournament, Match, Club, Course, casual
+Round and play page) and what it shows. Play pages 404 until you sign in as a
+Scorer of that Round, e.g. `admin`. A Bug Report also has a prod snapshot: see
 `docs/agents/live-bug-report.md`.
 
 Locally, `pnpm db:reset` empties, migrates and seeds it. The `local-dev`

@@ -4,16 +4,17 @@ import {
 } from "@/modules/players/server";
 
 import { seedHandicapHustlers, seedMulliganMafia } from "./world/clubs";
-import { seedCourses } from "./world/courses";
+import { courseRoutes, seedCourses } from "./world/courses";
 import { dateFromToday, seedCasualRound } from "./world/events";
 import { seedMatches } from "./world/matches";
 import { ok } from "./world/ok";
 import { seedPlayers } from "./world/players";
+import type { SeededRoute } from "./world/routes";
 
 // Fictional amateurs and societies play real courses. Dates follow today so
 // upcoming, live and completed Events are always available to render.
 
-export async function seedWorld() {
+export async function seedWorld(): Promise<SeededRoute[]> {
   if ((await getAllPlayers()).length > 0) {
     throw new Error(
       "Refusing to seed: the database already has Players. Seed an empty, migrated database.",
@@ -32,22 +33,24 @@ export async function seedWorld() {
 
   const courses = await seedCourses(adminId);
 
-  await seedMulliganMafia(adminId, ids, courses);
-  await seedHandicapHustlers(adminId, ids, courses);
-  await seedMatches(adminId, ids, courses);
-
-  await seedCasualRound(adminId, ids, {
-    player: "jack",
-    course: courses.royalCountyDown,
-    tee: "White",
-    date: dateFromToday(-5),
-    salt: 710,
-  });
-  await seedCasualRound(adminId, ids, {
-    player: "jon",
-    course: courses.sawgrass,
-    tee: "Green",
-    date: dateFromToday(-20),
-    salt: 720,
-  });
+  return [
+    ...(await seedMulliganMafia(adminId, ids, courses)),
+    ...(await seedHandicapHustlers(adminId, ids, courses)),
+    ...(await seedMatches(adminId, ids, courses)),
+    await seedCasualRound(adminId, ids, {
+      player: "jack",
+      course: courses.royalCountyDown,
+      tee: "White",
+      date: dateFromToday(-5),
+      salt: 710,
+    }),
+    await seedCasualRound(adminId, ids, {
+      player: "jon",
+      course: courses.sawgrass,
+      tee: "Green",
+      date: dateFromToday(-20),
+      salt: 720,
+    }),
+    ...courseRoutes(courses),
+  ];
 }

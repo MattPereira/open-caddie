@@ -1,6 +1,7 @@
 import { addDays, format } from "date-fns";
 
 import { required } from "@/lib/required";
+import { matchFormatLabel } from "@/modules/matches";
 import { createMatch, type MatchCreateInput } from "@/modules/matches/server";
 import {
   changeRoundSettings,
@@ -26,6 +27,7 @@ import {
 import type { SeededCourse } from "./courses";
 import { ok } from "./ok";
 import { PLAYERS, roundIdOf, type PlayerIds, type PlayerKey } from "./players";
+import { scoringProgress, type SeededRoute } from "./routes";
 
 export function dateFromToday(offset: number) {
   return format(addDays(new Date(), offset), "yyyy-MM-dd");
@@ -45,17 +47,23 @@ export type TournamentPlan = {
   /** Scores that replace single holes of a generated card. */
   holes?: { player: PlayerKey; hole: number; score: HoleScore }[];
   greenies?: { player: PlayerKey; hole: number; distance: Distance }[];
+  /** What makes it worth opening, for the seeded routes list. */
+  note?: string;
 };
+
+function withNote(base: string, note: string | undefined) {
+  return note ? `${base}. ${note}` : base;
+}
 
 export async function seedTournament(
   adminId: string,
   ids: PlayerIds,
-  clubHandle: string,
+  club: { handle: string; name: string },
   plan: TournamentPlan,
-) {
+): Promise<SeededRoute[]> {
   const created = ok(
     await createTournament(adminId, {
-      clubHandle,
+      clubHandle: club.handle,
       date: plan.date,
       courseHandle: plan.course.handle,
       teeId: plan.course.tee(plan.tee),
@@ -92,7 +100,24 @@ export async function seedTournament(
     }
   }
 
-  if (plan.holesScored === 0) return;
+  const firstEntrant = entrants[0];
+  const routes: SeededRoute[] = [
+    {
+      path: `/tournaments/${tournamentId}`,
+      shows: withNote(
+        `${club.name} Tournament at ${plan.course.name}, ${plan.date}, ${scoringProgress(plan.holesScored)}`,
+        plan.note,
+      ),
+    },
+  ];
+  if (plan.holesScored < 18) {
+    routes.push({
+      path: `/rounds/${roundOf(firstEntrant)}/play`,
+      shows: `play page for ${PLAYERS[firstEntrant].firstName}'s Round in that Tournament`,
+    });
+  }
+
+  if (plan.holesScored === 0) return routes;
   for (const [index, key] of entrants.entries()) {
     const full =
       plan.cards?.[key] ??
@@ -111,6 +136,7 @@ export async function seedTournament(
       greenie.distance,
     );
   }
+  return routes;
 }
 
 export type MatchPlan = {
@@ -124,6 +150,22 @@ export type MatchPlan = {
   /** Missing means the Round has no Player Index Override. */
   overrides: Partial<Record<PlayerKey, number>>;
 };
+
+export function matchRoute(
+  matchId: number,
+  plan: MatchPlan,
+  progress: string,
+  note?: string,
+): SeededRoute {
+  const names = plan.players.map((key) => PLAYERS[key].firstName).join(", ");
+  return {
+    path: `/matches/${matchId}`,
+    shows: withNote(
+      `${matchFormatLabel(plan.format)} Match at ${plan.course.name}, ${plan.date}, ${progress}: ${names}`,
+      note,
+    ),
+  };
+}
 
 export async function seedMatch(
   adminId: string,
@@ -143,7 +185,8 @@ export async function seedMatch(
     }),
     `${plan.format} match`,
   );
-  const { rounds } = await getMatchRounds(required(created.id, "match id"));
+  const matchId = required(created.id, "match id");
+  const { rounds } = await getMatchRounds(matchId);
   const roundOf = roundIdOf(rounds, ids);
   for (const [key, playerIndexOverride] of Object.entries(plan.overrides)) {
     ok(
@@ -153,7 +196,7 @@ export async function seedMatch(
       `${key}'s override`,
     );
   }
-  return roundOf;
+  return { matchId, roundOf };
 }
 
 /** A Match with every Player's generated card, `holes` deep. */
@@ -162,18 +205,18 @@ export async function seedPlayedMatch(
   ids: PlayerIds,
   plan: MatchPlan & { salt: number; holes: number },
 ) {
-  const roundOf = await seedMatch(adminId, ids, plan);
+  const seeded = await seedMatch(adminId, ids, plan);
   for (const [index, key] of plan.players.entries()) {
     await writeScores(
       adminId,
-      roundOf(key),
+      seeded.roundOf(key),
       firstHoles(
         scorecard(plan.course.pars, PLAYERS[key].skill, plan.salt + index),
         plan.holes,
       ),
     );
   }
-  return roundOf;
+  return seeded;
 }
 
 export async function seedCasualRound(
@@ -186,7 +229,7 @@ export async function seedCasualRound(
     date: string;
     salt: number;
   },
-) {
+): Promise<SeededRoute> {
   const { roundId } = ok(
     await createRound(ids[plan.player], {
       courseHandle: plan.course.handle,
@@ -201,4 +244,8 @@ export async function seedCasualRound(
     roundId,
     scorecard(plan.course.pars, PLAYERS[plan.player].skill, plan.salt),
   );
+  return {
+    path: `/rounds/${roundId}`,
+    shows: `${PLAYERS[plan.player].firstName}'s casual Round at ${plan.course.name}, ${plan.date}, completed`,
+  };
 }

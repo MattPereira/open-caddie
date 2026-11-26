@@ -35,10 +35,7 @@ else if (command === "dev")
 // The link's token has to land in the database dev:prod reads.
 else if (command === "sign-in")
   await run("pnpm", ["-s", "db:sign-in", ...rest], copyUrl);
-else
-  throw new Error(
-    "Usage: tsx src/seed/prod-copy.ts <copy | dev | sign-in [--cookie] <email | admin>>",
-  );
+else throw new Error("Usage: tsx src/seed/prod-copy.ts <copy | dev | sign-in>");
 
 async function copy() {
   if (!process.env.PROD_READONLY_DATABASE_URL) {

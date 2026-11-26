@@ -168,6 +168,7 @@ describe("seedWorld", () => {
       expect(paths).toContain(`/matches/${id}`);
     for (const { handle } of await getAllCourses())
       expect(paths).toContain(`/courses/${handle}`);
+    expect(paths).toContain(`/players/${await playerId("Adam Scotty")}`);
     expect(new Set(paths).size).toBe(paths.length);
   });
 

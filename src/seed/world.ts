@@ -8,7 +8,7 @@ import { courseRoutes, seedCourses } from "./world/courses";
 import { dateFromToday, seedCasualRound } from "./world/events";
 import { seedMatches } from "./world/matches";
 import { ok } from "./world/ok";
-import { seedPlayers } from "./world/players";
+import { playerRoutes, seedPlayers } from "./world/players";
 import type { SeededRoute } from "./world/routes";
 
 // Fictional amateurs and societies play real courses. Dates follow today so
@@ -51,6 +51,7 @@ export async function seedWorld(): Promise<SeededRoute[]> {
       date: dateFromToday(-20),
       salt: 720,
     }),
+    ...playerRoutes(ids),
     ...courseRoutes(courses),
   ];
 }

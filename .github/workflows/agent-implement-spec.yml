@@ -428,6 +428,8 @@ jobs:
 
       - name: Set up the agent run
         uses: ./.github/actions/setup-agent
+        with:
+          app-mode: dev
 
       - name: Claim the ticket
         # Moving the label first is what stops a cron tick that lands during a
@@ -599,6 +601,10 @@ jobs:
             gh issue comment "$TICKET" \
               --body "The chain could not finish this one (**${{ job.status }}**) — [logs](${RUN_URL}). Left open and labelled for a person. The queue will skip past it. Take \`agent:blocked\` off to put it back in the queue. <!-- factory:status -->"
           fi
+
+      - name: Save the dev servers' cache
+        if: always()
+        uses: ./.github/actions/save-dev-cache
 
   # ── THE CHAIN ─────────────────────────────────────────────────────────────
   #

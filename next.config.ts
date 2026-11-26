@@ -7,6 +7,13 @@ const nextConfig: NextConfig = {
   // Servers sharing a distDir share its data cache, so one database's cached
   // rows (`unstable_cache`) would show on another's server.
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  // `next dev` adds its distDir's types to the tsconfig it reads, so each
+  // setup-agent server with its own distDir reads its own (gitignored)
+  // tsconfig that extends ours, leaving ours untouched. Turbopack can't read
+  // one inside the distDir.
+  typescript: {
+    tsconfigPath: process.env.NEXT_TSCONFIG_PATH || "tsconfig.json",
+  },
   // `pg` serves the local Postgres (DATABASE_DRIVER=node-postgres) in dev and
   // tests; deployments use neon-serverless. Keep it out of the Next bundle
   // graph, otherwise Turbopack tries to bundle its Node built-ins

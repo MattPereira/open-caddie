@@ -63,3 +63,6 @@ stryker.log
 
 # Original image-generation drops; optimized assets live under public/seed/.
 /scripts/seed-images/raw/
+
+# setup-agent: per-server tsconfigs (see next.config.ts)
+/tsconfig.bug-*.json

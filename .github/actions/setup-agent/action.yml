@@ -2,9 +2,10 @@ name: Set up an agent run
 description: >-
   Installs the toolchain, Claude Code and agent-browser, then migrates and
   seeds the job's Postgres service, and migrates each Bug Report's database
-  that restore-bug-report-snapshots restored. Then it leaves a prod build of
-  the app running on each: the seed on localhost:3000, Bug Report n's on
-  localhost:3000 + n. Run it after checkout (and
+  that restore-bug-report-snapshots restored. Then it leaves the app running
+  on each, as a prod build or a hot-reloading dev server (app-mode): the seed
+  on localhost:3000, Bug Report n's on localhost:3000 + n. Run it after
+  checkout (and
   restore-bug-report-snapshots, if any). The job must set DATABASE_URL and
   DATABASE_DRIVER=node-postgres.
 
@@ -13,6 +14,13 @@ inputs:
     description: restore-bug-report-snapshots's bug-reports output. Each has a database open_caddie_bug_<n>.
     required: false
     default: ""
+  app-mode:
+    description: >-
+      prod runs `next start` on a build of the code as it was when setup ran.
+      dev runs `next dev`, so the agent's edits show without a restart: for
+      the roles that edit code. Exported as APP_MODE.
+    required: false
+    default: prod
 
 runs:
   using: composite
@@ -77,43 +85,103 @@ runs:
         echo "AUTH_URL=http://localhost:3000" >> "$GITHUB_ENV"
         echo "AUTH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
 
+    - name: Name the dev servers' cache
+      # Unique per run, so every run saves its own and the next run restores
+      # the newest one for the same lockfile.
+      if: inputs.app-mode == 'dev'
+      id: dev-cache
+      shell: bash
+      run: |
+        prefix="next-dev-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-"
+        echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
+        echo "NEXT_DEV_CACHE_KEY=$prefix${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
+
+    - name: Restore the dev servers' cache
+      # Turbopack's dev cache, so routes compile warm. Restore only: the job
+      # saves it with save-dev-cache once the seed's server has stopped, as a
+      # live server can be mid-write.
+      if: inputs.app-mode == 'dev'
+      uses: actions/cache/restore@v6
+      with:
+        path: .next/dev
+        key: ${{ env.NEXT_DEV_CACHE_KEY }}
+        restore-keys: ${{ steps.dev-cache.outputs.prefix }}
+
     - name: Start the app
-      # Prod builds, so no route compiles on its first request and the agent
-      # never sees dev-only behaviour. One server per database: the seed on
-      # 3000, Bug Report n's snapshot on 3000 + n. Each gets its own copy of
-      # the build, whose data cache would otherwise leak rows between
-      # databases (see next.config.ts), and an AUTH_URL of its own address,
-      # since Auth.js rejects any other host. The runner kills them at the end
-      # of the job. See docs/agents/agent-browser.md.
+      # One server per database: the seed on 3000, Bug Report n's snapshot on
+      # 3000 + n. Each gets its own distDir, whose data cache would otherwise
+      # leak rows between databases (see next.config.ts), and an AUTH_URL of
+      # its own address, since Auth.js rejects any other host.
+      # prod: one build, copied per server. No route compiles on its first
+      # request and the agent never sees dev-only behaviour, but it runs the
+      # code as it was here, not the agent's edits.
+      # dev: `next dev` in a restart loop, so a server the agent kills or
+      # crashes comes back. Only the seed's server gets the restored cache:
+      # Turbopack hangs on a cache copied into another distDir.
+      # The runner kills them at the end of the job. See
+      # docs/agents/agent-browser.md.
       shell: bash
       env:
         BUG_REPORTS: ${{ inputs.bug-reports }}
+        APP_MODE: ${{ inputs.app-mode }}
       run: |
         set -euo pipefail
-        pnpm build
+        case "$APP_MODE" in
+          prod | dev) ;;
+          *) echo "::error::app-mode must be prod or dev, not '$APP_MODE'."; exit 1 ;;
+        esac
+        echo "APP_MODE=$APP_MODE" >> "$GITHUB_ENV"
+
+        if [ "$APP_MODE" = prod ]; then
+          pnpm build
+        fi
 
         start() {
-          local port=$1 database_url=$2 dist_dir=${3:-}
-          DATABASE_URL="$database_url" AUTH_URL="http://localhost:$port" \
-            NEXT_DIST_DIR="$dist_dir" \
-            nohup pnpm start -p "$port" > "/tmp/app-$port.log" 2>&1 &
+          local port=$1 database_url=$2 dist_dir=${3:-} tsconfig=${4:-}
+          if [ "$APP_MODE" = prod ]; then
+            DATABASE_URL="$database_url" AUTH_URL="http://localhost:$port" \
+              NEXT_DIST_DIR="$dist_dir" NEXT_TSCONFIG_PATH="$tsconfig" \
+              nohup pnpm start -p "$port" > "/tmp/app-$port.log" 2>&1 &
+          else
+            DATABASE_URL="$database_url" AUTH_URL="http://localhost:$port" \
+              NEXT_DIST_DIR="$dist_dir" NEXT_TSCONFIG_PATH="$tsconfig" \
+              nohup "$GITHUB_ACTION_PATH/serve-dev.sh" "$port" "$dist_dir" \
+              >> "/tmp/app-$port.log" 2>&1 &
+          fi
         }
-        start 3000 "$DATABASE_URL"
+
         ports=(3000)
         for n in $BUG_REPORTS; do
           mkdir -p ".next/bug-$n"
-          rsync -a --exclude=/cache --exclude='/bug-*' .next/ ".next/bug-$n/"
-          port=$((3000 + n))
-          start "$port" "${DATABASE_URL%/*}/open_caddie_bug_$n" ".next/bug-$n"
-          ports+=("$port")
+          # See next.config.ts. Gitignored.
+          echo '{ "extends": "./tsconfig.json" }' > "tsconfig.bug-$n.json"
+          if [ "$APP_MODE" = prod ]; then
+            rsync -a --exclude=/cache --exclude=/dev --exclude='/bug-*' .next/ ".next/bug-$n/"
+          fi
+          ports+=("$((3000 + n))")
         done
 
+        start 3000 "$DATABASE_URL"
+        for n in $BUG_REPORTS; do
+          start "$((3000 + n))" "${DATABASE_URL%/*}/open_caddie_bug_$n" ".next/bug-$n" "tsconfig.bug-$n.json"
+        done
+
+        # In dev, the first request compiles the route, so give it longer. A
+        # server that finds its restored cache corrupt can hang: kill it, and
+        # serve-dev.sh restarts it without the cache.
+        deadline=$((SECONDS + 300))
         for port in "${ports[@]}"; do
-          for _ in $(seq 60); do
-            curl -s -o /dev/null --max-time 5 "http://localhost:$port/" && continue 2
+          until curl -s -o /dev/null --max-time 30 "http://localhost:$port/"; do
+            if [ "$SECONDS" -ge "$deadline" ]; then
+              echo "::error::The server on localhost:$port did not answer within five minutes."
+              cat "/tmp/app-$port.log"
+              exit 1
+            fi
+            if [ "$APP_MODE" = dev ] && grep -q "Cache corruption detected" "/tmp/app-$port.log"; then
+              echo "::warning::The dev server on localhost:$port found its cache corrupt; restarting it cold."
+              : > "/tmp/app-$port.log"
+              pkill -f "^node .*next dev -p $port\$" || true
+            fi
             sleep 1
           done
-          echo "::error::The server on localhost:$port did not answer within a minute."
-          cat "/tmp/app-$port.log"
-          exit 1
         done

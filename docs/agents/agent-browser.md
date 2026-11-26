@@ -14,16 +14,33 @@ agent-browser install
 
 ## Asking your own question
 
-In the agent workflows, the app is already running, as a prod build
-(`next build`, then `next start`), once per database:
+In the agent workflows, the app is already running, once per database:
 
 - the seed: `http://localhost:3000`.
 - Bug Report #n's snapshot: port 3000 + n, e.g. #12 on
   `http://localhost:3012`. See `docs/agents/live-bug-report.md`.
 
+`echo $APP_MODE` says how:
+
+- `dev`, in the roles that edit code (implement, review): `next dev`, so your
+  edits show without a restart. A route's first visit can take a few seconds
+  while it compiles.
+- `prod`, in the roles that only read (explore, decompose): a prod build
+  (`next build`, then `next start`) of the code as it was when the job
+  started, not your edits.
+
 Setup starts them and the runner stops them when the job ends. Don't build,
-start or kill a server. They run the code as it was when the job started, not
-your edits. A server's log is `/tmp/app-<port>.log`.
+start or kill a server: a dev server that dies comes back on its own, without
+its cache, so its routes compile again. A server's log, crashes and restarts
+included, is `/tmp/app-<port>.log`.
+
+After adding a migration, apply it to every database. The servers pick it up
+without a restart:
+
+```bash
+pnpm db:migrate                                          # the seed
+DATABASE_URL="${DATABASE_URL%/*}/open_caddie_bug_12" pnpm db:migrate   # Bug Report #12
+```
 
 Locally, start the app with `pnpm dev` and use the address it printed.
 

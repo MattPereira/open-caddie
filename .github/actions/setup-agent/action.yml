@@ -112,8 +112,9 @@ runs:
       # leak rows between databases (see next.config.ts), and an AUTH_URL of
       # its own address, since Auth.js rejects any other host. prod copies one
       # build per server. dev runs serve-dev.sh, and only the seed's server
-      # gets the restored cache: Turbopack hangs on a cache copied into
-      # another distDir. The runner kills them at the end of the job. See
+      # gets the restored cache. Never give a snapshot's distDir a copy of it:
+      # Turbopack hangs on it and allocates ~700 MB/s until it is OOM-killed.
+      # The runner kills them at the end of the job. See
       # docs/agents/agent-browser.md.
       shell: bash
       env:
@@ -146,6 +147,7 @@ runs:
         ports=(3000)
         for n in $BUG_REPORTS; do
           port=$((3000 + n))
+          rm -rf ".next/bug-$n"
           mkdir -p ".next/bug-$n"
           if [ "$APP_MODE" = prod ]; then
             rsync -a --exclude=/cache --exclude=/dev --exclude='/bug-*' .next/ ".next/bug-$n/"

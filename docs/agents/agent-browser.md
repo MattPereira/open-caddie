@@ -3,7 +3,8 @@
 This is how you drive a page in the app, and ask it questions.
 
 It uses [agent-browser](https://github.com/vercel-labs/agent-browser), a CLI
-built for exactly this — one command per action, an answer on stdout.
+built for exactly this — one command per action, an answer on stdout. Its
+docs: https://agent-browser.dev/introduction.
 
 ## Once, per machine
 
@@ -11,6 +12,21 @@ built for exactly this — one command per action, an answer on stdout.
 npm install -g agent-browser
 agent-browser install
 ```
+
+On Ubuntu 23.10+, `open` can fail with `FATAL … No usable sandbox!`: AppArmor
+(`kernel.apparmor_restrict_unprivileged_userns = 1`) blocks the Chrome that
+`install` downloads, and `/etc/apparmor.d/chrome` allows only system Chrome.
+Point agent-browser at it in `~/.agent-browser/config.json`, which keeps the
+sandbox:
+
+```json
+{ "executablePath": "/opt/google/chrome/chrome" }
+```
+
+The project's `./agent-browser.json` doesn't accept `executablePath`, so this
+stays per machine. The catch: it relies on system Chrome being kept up to
+date. The alternatives are an AppArmor profile, or `--no-sandbox` (not
+recommended).
 
 ## Asking your own question
 
@@ -50,6 +66,13 @@ The commands worth knowing: `open`, `click`, `fill`,
 `is visible|enabled|checked`, `eval`, `snapshot` (the accessibility tree, with
 refs), `screenshot`, `set viewport <w> <h>`, `set media dark|light`,
 `console`, `errors`, `close`. `agent-browser --help` has the rest.
+
+Icon buttons have no text, so `find label` misses them. Use their
+`aria-label`: `click '[aria-label="Add match"]'`.
+
+The console buffer is shared across sessions, so `console` can show another
+project's lines, such as `[vite]`. Pass `--session <name>` to every command,
+or run `console --clear` before the action you are checking.
 
 `screenshot` needs an absolute path: a relative one resolves against the
 agent-browser daemon's directory, not yours.

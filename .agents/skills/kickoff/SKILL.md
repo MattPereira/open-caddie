@@ -17,7 +17,7 @@ Each lane is named for who does the work.
 - **Remote Factory** (R): a GitHub Actions run started by a label, on a billed cloud runner. A run never waits for the human: it ends with a draft PR or a labelled issue. The default lane for agent work. Trace: `agent:implement` or `agent:explore`, then `agent:in-progress`.
 - **Local Workers** (L): an Orca worker on the human's machine, started and supervised by this session. A worker can `ask` mid-task, so call it a _worker_, the human-in-the-loop counterpart to a factory run. Pick it when the work needs the human's machine (local Postgres, Orca, a prod copy, a machine-only bug) or their input along the way. Trace: `local-worker`, plus the worker's Orca worktree.
 
-**Housekeeping** (K) holds triage calls you can make from the issue body alone: a label, or `close` with the PR or issue that did the work. Triage that needs the code checked goes to Remote Factory as `agent:explore`. Triage that needs the human's judgement (product, policy, a data migration) goes to Human Required.
+**Triage** (T) holds only mechanical calls, ones that need no judgement: `close` with the PR or issue that did the work, `ready-for-agent` for a fully specified issue whose blocker merged, or removing a stale label. Triage that needs the code checked goes to Remote Factory as `agent:explore`. Anything that needs a decision goes to Human Required as `triage`: product, policy, a data migration, or whether an issue is specified enough to build. Don't relabel it `ready-for-human` to route it there; the lane is the routing.
 
 ## 1. Survey
 
@@ -53,7 +53,7 @@ Leave out issues with an open blocker, issues labelled `agent:in-progress`, `loc
 
 Read the body and comments of each item before you print it: `gh issue view <n> --json number,title,body,labels,comments`, `gh pr view <n> --comments`.
 
-Print the three lanes in this order, at most 5 items each, top pick first, then the Housekeeping line. Leave out an empty lane. Each header carries what a pick does, so the human knows the consequence before replying:
+Print the three lanes in this order, at most 5 items each, top pick first, then the Triage line. Leave out an empty lane. Each header carries what a pick does, so the human knows the consequence before replying:
 
 | Lane | Holds | Header |
 | --- | --- | --- |
@@ -61,21 +61,21 @@ Print the three lanes in this order, at most 5 items each, top pick first, then 
 | **Remote Factory** | unblocked `ready-for-agent` issues; triage that needs the code checked | `## Remote Factory: labels agent:implement or agent:explore, a billed cloud run` |
 | **Local Workers** | unblocked `ready-for-agent` issues that need the human's machine or input along the way | `## Local Workers: labels local-worker, starts an Orca worker this session supervises` |
 
-Write each item on one line, with its action after the description: `review`, `merge`, `fix`, `start` or `triage` in Human Required, `implement` or `explore` in Remote Factory. A Local Workers item's reason says why it can't run in the cloud.
+Write each item on one line, its action in bold before the link: `review`, `merge`, `fix`, `start` or `triage` in Human Required, `implement` or `explore` in Remote Factory, `build` in Local Workers. A Local Workers item's reason says why it can't run in the cloud.
 
 ```
-H1 [#299](…): skill that picks the next work · merge, green and approved
-H2 [#292](…): local test flakes from shared test DB · start, assigned to you
-R1 [#301](…): move seed scripts out of src · implement, follow-up from #296
-L1 [#300](…): untangle agent-browser doc by environment · needs local Orca to check
+H1 **merge** [#299](…): skill that picks the next work · green and approved
+H2 **start** [#292](…): local test flakes from shared test DB · assigned to you
+R1 **implement** [#301](…): move seed scripts out of src · follow-up from #296
+L1 **build** [#300](…): untangle agent-browser doc by environment · needs local Orca to check
 ```
 
 The description is about 8 words, in your own words from the body, so the human knows the item without clicking. The reason is about 4 words, tied to a rank from step 2; when a merge from the last 7 days unblocked the item, the reason names it.
 
-Put Housekeeping on one line, each call with its proposal (a label from `docs/agents/triage-labels.md`, or `close`) and reason:
+Put Triage on one line, each call with its proposal (a label from `docs/agents/triage-labels.md`, or `close`) and reason:
 
 ```
-Housekeeping: K1 [#215](…) close, done by #294 · K2 [#143](…) → ready-for-human, needs a backfill decision
+Triage: T1 **close** [#215](…) · done by #294 · T2 **→ ready-for-agent** [#297](…) · unblocked by #295
 ```
 
 When workers are running, add one line for them. Their mail goes to the session that started them:
@@ -84,10 +84,10 @@ When workers are running, add one line for them. Their mail goes to the session 
 Local Workers running: [#300](…), [#301](…)
 ```
 
-Below them, propose the plan: the top 1–2 items of each lane, about 5 in all, in the order to work them, Human Required first, plus every Housekeeping call.
+Below them, propose the plan: the top 1–2 items of each lane, about 5 in all, in the order to work them, Human Required first, plus every Triage call.
 
 ```
-Plan: H1, H2, R1, L1, K1, K2
+Plan: H1, H2, R1, L1, T1, T2
 Reply yes to run it (starts 1 billed run and 1 local worker), or edit it: "drop R1, add H3", "move R1 to local", "L1 on codex".
 ```
 
@@ -108,15 +108,15 @@ The approval is the go-ahead. Act on every item in the plan:
   ```
 
   `--agent codex` when the human asked for it. Keep each receipt's dispatch ID for step 6. The PR gets no `agent:review`: the worker's skill runs `code-review` itself.
-- **Housekeeping**: apply the label and remove `needs-triage`, or `gh issue close <n> --comment "Done by #<m>."`.
+- **Triage**: apply the label and remove `needs-triage`, or `gh issue close <n> --comment "Done by #<m>."`.
 
 Then print the plan in the agreed order:
 
 ```markdown
 ## Next
 
-1. [#299](…): skill that picks the next work (merge)
-2. [#292](…): local test flakes from shared test DB (start)
+1. **merge** [#299](…): skill that picks the next work
+2. **start** [#292](…): local test flakes from shared test DB
 
 ## Remote Factory
 

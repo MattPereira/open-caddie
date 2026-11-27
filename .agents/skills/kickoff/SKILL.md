@@ -7,7 +7,7 @@ description: Kick off a work session: survey open issues, PRs, recent merges and
 
 Survey what's going on, sort it into three **lanes**, propose a **plan**, act on the plan the human approves, hand off, then supervise the Local Workers. GitHub, git and Orca are the sources of truth: rebuild the picture from them every run. Keep no list of your own: every pick leaves its trace as an assignee or a label, and a later run reads it back.
 
-Every issue or PR number you write, in any step, is a Markdown link to it: [#292](https://github.com/<owner>/<repo>/issues/292). Get `<owner>/<repo>` from `gh repo view --json nameWithOwner`; `/issues/<n>` redirects to `/pull/<n>` for PRs.
+Every issue or PR number you write, in any step, is a Markdown link to it: [#292](https://github.com/<owner>/<repo>/issues/292). `<owner>/<repo>` is the survey's `repo`; `/issues/<n>` redirects to `/pull/<n>` for PRs.
 
 ## Lanes
 
@@ -21,25 +21,31 @@ Each lane is named for who does the work.
 
 ## 1. Survey
 
-Pull only the fields below for everything. Read full bodies and comments only for the items you print in step 3; reading every body would fill your context before the decision starts. Run these in parallel from the repo:
+Run the survey from the repo root. It runs the GitHub, git and Orca reads in parallel, applies the mechanical rules below and in step 2, and prints one JSON picture:
 
 ```bash
-gh issue list --state open --limit 200 --json number,title,labels,assignees,blockedBy,blocking --jq '.[] | {number, title, labels: [.labels[].name], assignees: [.assignees[].login], blockedBy: [.blockedBy.nodes[]? | select(.state == "OPEN") | .number], blocking: [.blocking.nodes[]? | select(.state == "OPEN") | .number]}'
-gh pr list --state open --json number,title,author,headRefName,isDraft,reviewDecision,mergeable,statusCheckRollup,closingIssuesReferences
-gh pr list --state merged --search "merged:>=<7 days ago, YYYY-MM-DD>" --limit 100 --json number,title,mergedAt,closingIssuesReferences
-git worktree list --porcelain
-orca worktree ps      # per worktree: Orca comment, each agent's last ask and last reply
+node .agents/skills/kickoff/survey.ts            # add --pretty to read it yourself
 ```
 
-For each worktree other than the main checkout, `git -C <path> status -sb` shows dirty files and unpushed commits.
+- `human`, `agent`, `triage`: candidates sorted in step 2's order, each with `n`, `title`, a proposed `action`, a `why` and its `rank`. The top 5 of `human` and `agent`, and every `triage` item, carry a `detail`: a body excerpt and the last non-bot comment.
+- `agent`: unblocked `ready-for-agent` issues (`implement`) and `agent:blocked` ones (`explore`). You pick Remote Factory or Local Workers for each.
+- `running`: `agent:in-progress` issues, and `local-worker` issues whose worker is live.
+- `worktrees`: every worktree but the main checkout, with its PR, git status, live agents, and `why` it's unfinished.
+- `unlabelled`: issues in no lane. `skipped`: issues left out for an open blocker or another assignee.
+- `warnings`: a source that failed, such as Orca not running. Say so when you print.
 
-Match every `local-worker` issue to its worker's worktree: the worktree whose name starts with `<n>-` or whose Orca comment names `#<n>`. Its state is the first that holds: **done** when an open PR closes the issue (remove the label; the PR is a Human Required item), **running** when the worktree has a live agent, **gone** otherwise.
+Rules the survey applies, so you don't redo them:
+
+- An issue that an open PR closes is folded into that PR's item.
+- A PR's checks are `green`, `red` or `pending`. Red or changes requested → `fix`; approved, or the human's own non-agent PR → `merge`; otherwise `review`.
+- A `local-worker` issue matches the worktree whose name or branch starts with `<n>-` or whose Orca comment names `#<n>`. It's **done** when an open PR closes it (triage: remove the label), **running** when that worktree has a live agent, **gone** otherwise (Human Required).
+- A tracking issue whose checklist sub-issues (`- [ ] #n`) are all closed → triage `close`.
 
 Done when every open issue, open PR and worktree is in your picture with its state: blocked or startable, checks red or green, review pending or answered, pushed or not, worker done, running or gone.
 
 ## 2. Rank
 
-Rank candidates in this order. The human can override it.
+The survey sorts each lane in this order. Move an item when its `detail` or a worktree's `why` shows it ranks higher, such as a worktree with unpushed work. The human can override it.
 
 1. **In-flight**: finish or unblock what's already started. A PR waiting on the human (agent draft, a Local Worker's ready PR, approval to merge, red checks, unanswered review comment); a merge that unblocks follow-ups; a worktree with unpushed work or no PR; an issue assigned to the human, which an earlier run's pick left behind; a `local-worker` issue whose worker is gone.
 2. **Live bugs**: issues labelled `live-bug-report` or `bug`.
@@ -47,11 +53,15 @@ Rank candidates in this order. The human can override it.
 4. **Momentum**: issues that continue or were unblocked by what merged in the last 7 days.
 5. Everything else.
 
-Leave out issues with an open blocker, issues labelled `agent:in-progress`, `local-worker` issues whose worker is running, and issues assigned to someone else. Treat pending checks as passing.
+The survey leaves out issues with an open blocker, issues labelled `agent:in-progress`, `local-worker` issues whose worker is running, and issues assigned to someone else. Treat pending checks as passing.
 
 ## 3. Print the lanes and the plan
 
-Read the body and comments of each item before you print it: `gh issue view <n> --json number,title,body,labels,comments`, `gh pr view <n> --comments`.
+Write each item's What from its `detail`. When that's not enough, or the item has none, read the full bodies and non-bot comments, fetched in parallel:
+
+```bash
+node .agents/skills/kickoff/survey.ts bodies <n>...
+```
 
 Print the three lanes in this order, at most 5 items each, top pick first, then Triage. Leave out an empty lane.
 

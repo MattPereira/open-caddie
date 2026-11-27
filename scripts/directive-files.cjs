@@ -7,7 +7,7 @@
 /* oxlint-disable typescript/no-require-imports -- CJS, for the depcruise config */
 const { readdirSync, readFileSync } = require("node:fs");
 
-const SOURCE = /\.(ts|tsx|js|jsx|mjs|cjs)$/;
+const SOURCE_EXTENSION = /\.(ts|tsx|js|jsx|mjs|cjs)$/;
 // A directive is only a directive in the prologue: before any other statement,
 // though comments and other directives may come first.
 const PROLOGUE_ITEM =
@@ -35,7 +35,7 @@ function sourceFiles(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = `${dir}/${entry.name}`;
     if (entry.isDirectory()) return sourceFiles(path);
-    return SOURCE.test(entry.name) ? [path] : [];
+    return SOURCE_EXTENSION.test(entry.name) ? [path] : [];
   });
 }
 

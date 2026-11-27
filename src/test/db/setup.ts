@@ -2,9 +2,9 @@ import { sql } from "drizzle-orm";
 import { beforeEach } from "vitest";
 
 import {
-  baseDatabaseName,
   databaseUrl,
   quoteIdent,
+  runDatabaseName,
   templateName,
   withMaintenanceClient,
   workerName,
@@ -13,7 +13,7 @@ import {
 // Runs in each worker before the suite's imports, so `@/db` binds to this
 // worker's database. A pool ID belongs to one worker at a time, so the
 // existence check cannot race another worker.
-const base = baseDatabaseName(process.env);
+const base = runDatabaseName(process.env);
 const database = workerName(base, process.env.VITEST_POOL_ID ?? "0");
 
 await withMaintenanceClient(process.env, async (client) => {

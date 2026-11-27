@@ -4,7 +4,11 @@ import type { TestProject } from "vitest/node";
 import setup from "./global-setup";
 
 function run(env: Record<string, string>) {
-  return setup({ config: { env } } as unknown as TestProject);
+  return setup({
+    config: {
+      env: { TEST_DATABASE_RUN_ID: "11111111111111111111111111111111", ...env },
+    },
+  } as unknown as TestProject);
 }
 
 // Matching "Refusing" matters: a connect attempt would also fail and name the

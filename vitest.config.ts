@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { config as loadEnv } from "dotenv";
 import { configDefaults, defineConfig } from "vitest/config";
@@ -17,6 +18,7 @@ function definedEnv() {
 }
 
 const DB_TESTS = "**/*.db.test.ts";
+const DB_LIFECYCLE_TESTS = "src/test/db/lifecycle.db.test.ts";
 // Claude Code worktrees and interrupted Stryker runs leave full copies of the
 // tree inside the repo. Without this every test file runs once per copy on top
 // of the real one, and the extra db tests exhaust Postgres connections.
@@ -57,8 +59,10 @@ export default defineConfig({
         test: {
           name: "db",
           include: [DB_TESTS],
+          exclude: [...EXCLUDE, DB_LIFECYCLE_TESTS],
           env: {
             ...env,
+            TEST_DATABASE_RUN_ID: randomBytes(16).toString("hex"),
             ...(env.TEST_DATABASE_URL && {
               DATABASE_URL: env.TEST_DATABASE_URL,
             }),
@@ -66,6 +70,18 @@ export default defineConfig({
           },
           globalSetup: ["./src/test/db/global-setup.ts"],
           setupFiles: ["./src/test/setup.ts", "./src/test/db/setup.ts"],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "db-lifecycle",
+          include: [DB_LIFECYCLE_TESTS],
+          env,
+          // These checks create/drop databases while preserving another live
+          // connection. Keep their DDL out of ordinary suites' write load.
+          sequence: { groupOrder: 1 },
+          setupFiles: ["./src/test/setup.ts"],
         },
       },
     ],

@@ -15,5 +15,6 @@ DB-backed suites (`*.db.test.ts`) each run in a database of their own vitest wor
 
 ## Consequences
 
+- Template and worker names include a random ID generated once per Vitest invocation. The configured database is only a maintenance connection: overlapping invocations and worktrees never share test data or cleanup targets. Startup does not sweep previous runs; teardown removes only its own databases. A killed run's leftovers require `pnpm test:db:cleanup <run-id>`, using the ID printed at startup. Explicit selection keeps cleanup simple without guessing whether another run is still alive. This addresses the cross-run database deletion reproduced in #292, not the separate unexpected worker exits.
 - Test databases must be local (localhost or a Unix socket) and the role needs `CREATEDB`. `db/index.ts` refuses any other URL under vitest, so a test can never reach Neon.
 - Revisit if the suite becomes slow enough that rollback's speed matters, or if tests have to run against a hosted database without `CREATEDB`.

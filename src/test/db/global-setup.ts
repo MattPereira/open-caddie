@@ -4,12 +4,11 @@ import { Client } from "pg";
 import type { TestProject } from "vitest/node";
 
 import {
-  baseDatabaseName,
   connectionConfig,
-  isTestRunDatabase,
+  dropRunDatabases,
   quoteIdent,
+  runDatabaseName,
   templateName,
-  type TestEnv,
   withMaintenanceClient,
 } from "./databases";
 
@@ -22,11 +21,11 @@ export default async function setup(project: TestProject) {
       "TEST_DATABASE_URL must be set (in the environment or .env.test) to run the db project",
     );
   }
-  const base = baseDatabaseName(env);
-  const template = templateName(base);
+  const template = templateName(runDatabaseName(env));
+  console.log(
+    `[db] Test run ${env.TEST_DATABASE_RUN_ID}; cleanup: pnpm test:db:cleanup ${env.TEST_DATABASE_RUN_ID}`,
+  );
 
-  // Also clears databases left behind by a run that crashed before teardown.
-  await dropRunDatabases(env, base);
   await withMaintenanceClient(env, (client) =>
     client.query(`CREATE DATABASE ${quoteIdent(template)}`),
   );
@@ -42,20 +41,5 @@ export default async function setup(project: TestProject) {
     await templateClient.end();
   }
 
-  return () => dropRunDatabases(env, base);
-}
-
-async function dropRunDatabases(env: TestEnv, base: string) {
-  await withMaintenanceClient(env, async (client) => {
-    const { rows } = await client.query<{ datname: string }>(
-      "SELECT datname FROM pg_database",
-    );
-    for (const { datname } of rows) {
-      if (isTestRunDatabase(base, datname)) {
-        await client.query(
-          `DROP DATABASE IF EXISTS ${quoteIdent(datname)} WITH (FORCE)`,
-        );
-      }
-    }
-  });
+  return () => dropRunDatabases(env);
 }

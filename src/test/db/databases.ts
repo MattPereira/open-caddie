@@ -6,9 +6,6 @@ import {
   type ConnectionEnv,
 } from "@/db/connection";
 
-// Names and connections for the db project's template and worker databases,
-// all derived from the configured TEST_DATABASE_URL.
-
 export type TestEnv = ConnectionEnv;
 
 export function baseDatabaseName(env: TestEnv) {
@@ -18,6 +15,17 @@ export function baseDatabaseName(env: TestEnv) {
 function testDatabaseUrl(env: TestEnv) {
   if (!env.TEST_DATABASE_URL) throw new Error("TEST_DATABASE_URL is not set");
   return new URL(env.TEST_DATABASE_URL);
+}
+
+export function runDatabaseName(env: TestEnv) {
+  const id = env.TEST_DATABASE_RUN_ID;
+  if (!id || !/^[a-f0-9]{32}$/.test(id)) {
+    throw new Error(
+      "TEST_DATABASE_RUN_ID must be 32 lowercase hexadecimal characters",
+    );
+  }
+  // A fixed prefix avoids PostgreSQL's 63-byte truncation for long base names.
+  return `oc_test_${id}`;
 }
 
 export function templateName(base: string) {
@@ -61,6 +69,22 @@ export async function withMaintenanceClient<T>(
   } finally {
     await client.end();
   }
+}
+
+export async function dropRunDatabases(env: TestEnv) {
+  const run = runDatabaseName(env);
+  await withMaintenanceClient(env, async (client) => {
+    const { rows } = await client.query<{ datname: string }>(
+      "SELECT datname FROM pg_database",
+    );
+    for (const { datname } of rows) {
+      if (isTestRunDatabase(run, datname)) {
+        await client.query(
+          `DROP DATABASE IF EXISTS ${quoteIdent(datname)} WITH (FORCE)`,
+        );
+      }
+    }
+  });
 }
 
 export function quoteIdent(name: string) {

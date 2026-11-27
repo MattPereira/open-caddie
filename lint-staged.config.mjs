@@ -10,7 +10,7 @@ const EDITABLE_CODE = "*.{js,mjs,cjs,ts,tsx}";
 
 const config = {
   [EDITABLE_CODE]: [
-    "node scripts/check-file-tokens.mjs",
+    "node scripts/checks/check-file-tokens.mjs",
     "oxlint --fix --no-error-on-unmatched-pattern",
     "oxfmt --no-error-on-unmatched-pattern",
   ],
@@ -24,10 +24,10 @@ const config = {
   "{src/**,scripts/seed/**,scripts/dev/**,.dependency-cruiser.cjs,tsconfig.json}":
     () =>
       "depcruise --cache --cache-strategy content src scripts/seed scripts/dev",
-  "{src/**,.dependency-cruiser*.cjs,scripts/directive-files.cjs,tsconfig.json}":
+  "{src/**,.dependency-cruiser*.cjs,scripts/checks/directive-files.cjs,tsconfig.json}":
     () => "depcruise --config .dependency-cruiser.runtime.cjs src",
-  "{src/modules/**,scripts/check-module-tests.mjs}": () =>
-    "node scripts/check-module-tests.mjs",
+  "{src/modules/**,scripts/checks/check-module-tests.mjs}": () =>
+    "node scripts/checks/check-module-tests.mjs",
 
   // DB tests need Postgres, so only the unit project runs here.
   "*.{ts,tsx}": (files) =>

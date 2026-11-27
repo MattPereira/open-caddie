@@ -9,7 +9,7 @@ Review it with the code-review skill, .agents/skills/code-review/SKILL.md:
 - PR body: /tmp/pr-body.md, for the criteria the diff cannot show, like the
   evidence the ticket asks for
 
-A split that `scripts/check-file-tokens.mjs` forced is in scope for any
+A split that `scripts/checks/check-file-tokens.mjs` forced is in scope for any
 ticket: tell both axes so. Check moved code with
 `git diff --color-moved=plain --color-moved-ws=allow-indentation-change origin/{{BASE_REF}}...HEAD`,
 which shows any line that changed on the way.

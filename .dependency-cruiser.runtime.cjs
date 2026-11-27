@@ -9,7 +9,7 @@ const base = require("./.dependency-cruiser.cjs");
 const {
   exactPaths,
   filesWithDirective,
-} = require("./scripts/directive-files.cjs");
+} = require("./scripts/checks/directive-files.cjs");
 
 const R = "src/modules";
 

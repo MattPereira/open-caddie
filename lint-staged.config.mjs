@@ -21,8 +21,9 @@ const config = {
     "next typegen",
     "node node_modules/typescript-7/bin/tsc --noEmit",
   ],
-  "{src/**,.dependency-cruiser.cjs,tsconfig.json}": () =>
-    "depcruise --cache --cache-strategy content src",
+  "{src/**,scripts/seed/**,scripts/dev/**,.dependency-cruiser.cjs,tsconfig.json}":
+    () =>
+      "depcruise --cache --cache-strategy content src scripts/seed scripts/dev",
   "{src/**,.dependency-cruiser*.cjs,tsconfig.json}": () =>
     "depcruise --config .dependency-cruiser.runtime.cjs src/modules/*/index.ts",
   "{src/modules/**,scripts/check-module-tests.mjs}": () =>

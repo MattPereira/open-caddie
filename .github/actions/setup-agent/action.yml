@@ -107,15 +107,6 @@ runs:
         restore-keys: ${{ steps.dev-cache.outputs.prefix }}
 
     - name: Start the app
-      # One server per database: the seed on 3000, Bug Report n's snapshot on
-      # 3000 + n. Each gets its own distDir, whose data cache would otherwise
-      # leak rows between databases (see next.config.ts), and an AUTH_URL of
-      # its own address, since Auth.js rejects any other host. prod copies one
-      # build per server. dev runs serve-dev.sh, and only the seed's server
-      # gets the restored cache. Never give a snapshot's distDir a copy of it:
-      # Turbopack hangs on it and allocates ~700 MB/s until it is OOM-killed.
-      # The runner kills them at the end of the job. See
-      # docs/agents/agent-browser.md.
       shell: bash
       env:
         BUG_REPORTS: ${{ inputs.bug-reports }}
@@ -127,57 +118,4 @@ runs:
           *) echo "::error::app-mode must be prod or dev, not '$APP_MODE'."; exit 1 ;;
         esac
         echo "APP_MODE=$APP_MODE" >> "$GITHUB_ENV"
-
-        if [ "$APP_MODE" = prod ]; then
-          pnpm build
-        fi
-
-        start() {
-          local port=$1 database_url=$2 dist_dir=${3:-} tsconfig=${4:-}
-          local cmd=(pnpm start -p "$port")
-          if [ "$APP_MODE" = dev ]; then
-            cmd=("$GITHUB_ACTION_PATH/serve-dev.sh" "$port" "$dist_dir")
-          fi
-          DATABASE_URL="$database_url" AUTH_URL="http://localhost:$port" \
-            NEXT_DIST_DIR="$dist_dir" NEXT_TSCONFIG_PATH="$tsconfig" \
-            nohup "${cmd[@]}" >> "/tmp/app-$port.log" 2>&1 &
-        }
-
-        start 3000 "$DATABASE_URL"
-        ports=(3000)
-        for n in $BUG_REPORTS; do
-          port=$((3000 + n))
-          rm -rf ".next/bug-$n"
-          mkdir -p ".next/bug-$n"
-          if [ "$APP_MODE" = prod ]; then
-            rsync -a --exclude=/cache --exclude=/dev --exclude='/bug-*' .next/ ".next/bug-$n/"
-            start "$port" "${DATABASE_URL%/*}/open_caddie_bug_$n" ".next/bug-$n"
-          else
-            # See next.config.ts. Gitignored.
-            echo '{ "extends": "./tsconfig.json" }' > "tsconfig.bug-$n.json"
-            start "$port" "${DATABASE_URL%/*}/open_caddie_bug_$n" ".next/bug-$n" "tsconfig.bug-$n.json"
-          fi
-          ports+=("$port")
-        done
-
-        # In dev, the first request compiles the route, so give it longer. A
-        # server that finds its restored cache corrupt can hang: kill it, and
-        # serve-dev.sh restarts it without the cache, logging a
-        # "[setup-agent]" line. So a corruption after that line is a new one.
-        corrupt_since_restart='/\[setup-agent\]/ { c = 0 } /Cache corruption detected/ { c = 1 } END { exit !c }'
-        deadline=$((SECONDS + 300))
-        for port in "${ports[@]}"; do
-          until curl -s -o /dev/null --max-time 30 "http://localhost:$port/"; do
-            if [ "$SECONDS" -ge "$deadline" ]; then
-              echo "::error::The server on localhost:$port did not answer within five minutes."
-              cat "/tmp/app-$port.log"
-              exit 1
-            fi
-            if [ "$APP_MODE" = dev ] && awk "$corrupt_since_restart" "/tmp/app-$port.log"; then
-              echo "::warning::The dev server on localhost:$port found its cache corrupt; restarting it cold."
-              pkill -f "^node .*next dev -p $port\$" || true
-              sleep 5
-            fi
-            sleep 1
-          done
-        done
+        bash "$GITHUB_ACTION_PATH/start-$APP_MODE.sh"

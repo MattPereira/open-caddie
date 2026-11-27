@@ -1,6 +1,6 @@
 name: Save the seed's dev cache
 description: >-
-  Stops the seed's dev server that setup-agent started with app-mode dev, then
+  Stops the seed's dev server that setup-agent started with server-mode dev, then
   saves its Turbopack cache for the next run to restore. Make it the job's
   last step, with `if: always()`: the servers are gone after it. Does nothing
   when setup-agent did not start dev servers.
@@ -10,7 +10,7 @@ runs:
   steps:
     - name: Stop the seed's dev server
       id: stop
-      if: env.APP_MODE == 'dev' && env.NEXT_DEV_CACHE_KEY != ''
+      if: env.SERVER_MODE == 'dev' && env.NEXT_DEV_CACHE_KEY != ''
       shell: bash
       run: |
         set -uo pipefail

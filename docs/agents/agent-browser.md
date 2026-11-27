@@ -20,7 +20,7 @@ In the agent workflows, the app is already running, once per database:
 - Bug Report #n's snapshot: port 3000 + n, e.g. #12 on
   `http://localhost:3012`. See `docs/agents/live-bug-report.md`.
 
-`echo $APP_MODE` says how:
+`echo $SERVER_MODE` says how:
 
 - `dev`, in the roles that edit code (implement, implement-spec's build,
   review): `next dev`, so your edits show without a restart. A route's first

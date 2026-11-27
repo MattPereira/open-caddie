@@ -429,7 +429,7 @@ jobs:
       - name: Set up the agent run
         uses: ./.github/actions/setup-agent
         with:
-          app-mode: dev
+          server-mode: dev
 
       - name: Claim the ticket
         # Moving the label first is what stops a cron tick that lands during a

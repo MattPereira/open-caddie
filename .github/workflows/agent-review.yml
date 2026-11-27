@@ -275,7 +275,7 @@ jobs:
       - name: Set up the agent run
         uses: ./.github/actions/setup-agent
         with:
-          app-mode: dev
+          server-mode: dev
           bug-reports: ${{ steps.restore-bug-report-snapshots.outputs.bug-reports }}
 
       - name: Open the branch

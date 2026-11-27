@@ -63,7 +63,7 @@ jobs:
       - name: Set up the agent run
         uses: ./.github/actions/setup-agent
         with:
-          app-mode: dev
+          server-mode: dev
 
       - name: Time first compiles
         env:

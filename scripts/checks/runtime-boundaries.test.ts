@@ -68,7 +68,7 @@ beforeAll(async () => {
   for (const file of [
     ".dependency-cruiser.cjs",
     ".dependency-cruiser.runtime.cjs",
-    "scripts/directive-files.cjs",
+    "scripts/checks/directive-files.cjs",
     "tsconfig.json",
   ]) {
     await mkdir(dirname(join(dir, file)), { recursive: true });

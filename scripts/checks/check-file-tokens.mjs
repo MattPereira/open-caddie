@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Pre-commit guard: rejects source files too big for an agent to read in one go.
 // Tokens are estimated as bytes / 4; stat-only, so it stays fast on any file count.
-// Usage: node scripts/check-file-tokens.mjs <file>...
+// Usage: node scripts/checks/check-file-tokens.mjs <file>...
 import { statSync } from "node:fs";
 import { relative, sep } from "node:path";
 

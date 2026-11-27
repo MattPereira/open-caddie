@@ -6,13 +6,6 @@ It uses [agent-browser](https://github.com/vercel-labs/agent-browser), a CLI
 built for exactly this — one command per action, an answer on stdout. Its
 docs: https://agent-browser.dev/introduction.
 
-## Once, per machine
-
-```bash
-npm install -g agent-browser
-agent-browser install
-```
-
 ## Asking your own question
 
 In the agent workflows, the app is already running, once per database:

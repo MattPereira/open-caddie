@@ -1,88 +1,60 @@
 ---
-name: where-was-i
-description: Resume or park in-flight work across PRs, issues, and worktrees. Use when picking up where the human left off, or when they're leaving mid-work.
+name: prioritize
+description: Decide with the human what to work on next, from open issues, PRs, recent merges and worktrees. Use when they ask what to work on, what's next, or what to prioritize.
 ---
 
-# Where was I
+# Prioritize
 
-In-flight work lives in three places: GitHub (PRs, issues, blocking edges), git (worktrees, branches), and Orca (one comment per worktree). Those are the sources of truth. You rebuild the state from them every time and never keep a separate copy.
+Survey what's going on, propose a shortlist, then decide with the human in conversation. GitHub, git and Orca are the sources of truth: rebuild the picture from them every run and keep no priority list of your own.
 
-Two branches:
+## 1. Survey
 
-- **Resume**: the human is back and wants to know what's in flight. Go to [Resume](#resume).
-- **Park**: the human is leaving mid-work. Go to [Park](#park).
-
-## Resume
-
-### 1. Gather
-
-Run these in parallel from the repo's main checkout:
+Pull only the fields below for everything. Read full bodies and comments only for the shortlist in step 3; reading every body would fill your context before the conversation starts. Run these in parallel from the repo:
 
 ```bash
-gh pr list --author @me --json number,title,url,headRefName,isDraft,reviewDecision,mergeable,closingIssuesReferences,statusCheckRollup
-gh issue list --assignee @me --state open --json number,title,url,labels
+gh issue list --state open --limit 200 --json number,title,labels,assignees,blockedBy,blocking --jq '.[] | {number, title, labels: [.labels[].name], assignees: [.assignees[].login], blockedBy: [.blockedBy.nodes[]? | select(.state == "OPEN") | .number], blocking: [.blocking.nodes[]? | select(.state == "OPEN") | .number]}'
+gh pr list --state open --json number,title,author,headRefName,isDraft,reviewDecision,mergeable,statusCheckRollup,closingIssuesReferences
+gh pr list --state merged --search "merged:>=<7 days ago, YYYY-MM-DD>" --limit 100 --json number,title,mergedAt,closingIssuesReferences
 git worktree list --porcelain
 orca worktree ps      # per worktree: Orca comment, each agent's last ask and last reply
 ```
 
-Then, for each worktree:
+For each worktree other than the main checkout, `git -C <path> status -sb` shows dirty files and unpushed commits.
 
-```bash
-git -C <path> status -sb             # dirty files; ahead/behind its upstream ("no upstream" = never pushed)
-git -C <path> log --oneline origin/main..HEAD
-```
+Done when every open issue, open PR and worktree is in your picture with its state: blocked or startable, checks red or green, review pending or answered, pushed or not.
 
-For each issue an open PR closes, find the follow-ups that wait on it. These are the open issues it blocks:
+## 2. Rank
 
-```bash
-gh issue view <closed-issue> --json blocking --jq '.blocking.nodes[] | select(.state == "OPEN")'
-```
+Rank candidates in this order. The human can override it in the conversation.
 
-Also catch blocking that someone only wrote as text. Search open issues whose body mentions each PR or closed issue: `gh issue list --state open --search "<n> in:body"`.
+1. **In-flight**: finish or unblock what's already started. A PR with red checks, an unanswered review comment, or an approval waiting on a merge; a merge that unblocks follow-ups; a worktree with unpushed work or no PR.
+2. **Live bugs**: issues labelled `live-bug-report` or `bug`.
+3. **Leverage**: issues whose `blocking` list is longest.
+4. **Momentum**: issues that continue what merged in the last 7 days.
+5. Everything else.
 
-### 2. Group into threads
+Skip issues with an open blocker, and issues labelled `agent:in-progress` or assigned to someone else.
 
-A **thread** is one effort: its PRs, the issues they close, the follow-ups those block, and the worktrees where the work happens. Join on the PR's branch matching the worktree's branch, on `closingIssuesReferences`, and on the blocking edges.
+## 3. Shortlist
 
-Each thread's state comes from its facts:
+Read the body and comments of each candidate before you put it on the list: `gh issue view <n> --json number,title,body,labels,comments`, `gh pr view <n> --comments`.
 
-- PR: checks, review decision, mergeable, and whether there's a comment you haven't answered (`gh pr view <n> --comments`)
-- Follow-up: blocked, or ready to start
-- Worktree: dirty, unpushed, or no PR yet
-- Intent: the Orca comment and the agents' last ask and reply. This is what the human had in mind and couldn't write anywhere else.
+Report two lists, tersely. Refer to each item by its title with its number in the link.
 
-Work that belongs to no thread is **stray**: a worktree with unpushed commits or no PR, a dirty worktree, an assigned issue with nothing in flight. Stray work is the work most likely to be forgotten.
+- **For you**: about 3 items that need the human's judgement (`ready-for-human`, `needs-a-human`, in-flight PRs, untriaged issues), each with a one-line reason tied to the ranking above. Put your top pick first.
+- **For an agent**: unblocked `ready-for-agent` issues. Ask once whether to label them `agent:implement`. That label starts `.github/workflows/agent-implement.yml`, a billed cloud run that opens a draft PR, so apply it only to the issues the human says yes to.
 
-Done when every open PR, every worktree except the main checkout, and every assigned issue sits in exactly one thread or in the stray list.
+Below the lists, one line on what merged recently, so the human sees the momentum.
 
-### 3. Report
+## 4. Decide
 
-Be terse. Refer to each PR or issue by its title, with its number inside the link. Order:
+Invoke the `grilling` skill to settle the pick with the human: challenge the top pick, surface trade-offs between candidates, and ask anything the ranking couldn't answer.
 
-1. **Threads**: for each, one line per item with its state.
-2. **Stray**: each item and what to decide about it: push and open a PR, finish it, or delete the worktree.
-3. **Next actions**: a numbered list in dependency order. A merge that unblocks a follow-up comes before the follow-up.
+When the conversation shows an issue's triage label is wrong or missing, propose the label from `docs/agents/triage-labels.md` and apply it after the human agrees. Triage is a side effect: keep the decision moving.
 
-### 4. Offer fixes
+Done when the human has named what they'll work on next.
 
-List the fixes you found and ask before making any of them. Each one is a write to GitHub or git:
+## 5. Hand off
 
-- Turn a text-only "blocked by" into a native edge: `gh issue edit <follow-up> --add-blocked-by <blocker>`.
-- Link a worktree to its PR or issue: `orca worktree set --worktree path:<path> --pr <n>` or `--issue <n>`.
-
-## Park
-
-The human is about to leave. Capture what only exists in their head. GitHub and git already hold the rest.
-
-1. Pick the worktrees with in-flight work: dirty, unpushed, or with an open PR that has a pending next step.
-2. For each, set a one-line Orca comment that starts with `next:` and names the next concrete action:
-
-   ```bash
-   orca worktree set --worktree path:<path> --comment "next: answer review on #295, then start #297"
-   ```
-
-   Draft each line from what this session knows. The human corrects the drafts in one reply before you write them. Overwrite the old comment. It only holds what's next.
-
-3. Report any unpushed commits and ask whether to push them. Work that's only on this machine is lost if the machine is.
-
-Done when every in-flight worktree has a `next:` comment the human has approved.
+1. Assign the pick: `gh issue edit <n> --add-assignee @me`. For a PR, it's already theirs.
+2. Offer the next step that fits: start a worktree for it, or run `grilling` on the issue itself if its scope is fuzzy.

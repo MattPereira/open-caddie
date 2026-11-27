@@ -50,7 +50,7 @@ runs:
     - name: Prepare the databases
       # The repo's checks and pre-commit hook need a real database. It is
       # disposable: a fresh one on every run. The seed is a fixed world
-      # (src/seed/world.ts) for the agent to render and screenshot, so it
+      # (scripts/seed/world.ts) for the agent to render and screenshot, so it
       # never writes its own rows. Each Bug Report's database gets the
       # branch's migrations on top of prod's, as a deploy would apply them.
       # See docs/agents/agent-browser.md and docs/agents/live-bug-report.md.

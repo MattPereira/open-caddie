@@ -51,7 +51,7 @@ The issue is the change's whole scope. When it turns out wrong (it needs more, o
 
 1. Edit `src/db/schema.ts`.
 2. `pnpm db:generate`, then classify every statement in the new SQL against [Breaking statements](#breaking-statements). `db:generate` asking whether a column was renamed means it is about to emit a `RENAME`. A step of a rename or type change: read [EXPAND-CONTRACT.md](EXPAND-CONTRACT.md) for what the step contains.
-3. When the new schema needs data the seed lacks, add it to `src/seed/world.ts` through module entry points.
+3. When the new schema needs data the seed lacks, add it to `scripts/seed/world.ts` through module entry points.
 4. **Live code, new schema.** Apply the migration to the local database (`pnpm db:migrate`), then run `origin/main`'s code against it: `git worktree add ../open-caddie-live origin/main`, copy the `.env*.local` files in, `pnpm install` and `pnpm dev` there, sign in per the `local-dev` skill, and use every page that reads the changed tables. Remove the worktree after.
 5. `pnpm db:reset`.
 6. `pnpm check` and `pnpm db:check-breaking`.

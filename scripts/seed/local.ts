@@ -3,8 +3,8 @@ import { loadDatabaseUrl } from "@/db/env";
 
 import { prodCopyUrl } from "./prod-copy-url";
 
-// Every `src/seed` command runs this before it loads `@/db`, which connects
-// on import.
+// Every command in this folder that connects to a database, and
+// `dev:agent --prod`, runs this before it loads `@/db`, which connects on import.
 export function requireLocalDatabase() {
   const url = loadDatabaseUrl();
 

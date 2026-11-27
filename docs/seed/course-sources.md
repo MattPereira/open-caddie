@@ -2,7 +2,7 @@
 
 Reviewed 2026-11-24 for #258. Fictional amateur Players and Clubs play these real Courses; their rounds and results are invented. No real player results are represented.
 
-Course data lives in `src/seed/world/course-data.ts`. Yardages are yards. Use men's pars, stroke indexes and ratings, matching the app's existing single-rating-per-Tee model. Regular tees only; no composite tees or tournament-only setups. Keep these snapshots fixed until deliberately rechecking the sources and the seed scoring scenarios together.
+Course data lives in `scripts/seed/world/course-data.ts`. Yardages are yards. Use men's pars, stroke indexes and ratings, matching the app's existing single-rating-per-Tee model. Regular tees only; no composite tees or tournament-only setups. Keep these snapshots fixed until deliberately rechecking the sources and the seed scoring scenarios together.
 
 | Course                                | Seed tees                                                                                 | Sources                                                                                                                                                                                                                                                                                                                                |
 | ------------------------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -23,4 +23,4 @@ Royal County Down's displayed White OUT/IN subtotals contain a discrepancy: its 
 
 ## Preserved examples
 
-Mulligan Mafia has Past and Current Seasons, dead Tournament Skins and a Player winning multiple skins. Handicap Hustlers has a Standings tie. Matches include a plus Player Index Override, a mixed-Tee Three-Ball, a missing override and Four-Ball Match Skins carryovers. Changing Courses must preserve these behaviors; `src/seed/world.db.test.ts` exercises the real seed through module entry points.
+Mulligan Mafia has Past and Current Seasons, dead Tournament Skins and a Player winning multiple skins. Handicap Hustlers has a Standings tie. Matches include a plus Player Index Override, a mixed-Tee Three-Ball, a missing override and Four-Ball Match Skins carryovers. Changing Courses must preserve these behaviors; `scripts/seed/world.db.test.ts` exercises the real seed through module entry points.

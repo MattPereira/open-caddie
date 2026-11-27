@@ -66,3 +66,6 @@ stryker.log
 
 # setup-agent: per-server tsconfigs (see next.config.ts)
 /tsconfig.bug-*.json
+
+# `pnpm dev:agent`'s state and log, one server per checkout.
+/.dev-agent/

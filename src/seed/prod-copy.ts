@@ -1,9 +1,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 
-import { assertLocalConnection } from "@/db/connection";
-
-import { requireLocalDatabase } from "./local";
-import { PROD_COPY_DATABASE, prodCopyUrl } from "./prod-copy-url";
+import { requireProdCopyUrl } from "./local";
+import { PROD_COPY_DATABASE } from "./prod-copy-url";
 
 class ExitError extends Error {
   constructor(
@@ -15,17 +13,8 @@ class ExitError extends Error {
   }
 }
 
-requireLocalDatabase();
+const copyUrl = requireProdCopyUrl();
 const localUrl = process.env.DATABASE_URL ?? "";
-// The socket vars connect by DATABASE_NAME and ignore the database in
-// DATABASE_URL, so swapping it below would silently keep the seed.
-if (process.env.DATABASE_LOCAL_SOCKET) {
-  throw new Error(
-    "Set DATABASE_URL as a URL (postgresql:///open_caddie?host=/var/run/postgresql), not DATABASE_LOCAL_SOCKET",
-  );
-}
-const copyUrl = prodCopyUrl(localUrl);
-assertLocalConnection({ connectionString: copyUrl }, process.env);
 
 const [command, ...rest] = process.argv.slice(2);
 if (command === "copy") await copy();

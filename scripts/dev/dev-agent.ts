@@ -23,7 +23,7 @@ import {
   readAgentServer,
   stateFile,
 } from "./dev-agent-server";
-import { requireProdCopyUrl } from "./local";
+import { requireProdCopyUrl } from "../seed/local";
 
 const USAGE = "Usage: pnpm dev:agent [--prod] | pnpm dev:agent stop";
 const root = process.cwd();

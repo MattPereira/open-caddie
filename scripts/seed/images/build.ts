@@ -3,19 +3,12 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 
-import {
-  COURSE_PLANS,
-  type CoursePlan,
-} from "../../src/seed/world/course-data";
-import {
-  CLUB_IMAGES,
-  COURSE_IMAGES,
-  PLAYER_IMAGES,
-} from "../../src/seed/world/image-data";
+import { COURSE_PLANS, type CoursePlan } from "../world/course-data";
+import { CLUB_IMAGES, COURSE_IMAGES, PLAYER_IMAGES } from "../world/image-data";
 
-const root = fileURLToPath(new URL("../../", import.meta.url));
+const root = fileURLToPath(new URL("../../../", import.meta.url));
 const output = join(root, "public/seed");
-const raw = resolve(process.argv[2] ?? join(root, "scripts/seed-images/raw"));
+const raw = resolve(process.argv[2] ?? join(root, "scripts/seed/images/raw"));
 
 const groups = [
   { images: PLAYER_IMAGES, width: 256, height: 256, maxBytes: 30 * 1024 },

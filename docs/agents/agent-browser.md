@@ -86,7 +86,7 @@ change you are reporting on trust.
 
 The pages need data, and it comes from the seed: a fixed, fictional world of
 Players, six Courses, two Clubs with Past and Current Seasons of Tournaments,
-and Matches. `src/seed/world.ts` says
+and Matches. `scripts/seed/world.ts` says
 exactly what is in it. The agent workflows seed their database before you
 start.
 
@@ -100,7 +100,7 @@ Locally, `pnpm db:reset` empties, migrates and seeds it. The `local-dev`
 skill has the databases, the dev servers and the sign-in links.
 
 **Never write rows with SQL.** When a page needs data the seed lacks, add it
-to `src/seed/world.ts` through module entry points, in the same change, then
+to `scripts/seed/world.ts` through module entry points, in the same change, then
 `pnpm db:reset`. That keeps every screenshot reproducible.
 
 `db:seed`, `db:reset` and `db:sign-in` refuse any database that isn't local.
@@ -115,7 +115,7 @@ agent-browser open "$(pnpm -s db:sign-in admin)"   # a Platform Admin
 ```
 
 `ava@example.com` (Ava Lindqvist) is an ordinary Player. Every seeded Player
-but one has `<key>@example.com`, keyed as in `PLAYERS` in `src/seed/world.ts`.
+but one has `<key>@example.com`, keyed as in `PLAYERS` in `scripts/seed/world.ts`.
 
 Each link works once. The session lasts until you `close` the browser.
 `AUTH_SECRET` must be set, and the same in `pnpm db:sign-in` and the app.

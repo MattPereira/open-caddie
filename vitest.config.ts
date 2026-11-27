@@ -35,7 +35,13 @@ export default defineConfig({
     // next-auth imports `next/server` without an extension, which Node's ESM
     // resolver rejects; inlining lets Vite resolve it.
     server: { deps: { inline: ["next-auth"] } },
-    coverage: { include: ["src/**/*.{ts,tsx}"] },
+    coverage: {
+      include: [
+        "src/**/*.{ts,tsx}",
+        "scripts/seed/**/*.ts",
+        "scripts/dev/**/*.ts",
+      ],
+    },
     projects: [
       {
         extends: true,

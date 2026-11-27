@@ -1,4 +1,4 @@
-import { readAgentServer } from "./dev-agent-server";
+import { readAgentServer } from "../dev/dev-agent-server";
 import { requireLocalDatabase } from "./local";
 
 requireLocalDatabase();

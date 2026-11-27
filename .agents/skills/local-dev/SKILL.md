@@ -1,9 +1,11 @@
 ---
 name: local-dev
-description: Running the app locally. Use when starting the dev server, pointing it at the seed or a copy of prod, signing the human in, or setting up the local databases.
+description: Running the app on the human's machine. Use when starting the dev server, pointing it at the seed or a copy of prod, signing the human in, or setting up the local databases.
 ---
 
 # Local dev
+
+If `$SERVER_MODE` is set, you're in an agent workflow and setup already started the servers: use `docs/agents/agent-browser.md` instead.
 
 The app runs on a local Postgres, never on Neon. Two databases, one per dev server command:
 

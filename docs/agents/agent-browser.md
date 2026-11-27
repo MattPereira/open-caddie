@@ -30,10 +30,14 @@ In the agent workflows, the app is already running, once per database:
   (`next build`, then `next start`) of the code as it was when the job
   started, not your edits.
 
-Setup starts them and the runner stops them when the job ends. Don't build,
-start or kill a server: a dev server that dies comes back on its own, without
-its cache, so its routes compile again. A server's log, crashes and restarts
-included, is `/tmp/app-<port>.log`.
+Setup starts them and the runner stops them when the job ends. Don't start,
+stop or restart a server: a dev server that dies comes back on its own,
+without its cache, so its routes compile again. A server's log, crashes and
+restarts included, is `/tmp/app-<port>.log`.
+
+Don't run `pnpm build` either: it empties `.next` but for the seed's
+`.next/dev`, so every Bug Report's server answers 500 until the job ends. CI
+runs the build.
 
 After adding a migration, apply it to every database. The servers pick it up
 without a restart:

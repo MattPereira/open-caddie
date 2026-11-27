@@ -15,7 +15,7 @@ Each lane is named for who does the work.
 
 - **Human Required** (H): the human acts. They review or merge a PR, or start a session they drive in an Orca worktree. Trace: an assignee.
 - **Remote Factory** (R): a GitHub Actions run started by a label, on a billed cloud runner. A run never waits for the human: it ends with a draft PR or a labelled issue. The default lane for agent work. Trace: `agent:implement` or `agent:explore`, then `agent:in-progress`.
-- **Local Workers** (L): an Orca worker on the human's machine, started and supervised by this session. A worker can `ask` mid-task, so it is not a factory run, and the software-factory terms _run_ and _runner_ don't apply to it. Pick it when the work needs the human's machine (local Postgres, Orca, a prod copy, a machine-only bug) or their input along the way. Trace: `local-worker`, plus the worker's Orca worktree.
+- **Local Workers** (L): an Orca worker on the human's machine, started and supervised by this session. A worker can `ask` mid-task, so call it a _worker_, the human-in-the-loop counterpart to a factory run. Pick it when the work needs the human's machine (local Postgres, Orca, a prod copy, a machine-only bug) or their input along the way. Trace: `local-worker`, plus the worker's Orca worktree.
 
 **Housekeeping** (K) holds triage calls you can make from the issue body alone: a label, or `close` with the PR or issue that did the work. Triage that needs the code checked goes to Remote Factory as `agent:explore`. Triage that needs the human's judgement (product, policy, a data migration) goes to Human Required.
 
@@ -33,9 +33,9 @@ orca worktree ps      # per worktree: Orca comment, each agent's last ask and la
 
 For each worktree other than the main checkout, `git -C <path> status -sb` shows dirty files and unpushed commits.
 
-Match every `local-worker` issue to its worker's worktree: the worktree whose name starts with `<n>-` or whose Orca comment names `#<n>`. A live agent there means the worker is running; no worktree, or no agent in it, means it's gone.
+Match every `local-worker` issue to its worker's worktree: the worktree whose name starts with `<n>-` or whose Orca comment names `#<n>`. Its state is the first that holds: **done** when an open PR closes the issue (remove the label; the PR is a Human Required item), **running** when the worktree has a live agent, **gone** otherwise.
 
-Done when every open issue, open PR and worktree is in your picture with its state: blocked or startable, checks red or green, review pending or answered, pushed or not, worker running or gone.
+Done when every open issue, open PR and worktree is in your picture with its state: blocked or startable, checks red or green, review pending or answered, pushed or not, worker done, running or gone.
 
 ## 2. Rank
 
@@ -72,10 +72,16 @@ L1 [#300](…): untangle agent-browser doc by environment · needs local Orca to
 
 The description is about 8 words, in your own words from the body, so the human knows the item without clicking. The reason is about 4 words, tied to a rank from step 2; when a merge from the last 7 days unblocked the item, the reason names it.
 
-Put Housekeeping on one line, each call with its proposal and reason:
+Put Housekeeping on one line, each call with its proposal (a label from `docs/agents/triage-labels.md`, or `close`) and reason:
 
 ```
 Housekeeping: K1 [#215](…) close, done by #294 · K2 [#143](…) → ready-for-human, needs a backfill decision
+```
+
+When workers are running, add one line for them. Their mail goes to the session that started them:
+
+```
+Local Workers running: [#300](…), [#301](…)
 ```
 
 Below them, propose the plan: the top 1–2 items of each lane, about 5 in all, in the order to work them, Human Required first, plus every Housekeeping call.
@@ -95,13 +101,13 @@ The approval is the go-ahead. Act on every item in the plan:
 
 - **Human Required**: a `start` gets `gh issue edit <n> --add-assignee @me`, unless it's already assigned to them. Every other action is theirs.
 - **Remote Factory**: `gh issue edit <n> --add-label agent:implement`, or `agent:explore` for triage. Each label starts a billed cloud run, so label only the issues in the plan.
-- **Local Workers**: `gh issue edit <n> --add-label local-worker`, then start the worker from the main checkout:
+- **Local Workers**: before the first one, load the version-matched guide with `orca skills get orchestration`. Then `gh issue edit <n> --add-label local-worker`, and start the worker from the main checkout:
 
   ```bash
   orca orchestration worker-start --spec "Use the local-worker skill on <issue_url>." --worktree new-child --name <n>-<slug> --base-branch origin/main --comment "#<n> local-worker" --agent claude --json
   ```
 
-  `--agent codex` when the human asked for it. Keep each receipt's dispatch ID for step 6. Load the version-matched guide with `orca skills get orchestration` before the first start.
+  `--agent codex` when the human asked for it. Keep each receipt's dispatch ID for step 6. The PR gets no `agent:review`: the worker's skill runs `code-review` itself.
 - **Housekeeping**: apply the label and remove `needs-triage`, or `gh issue close <n> --comment "Done by #<m>."`.
 
 Then print the plan in the agreed order:
@@ -135,10 +141,10 @@ Skip this step when the plan started no worker. Otherwise this session is the co
 orca orchestration check --wait --types worker_done,escalation,question --timeout-ms 900000 --json
 ```
 
-Handle every message in a delivery, then pass `--ack <deliveryId>` on the next wait:
+Each check returns a batch and marks it handled. Handle every message in it, then wait again; a timeout with no mail means wait again too:
 
 - **question**: answer it from the issue, the docs or the code when you can. Otherwise put it to the human word for word, with your recommended answer, and reply with theirs.
-- **worker_done**: `gh issue edit <n> --remove-label local-worker`, then tell the human its outcome and PR link.
+- **worker_done**: `gh issue edit <n> --remove-label local-worker`, then `orca orchestration worker-release --dispatch <dispatchId>` unless the human is watching its chat. Tell the human its outcome and PR link.
 - **escalation**: follow the orchestration guide's recovery for its stop reason, and tell the human.
 
 Done when every worker you started has sent `worker_done` or been stopped, and you have reported each one: outcome, PR, open blockers. A worker that outlives this session gets picked up by the next kickoff through its label.

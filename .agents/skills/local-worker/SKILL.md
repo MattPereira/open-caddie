@@ -17,7 +17,7 @@ Done when you can say what "done" means for this issue in its own words, usually
 
 ## 2. Build it
 
-Build test-first: call the Skill tool with `tdd` at the seams the issue names. Run `pnpm typecheck` and the single test file you're changing as you go.
+Build test-first: call the Skill tool with `mattpocock-skills:tdd` at the seams the issue names. Run `pnpm typecheck` and the single test file you're changing as you go.
 
 When you need the app running, follow the `local-dev` skill: `pnpm dev:agent` gives this worktree its own server. Stop it with `pnpm dev:agent stop` when you're done checking.
 

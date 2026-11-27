@@ -53,7 +53,7 @@ Leave out issues with an open blocker, issues labelled `agent:in-progress`, `loc
 
 Read the body and comments of each item before you print it: `gh issue view <n> --json number,title,body,labels,comments`, `gh pr view <n> --comments`.
 
-Print the three lanes in this order, at most 5 items each, top pick first, then the Triage line. Leave out an empty lane.
+Print the three lanes in this order, at most 5 items each, top pick first, then Triage. Leave out an empty lane.
 
 | Lane | Holds |
 | --- | --- |
@@ -61,36 +61,49 @@ Print the three lanes in this order, at most 5 items each, top pick first, then 
 | **Remote Factory** | unblocked `ready-for-agent` issues; triage that needs the code checked |
 | **Local Workers** | unblocked `ready-for-agent` issues that need the human's machine or input along the way |
 
-Each lane starts with a header line that says what a pick does, so the human knows the consequence before replying. Bold only the lane name, not a Markdown heading:
+Each lane is a header line, then a table with one row per item. The header says what a pick does, so the human knows the consequence before replying. Bold only the lane name; don't use a Markdown heading. Put the action and every label name in backticks. Actions: `review`, `merge`, `fix`, `start` or `triage` in Human Required, `implement` or `explore` in Remote Factory, `build` in Local Workers.
 
 ```markdown
 **Human Required**: you act; a start assigns you
+
+| | Action | Item | What | Why |
+| --- | --- | --- | --- | --- |
+| H1 | `merge` | [#299](…) | skill that picks the next work | green and approved |
+| H2 | `start` | [#292](…) | local test flakes from shared test DB | assigned to you |
+
 **Remote Factory**: labels `agent:implement` or `agent:explore`, a billed cloud run
+
+| | Action | Item | What | Why |
+| --- | --- | --- | --- | --- |
+| R1 | `implement` | [#301](…) | move seed scripts out of src | follow-up from #296 |
+
 **Local Workers**: labels `local-worker`, starts an Orca worker this session supervises
+
+| | Action | Item | What | Why |
+| --- | --- | --- | --- | --- |
+| L1 | `build` | [#300](…) | untangle agent-browser doc by environment | needs local Orca to check |
 ```
 
-Write each item on one line, its action in backticks before the link: `review`, `merge`, `fix`, `start` or `triage` in Human Required, `implement` or `explore` in Remote Factory, `build` in Local Workers. Put every label name in backticks too. A Local Workers item's reason says why it can't run in the cloud.
+What is about 8 words, in your own words from the body, so the human knows the item without clicking. Why is about 4 words, tied to a rank from step 2; when a merge from the last 7 days unblocked the item, Why names it. A Local Workers item's Why says why it can't run in the cloud.
+
+Triage gets the same treatment. Its action is the proposal: `close`, or `→ <label>` with a label from `docs/agents/triage-labels.md`:
 
 ```markdown
-H1 `merge` [#299](…): skill that picks the next work · green and approved
-H2 `start` [#292](…): local test flakes from shared test DB · assigned to you
-R1 `implement` [#301](…): move seed scripts out of src · follow-up from #296
-L1 `build` [#300](…): untangle agent-browser doc by environment · needs local Orca to check
+**Triage**: calls that need no judgement
+
+| | Action | Item | Why |
+| --- | --- | --- | --- |
+| T1 | `close` | [#215](…) | done by #294 |
+| T2 | `→ ready-for-agent` | [#297](…) | unblocked by #295 |
 ```
 
-The description is about 8 words, in your own words from the body, so the human knows the item without clicking. The reason is about 4 words, tied to a rank from step 2; when a merge from the last 7 days unblocked the item, the reason names it.
-
-Put Triage on one line, each call with its proposal (a label from `docs/agents/triage-labels.md`, or `close`) and reason:
+When factory runs or workers are running, list them as bullets under **Running**, each with a description of about 6 words: issues labelled `agent:in-progress`, and `local-worker` issues whose worker is running. A worker's mail goes to the session that started it:
 
 ```markdown
-**Triage**: T1 `close` [#215](…) · done by #294 · T2 `→ ready-for-agent` [#297](…) · unblocked by #295
-```
+**Running**
 
-When factory runs or workers are running, add one line each: issues labelled `agent:in-progress`, and `local-worker` issues whose worker is running. A worker's mail goes to the session that started it:
-
-```markdown
-**Remote Factory running**: [#298](…)
-**Local Workers running**: [#300](…), [#301](…)
+- Remote Factory [#298](…): fold local orchestration into kickoff
+- Local Workers [#300](…): untangle agent-browser doc by environment
 ```
 
 Below them, propose the plan as a suggestion: the top 1–2 items of each lane, about 5 in all, in the order to work them, Human Required first, plus every Triage call.

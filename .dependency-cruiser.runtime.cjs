@@ -13,6 +13,10 @@ const {
 
 const R = "src/modules";
 
+/** @param {string} directive */
+const filesMarked = (directive) =>
+  exactPaths(filesWithDirective("src", directive));
+
 const SERVER_ONLY_CODE = [
   "^src/db/",
   `^${R}/[^/]+/server\\.ts$`,
@@ -35,7 +39,7 @@ module.exports = {
       comment:
         'A "use client" file is bundled into the browser, with everything it imports at runtime: no runtime path from it may reach the db, server-only, or any module\'s server.ts, not even through a shared helper.',
       severity: "error",
-      from: { path: exactPaths(filesWithDirective("src", "use client")) },
+      from: { path: filesMarked("use client") },
       to: { path: SERVER_ONLY_CODE, reachable: true },
     },
   ],
@@ -44,6 +48,6 @@ module.exports = {
     tsPreCompilationDeps: false,
     // A "use server" file reaches the browser as a server reference, not as
     // its code, so the server code behind a Server Action is no runtime path.
-    exclude: { path: exactPaths(filesWithDirective("src", "use server")) },
+    exclude: { path: filesMarked("use server") },
   },
 };

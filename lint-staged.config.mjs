@@ -24,8 +24,8 @@ const config = {
   "{src/**,scripts/seed/**,scripts/dev/**,.dependency-cruiser.cjs,tsconfig.json}":
     () =>
       "depcruise --cache --cache-strategy content src scripts/seed scripts/dev",
-  "{src/**,.dependency-cruiser*.cjs,tsconfig.json}": () =>
-    "depcruise --config .dependency-cruiser.runtime.cjs src/modules/*/index.ts",
+  "{src/**,.dependency-cruiser*.cjs,scripts/directive-files.cjs,tsconfig.json}":
+    () => "depcruise --config .dependency-cruiser.runtime.cjs src",
   "{src/modules/**,scripts/check-module-tests.mjs}": () =>
     "node scripts/check-module-tests.mjs",
 

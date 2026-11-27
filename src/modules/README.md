@@ -63,6 +63,15 @@ Entry points import the db directly (no DB injection); DB-backed tests use per-w
 
 ## Rules
 
-`pnpm lint:boundaries` and `pnpm lint` enforce the module rules. Both run in `pnpm check`, CI and the pre-commit hook. Each rule is defined, with a comment explaining it, in `.dependency-cruiser.cjs`, `.dependency-cruiser.runtime.cjs` (`index.ts` runs anywhere), `scripts/check-module-tests.mjs` (every module has tests) and `lint-rules/server-entry-guard.mjs` (`server.ts` starts with `import "server-only"`).
+`pnpm lint:boundaries` and `pnpm lint` enforce the module rules. Both run in `pnpm check`, CI and the pre-commit hook. Each rule is defined, with a comment explaining it, in `.dependency-cruiser.cjs`, `.dependency-cruiser.runtime.cjs` (`index.ts` runs anywhere; client components run in the browser), `scripts/check-module-tests.mjs` (every module has tests) and `lint-rules/server-entry-guard.mjs` (`server.ts` starts with `import "server-only"`).
+
+### Runtime checks
+
+`.dependency-cruiser.runtime.cjs` follows runtime imports only (type-only imports are erased, as in the bundle) from two kinds of starting file, and fails if any path reaches `src/db/`, a module's `server.ts` or `server-only`:
+
+- **`index-runs-anywhere`** starts from every module's `index.ts`.
+- **`client-runs-in-browser`** starts from every file under `src/` whose first statement is a `"use client"` directive, wherever it lives. It catches the path the `server-only` build guard misses: a client component importing a shared helper (in `src/lib`, say) that imports the db.
+
+A file whose first statement is `"use server"` is left out of the graph: a client component that imports a Server Action gets a server reference, not the action's code. Server components aren't checked; they may use `server.ts` freely. A failure prints the import chain, one file per line, from the client component to the server code.
 
 Modules may import non-module code (`src/lib`, `src/db`, …). Layering (which modules may depend on which) isn't enforced yet; the config has a commented stub.

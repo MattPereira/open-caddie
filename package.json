@@ -13,7 +13,7 @@
     "lint": "oxlint",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "lint:boundaries": "depcruise --cache --cache-strategy content src scripts/seed scripts/dev && depcruise --config .dependency-cruiser.runtime.cjs \"src/modules/*/index.ts\" && node scripts/check-module-tests.mjs",
+    "lint:boundaries": "depcruise --cache --cache-strategy content src scripts/seed scripts/dev && depcruise --config .dependency-cruiser.runtime.cjs src && node scripts/check-module-tests.mjs",
     "typecheck": "next typegen && node node_modules/typescript-7/bin/tsc --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",

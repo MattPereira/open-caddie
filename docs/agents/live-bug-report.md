@@ -3,10 +3,11 @@
 In the agent workflows, a Bug Report (an issue labelled `live-bug-report`) has
 a **snapshot**: prod as it was when the report was filed, with the branch's
 migrations on top. It lives in `open_caddie_bug_<n>`, beside the seeded
-database. Its app is already running, as a prod build, on port 3000 + n.
+database. Its app is already running on port 3000 + n, as a dev server or a
+build like the seed's (see `$SERVER_MODE` in `docs/agents/agent-browser.md`).
 Opening a URL from the report there shows the rows the reporter saw: for issue
 #12, `https://<prod host>/players/7` is `http://localhost:3012/players/7`. Don't
-build, start or kill a server; see `docs/agents/agent-browser.md`.
+start, stop or restart a server, or run `pnpm build`; see `docs/agents/agent-browser.md`.
 
 Point `db:sign-in` at the snapshot and its server:
 
@@ -21,3 +22,5 @@ DATABASE_URL="${DATABASE_URL%/*}/open_caddie_bug_12" \
   Say so.
 - Sign-in sessions and linked accounts are not copied.
 - `pnpm check` runs on the seed, not the snapshot.
+- A migration you add is not on the snapshot until you run
+  `DATABASE_URL="${DATABASE_URL%/*}/open_caddie_bug_<n>" pnpm db:migrate`.

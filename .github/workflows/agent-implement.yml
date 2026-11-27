@@ -177,6 +177,7 @@ jobs:
       - name: Set up the agent run
         uses: ./.github/actions/setup-agent
         with:
+          server-mode: dev
           bug-reports: ${{ steps.restore-bug-report-snapshots.outputs.bug-reports }}
 
       - name: Open the branch
@@ -346,3 +347,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh issue edit "$ISSUE_NUMBER" --remove-label "agent:in-progress" || true
+
+      - name: Save the dev servers' cache
+        if: always()
+        uses: ./.github/actions/save-dev-cache

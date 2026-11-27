@@ -18,7 +18,7 @@ Read CODING_STANDARDS.md.
   with, and none failing.
 - The review workflow checks you against the ticket's "Done when". Reread it
   before you stop.
-- `pnpm build` and `pnpm check` must pass too.
+- `pnpm check` must pass too. CI runs the build.
 - Commit with `git commit` on the current branch. When the pre-commit hook
   rejects a commit, fix the work and commit again. The hook stays as it is:
   no `--no-verify`, no edits to `.husky/`, `lint-staged.config.mjs` or

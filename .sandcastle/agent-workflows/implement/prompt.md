@@ -14,7 +14,7 @@ Read CODING_STANDARDS.md.
   action.
 - Ship tests with the code. End with more passing tests than you started
   with, and none failing.
-- `pnpm build` and `pnpm check` must pass too.
+- `pnpm check` must pass too. CI runs the build.
 - Commit with `git commit` on the current branch. When the pre-commit hook
   rejects a commit, fix the work and commit again. The hook stays as it is:
   no `--no-verify`, no edits to `.husky/`, `lint-staged.config.mjs` or

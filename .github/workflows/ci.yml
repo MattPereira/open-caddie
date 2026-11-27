@@ -15,6 +15,35 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  normal-memory:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: open_caddie
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 2s --health-retries 15
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/open_caddie
+      DATABASE_DRIVER: node-postgres
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-agent
+        with:
+          server-mode: dev
+      - name: Record normal server peak and ownership
+        run: |
+          curl -fsSL http://localhost:3000/ > /dev/null
+          curl -fsSL http://localhost:3000/sign-in > /dev/null
+          systemctl list-units 'setup-agent-*.scope' --no-legend --plain | while read -r unit rest; do
+            systemctl show "$unit" -p MemoryPeak -p MemoryMax -p MemorySwapMax -p Result
+          done
+          test -z "$(find . -user root -print -quit)"
+          echo 'PASS: normal setup-agent requests completed; checkout and .next runner-owned.'
   memory-check:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest

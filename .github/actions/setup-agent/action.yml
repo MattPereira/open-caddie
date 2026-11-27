@@ -3,7 +3,7 @@ description: >-
   Installs the toolchain, Claude Code and agent-browser, then migrates and
   seeds the job's Postgres service, and migrates each Bug Report's database
   that restore-bug-report-snapshots restored. Then it leaves the app running
-  on each, as a prod build or a hot-reloading dev server (app-mode): the seed
+  on each, as a build or a hot-reloading dev server (app-mode): the seed
   on localhost:3000, Bug Report n's on localhost:3000 + n. Run it after
   checkout (and restore-bug-report-snapshots, if any). The job must set
   DATABASE_URL and DATABASE_DRIVER=node-postgres.
@@ -15,11 +15,11 @@ inputs:
     default: ""
   app-mode:
     description: >-
-      prod runs `next start` on a build of the code as it was when setup ran.
+      build runs `next start` on a build of the code as it was when setup ran.
       dev runs `next dev`, so the agent's edits show without a restart: for
       the roles that edit code. Exported as APP_MODE.
     required: false
-    default: prod
+    default: build
 
 runs:
   using: composite
@@ -114,8 +114,8 @@ runs:
       run: |
         set -euo pipefail
         case "$APP_MODE" in
-          prod | dev) ;;
-          *) echo "::error::app-mode must be prod or dev, not '$APP_MODE'."; exit 1 ;;
+          build | dev) ;;
+          *) echo "::error::app-mode must be build or dev, not '$APP_MODE'."; exit 1 ;;
         esac
         echo "APP_MODE=$APP_MODE" >> "$GITHUB_ENV"
         bash "$GITHUB_ACTION_PATH/start-$APP_MODE.sh"

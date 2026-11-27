@@ -26,7 +26,7 @@ In the agent workflows, the app is already running, once per database:
   review): `next dev`, so your edits show without a restart. A route's first
   visit can take a few seconds while it compiles; a Bug Report's server always
   starts cold, so its first visits are the slow ones.
-- `prod`, in the roles that only read (explore, decompose): a prod build
+- `build`, in the roles that only read (explore, decompose): a build
   (`next build`, then `next start`) of the code as it was when the job
   started, not your edits.
 

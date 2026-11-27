@@ -15,7 +15,7 @@ const PROLOGUE_ITEM =
 
 /**
  * @param {string} source
- * @param {string} directive e.g. "use client"
+ * @param {string} directive
  */
 function hasDirective(source, directive) {
   let rest = source;
@@ -52,7 +52,6 @@ function filesWithDirective(dir, directive) {
 }
 
 /**
- * A regex source matching exactly these paths, for a dependency-cruiser rule.
  * Matches nothing when `paths` is empty.
  * @param {string[]} paths
  */

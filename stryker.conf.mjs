@@ -13,7 +13,7 @@ const config = {
     // can miss tests behind the `@` alias and conclude there are none.
     related: false,
   },
-  reporters: ["clear-text", "progress", "html"],
+  reporters: ["clear-text", "progress", "html", "json"],
   // "perTest"/"all" rely on the same related search. "off" runs the unit
   // suite for every mutant: slower per mutant, but reliable.
   coverageAnalysis: "off",

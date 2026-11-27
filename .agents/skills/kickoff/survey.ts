@@ -106,6 +106,14 @@ const COMMENT_CHARS = 400;
 const BOTS = new Set(["vercel", "github-actions"]);
 const BUG_LABELS = ["live-bug-report", "bug"];
 const HUMAN_LABELS = ["ready-for-human", "needs-a-human"];
+// What the implement prompts in .sandcastle/agent-workflows forbid the factory
+// to edit. survey.test.ts fails when this drifts from them.
+export const FACTORY_FORBIDDEN = [
+  ".github/",
+  ".husky/",
+  "lint-staged.config.mjs",
+  "core.hooksPath",
+];
 const RED = new Set([
   "FAILURE",
   "ERROR",
@@ -357,8 +365,19 @@ export function buildPicture(raw: Raw): Picture {
       human.push(item("start", humanLabel ?? ""));
     else if (has("needs-triage"))
       human.push({ ...item("triage", "needs-triage"), order: 4 });
-    else if (has("ready-for-agent"))
-      agent.push(stripOrder(item("implement", "ready-for-agent")));
+    else if (has("ready-for-agent")) {
+      const forbidden = FACTORY_FORBIDDEN.filter((p) => issue.body.includes(p));
+      agent.push(
+        stripOrder(
+          forbidden.length > 0
+            ? {
+                ...item("build", ""),
+                why: `edits ${forbidden.join(", ")}, factory can't`,
+              }
+            : item("implement", "ready-for-agent"),
+        ),
+      );
+    }
     else if (has("agent:blocked"))
       agent.push(stripOrder(item("explore", "agent:blocked")));
     else if (rank <= 3) human.push(item("triage", ""));

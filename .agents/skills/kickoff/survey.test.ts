@@ -1,6 +1,8 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   buildPicture,
+  FACTORY_FORBIDDEN,
   checklistRefs,
   checksState,
   orcaInfo,
@@ -312,6 +314,48 @@ describe("local workers", () => {
       },
       { path: "/wt/local", pr: null, why: "no PR, no upstream" },
     ]);
+  });
+  it("routes a ready-for-agent issue that names a factory-forbidden path to a local build", () => {
+    const result = picture({
+      issues: [
+        issue(1, {
+          labelNames: ["ready-for-agent"],
+          body: "Update `lint-staged.config.mjs` and `.github/actions/x.yml`.",
+        }),
+        issue(2, { labelNames: ["ready-for-agent"], body: "Edit src/a.ts." }),
+      ],
+    });
+    expect(
+      result.agent
+        .map(({ n, action, why }) => ({ n, action, why }))
+        .toSorted((a, b) => a.n - b.n),
+    ).toEqual([
+      {
+        n: 1,
+        action: "build",
+        why: "edits .github/, lint-staged.config.mjs, factory can't",
+      },
+      { n: 2, action: "implement", why: "ready-for-agent" },
+    ]);
+  });
+});
+
+describe("factory-forbidden paths", () => {
+  it.each([
+    "implement/prompt.md",
+    "implement-spec/build-prompt.md",
+  ])("FACTORY_FORBIDDEN matches what %s forbids", (prompt) => {
+    const text = readFileSync(
+      new URL(`../../../.sandcastle/agent-workflows/${prompt}`, import.meta.url),
+      "utf8",
+    );
+    const noEdits = text.match(/no edits to ([\s\S]+?`)\./)?.[1] ?? "";
+    const untouched = [...text.matchAll(/Leave `([^`]+)` untouched/g)];
+    const forbidden = [
+      ...[...noEdits.matchAll(/`([^`]+)`/g)].map((m) => m[1]),
+      ...untouched.map((m) => m[1]),
+    ];
+    expect(forbidden.toSorted()).toEqual(FACTORY_FORBIDDEN.toSorted());
   });
 });
 

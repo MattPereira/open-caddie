@@ -15,7 +15,7 @@ Each lane is named for who does the work.
 
 - **Human Required** (H): the human acts. They review or merge a PR, or start a session they drive in an Orca worktree. Trace: an assignee.
 - **Remote Factory** (R): a GitHub Actions run started by a label, on a billed cloud runner. A run never waits for the human: it ends with a draft PR or a labelled issue. The default lane for agent work. Trace: `agent:implement` or `agent:explore`, then `agent:in-progress`.
-- **Local Workers** (L): an Orca worker on the human's machine, started and supervised by this session. A worker can `ask` mid-task, so call it a _worker_, the human-in-the-loop counterpart to a factory run. Pick it when the work needs the human's machine (local Postgres, Orca, a prod copy, a machine-only bug) or their input along the way. Trace: `local-worker`, plus the worker's Orca worktree.
+- **Local Workers** (L): an Orca worker on the human's machine, started and supervised by this session. A worker can `ask` mid-task, so call it a _worker_, the human-in-the-loop counterpart to a factory run. Pick it when the work needs the human's machine (local Postgres, Orca, a prod copy, a machine-only bug), their input along the way, or edits to files the factory's prompts forbid it to touch, such as a workflow or the pre-commit hook config. A worker has no such ban, and the human reviews its PR. Trace: `local-worker`, plus the worker's Orca worktree.
 
 **Triage** (T) holds only mechanical calls, ones that need no judgement: `close` with the PR or issue that did the work, `ready-for-agent` for a fully specified issue whose blocker merged, or removing a stale label. Triage that needs the code checked goes to Remote Factory as `agent:explore`. Anything that needs a decision goes to Human Required as `triage`: product, policy, a data migration, or whether an issue is specified enough to build. Don't relabel it `ready-for-human` to route it there; the lane is the routing.
 
@@ -28,7 +28,7 @@ node .agents/skills/kickoff/survey.ts            # add --pretty to read it yours
 ```
 
 - `human`, `agent`, `triage`: candidates sorted in step 2's order, each with `n`, `title`, a proposed `action`, a `why` and its `rank`. The top 5 of `human` and `agent`, and every `triage` item, carry a `detail`: a body excerpt and the last non-bot comment.
-- `agent`: unblocked `ready-for-agent` issues (`implement`) and `agent:blocked` ones (`explore`). You pick Remote Factory or Local Workers for each.
+- `agent`: unblocked `ready-for-agent` issues (`implement`) and `agent:blocked` ones (`explore`). You pick Remote Factory or Local Workers for each. An issue whose body names a path the factory may not edit comes as `build`, for Local Workers. The survey only sees paths the body names, so route by hand an issue that clearly needs such an edit without naming the file.
 - `running`: `agent:in-progress` issues, and `local-worker` issues whose worker is live.
 - `worktrees`: every worktree but the main checkout, with its PR, git status, live agents, and `why` it's unfinished.
 - `unlabelled`: issues in no lane. `skipped`: issues left out for an open blocker or another assignee.
@@ -69,7 +69,7 @@ Print the three lanes in this order, at most 5 items each, top pick first, then 
 | --- | --- |
 | **Human Required** | PRs waiting on the human; issues assigned to them, `ready-for-human` or `needs-a-human`; their own worktrees with no PR; triage that needs their judgement; workers that are gone |
 | **Remote Factory** | unblocked `ready-for-agent` issues; triage that needs the code checked |
-| **Local Workers** | unblocked `ready-for-agent` issues that need the human's machine or input along the way |
+| **Local Workers** | unblocked `ready-for-agent` issues that need the human's machine, input along the way, or edits the factory may not make |
 
 Each lane is a header line, then a table with one row per item. The header says what a pick does, so the human knows the consequence before replying. Bold only the lane name; don't use a Markdown heading. Put the action and every label name in backticks. Actions: `review`, `merge`, `fix`, `start` or `triage` in Human Required, `implement` or `explore` in Remote Factory, `build` in Local Workers.
 

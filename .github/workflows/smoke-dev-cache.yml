@@ -42,10 +42,13 @@ jobs:
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/open_caddie
       DATABASE_DRIVER: node-postgres
-      CACHE_PREFIX: next-dev-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: Name the cache prefix
+        # setup-agent's, which job-level env can't compute: no runner or hashFiles there.
+        run: echo "CACHE_PREFIX=next-dev-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-" >> "$GITHUB_ENV"
 
       - name: Look up the cache setup-agent will restore
         # Same prefix as setup-agent, so the newest match is the one it gets.

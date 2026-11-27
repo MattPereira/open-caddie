@@ -93,7 +93,7 @@ runs:
       run: |
         prefix="next-dev-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-"
         echo "prefix=$prefix" >> "$GITHUB_OUTPUT"
-        echo "NEXT_DEV_CACHE_KEY=$prefix${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
+        echo "NEXT_DEV_CACHE_KEY=${prefix}${{ github.run_id }}-${{ github.run_attempt }}" >> "$GITHUB_ENV"
 
     - name: Restore the seed's dev cache
       # Turbopack's dev cache, so routes compile warm. Restore only: the job

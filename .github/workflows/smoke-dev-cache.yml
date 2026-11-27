@@ -82,10 +82,11 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
           total=0
           for route in /players /courses /matches /records /tournaments /clubs /login; do
-            read -r status secs < <(curl -s -o /dev/null --max-time 180 \
-              -w '%{http_code} %{time_total}' "http://localhost:3000$route")
+            out=$(curl -s -o /dev/null --max-time 180 \
+              -w '%{http_code} %{time_total}' "http://localhost:3000$route" || true)
+            status=${out% *} secs=${out#* }
             echo "| $route | $secs | $status |" >> "$GITHUB_STEP_SUMMARY"
-            total=$(echo "$total + $secs" | bc)
+            total=$(awk "BEGIN { print $total + ${secs:-0} }")
           done
           echo "| **total** | **$total** | |" >> "$GITHUB_STEP_SUMMARY"
           if [[ "$MATCHED" == *-corrupt ]] && ! grep -q '\[setup-agent\]' "$log"; then

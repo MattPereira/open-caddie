@@ -32,6 +32,8 @@ const FIXTURES = {
     'import { db } from "@/db";\nexport const load = () => db.query();\n',
   "src/lib/server-entry-helper.ts":
     'import { getRounds } from "@/modules/rounds/server";\nexport const load = () => getRounds();\n',
+  "src/lib/server-only-helper.ts":
+    'import "server-only";\nexport const secret = () => "s";\n',
   "src/lib/pure-helper.ts": "export const double = (n: number) => n * 2;\n",
   "src/lib/type-helper.ts":
     'import type { Round } from "@/db/schema";\nimport { type getRounds } from "@/modules/rounds/server";\nexport type Rounds = ReturnType<typeof getRounds> & Round[];\n',
@@ -44,6 +46,8 @@ const FIXTURES = {
     "// A comment may come before the directive.\n'use client'\nimport { load } from \"@/lib/server-entry-helper\";\nexport const B = () => load();\n",
   "src/components/server-only-direct.tsx":
     '"use client";\nimport "server-only";\nexport const C = () => null;\n',
+  "src/components/via-server-only-helper.tsx":
+    '"use client";\nimport { secret } from "@/lib/server-only-helper";\nexport const I = () => secret();\n',
   "src/components/pure.tsx":
     '"use client";\nimport { double } from "@/lib/pure-helper";\nimport { par } from "@/modules/rounds";\nexport const D = () => double(par);\n',
   "src/components/type-only.tsx":
@@ -125,6 +129,13 @@ describe("client-runs-in-browser", () => {
   it("rejects a client component that imports server-only", () => {
     const tos = clientViolationsFrom(
       "src/components/server-only-direct.tsx",
+    ).map((v) => v.to);
+    expect(tos).toEqual([expect.stringMatching(/node_modules\/server-only\//)]);
+  });
+
+  it("rejects a client component that reaches server-only through a helper", () => {
+    const tos = clientViolationsFrom(
+      "src/components/via-server-only-helper.tsx",
     ).map((v) => v.to);
     expect(tos).toEqual([expect.stringMatching(/node_modules\/server-only\//)]);
   });

@@ -67,3 +67,28 @@ Every course keeps a scorecard per tee with its rating and slope, plus its own l
 - **UI** — Tailwind CSS v4, shadcn/ui on Radix, Motion for animation
 - **Testing** — Vitest, with integration tests against a real Postgres instance
 - **Hosting** — Vercel, including a nightly cron job
+
+### Running tests
+
+`pnpm test` runs the full suite; `pnpm test:unit` and `pnpm test:integration`
+run the unit and database projects separately. Database tests require an existing
+local database in `TEST_DATABASE_URL` (environment or `.env.test`) and a role with
+`CREATEDB` permission.
+
+Each invocation automatically creates its own migrated template and worker
+databases, so overlapping runs and worktrees can use the same configuration.
+The configured database is used only for maintenance connections. Teardown
+removes only that invocation's databases.
+
+Database lifecycle regression tests run after the ordinary suites, keeping
+their database creation/deletion out of application tests' concurrent writes.
+
+If a run crashes or is killed, clean up its leftovers using the run ID printed
+at startup:
+
+```sh
+pnpm test:db:cleanup <run-id>
+```
+
+Use the same database configuration as the stopped run. Cleanup requires one
+explicit run ID; it never sweeps other runs or removes the configured database.

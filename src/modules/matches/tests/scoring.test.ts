@@ -251,6 +251,217 @@ describe("scoreMatchPlay", () => {
     ).toEqual([null, "player-3", null]);
   });
 
+  it("reports unavailable unless Four-Ball has exactly two full Match Teams of Match Rounds", () => {
+    const pair = (id: number) => ({
+      id,
+      rounds: [round(id * 10 + 1, 0), round(id * 10 + 2, 0)],
+    });
+    const cases = [
+      undefined,
+      [pair(1)],
+      [pair(1), pair(2), pair(3)],
+      [
+        pair(1),
+        {
+          id: 2,
+          rounds: [
+            round(21, 0),
+            { ...round(22, 0), kind: "tournament" as const },
+          ],
+        },
+      ],
+    ];
+    for (const teams of cases) {
+      expect(
+        scoreMatchPlay({
+          holes,
+          format: "four_ball_match_play",
+          rounds: [],
+          teams,
+        }),
+      ).toEqual({ status: "unavailable", reason: "teams" });
+    }
+  });
+
+  it("applies the 90% allowance to Four-Ball received strokes", () => {
+    const result = scoreMatchPlay({
+      holes,
+      format: "four_ball_match_play",
+      rounds: [],
+      teams: [
+        { id: 10, rounds: [round(1, 0), round(2, 0)] },
+        { id: 20, rounds: [round(3, 10), round(4, 0)] },
+      ],
+    });
+    if (result.status !== "ready") throw new Error("Expected ready Match Play");
+    const strokesForRound3 = result.contests[0].holes.map(
+      (hole) => hole.playerScores.find((s) => s.roundId === 3)?.receivedStrokes,
+    );
+    // 10 × 90% = 9 strokes, on handicap holes 1–9.
+    expect(strokesForRound3).toEqual([
+      ...Array(9).fill(1),
+      ...Array(9).fill(0),
+    ]);
+  });
+
+  it("counts a Four-Ball team's better ball and credits the partner who made it", () => {
+    const result = scoreMatchPlay({
+      holes,
+      format: "four_ball_match_play",
+      rounds: [],
+      teams: [
+        {
+          id: 10,
+          rounds: [round(1, 0, { 1: 5 }), round(2, 0, { 1: 4, 2: 4 })],
+        },
+        {
+          id: 20,
+          rounds: [round(3, 0, { 1: 5, 2: 5 }), round(4, 0, { 1: 5, 2: 5 })],
+        },
+      ],
+    });
+    if (result.status !== "ready") throw new Error("Expected ready Match Play");
+    const contest = result.contests[0];
+    expect(contest.teams.map((team) => team.roundIds)).toEqual([
+      [1, 2],
+      [3, 4],
+    ]);
+    for (const hole of contest.holes.slice(0, 2)) {
+      expect(hole).toMatchObject({
+        winningTeamId: "10",
+        teams: [
+          { grossScore: 4, netScore: 4 },
+          { grossScore: 5, netScore: 5 },
+        ],
+      });
+    }
+    expect(contest.holes[0].playerScores).toEqual([
+      {
+        roundId: 1,
+        teamId: "10",
+        netScore: 5,
+        receivedStrokes: 0,
+        wonHole: false,
+      },
+      {
+        roundId: 2,
+        teamId: "10",
+        netScore: 4,
+        receivedStrokes: 0,
+        wonHole: true,
+      },
+      {
+        roundId: 3,
+        teamId: "20",
+        netScore: 5,
+        receivedStrokes: 0,
+        wonHole: false,
+      },
+      {
+        roundId: 4,
+        teamId: "20",
+        netScore: 5,
+        receivedStrokes: 0,
+        wonHole: false,
+      },
+    ]);
+    // Round 1 has no score on hole 2; its partner's score still counts.
+    expect(contest.holes[1].playerScores.slice(0, 2)).toMatchObject([
+      { roundId: 1, netScore: null, wonHole: false },
+      { roundId: 2, netScore: 4, wonHole: true },
+    ]);
+  });
+
+  it("counts only holes both sides have scored as completed", () => {
+    const result = scoreMatchPlay({
+      holes,
+      format: "singles_match_play",
+      rounds: [round(1, 0, { 1: 4, 2: 4, 3: 4 }), round(2, 0, { 1: 4 })],
+    });
+    if (result.status !== "ready") throw new Error("Expected ready Match Play");
+    expect(result.contests[0]).toMatchObject({
+      holesCompleted: 1,
+      holesRemaining: 17,
+      state: "in_progress",
+    });
+  });
+
+  it("treats a hole with no recorded score row as unplayed", () => {
+    const sparse = {
+      ...round(1, 0, { 1: 4 }),
+      scores: [{ hole: 1, strokes: 4 }],
+    };
+    const result = scoreMatchPlay({
+      holes,
+      format: "singles_match_play",
+      rounds: [sparse, round(2, 0, { 1: 5, 2: 5 })],
+    });
+    if (result.status !== "ready") throw new Error("Expected ready Match Play");
+    expect(result.contests[0].holes.slice(0, 2)).toMatchObject([
+      { winningTeamId: "player-1" },
+      {
+        winningTeamId: null,
+        playerScores: [{ netScore: null }, { netScore: 5 }],
+      },
+    ]);
+  });
+
+  it("keeps a dormie match in progress when the lead equals holes remaining", () => {
+    const a = Object.fromEntries(
+      Array.from({ length: 16 }, (_, i) => [i + 1, 4]),
+    );
+    const result = scoreMatchPlay({
+      holes,
+      format: "singles_match_play",
+      rounds: [round(1, 0, a), round(2, 0, { ...a, 1: 5, 2: 5 })],
+    });
+    if (result.status !== "ready") throw new Error("Expected ready Match Play");
+    expect(result.contests[0]).toMatchObject({
+      state: "in_progress",
+      holesRemaining: 2,
+      finalStatus: { leadingTeamId: "player-1", holesUp: 2 },
+    });
+  });
+
+  it("nets holes won against holes lost in the running and final status", () => {
+    const result = scoreMatchPlay({
+      holes,
+      format: "singles_match_play",
+      rounds: [
+        round(1, 0, { 1: 4, 2: 4, 3: 4, 4: 5 }),
+        round(2, 0, { 1: 5, 2: 5, 3: 5, 4: 4, 5: 4 }),
+      ],
+    });
+    if (result.status !== "ready") throw new Error("Expected ready Match Play");
+    const contest = result.contests[0];
+    expect(contest.holes.slice(0, 5).map((hole) => hole.status)).toEqual([
+      { leadingTeamId: "player-1", holesUp: 1 },
+      { leadingTeamId: "player-1", holesUp: 2 },
+      { leadingTeamId: "player-1", holesUp: 3 },
+      { leadingTeamId: "player-1", holesUp: 2 },
+      null,
+    ]);
+    expect(contest.finalStatus).toEqual({
+      leadingTeamId: "player-1",
+      holesUp: 2,
+    });
+    expect(contest.teams.map((team) => team.holesWon)).toEqual([3, 1]);
+  });
+
+  it("does not decide a hole until both sides score, even on a net score of zero or below", () => {
+    const result = scoreMatchPlay({
+      holes,
+      format: "singles_match_play",
+      // 36 relative strokes: two on every hole.
+      rounds: [round(1, 0), round(2, 36, { 1: 1, 2: 2 })],
+    });
+    if (result.status !== "ready") throw new Error("Expected ready Match Play");
+    expect(result.contests[0].holes.slice(0, 2)).toMatchObject([
+      { winningTeamId: null, playerScores: [{}, { netScore: -1 }] },
+      { winningTeamId: null, playerScores: [{}, { netScore: 0 }] },
+    ]);
+  });
+
   it("scores Singles using relative Playing Handicaps", () => {
     const result = scoreMatchPlay({
       holes,
@@ -341,6 +552,30 @@ describe("scoreMatchSkins", () => {
       status: "unavailable",
       reason: "players_with_scores",
     });
+  });
+
+  it("reports unavailable while fewer than two players have recorded a score", () => {
+    expect(
+      scoreMatchSkins([round(1, 0, { 1: 4 }), round(2, 0)], holes),
+    ).toEqual({
+      status: "unavailable",
+      reason: "players_with_scores",
+    });
+  });
+
+  it("totals each player's received strokes and reports each hole's handicap", () => {
+    const fullRound = Object.fromEntries(holes.map(({ hole }) => [hole, 5]));
+    const result = scoreMatchSkins(
+      [round(1, 0, fullRound), round(2, 20, fullRound)],
+      holes,
+    );
+    if (result.status !== "ready") throw new Error("Expected ready Skins");
+    expect(result.players.map((player) => player.receivedStrokes)).toEqual([
+      0, 20,
+    ]);
+    expect(result.holes.map((hole) => hole.holeHandicap)).toEqual(
+      holes.map((hole) => hole.handicap),
+    );
   });
 
   it("awards no Skins on an incomplete hole", () => {
